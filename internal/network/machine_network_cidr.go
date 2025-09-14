@@ -436,12 +436,32 @@ func GetPrimaryMachineCidrForUserManagedNetwork(cluster *common.Cluster, log log
 
 	networks := GetInventoryNetworks([]*models.Host{bootstrap}, log)
 	if len(networks) > 0 {
-		// if there is ipv4 network, return it or return the first one
-		for _, network := range networks {
-			if IsIPV4CIDR(network) {
-				return network
+		// Check if cluster has primary IP stack preference
+		if cluster.PrimaryIPStack != nil {
+			if *cluster.PrimaryIPStack == common.PrimaryIPStackV6 {
+				// IPv6 is primary - prefer IPv6 network
+				for _, network := range networks {
+					if IsIPv6CIDR(network) {
+						return network
+					}
+				}
+			} else {
+				// IPv4 is primary - prefer IPv4 network
+				for _, network := range networks {
+					if IsIPV4CIDR(network) {
+						return network
+					}
+				}
+			}
+		} else {
+			// No primary IP stack set - default to IPv4 for backward compatibility
+			for _, network := range networks {
+				if IsIPV4CIDR(network) {
+					return network
+				}
 			}
 		}
+		// Fallback if preferred family not found
 		return networks[0]
 	}
 	return ""
@@ -486,11 +506,21 @@ func GetMachineNetworksFromBoostrapHost(cluster *common.Cluster, log logrus.Fiel
 		}
 	}
 
-	if v4net != "" {
-		res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v4net)})
-	}
-	if v6net != "" {
-		res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v6net)})
+	// Respect PrimaryIPStack for ordering networks
+	if cluster.PrimaryIPStack != nil && *cluster.PrimaryIPStack == common.PrimaryIPStackV6 {
+		if v6net != "" {
+			res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v6net)})
+		}
+		if v4net != "" {
+			res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v4net)})
+		}
+	} else {
+		if v4net != "" {
+			res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v4net)})
+		}
+		if v6net != "" {
+			res = append(res, &models.MachineNetwork{Cidr: models.Subnet(v6net)})
+		}
 	}
 
 	return res

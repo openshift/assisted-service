@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	auth "github.com/openshift/assisted-service/pkg/auth"
@@ -528,6 +529,214 @@ var _ = Describe("Get registries", func() {
 	})
 })
 
+var _ = Describe("VIP Dual-Stack Validation", func() {
+	var cluster common.Cluster
+
+	BeforeEach(func() {
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion: "4.12.0",
+				MachineNetworks: []*models.MachineNetwork{
+					{Cidr: "192.168.1.0/24"},
+					{Cidr: "2001:db8::/32"},
+				},
+			},
+		}
+	})
+
+	Describe("validateVIPAddressFamily - Dual Stack API VIPs", func() {
+		Context("OCP 4.12+ (IPv6-primary allowed)", func() {
+			It("accepts IPv4-first, IPv6-second API VIPs", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "192.168.1.100"},
+					{IP: "2001:db8::100"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("192.168.1.100"))
+				Expect(*errors[1]).To(Equal("2001:db8::100"))
+			})
+
+			It("accepts IPv6-first, IPv4-second API VIPs", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "2001:db8::100"},
+					{IP: "192.168.1.100"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("2001:db8::100"))
+				Expect(*errors[1]).To(Equal("192.168.1.100"))
+			})
+
+			It("accepts single IPv4 API VIP in dual-stack cluster", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "192.168.1.100"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(1))
+				Expect(*errors[0]).To(Equal("192.168.1.100"))
+			})
+
+			It("accepts single IPv6 API VIP in dual-stack cluster", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "2001:db8::100"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(1))
+				Expect(*errors[0]).To(Equal("2001:db8::100"))
+			})
+		})
+
+		Context("OCP 4.11 and below (IPv4-primary only)", func() {
+			BeforeEach(func() {
+				cluster.OpenshiftVersion = "4.11.0"
+			})
+
+			It("rejects IPv6-first API VIPs", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "2001:db8::100"},
+					{IP: "192.168.1.100"},
+				}
+				errors, err := validateVIPAddressFamily(false, cluster)
+				Expect(err).ToNot(BeNil())
+				Expect(errors).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("IPv6-primary dual-stack requires OpenShift 4.12+"))
+			})
+
+			It("accepts IPv4-first API VIPs", func() {
+				cluster.APIVips = []*models.APIVip{
+					{IP: "192.168.1.100"},
+					{IP: "2001:db8::100"},
+				}
+				errors, err := validateVIPAddressFamily(false, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("192.168.1.100"))
+				Expect(*errors[1]).To(Equal("2001:db8::100"))
+			})
+		})
+	})
+
+	Describe("validateVIPAddressFamily - Dual Stack Ingress VIPs", func() {
+		Context("OCP 4.12+ (IPv6-primary allowed)", func() {
+			It("accepts IPv4-first, IPv6-second Ingress VIPs", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "192.168.1.101"},
+					{IP: "2001:db8::101"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("192.168.1.101"))
+				Expect(*errors[1]).To(Equal("2001:db8::101"))
+			})
+
+			It("accepts IPv6-first, IPv4-second Ingress VIPs", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "2001:db8::101"},
+					{IP: "192.168.1.101"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("2001:db8::101"))
+				Expect(*errors[1]).To(Equal("192.168.1.101"))
+			})
+
+			It("accepts single IPv4 Ingress VIP in dual-stack cluster", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "192.168.1.101"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(1))
+				Expect(*errors[0]).To(Equal("192.168.1.101"))
+			})
+
+			It("accepts single IPv6 Ingress VIP in dual-stack cluster", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "2001:db8::101"},
+				}
+				errors, err := validateVIPAddressFamily(true, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(1))
+				Expect(*errors[0]).To(Equal("2001:db8::101"))
+			})
+		})
+
+		Context("OCP 4.11 and below (IPv4-primary only)", func() {
+			BeforeEach(func() {
+				cluster.OpenshiftVersion = "4.11.0"
+			})
+
+			It("rejects IPv6-first Ingress VIPs", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "2001:db8::101"},
+					{IP: "192.168.1.101"},
+				}
+				errors, err := validateVIPAddressFamily(false, cluster)
+				Expect(err).ToNot(BeNil())
+				Expect(errors).To(BeNil())
+				Expect(err.Error()).To(ContainSubstring("IPv6-primary dual-stack requires OpenShift 4.12+"))
+			})
+
+			It("accepts IPv4-first Ingress VIPs", func() {
+				cluster.IngressVips = []*models.IngressVip{
+					{IP: "192.168.1.101"},
+					{IP: "2001:db8::101"},
+				}
+				errors, err := validateVIPAddressFamily(false, cluster)
+				Expect(err).To(BeNil())
+				Expect(errors).To(HaveLen(2))
+				Expect(*errors[0]).To(Equal("192.168.1.101"))
+				Expect(*errors[1]).To(Equal("2001:db8::101"))
+			})
+		})
+	})
+
+	Describe("validateVIPAddressFamily - Mixed VIP types", func() {
+		It("validates both API and Ingress VIPs together", func() {
+			cluster.APIVips = []*models.APIVip{
+				{IP: "192.168.1.100"},
+				{IP: "2001:db8::100"},
+			}
+			cluster.IngressVips = []*models.IngressVip{
+				{IP: "192.168.1.101"},
+				{IP: "2001:db8::101"},
+			}
+			errors, err := validateVIPAddressFamily(true, cluster)
+			Expect(err).To(BeNil())
+			Expect(errors).To(HaveLen(4))
+			Expect(*errors[0]).To(Equal("192.168.1.100"))
+			Expect(*errors[1]).To(Equal("2001:db8::100"))
+			Expect(*errors[2]).To(Equal("192.168.1.101"))
+			Expect(*errors[3]).To(Equal("2001:db8::101"))
+		})
+
+		It("accepts mixed IPv4-first and IPv6-first VIPs (each type validated independently)", func() {
+			cluster.APIVips = []*models.APIVip{
+				{IP: "192.168.1.100"},
+				{IP: "2001:db8::100"},
+			}
+			cluster.IngressVips = []*models.IngressVip{
+				{IP: "2001:db8::101"},
+				{IP: "192.168.1.101"},
+			}
+			errors, err := validateVIPAddressFamily(true, cluster)
+			Expect(err).To(BeNil())
+			Expect(errors).To(HaveLen(4))
+			Expect(*errors[0]).To(Equal("192.168.1.100"))
+			Expect(*errors[1]).To(Equal("2001:db8::100"))
+			Expect(*errors[2]).To(Equal("2001:db8::101"))
+			Expect(*errors[3]).To(Equal("192.168.1.101"))
+		})
+	})
+})
+
 var _ = Describe("vip dhcp allocation", func() {
 	tests := []struct {
 		vipDHCPAllocation  bool
@@ -678,36 +887,70 @@ var _ = Describe("IPv6 support", func() {
 
 var _ = Describe("Machine Network amount and order", func() {
 	tests := []struct {
-		element []*models.MachineNetwork
-		valid   bool
+		element          []*models.MachineNetwork
+		valid            bool
+		description      string
+		openshiftVersion string
 	}{
 		{
-			element: []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}},
-			valid:   true,
+			element:          []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}},
+			valid:            true,
+			description:      "IPv4-primary dual-stack (all versions)",
+			openshiftVersion: "4.12.0",
 		},
 		{
-			// Invalid because violates the "IPv4 subnet as the first one" constraint
-			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
-			valid:   false,
+			element:          []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}},
+			valid:            true,
+			description:      "IPv4-primary dual-stack (4.13+)",
+			openshiftVersion: "4.13.0",
+		},
+		{
+			element:          []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
+			valid:            false,
+			description:      "IPv6-primary dual-stack (not supported in 4.11)",
+			openshiftVersion: "4.11.0",
+		},
+		{
+			element:          []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
+			valid:            true,
+			description:      "IPv6-primary dual-stack (supported in 4.13+)",
+			openshiftVersion: "4.13.0",
+		},
+		{
+			element:          []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}},
+			valid:            true,
+			description:      "IPv6-primary dual-stack (supported in 4.14+)",
+			openshiftVersion: "4.14.0",
 		},
 		{
 			// Invalid because violates the "exactly 2 networks" constraint
-			element: []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
-			valid:   false,
+			element:          []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
+			valid:            false,
+			description:      "too many networks",
+			openshiftVersion: "4.13.0",
 		},
 		{
-			// Invalid because violates the "exactly 2 networks" constraint
-			element: []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1.2.5.0/24"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
-			valid:   false,
+			// Invalid because missing IPv4 network
+			element:          []*models.MachineNetwork{{Cidr: "1002:db8::/119"}, {Cidr: "1003:db8::/119"}},
+			valid:            false,
+			description:      "dual IPv6 without IPv4",
+			openshiftVersion: "4.13.0",
+		},
+		{
+			// Invalid because missing IPv6 network
+			element:          []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1.2.6.0/24"}},
+			valid:            false,
+			description:      "dual IPv4 without IPv6",
+			openshiftVersion: "4.13.0",
 		},
 	}
 	for _, test := range tests {
 		t := test
-		It(fmt.Sprintf("Dual-stack machine network order validation. IP addresses/CIDRs: %v", t.element), func() {
+		It(fmt.Sprintf("Dual-stack machine network validation: %s (OCP %s). Networks: %v", t.description, t.openshiftVersion, t.element), func() {
 			if t.valid {
-				Expect(network.VerifyMachineNetworksDualStack(t.element, true)).ToNot(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion)).ToNot(HaveOccurred())
 			} else {
-				Expect(network.VerifyMachineNetworksDualStack(t.element, true)).To(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion)).To(HaveOccurred())
 			}
 		})
 	}

@@ -224,7 +224,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
 	targetConfiguration.LoadBalancer = params.LoadBalancer
-
+	targetConfiguration.OpenshiftVersion = swag.StringValue(params.OpenshiftVersion)
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
@@ -314,6 +314,10 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.MachineNetworks = params.MachineNetworks
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
+	// Copy fields that should be preserved from the existing cluster
+	targetConfiguration.OpenshiftVersion = cluster.OpenshiftVersion
+	targetConfiguration.CPUArchitecture = cluster.CPUArchitecture
+
 	if params.ControlPlaneCount != nil {
 		targetConfiguration.ControlPlaneCount = *params.ControlPlaneCount
 	}
@@ -322,6 +326,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 		targetConfiguration.LoadBalancer = params.LoadBalancer
 	}
 
+	targetConfiguration.PrimaryIPStack = cluster.PrimaryIPStack
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
@@ -436,17 +441,21 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 		}
 		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 0)))
 	} else if len(targetConfiguration.APIVips) == 2 {
-		if !network.IsIPv4Addr(network.GetApiVipById(&targetConfiguration, 0)) {
-			err = errors.Errorf("the first element of apiVIPs must be an IPv4 address. got: %s", network.GetApiVipById(&targetConfiguration, 0))
-			return nil, err
+		// Extract VIP addresses
+		vipAddresses := []string{
+			network.GetApiVipById(&targetConfiguration, 0),
+			network.GetApiVipById(&targetConfiguration, 1),
 		}
-		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 0)))
 
-		if !network.IsIPv6Addr(network.GetApiVipById(&targetConfiguration, 1)) {
-			err = errors.Errorf("the second element of apiVIPs must be an IPv6 address. got: %s", network.GetApiVipById(&targetConfiguration, 1))
+		// Validate dual-stack VIP ordering
+		if err = network.ValidateDualStackOrder(vipAddresses, "apiVIPs", "address", targetConfiguration.OpenshiftVersion, network.IsIPv4Addr, network.IsIPv6Addr); err != nil {
 			return nil, err
 		}
-		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 1)))
+
+		// Add to allAddresses for further processing
+		for _, addr := range vipAddresses {
+			allAddresses = append(allAddresses, swag.String(addr))
+		}
 	}
 
 	if len(targetConfiguration.IngressVips) == 1 {
@@ -456,17 +465,21 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 		}
 		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 0)))
 	} else if len(targetConfiguration.IngressVips) == 2 {
-		if !network.IsIPv4Addr(network.GetIngressVipById(&targetConfiguration, 0)) {
-			err = errors.Errorf("the first element of ingressVips must be an IPv4 address. got: %s", network.GetIngressVipById(&targetConfiguration, 0))
-			return nil, err
+		// Extract VIP addresses
+		vipAddresses := []string{
+			network.GetIngressVipById(&targetConfiguration, 0),
+			network.GetIngressVipById(&targetConfiguration, 1),
 		}
-		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 0)))
 
-		if !network.IsIPv6Addr(network.GetIngressVipById(&targetConfiguration, 1)) {
-			err = errors.Errorf("the second element of ingressVips must be an IPv6 address. got: %s", network.GetIngressVipById(&targetConfiguration, 1))
+		// Validate dual-stack VIP ordering
+		if err := network.ValidateDualStackOrder(vipAddresses, "ingressVips", "address", targetConfiguration.OpenshiftVersion, network.IsIPv4Addr, network.IsIPv6Addr); err != nil {
 			return nil, err
 		}
-		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 1)))
+
+		// Add to allAddresses for further processing
+		for _, addr := range vipAddresses {
+			allAddresses = append(allAddresses, swag.String(addr))
+		}
 	}
 	return allAddresses, nil
 }
@@ -499,7 +512,8 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	if err != nil {
 		return err
 	}
-	err = ValidateDualStackNetworks(targetConfiguration, false, false)
+
+	err = ValidateDualStackNetworks(targetConfiguration, false, false, targetConfiguration.OpenshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -587,7 +601,7 @@ func ValidateVIPsWereNotSetDhcpMode(apiVips []*models.APIVip, ingressVips []*mod
 	return nil
 }
 
-func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool) error {
+func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool, openshiftVersion string) error {
 	var machineNetworks []*models.MachineNetwork
 	var serviceNetworks []*models.ServiceNetwork
 	var clusterNetworks []*models.ClusterNetwork
@@ -601,6 +615,7 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 	clusterNetworks = network.DerefClusterNetworks(funk.Get(clusterParams, "ClusterNetworks"))
 	clusterLoadBalancer = network.DerefClusterLoadBalancer(funk.Get(clusterParams, "LoadBalancer"))
 
+	// Extract OpenShift version for version-aware validation
 	var targetLoadBalancerType string = models.LoadBalancerTypeClusterManaged
 	if alreadyUserManagedLoadBalancer {
 		targetLoadBalancerType = models.LoadBalancerTypeUserManaged
@@ -642,17 +657,17 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 
 	if reqDualStack {
 		if common.IsSliceNonEmpty(machineNetworks) {
-			if err := network.VerifyMachineNetworksDualStack(machineNetworks, true); err != nil {
+			if err := network.VerifyMachineNetworksDualStack(machineNetworks, true, openshiftVersion); err != nil {
 				return err
 			}
 		}
 		if common.IsSliceNonEmpty(serviceNetworks) {
-			if err := network.VerifyServiceNetworksDualStack(serviceNetworks, true); err != nil {
+			if err := network.VerifyServiceNetworksDualStack(serviceNetworks, true, openshiftVersion); err != nil {
 				return err
 			}
 		}
 		if common.IsSliceNonEmpty(clusterNetworks) {
-			if err := network.VerifyClusterNetworksDualStack(clusterNetworks, true); err != nil {
+			if err := network.VerifyClusterNetworksDualStack(clusterNetworks, true, openshiftVersion); err != nil {
 				return err
 			}
 		}
