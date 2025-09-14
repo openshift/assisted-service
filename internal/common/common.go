@@ -67,6 +67,8 @@ const (
 	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
 
 	MinimalVersionForSKipMCOReboot = "4.15"
+
+	MinimalVersionForIPV6PrimaryWithDualStack = "4.12"
 )
 
 type AddressFamily int

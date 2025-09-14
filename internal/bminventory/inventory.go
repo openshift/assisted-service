@@ -300,6 +300,30 @@ func NewBareMetalInventory(
 	}
 }
 
+func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
+	// Only for dual-stack clusters
+	if !network.CheckIfClusterIsDualStack(cluster) {
+		cluster.PrimaryIPStack = nil
+		return nil
+	}
+
+	// get primary IP stack based on current network configuration
+	primaryStack, err := network.GetPrimaryIPStack(
+		cluster.MachineNetworks,
+		cluster.APIVips,
+		cluster.IngressVips,
+		cluster.ServiceNetworks,
+		cluster.ClusterNetworks,
+	)
+	if err != nil {
+		return err
+	}
+
+	cluster.PrimaryIPStack = primaryStack
+
+	return nil
+}
+
 func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
 	return b.secretValidator.ValidatePullSecret(additionalPublicRegistries, secret, username, releaseImageURL)
 }
@@ -536,7 +560,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false); err != nil {
+	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil
@@ -664,6 +688,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		KubeKeyNamespace:            kubeKey.Namespace,
 		TriggerMonitorTimestamp:     time.Now(),
 		MachineNetworkCidrUpdatedAt: time.Now(),
+	}
+
+	err = b.setPrimaryIPStack(cluster)
+	if err != nil {
+		b.log.Debugf("cluster registration failed: unable to set primary IP stack: %v", err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
@@ -1312,6 +1342,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
+
+	b.orderClusterNetworks(cluster)
 
 	var autoAssigned bool
 
@@ -2089,7 +2121,8 @@ func (b *bareMetalInventory) validateUpdateCluster(
 	}
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
 	alreadyUserManagedLoadBalancer := network.IsLoadBalancerUserManaged(cluster)
-	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, alreadyUserManagedLoadBalancer); err != nil {
+
+	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, alreadyUserManagedLoadBalancer, cluster.OpenshiftVersion); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -2229,6 +2262,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		return nil, err
 	}
 
+	b.orderClusterNetworks(cluster)
+
 	if cluster != nil {
 		notifiableCluster := stream.GetNotifiableCluster(cluster)
 		err = b.stream.Notify(ctx, notifiableCluster)
@@ -2356,7 +2391,7 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 		primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	}
 
-	err := network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, true)
+	err := network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, true, cluster.OpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Warnf("Verify dual-stack machine networks")
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2728,6 +2763,7 @@ func (b *bareMetalInventory) updateNetworks(db *gorm.DB, params installer.V2Upda
 			}
 		}
 	}
+
 	if updated {
 		updates["trigger_monitor_timestamp"] = time.Now()
 		return b.updateNetworkTables(db, cluster, params)
@@ -2918,6 +2954,25 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 	if err = b.updateVips(db, params, cluster); err != nil {
 		return err
+	}
+
+	// Only set primary IP stack if any networks or VIPs were actually updated
+	if primaryIPStackNeedsUpdate := params.ClusterUpdateParams.ClusterNetworks != nil ||
+		params.ClusterUpdateParams.ServiceNetworks != nil ||
+		params.ClusterUpdateParams.MachineNetworks != nil ||
+		params.ClusterUpdateParams.APIVips != nil ||
+		params.ClusterUpdateParams.IngressVips != nil; primaryIPStackNeedsUpdate {
+
+		err = b.setPrimaryIPStack(cluster)
+		if err != nil {
+			return err
+		}
+
+		if cluster.PrimaryIPStack != nil {
+			updates["primary_ip_stack"] = *cluster.PrimaryIPStack
+		} else {
+			updates["primary_ip_stack"] = nil
+		}
 	}
 
 	b.setUsage(vipDhcpAllocation, usage.VipDhcpAllocationUsage, nil, usages)
@@ -3359,6 +3414,9 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 			// Clear this field as it is not needed to be sent via API
 			h.FreeAddresses = ""
 		}
+
+		b.orderClusterNetworks(c)
+
 		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
@@ -3385,6 +3443,8 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	if err != nil {
 		return nil, err
 	}
+
+	b.orderClusterNetworks(cluster)
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
@@ -4284,6 +4344,8 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 		return nil, err
 	}
 
+	b.orderClusterNetworks(cluster)
+
 	return cluster, nil
 }
 
@@ -4514,6 +4576,7 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 		log.Error(err)
 		return nil, err
 	}
+
 	return cluster, nil
 }
 
@@ -6944,6 +7007,17 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Contex
 	b.log.Infof("ignition generated for cluster for agent installer kubeconfig %s", cluster.ID.String())
 
 	return nil
+}
+
+// orderClusterNetworks orders cluster networks according to PrimaryIPStack
+func (b *bareMetalInventory) orderClusterNetworks(cluster *common.Cluster) {
+	if cluster.PrimaryIPStack != nil {
+		cluster.ClusterNetworks = network.OrderNetworksByPrimaryStack(cluster.ClusterNetworks, *cluster.PrimaryIPStack).([]*models.ClusterNetwork)
+		cluster.ServiceNetworks = network.OrderNetworksByPrimaryStack(cluster.ServiceNetworks, *cluster.PrimaryIPStack).([]*models.ServiceNetwork)
+		cluster.MachineNetworks = network.OrderNetworksByPrimaryStack(cluster.MachineNetworks, *cluster.PrimaryIPStack).([]*models.MachineNetwork)
+		cluster.APIVips = network.OrderNetworksByPrimaryStack(cluster.APIVips, *cluster.PrimaryIPStack).([]*models.APIVip)
+		cluster.IngressVips = network.OrderNetworksByPrimaryStack(cluster.IngressVips, *cluster.PrimaryIPStack).([]*models.IngressVip)
+	}
 }
 
 // extractMirroredRegistriesFromConfig takes a MirrorRegistryConfiguration and returns a list of source
