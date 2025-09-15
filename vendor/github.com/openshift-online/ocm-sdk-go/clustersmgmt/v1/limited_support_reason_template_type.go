@@ -53,7 +53,7 @@ func (o *LimitedSupportReasonTemplate) Kind() string {
 	return LimitedSupportReasonTemplateKind
 }
 
-// Link returns true iif this is a link.
+// Link returns true if this is a link.
 func (o *LimitedSupportReasonTemplate) Link() bool {
 	return o != nil && o.bitmap_&1 != 0
 }
@@ -102,7 +102,7 @@ func (o *LimitedSupportReasonTemplate) Empty() bool {
 // Details returns the value of the 'details' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
-// URL with a link to a detailed description of the reason.
+// A detailed description of the reason.
 func (o *LimitedSupportReasonTemplate) Details() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.details
@@ -113,7 +113,7 @@ func (o *LimitedSupportReasonTemplate) Details() string {
 // GetDetails returns the value of the 'details' attribute and
 // a flag indicating if the attribute has a value.
 //
-// URL with a link to a detailed description of the reason.
+// A detailed description of the reason.
 func (o *LimitedSupportReasonTemplate) GetDetails() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -204,6 +204,29 @@ func (l *LimitedSupportReasonTemplateList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonTemplateList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonTemplateList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *LimitedSupportReasonTemplateList) SetItems(items []*LimitedSupportReasonTemplate) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *LimitedSupportReasonTemplateList) Items() []*LimitedSupportReasonTemplate {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

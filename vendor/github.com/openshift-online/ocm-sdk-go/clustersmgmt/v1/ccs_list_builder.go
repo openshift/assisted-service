@@ -37,6 +37,11 @@ func (b *CCSListBuilder) Items(values ...*CCSBuilder) *CCSListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *CCSListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *CCSListBuilder) Copy(list *CCSList) *CCSListBuilder {
 	if list == nil || list.items == nil {

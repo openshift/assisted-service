@@ -20,8 +20,6 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 // SummaryMetrics represents the values of the 'summary_metrics' type.
-//
-//
 type SummaryMetrics struct {
 	bitmap_ uint32
 	name    string
@@ -35,8 +33,6 @@ func (o *SummaryMetrics) Empty() bool {
 
 // Name returns the value of the 'name' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummaryMetrics) Name() string {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.name
@@ -46,8 +42,6 @@ func (o *SummaryMetrics) Name() string {
 
 // GetName returns the value of the 'name' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummaryMetrics) GetName() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -58,8 +52,6 @@ func (o *SummaryMetrics) GetName() (value string, ok bool) {
 
 // Vector returns the value of the 'vector' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *SummaryMetrics) Vector() []*SummarySample {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.vector
@@ -69,8 +61,6 @@ func (o *SummaryMetrics) Vector() []*SummarySample {
 
 // GetVector returns the value of the 'vector' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *SummaryMetrics) GetVector() (value []*SummarySample, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -104,6 +94,29 @@ func (l *SummaryMetricsList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *SummaryMetricsList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *SummaryMetricsList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *SummaryMetricsList) SetItems(items []*SummaryMetrics) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *SummaryMetricsList) Items() []*SummaryMetrics {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

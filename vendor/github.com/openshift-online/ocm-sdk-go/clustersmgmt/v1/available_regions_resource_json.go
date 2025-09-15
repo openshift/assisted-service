@@ -21,34 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readAvailableRegionsSearchRequest(request *AvailableRegionsSearchServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.page, err = helpers.ParseInteger(query, "page")
-	if err != nil {
-		return err
-	}
-	if request.page == nil {
-		request.page = helpers.NewInteger(1)
-	}
-	request.size, err = helpers.ParseInteger(query, "size")
-	if err != nil {
-		return err
-	}
-	if request.size == nil {
-		request.size = helpers.NewInteger(100)
-	}
-	request.body, err = UnmarshalAWS(r)
-	if err != nil {
-		return err
-	}
-	return nil
-}
 func writeAvailableRegionsSearchRequest(request *AvailableRegionsSearchRequest, writer io.Writer) error {
 	return MarshalAWS(request.body, writer)
 }
@@ -73,7 +49,7 @@ func readAvailableRegionsSearchResponse(response *AvailableRegionsSearchResponse
 			value := iterator.ReadInt()
 			response.total = &value
 		case "items":
-			items := readCloudRegionList(iterator)
+			items := ReadCloudRegionList(iterator)
 			response.items = &CloudRegionList{
 				items: items,
 			}
@@ -82,56 +58,4 @@ func readAvailableRegionsSearchResponse(response *AvailableRegionsSearchResponse
 		}
 	}
 	return iterator.Error
-}
-func writeAvailableRegionsSearchResponse(response *AvailableRegionsSearchServerResponse, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.status)
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	stream.WriteObjectField("kind")
-	count := 1
-	stream.WriteString(CloudRegionListKind)
-	if response.items != nil && response.items.href != "" {
-		stream.WriteMore()
-		stream.WriteObjectField("href")
-		stream.WriteString(response.items.href)
-		count++
-	}
-	if response.page != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("page")
-		stream.WriteInt(*response.page)
-		count++
-	}
-	if response.size != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("size")
-		stream.WriteInt(*response.size)
-		count++
-	}
-	if response.total != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("total")
-		stream.WriteInt(*response.total)
-		count++
-	}
-	if response.items != nil {
-		if response.items.items != nil {
-			if count > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteObjectField("items")
-			writeCloudRegionList(response.items.items, stream)
-			count++
-		}
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }

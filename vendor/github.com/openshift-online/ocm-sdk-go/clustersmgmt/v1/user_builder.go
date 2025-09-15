@@ -53,6 +53,11 @@ func (b *UserBuilder) HREF(value string) *UserBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *UserBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Copy copies the attributes of the given object into this builder, discarding any previous values.
 func (b *UserBuilder) Copy(object *User) *UserBuilder {
 	if object == nil {

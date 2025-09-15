@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -31,13 +30,16 @@ import (
 // MarshalUpgradePolicy writes a value of the 'upgrade_policy' type to the given writer.
 func MarshalUpgradePolicy(object *UpgradePolicy, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeUpgradePolicy(object, stream)
-	stream.Flush()
+	WriteUpgradePolicy(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeUpgradePolicy writes a value of the 'upgrade_policy' type to the given stream.
-func writeUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
+// WriteUpgradePolicy writes a value of the 'upgrade_policy' type to the given stream.
+func WriteUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -78,11 +80,20 @@ func writeUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("enable_minor_version_upgrades")
+		stream.WriteBool(object.enableMinorVersionUpgrades)
+		count++
+	}
+	present_ = object.bitmap_&32 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("next_run")
 		stream.WriteString((object.nextRun).Format(time.RFC3339))
 		count++
 	}
-	present_ = object.bitmap_&32 != 0
+	present_ = object.bitmap_&64 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
@@ -91,22 +102,13 @@ func writeUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
 		stream.WriteString(object.schedule)
 		count++
 	}
-	present_ = object.bitmap_&64 != 0
-	if present_ {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("schedule_type")
-		stream.WriteString(object.scheduleType)
-		count++
-	}
 	present_ = object.bitmap_&128 != 0
 	if present_ {
 		if count > 0 {
 			stream.WriteMore()
 		}
-		stream.WriteObjectField("upgrade_type")
-		stream.WriteString(object.upgradeType)
+		stream.WriteObjectField("schedule_type")
+		stream.WriteString(string(object.scheduleType))
 		count++
 	}
 	present_ = object.bitmap_&256 != 0
@@ -114,9 +116,17 @@ func writeUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
 		if count > 0 {
 			stream.WriteMore()
 		}
+		stream.WriteObjectField("upgrade_type")
+		stream.WriteString(string(object.upgradeType))
+		count++
+	}
+	present_ = object.bitmap_&512 != 0
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
 		stream.WriteObjectField("version")
 		stream.WriteString(object.version)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -124,20 +134,17 @@ func writeUpgradePolicy(object *UpgradePolicy, stream *jsoniter.Stream) {
 // UnmarshalUpgradePolicy reads a value of the 'upgrade_policy' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalUpgradePolicy(source interface{}) (object *UpgradePolicy, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readUpgradePolicy(iterator)
+	object = ReadUpgradePolicy(iterator)
 	err = iterator.Error
 	return
 }
 
-// readUpgradePolicy reads a value of the 'upgrade_policy' type from the given iterator.
-func readUpgradePolicy(iterator *jsoniter.Iterator) *UpgradePolicy {
+// ReadUpgradePolicy reads a value of the 'upgrade_policy' type from the given iterator.
+func ReadUpgradePolicy(iterator *jsoniter.Iterator) *UpgradePolicy {
 	object := &UpgradePolicy{}
 	for {
 		field := iterator.ReadObject()
@@ -160,6 +167,10 @@ func readUpgradePolicy(iterator *jsoniter.Iterator) *UpgradePolicy {
 			value := iterator.ReadString()
 			object.clusterID = value
 			object.bitmap_ |= 8
+		case "enable_minor_version_upgrades":
+			value := iterator.ReadBool()
+			object.enableMinorVersionUpgrades = value
+			object.bitmap_ |= 16
 		case "next_run":
 			text := iterator.ReadString()
 			value, err := time.Parse(time.RFC3339, text)
@@ -167,23 +178,25 @@ func readUpgradePolicy(iterator *jsoniter.Iterator) *UpgradePolicy {
 				iterator.ReportError("", err.Error())
 			}
 			object.nextRun = value
-			object.bitmap_ |= 16
+			object.bitmap_ |= 32
 		case "schedule":
 			value := iterator.ReadString()
 			object.schedule = value
-			object.bitmap_ |= 32
-		case "schedule_type":
-			value := iterator.ReadString()
-			object.scheduleType = value
 			object.bitmap_ |= 64
-		case "upgrade_type":
-			value := iterator.ReadString()
-			object.upgradeType = value
+		case "schedule_type":
+			text := iterator.ReadString()
+			value := ScheduleType(text)
+			object.scheduleType = value
 			object.bitmap_ |= 128
+		case "upgrade_type":
+			text := iterator.ReadString()
+			value := UpgradeType(text)
+			object.upgradeType = value
+			object.bitmap_ |= 256
 		case "version":
 			value := iterator.ReadString()
 			object.version = value
-			object.bitmap_ |= 256
+			object.bitmap_ |= 512
 		default:
 			iterator.ReadAny()
 		}

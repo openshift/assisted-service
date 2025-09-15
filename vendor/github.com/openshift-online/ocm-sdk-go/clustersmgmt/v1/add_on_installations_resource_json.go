@@ -21,16 +21,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
-func readAddOnInstallationsAddRequest(request *AddOnInstallationsAddServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalAddOnInstallation(r.Body)
-	return err
-}
 func writeAddOnInstallationsAddRequest(request *AddOnInstallationsAddRequest, writer io.Writer) error {
 	return MarshalAddOnInstallation(request.body, writer)
 }
@@ -38,36 +32,6 @@ func readAddOnInstallationsAddResponse(response *AddOnInstallationsAddResponse, 
 	var err error
 	response.body, err = UnmarshalAddOnInstallation(reader)
 	return err
-}
-func writeAddOnInstallationsAddResponse(response *AddOnInstallationsAddServerResponse, w http.ResponseWriter) error {
-	return MarshalAddOnInstallation(response.body, w)
-}
-func readAddOnInstallationsListRequest(request *AddOnInstallationsListServerRequest, r *http.Request) error {
-	var err error
-	query := r.URL.Query()
-	request.order, err = helpers.ParseString(query, "order")
-	if err != nil {
-		return err
-	}
-	request.page, err = helpers.ParseInteger(query, "page")
-	if err != nil {
-		return err
-	}
-	if request.page == nil {
-		request.page = helpers.NewInteger(1)
-	}
-	request.search, err = helpers.ParseString(query, "search")
-	if err != nil {
-		return err
-	}
-	request.size, err = helpers.ParseInteger(query, "size")
-	if err != nil {
-		return err
-	}
-	if request.size == nil {
-		request.size = helpers.NewInteger(100)
-	}
-	return nil
 }
 func writeAddOnInstallationsListRequest(request *AddOnInstallationsListRequest, writer io.Writer) error {
 	return nil
@@ -93,7 +57,7 @@ func readAddOnInstallationsListResponse(response *AddOnInstallationsListResponse
 			value := iterator.ReadInt()
 			response.total = &value
 		case "items":
-			items := readAddOnInstallationList(iterator)
+			items := ReadAddOnInstallationList(iterator)
 			response.items = &AddOnInstallationList{
 				items: items,
 			}
@@ -102,56 +66,4 @@ func readAddOnInstallationsListResponse(response *AddOnInstallationsListResponse
 		}
 	}
 	return iterator.Error
-}
-func writeAddOnInstallationsListResponse(response *AddOnInstallationsListServerResponse, w http.ResponseWriter) error {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(response.status)
-	stream := helpers.NewStream(w)
-	stream.WriteObjectStart()
-	stream.WriteObjectField("kind")
-	count := 1
-	stream.WriteString(AddOnInstallationListKind)
-	if response.items != nil && response.items.href != "" {
-		stream.WriteMore()
-		stream.WriteObjectField("href")
-		stream.WriteString(response.items.href)
-		count++
-	}
-	if response.page != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("page")
-		stream.WriteInt(*response.page)
-		count++
-	}
-	if response.size != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("size")
-		stream.WriteInt(*response.size)
-		count++
-	}
-	if response.total != nil {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("total")
-		stream.WriteInt(*response.total)
-		count++
-	}
-	if response.items != nil {
-		if response.items.items != nil {
-			if count > 0 {
-				stream.WriteMore()
-			}
-			stream.WriteObjectField("items")
-			writeAddOnInstallationList(response.items.items, stream)
-			count++
-		}
-	}
-	stream.WriteObjectEnd()
-	stream.Flush()
-	return stream.Error
 }
