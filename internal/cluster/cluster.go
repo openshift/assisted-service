@@ -684,12 +684,8 @@ func (m *Manager) initMonitoringCycle() *monitoringCycle {
 	// Create a cycle-scoped context with timeout. All derived contexts inherit this deadline.
 	ctxWithDeadline, cancel := context.WithTimeout(baseCtx, m.Config.MonitorCycleDeadline)
 
-	// Cleanup expired blacklist entries at the start of each cycle
-	m.cleanupBlacklistedClusters()
-	// After cleanup, emit a summary of current blacklisted clusters to aid manual intervention/tuning
-	if cnt, minAge, avgAge, maxAge := m.getBlacklistedStats(); cnt > 0 {
-		log.Warnf("blacklisted clusters currently: %d; age min/avg/max: %s/%s/%s; blacklist TTL: %s", cnt, minAge, avgAge, maxAge, m.Config.MonitorBlacklistDuration)
-	}
+	// Cleanup expired blacklist entries and update metrics at the start of each cycle
+	m.syncBlacklistStateAndMetrics(log)
 
 	// Starvation avoidance: if we timed out last cycle, skip until after the resume cursor
 	skipUntilAfterCursor := m.resumeAfterClusterID != nil
@@ -2003,14 +1999,18 @@ func (m *Manager) isClusterBlacklisted(id strfmt.UUID) bool {
 // blacklistCluster adds the cluster to the blacklist until now + MonitorBlacklistDuration
 func (m *Manager) blacklistCluster(id strfmt.UUID) {
 	m.blacklistedClusters.Store(id, time.Now().Add(m.Config.MonitorBlacklistDuration))
+	// Emit metrics for blacklisting
+	m.metricAPI.BlacklistedClusterInc()
+	cnt, _, _, _ := m.getBlacklistedStats()
+	m.metricAPI.BlacklistedClustersCurrent(cnt)
 	// Log current number of blacklisted clusters to aid manual intervention
-	if cnt, _, _, _ := m.getBlacklistedStats(); cnt > 0 {
+	if cnt > 0 {
 		m.log.WithField("cluster", id.String()).Warnf("cluster blacklisted for %s; currently blacklisted: %d", m.Config.MonitorBlacklistDuration, cnt)
 	}
 }
 
-// cleanupBlacklistedClusters removes expired blacklist entries.
-func (m *Manager) cleanupBlacklistedClusters() {
+// syncBlacklistStateAndMetrics removes expired blacklist entries and updates related metrics
+func (m *Manager) syncBlacklistStateAndMetrics(log logrus.FieldLogger) {
 	now := time.Now()
 	m.blacklistedClusters.Range(func(key, value any) bool {
 		if exp, ok := value.(time.Time); ok {
@@ -2023,6 +2023,13 @@ func (m *Manager) cleanupBlacklistedClusters() {
 		}
 		return true
 	})
+	cnt, minAge, avgAge, maxAge := m.getBlacklistedStats()
+	m.metricAPI.BlacklistedClustersCurrent(cnt)
+
+	// After cleanup, emit a summary of current blacklisted clusters to aid manual intervention/tuning
+	if cnt > 0 {
+		log.Warnf("blacklisted clusters currently: %d; age min/avg/max: %s/%s/%s; blacklist TTL: %s", cnt, minAge, avgAge, maxAge, m.Config.MonitorBlacklistDuration)
+	}
 }
 
 // getBlacklistedStats returns (count, minAge, avgAge, maxAge) for current blacklisted clusters.

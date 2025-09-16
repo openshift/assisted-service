@@ -37,6 +37,30 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 	return m.recorder
 }
 
+// BlacklistedClusterInc mocks base method.
+func (m *MockAPI) BlacklistedClusterInc() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "BlacklistedClusterInc")
+}
+
+// BlacklistedClusterInc indicates an expected call of BlacklistedClusterInc.
+func (mr *MockAPIMockRecorder) BlacklistedClusterInc() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlacklistedClusterInc", reflect.TypeOf((*MockAPI)(nil).BlacklistedClusterInc))
+}
+
+// BlacklistedClustersCurrent mocks base method.
+func (m *MockAPI) BlacklistedClustersCurrent(count int) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "BlacklistedClustersCurrent", count)
+}
+
+// BlacklistedClustersCurrent indicates an expected call of BlacklistedClustersCurrent.
+func (mr *MockAPIMockRecorder) BlacklistedClustersCurrent(count interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BlacklistedClustersCurrent", reflect.TypeOf((*MockAPI)(nil).BlacklistedClustersCurrent), count)
+}
+
 // ClusterInstallationFinished mocks base method.
 func (m *MockAPI) ClusterInstallationFinished(ctx context.Context, result, prevState, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
