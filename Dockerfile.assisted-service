@@ -1,5 +1,11 @@
 ARG RHEL_VERSION=9
 
+# Fail fast if RHEL_VERSION is 8
+RUN echo "🔎 Docker build running with RHEL_VERSION=$RHEL_VERSION" && \
+    if [ "$RHEL_VERSION" = "8" ]; then \
+      echo "❌ RHEL_VERSION=8 is not supported for this build." && exit 1; \
+    fi
+
 FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.23 AS golang
 
 ADD . /app
