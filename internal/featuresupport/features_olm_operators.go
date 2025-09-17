@@ -93,7 +93,6 @@ func (feature *LvmFeature) getIncompatibleFeatures(OCPVersion string) []models.F
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDODF,
-		models.FeatureSupportLevelIDOPENSHIFTAI,
 	}
 	if isEqual, _ := common.BaseVersionLessThan("4.15", OCPVersion); isEqual {
 		incompatibleFeatures = append(incompatibleFeatures,
@@ -603,10 +602,6 @@ func (f *OpenShiftAIFeature) getIncompatibleArchitectures(_ *string) []models.Ar
 
 func (f *OpenShiftAIFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
-		// These aren't directly incompatible with OpenShift AI, rather with ODF, but the feature support
-		// mechanism doesn't currently understand operator dependencies, so we need to add these explicitly.
-		models.FeatureSupportLevelIDLVM,
-		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
 }
