@@ -1017,7 +1017,7 @@ var _ = Describe("SufficientMastersCount", func() {
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
 						ID:                &clusterID,
-						OpenshiftVersion:  common.MinimumVersionForNonStandardHAOCPControlPlane,
+						OpenshiftVersion:  common.MinimumVersionForArbiterClusters,
 						ControlPlaneCount: 2,
 						Hosts: []*models.Host{
 							{
@@ -1028,6 +1028,37 @@ var _ = Describe("SufficientMastersCount", func() {
 							},
 							{
 								Role: models.HostRoleArbiter,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationSuccess))
+			Expect(message).To(Equal("The cluster has the exact amount of dedicated control plane nodes."))
+		})
+
+		It("with TNF Cluster, 2 masters with fencing credentials", func() {
+			mockHostAPI.EXPECT().
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                &clusterID,
+						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{
+								FencingCredentials: "credentials",
+								Role:               models.HostRoleMaster,
+							},
+							{
+								FencingCredentials: "credentials",
+								Role:               models.HostRoleMaster,
 							},
 						},
 					}},
@@ -1147,7 +1178,7 @@ var _ = Describe("SufficientMastersCount", func() {
 				cluster: &common.Cluster{
 					Cluster: models.Cluster{
 						ID:                &clusterID,
-						OpenshiftVersion:  testing.ValidOCPVersionForNonStandardHAOCPControlPlane,
+						OpenshiftVersion:  common.MinimumVersionForArbiterClusters,
 						ControlPlaneCount: 2,
 						Hosts: []*models.Host{
 							{
@@ -1162,7 +1193,36 @@ var _ = Describe("SufficientMastersCount", func() {
 
 			status, message := validator.SufficientMastersCount(preprocessContext)
 			Expect(status).To(Equal(ValidationFailure))
-			Expect(message).To(Equal("The cluster must have exactly 2 dedicated control plane nodes and at least 1 arbiter node. Add or remove hosts, or change their roles configurations to meet the requirement."))
+			Expect(message).To(Equal("The cluster must have exactly 2 dedicated control plane nodes and at least 1 arbiter node or the control plane nodes must have fencing credentials. Add or remove hosts, or change their roles configurations to meet the requirement."))
+		})
+
+		It("with invalid TNF cluster", func() {
+			mockHostAPI.EXPECT().
+				IsValidCandidate(
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+				).Return(true, nil).AnyTimes()
+
+			preprocessContext := &clusterPreprocessContext{
+				clusterId: clusterID,
+				cluster: &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                &clusterID,
+						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{
+								Role: models.HostRoleMaster,
+							},
+							{
+								Role: models.HostRoleMaster,
+							},
+						},
+					}},
+			}
+
+			status, message := validator.SufficientMastersCount(preprocessContext)
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(Equal("The cluster must have exactly 2 dedicated control plane nodes and at least 1 arbiter node or the control plane nodes must have fencing credentials. Add or remove hosts, or change their roles configurations to meet the requirement."))
 		})
 	})
 })

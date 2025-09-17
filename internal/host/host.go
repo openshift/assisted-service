@@ -112,6 +112,7 @@ type API interface {
 	UpdateIgnitionEndpointHTTPHeaders(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error
+	UpdateFencing(ctx context.Context, h *models.Host, fencingCredentials string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
@@ -857,6 +858,24 @@ func (m *Manager) UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Ho
 		cdb = db
 	}
 	updates := map[string]interface{}{"skip_formatting_disks": h.SkipFormattingDisks, "trigger_monitor_timestamp": time.Now()}
+
+	return m.updateHost(ctx, cdb, h, updates).Error
+}
+
+func (m *Manager) UpdateFencing(ctx context.Context, h *models.Host, fencingCredentials string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, fencing credentials can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+
+	h.FencingCredentials = fencingCredentials
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	updates := map[string]interface{}{"fencing_credentials": h.FencingCredentials, "trigger_monitor_timestamp": time.Now()}
 
 	return m.updateHost(ctx, cdb, h, updates).Error
 }

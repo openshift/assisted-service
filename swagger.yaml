@@ -4926,6 +4926,11 @@ definitions:
         description: |-
           A comma-seperated list of host disks that the service will avoid
           formatting.
+      fencing_credentials:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: The host's BMC credentials that will be used in TNF.
+
   installer-args-params:
     type: object
     properties:
@@ -5238,6 +5243,10 @@ definitions:
         x-nullable: true
         items:
             $ref: '#/definitions/node-label-params'
+      fencing_credentials:
+        $ref: '#/definitions/fencing-credentials-params'
+        x-nullable: true
+        description: The host's BMC credentials that will be used in TNF.
 
   disconnected-cluster-create-params:
     type: object
@@ -6790,6 +6799,30 @@ definitions:
       value:
         description: The value for the label's key-value pair.
         type: string
+
+  fencing-credentials-params:
+    type: object
+    required:
+      - 'address'
+      - 'username'
+      - 'password'
+    properties:
+      address:
+        description: The URL of the host's BMC, for example https://bmc1.example.com.
+        type: string
+      username:
+        description: The username to connect to the host's BMC.
+        type: string
+      password:
+        description: The password to connect to the host's BMC.
+        type: string
+      certificate_verification:
+        description: Whether to enable or disable certificate verification when connecting to the host's BMC.
+        type: string
+        enum:
+          - Enabled
+          - Disabled
+        default: Enabled
 
   host-role-update-params:
     type: string

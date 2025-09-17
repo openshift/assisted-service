@@ -220,6 +220,25 @@ const (
 	PolicyAlways PolicyType = "Always"
 )
 
+type Fencing struct {
+	Credentials []FencingCredential `json:"credentials,omitempty"`
+}
+
+type FencingCredential struct {
+	Hostname                string                   `json:"hostname"`
+	Address                 string                   `json:"address"`
+	Username                string                   `json:"username"`
+	Password                string                   `json:"password"`
+	CertificateVerification *CertificateVerification `json:"certificateVerification,omitempty"`
+}
+
+type CertificateVerification string
+
+const (
+	CertificateVerificationEnabled  CertificateVerification = "Enabled"
+	CertificateVerificationDisabled CertificateVerification = "Disabled"
+)
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `json:"apiVersion"`
 	BaseDomain string `json:"baseDomain"`
@@ -239,9 +258,10 @@ type InstallerConfigBaremetal struct {
 		Replicas       int    `json:"replicas"`
 	} `json:"compute"`
 	ControlPlane struct {
-		Hyperthreading string `json:"hyperthreading,omitempty"`
-		Name           string `json:"name"`
-		Replicas       int    `json:"replicas"`
+		Hyperthreading string   `json:"hyperthreading,omitempty"`
+		Name           string   `json:"name"`
+		Replicas       int      `json:"replicas"`
+		Fencing        *Fencing `json:"fencing,omitempty"`
 	} `json:"controlPlane"`
 	Arbiter *struct {
 		Hyperthreading string `json:"hyperthreading,omitempty"`

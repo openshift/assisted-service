@@ -16,6 +16,7 @@ import (
 	gomega_format "github.com/onsi/gomega/format"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -189,6 +190,61 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 		Expect(result.Arbiter).Should(Not(BeNil()))
 		Expect(result.Arbiter.Replicas).To(Equal(1))
+	})
+
+	It("create_configuration_with_all_hosts - TNF cluster DevPreview", func() {
+		certificateVerificationEnabled := installcfg.CertificateVerificationEnabled
+		certificateVerificationDisabled := installcfg.CertificateVerificationDisabled
+		fencingCredentials1 := models.FencingCredentialsParams{
+			Address:                 swag.String("https://address1.example.com"),
+			CertificateVerification: swag.String(string(certificateVerificationEnabled)),
+			Password:                swag.String("password"),
+			Username:                swag.String("username"),
+		}
+		fencingCredentials2 := models.FencingCredentialsParams{
+			Address:                 swag.String("https://address2.example.com"),
+			CertificateVerification: swag.String(string(certificateVerificationDisabled)),
+			Password:                swag.String("password"),
+			Username:                swag.String("username"),
+		}
+		fencingCredentialsHost1String, err := json.Marshal(fencingCredentials1)
+		Expect(err).ShouldNot(HaveOccurred())
+		fencingCredentialsHost2String, err := json.Marshal(fencingCredentials2)
+		Expect(err).ShouldNot(HaveOccurred())
+		host1.FencingCredentials = string(fencingCredentialsHost1String)
+		host1.Role = models.HostRoleMaster
+		host2.FencingCredentials = string(fencingCredentialsHost2String)
+		host2.Role = models.HostRoleMaster
+		cluster.Hosts = []*models.Host{&host1, &host2}
+		cluster.ControlPlaneCount = 2
+		cluster.OpenshiftVersion = common.MinimumVersionForTwoNodesWithFencing
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.ControlPlane.Fencing).Should(Not(BeNil()))
+		Expect(result.ControlPlane.Fencing.Credentials).To(HaveLen(2))
+		Expect(result.ControlPlane.Fencing.Credentials[0]).To(Equal(installcfg.FencingCredential{
+			Hostname:                hostutil.GetHostnameForMsg(&host1),
+			Address:                 *fencingCredentials1.Address,
+			Username:                *fencingCredentials1.Username,
+			Password:                *fencingCredentials1.Password,
+			CertificateVerification: &certificateVerificationEnabled,
+		}))
+		Expect(result.ControlPlane.Fencing.Credentials[1]).To(Equal(installcfg.FencingCredential{
+			Hostname:                hostutil.GetHostnameForMsg(&host2),
+			Address:                 *fencingCredentials2.Address,
+			Username:                *fencingCredentials2.Username,
+			Password:                *fencingCredentials2.Password,
+			CertificateVerification: &certificateVerificationDisabled,
+		}))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
+		Expect(result.Arbiter).Should(BeNil())
+		Expect(result.FeatureSet).To(Equal(configv1.DevPreviewNoUpgrade))
+		Expect(result.FeatureGates).To(HaveLen(0))
 	})
 
 	It("create_configuration_with_hostnames", func() {
