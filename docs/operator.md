@@ -529,12 +529,11 @@ The following endpoints would be exposed via HTTP:
 * `api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script` in assisted-service
 * `boot-artifacts/` and `images/<infra-enf id>/pxe-initrd` in assisted-image-service
 
-### Alternate service images for running on FIPS mode clusters
+### Running on FIPS mode clusters
 
-**NOTE**: This only applies when the cluster on which assisted-service is running is FIPS-enabled. The default image will work for all other cases.
+**NOTE**: This only applies when the cluster on which assisted-service is running is FIPS-enabled.
 
 The assisted-service container runs the `openshift-baremetal-install` binary as a part of installing a cluster.
 When the cluster on which assisted-service is running is FIPS-enabled, the assisted-service image base must contain the crypto libraries expected by the `openshift-baremetal-install` binary being run.
 
-For installing OpenShift clusters of version > 4.15, the annotation is not required.
-For installing OpenShift clusters of version <= 4.15, set the annotation `agent-install.openshift.io/service-image-base` on the AgentServiceConfig to `el8`.
+Because of this restriction, installing FIPS-enabled clusters is only available for OpenShift versions 4.16 and newer.
