@@ -1,6 +1,8 @@
 package hostutil
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/strfmt"
@@ -217,6 +219,153 @@ var _ = Describe("Get Disks of Holder", func() {
 		filteredDisks := GetDisksOfHolderByType(disks, &holder2, models.DriveTypeFC)
 		Expect(len(filteredDisks)).To(Equal(1))
 		Expect(filteredDisks).Should(ContainElement(&disksOfHolder2[0]))
+	})
+})
+
+var _ = Describe("GetHostInstallationDisk", func() {
+	var (
+		hostId    strfmt.UUID
+		diskId    = "/dev/disk/by-id/test-disk"
+		diskName  = "test-disk"
+		validHost *models.Host
+	)
+
+	BeforeEach(func() {
+		hostId = strfmt.UUID(uuid.New().String())
+	})
+
+	It("should return installation disk when found by disk ID", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   diskId,
+			InstallationDiskPath: "",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(disk).NotTo(BeNil())
+		Expect(disk.ID).To(Equal(diskId))
+		Expect(disk.Name).To(Equal(diskName))
+	})
+
+	It("should return installation disk when found by disk path", func() {
+		expectedFullName := fmt.Sprintf("/dev/%s", diskName)
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName, Path: "/dev/sda"},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "",
+			InstallationDiskPath: expectedFullName,
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(disk).NotTo(BeNil())
+		Expect(disk.ID).To(Equal(diskId))
+		Expect(disk.Name).To(Equal(diskName))
+	})
+
+	It("should return error when installation disk is not found - empty installation path", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "",
+			InstallationDiskPath: "",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("installation disk not found for host %s", hostId))))
+		Expect(disk).To(BeNil())
+	})
+
+	It("should return error when installation disk is not found - non-matching disk ID", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "/dev/disk/by-id/non-existent-disk",
+			InstallationDiskPath: "",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("installation disk not found for host %s", hostId))))
+		Expect(disk).To(BeNil())
+	})
+
+	It("should return error when installation disk is not found - non-matching disk path", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName, Path: "/dev/sda"},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "",
+			InstallationDiskPath: "/dev/non-existent-disk",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("installation disk not found for host %s", hostId))))
+		Expect(disk).To(BeNil())
+	})
+
+	It("should return error when inventory has no disks", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   diskId,
+			InstallationDiskPath: "",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("installation disk not found for host %s", hostId))))
+		Expect(disk).To(BeNil())
+	})
+
+	It("should return error when inventory is invalid JSON", func() {
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            "invalid json",
+			InstallationDiskID:   diskId,
+			InstallationDiskPath: "",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(disk).To(BeNil())
 	})
 })
 

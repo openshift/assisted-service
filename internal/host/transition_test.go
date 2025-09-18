@@ -2164,6 +2164,98 @@ var _ = Describe("Refresh Host", func() {
 
 	})
 
+	Context("Installation disk error handling in status info", func() {
+		BeforeEach(func() {
+			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("").AnyTimes() // Empty installation path
+		})
+
+		It("should handle missing installation disk gracefully during reboot timeout without panicking", func() {
+			hostCheckInAt := strfmt.DateTime(time.Now())
+			srcState := models.HostStatusInstallingInProgress
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+
+			host.Inventory = hostutil.GenerateMasterInventory()
+
+			host.InstallationDiskID = ""
+			host.InstallationDiskPath = ""
+			host.Role = models.HostRoleMaster
+			host.CheckedInAt = hostCheckInAt
+
+			progress := models.HostProgressInfo{
+				CurrentStage:   models.HostStageRebooting,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			host.Progress = &progress
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			cluster = hostutil.GenerateTestCluster(clusterId)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction))))
+
+			err := hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+
+			expectedStatusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", "", 1)
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(expectedStatusInfo))
+		})
+
+		It("should handle missing installation disk with non-matching disk ID gracefully", func() {
+			hostCheckInAt := strfmt.DateTime(time.Now())
+			srcState := models.HostStatusInstallingInProgress
+			host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, srcState)
+
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.InstallationDiskID = "/dev/disk/by-id/non-existent-disk"
+			host.InstallationDiskPath = ""
+			host.Role = models.HostRoleMaster
+			host.CheckedInAt = hostCheckInAt
+
+			progress := models.HostProgressInfo{
+				CurrentStage:   models.HostStageRebooting,
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+			}
+			host.Progress = &progress
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			cluster = hostutil.GenerateTestCluster(clusterId)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+				eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+				eventstest.WithSeverityMatcher(hostutil.GetEventSeverityFromHostStatus(models.HostStatusInstallingPendingUserAction))))
+
+			err := hapi.RefreshStatus(ctx, &host, db)
+			Expect(err).ToNot(HaveOccurred())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+
+			expectedStatusInfo := strings.Replace(statusRebootTimeout, "$INSTALLATION_DISK", "", 1)
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(expectedStatusInfo))
+		})
+
+	})
+
 	Context("Validate host", func() {
 		BeforeEach(func() {
 			pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
