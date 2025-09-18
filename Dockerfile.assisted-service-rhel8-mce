@@ -47,9 +47,7 @@ RUN INSTALL_PKGS="libvirt-libs nmstate nmstate-devel nmstate-libs skopeo openshi
     rm -rf /var/cache/{yum,dnf}/* && \
     mkdir -p ${HOME} && \
     chown ${USER_UID}:0 ${HOME} && \
-    chmod ug+rwx ${HOME} && \
-    # runtime user will need to be able to self-insert in /etc/passwd
-    chmod g+rw /etc/passwd
+    chmod ug+rwx ${HOME}
 
 RUN rm -f /etc/pki/tls/certs/ca-bundle.crt
 RUN ln -s /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/pki/tls/certs/ca-bundle.crt
@@ -74,4 +72,5 @@ LABEL com.redhat.component="multicluster-engine-assisted-service-8-container" \
       io.openshift.tags="OpenShift 4" \
       upstream_commit="${version}" \
       org.label-schema.vcs-ref="${version}" \
-      org.label-schema.vcs-url="https://github.com/openshift/assisted-service"
+      org.label-schema.vcs-url="https://github.com/openshift/assisted-service" \
+      cpe="cpe:/a:redhat:multicluster_engine:2.8::el8"
