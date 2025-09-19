@@ -87,7 +87,8 @@ type InfraEnvReconciler struct {
 	AuthType            auth.AuthType
 	OsImages            versions.OSImages
 	PullSecretHandler
-	InsecureIPXEURLs bool
+	InsecureIPXEURLs    bool
+	ImageServiceEnabled bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
@@ -323,6 +324,11 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 	var inventoryErr, err error
 	var Requeue bool
 	var cluster *common.Cluster
+	// Retrieve infraenv from the database
+	key := types.NamespacedName{
+		Name:      infraEnv.Name,
+		Namespace: infraEnv.Namespace,
+	}
 
 	if infraEnv.Spec.ClusterRef != nil {
 		kubeKey := types.NamespacedName{
@@ -343,13 +349,23 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 			}
 			clusterDeploymentRefErr := newKubeAPIError(errors.Wrapf(err, errMsg), clientError)
 
-			// Update that we failed to retrieve the clusterDeployment
-			conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ImageCreatedCondition,
-				Status:  corev1.ConditionUnknown,
-				Reason:  aiv1beta1.ImageCreationErrorReason,
-				Message: aiv1beta1.ImageStateFailedToCreate + ": " + clusterDeploymentRefErr.Error(),
-			})
+			if r.ImageServiceEnabled {
+				// Update that we failed to retrieve the clusterDeployment
+				conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ImageCreatedCondition,
+					Status:  corev1.ConditionUnknown,
+					Reason:  aiv1beta1.ImageCreationErrorReason,
+					Message: aiv1beta1.ImageStateFailedToCreate + ": " + clusterDeploymentRefErr.Error(),
+				})
+			}
+			if !r.ImageServiceEnabled {
+				conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ClusterDeploymentReference,
+					Status:  corev1.ConditionUnknown,
+					Reason:  aiv1beta1.MissingClusterDeploymentReason,
+					Message: aiv1beta1.MissingClusterDeploymentReference + ": " + clusterDeploymentRefErr.Error(),
+				})
+			}
 			if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 				log.WithError(updateErr).Error("failed to update infraEnv status")
 			}
@@ -379,13 +395,23 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 				Requeue = false
 				inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
 			}
-			// Update that we failed to retrieve the cluster from the database
-			conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-				Type:    aiv1beta1.ImageCreatedCondition,
-				Status:  corev1.ConditionUnknown,
-				Reason:  aiv1beta1.ImageCreationErrorReason,
-				Message: aiv1beta1.ImageStateFailedToCreate + ": " + inventoryErr.Error(),
-			})
+			if r.ImageServiceEnabled {
+				// Update that we failed to retrieve the cluster from the database
+				conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ImageCreatedCondition,
+					Status:  corev1.ConditionUnknown,
+					Reason:  aiv1beta1.ImageCreationErrorReason,
+					Message: aiv1beta1.ImageStateFailedToCreate + ": " + inventoryErr.Error(),
+				})
+			}
+			if !r.ImageServiceEnabled {
+				conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+					Type:    aiv1beta1.ClusterDeploymentReference,
+					Status:  corev1.ConditionUnknown,
+					Reason:  aiv1beta1.MissingClusterDeploymentReason,
+					Message: aiv1beta1.MissingClusterDeploymentReference + ": " + inventoryErr.Error(),
+				})
+			}
 			if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 				log.WithError(updateErr).Error("failed to update infraEnv status")
 			}
@@ -393,11 +419,6 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 		}
 	}
 
-	// Retrieve infraenv from the database
-	key := types.NamespacedName{
-		Name:      infraEnv.Name,
-		Namespace: infraEnv.Namespace,
-	}
 	infraEnvInternal, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -465,7 +486,8 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 		return cluster.OpenshiftVersion, nil
 	}
 
-	if osImageVersion != "" {
+	// Only validate OS image if image service is enabled
+	if osImageVersion != "" && r.ImageServiceEnabled {
 		if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
 			msg := "Specified OSImageVersion is missing from AgentServiceConfig"
 			log.WithError(err).Error(msg)
@@ -718,26 +740,37 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 
 func (r *InfraEnvReconciler) updateInfraEnvStatus(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (ctrl.Result, error) {
-
-	osImage, err := r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-
-	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
-	infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
-
+	var err error
+	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var isoUpdated bool
-	if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
-		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
-		infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
-		imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
-		infraEnv.Status.CreatedTime = &imageCreatedAt
-		isoUpdated = true
+
+	if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
+		if r.populateEventsURL(log, infraEnv, internalInfraEnv) != nil {
+			return ctrl.Result{Requeue: true}, nil
+		}
+	}
+	// Only update URLs if image service is enabled
+	if r.ImageServiceEnabled {
+		var osImage *models.OsImage
+		osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+
+		bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs)
+		if err != nil {
+			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+		}
+		infraEnv.Status.BootArtifacts.KernelURL = bootArtifactURLs.KernelURL
+		infraEnv.Status.BootArtifacts.RootfsURL = bootArtifactURLs.RootFSURL
+
+		if infraEnv.Status.ISODownloadURL != internalInfraEnv.DownloadURL {
+			log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, internalInfraEnv.DownloadURL)
+			infraEnv.Status.ISODownloadURL = internalInfraEnv.DownloadURL
+			imageCreatedAt := metav1.NewTime(time.Time(internalInfraEnv.GeneratedAt))
+			infraEnv.Status.CreatedTime = &imageCreatedAt
+			isoUpdated = true
+		}
 	}
 
 	if infraEnv.Status.InfraEnvDebugInfo.StaticNetworkDownloadURL == "" && internalInfraEnv.StaticNetworkConfig != "" {
@@ -747,30 +780,28 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		}
 	}
 
-	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated
-	schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
-	if err != nil {
-		return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
-	}
-	if schemeUpdated || isoUpdated {
-		if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+	// update boot artifacts URL if IPXE insecure setting was changed or if the ISO was updated (only if image service is enabled)
+	if r.ImageServiceEnabled && bootArtifactURLs != nil {
+		schemeUpdated, err := r.initrdSchemeChanged(infraEnv.Status.BootArtifacts.InitrdURL)
+		if err != nil {
 			return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
 		}
-	}
-
-	if infraEnv.Status.InfraEnvDebugInfo.EventsURL == "" {
-		if r.populateEventsURL(log, infraEnv, internalInfraEnv) != nil {
-			return ctrl.Result{Requeue: true}, nil
+		if schemeUpdated || isoUpdated {
+			if err = r.setSignedBootArtifactURLs(infraEnv, bootArtifactURLs.InitrdURL, internalInfraEnv.ID.String()); err != nil {
+				return r.handleEnsureISOErrors(ctx, log, infraEnv, err, internalInfraEnv)
+			}
 		}
 	}
 
-	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ImageCreatedCondition,
-		Status:  corev1.ConditionTrue,
-		Reason:  aiv1beta1.ImageCreatedReason,
-		Message: aiv1beta1.ImageStateCreated,
-	})
-
+	if r.ImageServiceEnabled {
+		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ImageCreatedCondition,
+			Status:  corev1.ConditionTrue,
+			Reason:  aiv1beta1.ImageCreatedReason,
+			Message: aiv1beta1.ImageStateCreated,
+		})
+	}
+	log.Infof("Updating infraEnv status: %+v", infraEnv.Status)
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
 		return ctrl.Result{Requeue: true}, nil
@@ -794,7 +825,9 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 			}
 		}
 	}
-
+	if !r.ImageServiceEnabled {
+		return ctrl.Result{Requeue: false}, nil
+	}
 	// TODO: Checking currentCondition as a workaround until MGMT-4695 get resolved.
 	// If the current condition is in an error state, avoid clearing it up.
 	if currentCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition); currentCondition != nil {

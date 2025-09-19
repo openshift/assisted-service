@@ -126,6 +126,7 @@ type Config struct {
 	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"false"`
 	TNFClustersSupport                  bool              `envconfig:"TNF_CLUSTERS_SUPPORT" default:"false"`
 	ForceInsecurePolicyJson             bool              `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
+	DisableImageService                 bool              `envconfig:"DISABLE_IMAGE_SERVICE" default:"false"`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
@@ -298,6 +299,10 @@ func NewBareMetalInventory(
 		installerInvoker:              installerInvoker,
 		disconnectedIgnitionGenerator: oveIgnitionGenerator,
 	}
+}
+
+func (b *bareMetalInventory) isImageServiceEnabled() bool {
+	return !b.DisableImageService
 }
 
 func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
@@ -492,6 +497,10 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 	if err != nil {
 		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
 			swag.StringValue(params.OpenshiftVersion), arch)
+	}
+
+	if !b.isImageServiceEnabled() {
+		return releaseImage, nil
 	}
 
 	// Ensure a relevant OsImage exists. For multiarch we disabling the code below because we don't know yet
@@ -1110,6 +1119,10 @@ func (b *bareMetalInventory) deleteOrUnbindHosts(ctx context.Context, cluster *c
 }
 
 func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType) error {
+	if !b.isImageServiceEnabled() {
+		return nil
+	}
+
 	updates := map[string]interface{}{}
 
 	// this is updated before now for the v2 (infraEnv) case, but not in the cluster ISO case so we need to check if we should save it here
@@ -1117,6 +1130,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 		updates["proxy_hash"] = infraEnvProxyHash
 		infraEnv.ProxyHash = infraEnvProxyHash
 	}
+	var err error
 
 	var (
 		prevType    string
@@ -1124,7 +1138,6 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 		prevArch    string
 	)
 	if infraEnv.DownloadURL != "" {
-		var err error
 		prevType, prevArch, prevVersion, err = imageservice.ParseDownloadURL(infraEnv.DownloadURL)
 		if err != nil {
 			return errors.Wrap(err, "failed to parse current download URL")
@@ -4869,12 +4882,16 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 			return err
 		}
 
-		var osImage *models.OsImage
-		osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
-		if err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+		openshiftVersion := params.InfraenvCreateParams.OpenshiftVersion
 
+		if b.isImageServiceEnabled() {
+			var osImage *models.OsImage
+			osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+			openshiftVersion = *osImage.OpenshiftVersion
+		}
 		if kubeKey == nil {
 			kubeKey = &types.NamespacedName{}
 		}
@@ -4910,7 +4927,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				UserName:               ocm.UserNameFromContext(ctx),
 				OrgID:                  ocm.OrgIDFromContext(ctx),
 				EmailDomain:            ocm.EmailDomainFromContext(ctx),
-				OpenshiftVersion:       *osImage.OpenshiftVersion,
+				OpenshiftVersion:       openshiftVersion,
 				IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
 				StaticNetworkConfig:    staticNetworkConfig,
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
@@ -5174,10 +5191,8 @@ func (b *bareMetalInventory) UpdateInfraEnv(ctx context.Context, params installe
 	return installer.NewUpdateInfraEnvCreated().WithPayload(&i.InfraEnv)
 }
 
-func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
+func (b *bareMetalInventory) safeLogInfraEnvUpdateParams(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string) installer.UpdateInfraEnvParams {
 	log := logutil.FromContext(ctx, b.log)
-	var infraEnv *common.InfraEnv
-	var err error
 	var pullSecretBackup string
 	pullSecretUpdated := false
 
@@ -5194,6 +5209,15 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 	if pullSecretUpdated {
 		params.InfraEnvUpdateParams.PullSecret = pullSecretBackup
 	}
+	return params
+}
+
+func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
+	log := logutil.FromContext(ctx, b.log)
+	var infraEnv *common.InfraEnv
+	var err error
+
+	params = b.safeLogInfraEnvUpdateParams(ctx, params, internalIgnitionConfig)
 
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		if infraEnv, err = common.GetInfraEnvFromDB(tx, params.InfraEnvID); err != nil {
@@ -5264,9 +5288,11 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
 		}
 
-		_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
-		if err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
+		if b.isImageServiceEnabled() {
+			_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
 		}
 
 		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {

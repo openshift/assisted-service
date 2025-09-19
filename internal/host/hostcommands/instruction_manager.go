@@ -52,6 +52,7 @@ type InstructionManager struct {
 	disabledStepsMap              map[models.StepType]bool
 	upgradeAgentCmd               CommandGetter
 	eventsHandler                 eventsapi.Sender
+	imageServiceEnabled           bool
 }
 
 type InstructionConfig struct {
@@ -76,7 +77,7 @@ type InstructionConfig struct {
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler eventsapi.Handler,
-	versionHandler versions.Handler, osImages versions.OSImages, kubeApiEnabled bool) *InstructionManager {
+	versionHandler versions.Handler, osImages versions.OSImages, kubeApiEnabled bool, imageServiceEnabled bool) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot, !kubeApiEnabled)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
@@ -92,15 +93,16 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, versionHandler, db)
 	noopCmd := NewNoopCmd()
 	upgradeAgentCmd := NewUpgradeAgentCmd(instructionConfig.AgentImage)
-	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, osImages, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir)
+	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, osImages, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir, imageServiceEnabled)
 	rebootForReclaimCmd := NewRebootForReclaimCmd(log, instructionConfig.HostFSMountDir)
 	verifyVipsCmd := newVerifyVipsCmd(log, db)
 
 	return &InstructionManager{
-		log:              log,
-		db:               db,
-		config:           instructionConfig,
-		disabledStepsMap: generateDisabledStepsMap(log, instructionConfig.DisabledSteps),
+		log:                 log,
+		db:                  db,
+		config:              instructionConfig,
+		disabledStepsMap:    generateDisabledStepsMap(log, instructionConfig.DisabledSteps),
+		imageServiceEnabled: imageServiceEnabled,
 		installingClusterStateToSteps: stateToStepsMap{
 			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd, domainNameResolutionCmd, verifyVipsCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, tangConnectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, domainNameResolutionCmd, verifyVipsCmd}, defaultNextInstructionInSec, models.StepsPostStepActionContinue},
