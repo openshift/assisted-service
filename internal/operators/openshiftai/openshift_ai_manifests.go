@@ -58,11 +58,13 @@ func (o operator) executeTemplate(name string, cluster *common.Cluster) (result 
 		Operator *models.MonitoredOperator
 		Config   *Config
 		Cluster  *common.Cluster
+		IsSNO    bool
 	}
 	data := &Data{
 		Operator: &Operator,
 		Config:   o.config,
 		Cluster:  cluster,
+		IsSNO:    common.IsSingleNodeCluster(cluster),
 	}
 	buffer := &bytes.Buffer{}
 	err = template.Execute(buffer, data)

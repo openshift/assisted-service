@@ -203,4 +203,40 @@ var _ = Describe("Manifest generation", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(names).To(ConsistOf("nvidia-gpu", "amd-gpu"))
 	})
+
+	It("Uses correct storage class based on cluster type", func() {
+		// Test SNO cluster - should use lvms-vg1
+		snoCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion:  "4.12.0",
+				ControlPlaneCount: 1, // SNO cluster
+			},
+		}
+
+		manifests, _, err := operator.GenerateManifests(snoCluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(manifests).To(HaveKey("50_openshift_ai_setup_job.yaml"))
+
+		// Extract the setup job and check the storage class
+		setupJob := manifests["50_openshift_ai_setup_job.yaml"]
+		Expect(string(setupJob)).To(ContainSubstring("storage_class='lvms-vg1'"))
+		Expect(string(setupJob)).ToNot(ContainSubstring("storage_class='ocs-storagecluster-ceph-rbd'"))
+
+		// Test multi-node cluster - should use ocs-storagecluster-ceph-rbd
+		multiNodeCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion:  "4.12.0",
+				ControlPlaneCount: 3, // Multi-node cluster
+			},
+		}
+
+		manifests, _, err = operator.GenerateManifests(multiNodeCluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(manifests).To(HaveKey("50_openshift_ai_setup_job.yaml"))
+
+		// Extract the setup job and check the storage class
+		setupJob = manifests["50_openshift_ai_setup_job.yaml"]
+		Expect(string(setupJob)).To(ContainSubstring("storage_class='ocs-storagecluster-ceph-rbd'"))
+		Expect(string(setupJob)).ToNot(ContainSubstring("storage_class='lvms-vg1'"))
+	})
 })

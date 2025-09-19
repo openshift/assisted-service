@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -80,6 +81,10 @@ func (o *operator) GetFullName() string {
 func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
 	ret := make([]string, 0)
 
+	if common.IsSingleNodeCluster(c) {
+		ret = append(ret, lvm.Operator.Name)
+	}
+
 	// If there is no hosts in the cluster, add all vendors as dependencies
 	if len(c.Hosts) == 0 {
 		for _, vendor := range o.vendors {
@@ -107,6 +112,8 @@ func (o *operator) GetDependencies(c *common.Cluster) (result []string, err erro
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
 	ret := make([]models.FeatureSupportLevelID, 0, len(o.vendors))
+
+	ret = append(ret, models.FeatureSupportLevelIDLVM)
 
 	for _, vendor := range o.vendors {
 		ret = append(ret, vendor.GetFeatureSupportID())
@@ -141,6 +148,10 @@ func (o *operator) validateWorkers(cluster *common.Cluster) api.ValidationResult
 	result := api.ValidationResult{
 		ValidationId: clusterValidationID,
 		Status:       api.Success,
+	}
+
+	if common.IsSingleNodeCluster(cluster) {
+		return result
 	}
 
 	// Check the number of worker nodes:
