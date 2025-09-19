@@ -41,7 +41,7 @@ func serviceImageDefault() string {
 }
 
 func serviceImageEL8() string {
-	return getEnvVar("SERVICE_EL8_IMAGE", "quay.io/edge-infrastructure/assisted-service-el8:latest")
+	return getEnvVar("SERVICE_EL8_IMAGE", "quay.io/edge-infrastructure/assisted-service:latest")
 }
 
 func ImageServiceImage() string {
