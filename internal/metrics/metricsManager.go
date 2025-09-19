@@ -44,6 +44,9 @@ const (
 	histogramMonitoredHostsCycleDurationMs        = "assisted_installer_monitored_hosts_cycle_duration_ms"
 	counterInstallerReleaseCache                  = "assisted_installer_release_cache"
 	counterInstallerReleaseCacheEviction          = "assisted_installer_release_cache_eviction"
+	// blacklist metrics
+	counterClusterBlacklistedEvents = "assisted_installer_cluster_blacklisted_events_total"
+	gaugeBlacklistedClustersCurrent = "assisted_installer_blacklisted_clusters_current"
 )
 
 const (
@@ -70,6 +73,9 @@ const (
 	histogramDescriptionMonitoredHostsCycleDurationMs        = "Histogram/sum/count of full monitoring cycle duration (ms) with fullscan label"
 	counterDescriptionInstallerReleaseCache                  = "Counts the cache hit status for the labelled release"
 	counterDescriptionInstallerReleaseCacheEviction          = "Counts the number of times that at least one release was evicted"
+	// blacklist metric descriptions
+	counterDescriptionClusterBlacklistedEvents = "Counts cluster blacklisting events (no cluster labels to avoid high cardinality)"
+	gaugeDescriptionBlacklistedClustersCurrent = "Current number of clusters that are blacklisted"
 )
 
 const (
@@ -111,6 +117,9 @@ type API interface {
 	MonitoredHostsCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool)
 	InstallerCacheGetReleaseCached(releaseId string, cacheHit bool)
 	InstallerCacheReleaseEvicted(success bool)
+	// blacklist metrics
+	BlacklistedClusterInc()
+	BlacklistedClustersCurrent(count int)
 }
 
 type MetricsManager struct {
@@ -141,6 +150,9 @@ type MetricsManager struct {
 	serviceLogicMonitoredHostsCycleDurationMs          *prometheus.HistogramVec
 	serviceLogicInstallerReleaseCache                  *prometheus.CounterVec
 	serviceLogicInstallerReleaseEvicted                *prometheus.CounterVec
+	// blacklist metrics
+	serviceLogicClusterBlacklistedEvents   *prometheus.CounterVec
+	serviceLogicBlacklistedClustersCurrent *prometheus.GaugeVec
 
 	collectors []prometheus.Collector
 }
@@ -350,6 +362,22 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 				Name:      counterInstallerReleaseCacheEviction,
 				Help:      counterDescriptionInstallerReleaseCacheEviction,
 			}, []string{labelSuccess}),
+
+		// blacklist metrics
+		serviceLogicClusterBlacklistedEvents: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterClusterBlacklistedEvents,
+				Help:      counterDescriptionClusterBlacklistedEvents,
+			}, []string{}),
+		serviceLogicBlacklistedClustersCurrent: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      gaugeBlacklistedClustersCurrent,
+				Help:      gaugeDescriptionBlacklistedClustersCurrent,
+			}, []string{}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -378,6 +406,9 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		m.serviceLogicMonitoredHostsCycleDurationMs,
 		m.serviceLogicInstallerReleaseCache,
 		m.serviceLogicInstallerReleaseEvicted,
+		// blacklist metrics
+		m.serviceLogicClusterBlacklistedEvents,
+		m.serviceLogicBlacklistedClustersCurrent,
 	)
 
 	for _, collector := range m.collectors {
@@ -563,6 +594,16 @@ func (m *MetricsManager) MonitoredClustersCycleDurationMs(ctx context.Context, d
 
 func (m *MetricsManager) MonitoredHostsCycleDurationMs(ctx context.Context, duration time.Duration, fullScan bool) {
 	m.serviceLogicMonitoredHostsCycleDurationMs.WithLabelValues(fmt.Sprintf("%t", fullScan)).Observe(float64(duration.Milliseconds()))
+}
+
+// BlacklistedClusterInc increments the total number of cluster blacklist events.
+func (m *MetricsManager) BlacklistedClusterInc() {
+	m.serviceLogicClusterBlacklistedEvents.WithLabelValues().Inc()
+}
+
+// BlacklistedClustersCurrent sets the current number of blacklisted clusters.
+func (m *MetricsManager) BlacklistedClustersCurrent(count int) {
+	m.serviceLogicBlacklistedClustersCurrent.WithLabelValues().Set(float64(count))
 }
 
 func bytesToGib(bytes int64) int64 {

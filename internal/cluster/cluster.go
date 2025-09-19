@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/filanov/stateswitch"
@@ -148,6 +149,12 @@ type Config struct {
 	InstallationTimeout time.Duration `envconfig:"INSTALLATION_TIMEOUT" default:"24h"`
 	FinalizingTimeout   time.Duration `envconfig:"FINALIZING_TIMEOUT" default:"5h"`
 	MonitorBatchSize    int           `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	// MonitorPerClusterDeadline bounds how long we spend monitoring a single cluster in one cycle
+	MonitorPerClusterDeadline time.Duration `envconfig:"CLUSTER_MONITOR_PER_CLUSTER_DEADLINE" default:"2m"`
+	// MonitorBlacklistDuration is how long to blacklist a cluster after a deadline is exceeded
+	MonitorBlacklistDuration time.Duration `envconfig:"CLUSTER_MONITOR_BLACKLIST_DURATION" default:"15m"`
+	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
+	MonitorCycleDeadline time.Duration `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
 }
 
 type Manager struct {
@@ -172,6 +179,11 @@ type Manager struct {
 	authHandler           auth.Authenticator
 	uploadClient          uploader.Client
 	manifestApi           manifestsapi.ManifestsAPI
+	// in-memory blacklist of clusters that exceeded monitoring deadline (key: cluster ID, value: expiration time)
+	blacklistedClusters sync.Map
+	// resumeAfterClusterID is a cursor used to avoid starvation: after a cycle timeout, the next cycle
+	// will skip clusters up to and including this ID and resume from the subsequent clusters.
+	resumeAfterClusterID *strfmt.UUID
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.Notifier, eventsHandler eventsapi.Handler,
@@ -200,13 +212,14 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
 		hostAPI:               hostAPI,
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
 		leaderElector:         leaderElector,
-		prevMonitorInvokedAt:  time.Now(),
+		prevMonitorInvokedAt:  time.Time{},
 		ocmClient:             ocmClient,
 		objectHandler:         objectHandler,
 		dnsApi:                dnsApi,
+		monitorQueryGenerator: nil,
 		authHandler:           authHandler,
 		uploadClient:          uploadClient,
 		manifestApi:           manifestApi,
@@ -557,7 +570,7 @@ func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluste
 
 func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// logs required monitoring on error state until IsLogCollectionTimedOut move the logs state to timeout,
-	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
+	// or remote controllers reports that their log collection has been completed. Then, monitoring should be
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
 	result := (swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
@@ -588,85 +601,190 @@ func (m *Manager) ClusterMonitoring() {
 	}
 	m.log.Debugf("Running ClusterMonitoring")
 	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
-	var (
-		clusters            []*common.Cluster
-		clusterAfterRefresh *common.Cluster
-		requestID           = requestid.NewID()
-		ctx                 = requestid.ToContext(context.Background(), requestID)
-		log                 = requestid.RequestIDLogger(m.log, requestID)
-		err                 error
-	)
 
-	curMonitorInvokedAt := time.Now()
+	cycle := m.initMonitoringCycle()
+	defer func() { m.prevMonitorInvokedAt = cycle.startTime }()
+	defer cycle.cancel()
+
+	isFullScan := cycle.query.IsFullScan()
 	defer func() {
-		m.prevMonitorInvokedAt = curMonitorInvokedAt
-	}()
-
-	//no need to refresh cluster status if the cluster is in the following statuses
-	//when cluster is in error. it should be still monitored until all the logs are collected.
-	//Then, SkipMonitoring() stops the logic from running forever
-	m.initMonitorQueryGenerator()
-
-	query := m.monitorQueryGenerator.NewClusterQuery()
-	cycleStartTime := time.Now()
-	isFullScan := query.IsFullScan()
-	defer func() {
-		m.metricAPI.MonitoredClustersCycleDurationMs(ctx, time.Since(cycleStartTime), isFullScan)
+		m.metricAPI.MonitoredClustersCycleDurationMs(cycle.ctx, time.Since(cycle.startTime), isFullScan)
 	}()
 	for {
-		clusters, err = query.Next()
+		clusters, err := cycle.query.Next()
 		if err != nil {
-			log.WithError(err).Errorf("failed to get clusters")
+			cycle.log.WithError(err).Errorf("failed to get clusters")
 			return
 		}
 		if len(clusters) == 0 {
 			break
 		}
-		m.log.Debugf("We are going to monitor %d, query is: %+v", len(clusters), query)
+		m.log.Debugf("We are going to monitor %d, query is: %+v", len(clusters), cycle.query)
+
 		for _, cluster := range clusters {
-			if !m.leaderElector.IsLeader() {
-				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+			shouldSkip, shouldReturn := m.validateClusterForProcessing(cycle.ctx, cluster, &cycle.skipUntilAfterCursor, cycle.log, &cycle.lastProcessedClusterID)
+			if shouldReturn {
 				return
 			}
-			if !m.SkipMonitoring(cluster) {
-				startTime := time.Now()
-				_ = m.autoAssignMachineNetworkCidr(cluster)
-				if cluster.ID == nil {
-					log.WithError(err).Error("cluster ID is nil")
-					continue
-				}
-
-				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
-					log.WithError(err).Error("failed to set majority group for clusters")
-				}
-				err = m.detectAndStoreCollidingIPsForCluster(cluster, m.db)
-				if err != nil {
-					m.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
-				}
-				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
-				if err != nil {
-					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-					continue
-				}
-
-				if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-					log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-						swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-				}
-
-				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
-					m.triggerLeaseTimeoutEvent(ctx, cluster)
-				}
-
-				if err := m.RefreshSchedulableMastersForcedTrue(ctx, cluster); err != nil {
-					log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
-				}
-				duration := time.Since(startTime)
-
-				m.metricAPI.MonitoredClustersDurationMs(ctx, *cluster.ID, duration)
+			if shouldSkip {
+				continue
 			}
+
+			cycle.lastProcessedClusterID = cluster.ID
+
+			// Create per-cluster context with timeout. It inherits the parent cycle deadline and
+			// will be cancelled by whichever occurs first (cycle deadline or per-cluster timeout).
+			ctxCluster, cancel := context.WithTimeout(cycle.ctx, m.Config.MonitorPerClusterDeadline)
+
+			startTime := time.Now()
+			err := m.processClusterMonitoring(ctxCluster, cycle.ctx, cycle.log, cluster, cycle.startTime)
+			// Cancel the context promptly to avoid leaks
+			cancel()
+
+			// If the per-cluster context exceeded its deadline, we should not emit duration metrics
+			if errors.Is(ctxCluster.Err(), context.DeadlineExceeded) {
+				cycle.log.WithField("cluster", cluster.ID.String()).Errorf("cluster monitoring exceeded deadline %s; blacklisting for %s", m.Config.MonitorPerClusterDeadline, m.Config.MonitorBlacklistDuration)
+				m.blacklistCluster(*cluster.ID)
+				m.eventsHandler.NotifyInternalEvent(context.Background(), cluster.ID, nil, nil, fmt.Sprintf("cluster monitor deadline exceeded; blacklisting cluster %s for %s", cluster.ID.String(), m.Config.MonitorBlacklistDuration))
+				continue
+			}
+			if err != nil {
+				cycle.log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+				continue
+			}
+
+			m.metricAPI.MonitoredClustersDurationMs(cycle.ctx, *cluster.ID, time.Since(startTime))
 		}
 	}
+	// Completed a full cycle; reset resume cursor
+	m.resumeAfterClusterID = nil
+}
+
+// monitoringCycle holds the state and resources for a single monitoring cycle
+type monitoringCycle struct {
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	log                    logrus.FieldLogger
+	startTime              time.Time
+	deadline               time.Time
+	query                  common.MonitorQuery
+	skipUntilAfterCursor   bool
+	lastProcessedClusterID *strfmt.UUID
+}
+
+// initMonitoringCycle sets up the context, logging, deadlines, and query for a monitoring cycle
+func (m *Manager) initMonitoringCycle() *monitoringCycle {
+	requestID := requestid.NewID()
+	baseCtx := requestid.ToContext(context.Background(), requestID)
+	log := requestid.RequestIDLogger(m.log, requestID)
+
+	startTime := time.Now()
+	deadline := startTime.Add(m.Config.MonitorCycleDeadline)
+
+	// Create a cycle-scoped context with timeout. All derived contexts inherit this deadline.
+	ctxWithDeadline, cancel := context.WithTimeout(baseCtx, m.Config.MonitorCycleDeadline)
+
+	// Cleanup expired blacklist entries and update metrics at the start of each cycle
+	m.syncBlacklistStateAndMetrics(log)
+
+	// Starvation avoidance: if we timed out last cycle, skip until after the resume cursor
+	skipUntilAfterCursor := m.resumeAfterClusterID != nil
+
+	m.initMonitorQueryGenerator()
+	query := m.monitorQueryGenerator.NewClusterQuery()
+
+	return &monitoringCycle{
+		ctx:                    ctxWithDeadline,
+		cancel:                 cancel,
+		log:                    log,
+		startTime:              startTime,
+		deadline:               deadline,
+		query:                  query,
+		skipUntilAfterCursor:   skipUntilAfterCursor,
+		lastProcessedClusterID: nil,
+	}
+}
+
+// validateClusterForProcessing performs pre-cluster validation checks
+// Returns (shouldSkip, shouldReturn) where shouldSkip means skip this cluster, shouldReturn means exit the entire function
+func (m *Manager) validateClusterForProcessing(ctx context.Context, cluster *common.Cluster, skipUntilAfterCursor *bool, log logrus.FieldLogger, lastProcessedClusterID **strfmt.UUID) (bool, bool) {
+	// Starvation-avoidance: skip clusters until after the resume cursor
+	if skipUntilAfterCursor != nil && *skipUntilAfterCursor && m.resumeAfterClusterID != nil && cluster.ID != nil {
+		if *cluster.ID == *m.resumeAfterClusterID {
+			*skipUntilAfterCursor = false
+			return true, false
+		}
+		return true, false
+	}
+	// End cycle if cycle context is already cancelled (deadline exceeded)
+	if err := ctx.Err(); errors.Is(err, context.DeadlineExceeded) {
+		log.Warnf("cluster monitor cycle exceeded deadline %s; ending cycle early", m.Config.MonitorCycleDeadline)
+		m.eventsHandler.NotifyInternalEvent(ctx, nil, nil, nil, fmt.Sprintf("cluster monitor cycle exceeded deadline %s; ending cycle early", m.Config.MonitorCycleDeadline))
+		m.resumeAfterClusterID = *lastProcessedClusterID
+		return true, true
+	}
+
+	// Ensure still leader
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+		return true, true
+	}
+
+	if cluster.ID == nil {
+		log.Error("cluster ID is nil")
+		return true, false
+	}
+
+	if m.isClusterBlacklisted(*cluster.ID) {
+		log.WithField("cluster", cluster.ID.String()).Warn("skipping blacklisted cluster in monitor")
+		return true, false
+	}
+
+	if m.SkipMonitoring(cluster) {
+		log.WithField("cluster", cluster.ID.String()).Warn("skipping monitoring due to cluster status")
+		return true, false
+	}
+
+	return false, false
+}
+
+// processClusterMonitoring encapsulates the per-cluster monitoring logic to keep ClusterMonitoring flat
+func (m *Manager) processClusterMonitoring(ctxWithDeadline context.Context, ctxBasic context.Context, log logrus.FieldLogger, cluster *common.Cluster, curMonitorInvokedAt time.Time) error {
+	// If the per-cluster context already expired, exit immediately to avoid any side effects
+	if err := ctxWithDeadline.Err(); err != nil {
+		return err
+	}
+	// Create context-aware database instance to respect monitoring deadlines
+	dbc := m.db.WithContext(ctxWithDeadline)
+
+	_ = m.autoAssignMachineNetworkCidr(cluster)
+	if err := m.setConnectivityMajorityGroupsForClusterInternal(cluster, dbc); err != nil {
+		log.WithError(err).Error("failed to set majority group for clusters")
+	}
+	if err := m.detectAndStoreCollidingIPsForCluster(cluster, dbc); err != nil {
+		m.log.WithError(err).Errorf("Failed to detect and store colliding IPs for cluster %s", cluster.ID.String())
+	}
+
+	clusterAfterRefresh, err := m.refreshStatusInternal(ctxWithDeadline, cluster, dbc)
+	if errors.Is(ctxWithDeadline.Err(), context.DeadlineExceeded) {
+		return ctxWithDeadline.Err()
+	}
+	if err != nil {
+		return err
+	}
+
+	if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
+		log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID, swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+	}
+
+	if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+		m.triggerLeaseTimeoutEvent(ctxBasic, cluster)
+	}
+
+	if err := m.RefreshSchedulableMastersForcedTrue(ctxBasic, cluster); err != nil {
+		log.WithError(err).Errorf("failed to refresh cluster with ID '%s' masters schedulability", string(*cluster.ID))
+	}
+	return nil
 }
 
 func getDownloadFilesAllowedStatuses() []string {
@@ -752,7 +870,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 			msg := "Cannot add hosts to an existing cluster using the original Discovery ISO."
 			isSaaS := m.authHandler.AuthType() == auth.TypeRHSSO
 			if isSaaS {
-				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
+				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster \"Add hosts\" tab."
 			}
 			err = errors.Errorf(msg)
 		} else {
@@ -1573,7 +1691,7 @@ func (m *Manager) deleteClusterFile(ctx context.Context, c *common.Cluster, file
 	return nil
 }
 
-func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
+func (m *Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
 	log := logutil.FromContext(ctx, m.log)
 
 	var clusters []*common.Cluster
@@ -1592,7 +1710,7 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 	return nil
 }
 
-func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error {
+func (m *Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error {
 	m.log.Info("Call to PermanentClustersDeletion")
 	var clusters []*common.Cluster
 	if reply := m.db.Unscoped().Where("deleted_at < ?", olderThan).Find(&clusters); reply.Error != nil {
@@ -1866,4 +1984,90 @@ func (m *Manager) UpdateFinalizingStage(ctx context.Context, clusterID strfmt.UU
 
 func (m *Manager) GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error) {
 	return common.GetHostCountByRole(m.db, clusterID, role, suggested)
+}
+
+// isClusterBlacklisted returns true if the cluster is currently blacklisted and not yet expired
+func (m *Manager) isClusterBlacklisted(id strfmt.UUID) bool {
+	if v, ok := m.blacklistedClusters.Load(id); ok {
+		if exp, ok := v.(time.Time); ok {
+			if time.Now().After(exp) {
+				m.blacklistedClusters.Delete(id)
+				return false
+			}
+			return true
+		}
+	}
+	return false
+}
+
+// blacklistCluster adds the cluster to the blacklist until now + MonitorBlacklistDuration
+func (m *Manager) blacklistCluster(id strfmt.UUID) {
+	m.blacklistedClusters.Store(id, time.Now().Add(m.Config.MonitorBlacklistDuration))
+	// Emit metrics for blacklisting
+	m.metricAPI.BlacklistedClusterInc()
+	cnt, _, _, _ := m.getBlacklistedStats()
+	m.metricAPI.BlacklistedClustersCurrent(cnt)
+	// Log current number of blacklisted clusters to aid manual intervention
+	if cnt > 0 {
+		m.log.WithField("cluster", id.String()).Warnf("cluster blacklisted for %s; currently blacklisted: %d", m.Config.MonitorBlacklistDuration, cnt)
+	}
+}
+
+// syncBlacklistStateAndMetrics removes expired blacklist entries and updates related metrics
+func (m *Manager) syncBlacklistStateAndMetrics(log logrus.FieldLogger) {
+	now := time.Now()
+	m.blacklistedClusters.Range(func(key, value any) bool {
+		if exp, ok := value.(time.Time); ok {
+			if now.After(exp) {
+				m.blacklistedClusters.Delete(key)
+			}
+		} else {
+			// Unknown type: remove defensively
+			m.blacklistedClusters.Delete(key)
+		}
+		return true
+	})
+	cnt, minAge, avgAge, maxAge := m.getBlacklistedStats()
+	m.metricAPI.BlacklistedClustersCurrent(cnt)
+
+	// After cleanup, emit a summary of current blacklisted clusters to aid manual intervention/tuning
+	if cnt > 0 {
+		log.Warnf("blacklisted clusters currently: %d; age min/avg/max: %s/%s/%s; blacklist TTL: %s", cnt, minAge, avgAge, maxAge, m.Config.MonitorBlacklistDuration)
+	}
+}
+
+// getBlacklistedStats returns (count, minAge, avgAge, maxAge) for current blacklisted clusters.
+// Age is computed from the configured TTL and stored expiration.
+func (m *Manager) getBlacklistedStats() (int, time.Duration, time.Duration, time.Duration) {
+	now := time.Now()
+	count := 0
+	var minAge time.Duration
+	var maxAge time.Duration
+	var sumAge time.Duration
+	m.blacklistedClusters.Range(func(key, value any) bool {
+		exp, ok := value.(time.Time)
+		if !ok {
+			return true
+		}
+		// Derive the blacklist start time from expiration and configured TTL
+		start := exp.Add(-m.Config.MonitorBlacklistDuration)
+		age := now.Sub(start)
+		if age < 0 {
+			age = 0
+		}
+		if count == 0 || age < minAge {
+			minAge = age
+		}
+		if age > maxAge {
+			maxAge = age
+		}
+		sumAge += age
+		count++
+		return true
+	})
+	var avgAge time.Duration
+	if count > 0 {
+		avgAge = time.Duration(int64(sumAge) / int64(count))
+	}
+	return count, minAge, avgAge, maxAge
 }
