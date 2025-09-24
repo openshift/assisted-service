@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalCapabilityReviewRequest writes a value of the 'capability_review_request' type to the given writer.
 func MarshalCapabilityReviewRequest(object *CapabilityReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeCapabilityReviewRequest(object, stream)
-	stream.Flush()
+	WriteCapabilityReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeCapabilityReviewRequest writes a value of the 'capability_review_request' type to the given stream.
-func writeCapabilityReviewRequest(object *CapabilityReviewRequest, stream *jsoniter.Stream) {
+// WriteCapabilityReviewRequest writes a value of the 'capability_review_request' type to the given stream.
+func WriteCapabilityReviewRequest(object *CapabilityReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -101,7 +103,6 @@ func writeCapabilityReviewRequest(object *CapabilityReviewRequest, stream *jsoni
 		}
 		stream.WriteObjectField("type")
 		stream.WriteString(object.type_)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -109,20 +110,17 @@ func writeCapabilityReviewRequest(object *CapabilityReviewRequest, stream *jsoni
 // UnmarshalCapabilityReviewRequest reads a value of the 'capability_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalCapabilityReviewRequest(source interface{}) (object *CapabilityReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readCapabilityReviewRequest(iterator)
+	object = ReadCapabilityReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readCapabilityReviewRequest reads a value of the 'capability_review_request' type from the given iterator.
-func readCapabilityReviewRequest(iterator *jsoniter.Iterator) *CapabilityReviewRequest {
+// ReadCapabilityReviewRequest reads a value of the 'capability_review_request' type from the given iterator.
+func ReadCapabilityReviewRequest(iterator *jsoniter.Iterator) *CapabilityReviewRequest {
 	object := &CapabilityReviewRequest{}
 	for {
 		field := iterator.ReadObject()

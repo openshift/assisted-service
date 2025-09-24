@@ -53,6 +53,11 @@ func (b *SubscriptionBuilder) HREF(value string) *SubscriptionBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *SubscriptionBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Copy copies the attributes of the given object into this builder, discarding any previous values.
 func (b *SubscriptionBuilder) Copy(object *Subscription) *SubscriptionBuilder {
 	if object == nil {

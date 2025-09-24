@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalProduct writes a value of the 'product' type to the given writer.
 func MarshalProduct(object *Product, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeProduct(object, stream)
-	stream.Flush()
+	WriteProduct(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeProduct writes a value of the 'product' type to the given stream.
-func writeProduct(object *Product, stream *jsoniter.Stream) {
+// WriteProduct writes a value of the 'product' type to the given stream.
+func WriteProduct(object *Product, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -70,7 +72,6 @@ func writeProduct(object *Product, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("name")
 		stream.WriteString(object.name)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -78,20 +79,17 @@ func writeProduct(object *Product, stream *jsoniter.Stream) {
 // UnmarshalProduct reads a value of the 'product' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalProduct(source interface{}) (object *Product, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readProduct(iterator)
+	object = ReadProduct(iterator)
 	err = iterator.Error
 	return
 }
 
-// readProduct reads a value of the 'product' type from the given iterator.
-func readProduct(iterator *jsoniter.Iterator) *Product {
+// ReadProduct reads a value of the 'product' type from the given iterator.
+func ReadProduct(iterator *jsoniter.Iterator) *Product {
 	object := &Product{}
 	for {
 		field := iterator.ReadObject()

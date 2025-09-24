@@ -21,7 +21,6 @@ package configuration
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -144,7 +143,7 @@ func (b *Builder) mergeString(src string, dst *yaml.Node) error {
 }
 
 func (b *Builder) mergeReader(src io.Reader, dst *yaml.Node) error {
-	buffer, err := ioutil.ReadAll(src)
+	buffer, err := io.ReadAll(src)
 	if err != nil {
 		return err
 	}
@@ -159,7 +158,7 @@ func (b *Builder) mergeFile(src string, dst *yaml.Node) error {
 	if info.IsDir() {
 		return b.mergeDir(src, dst)
 	}
-	buffer, err := ioutil.ReadFile(src) // #nosec G304
+	buffer, err := os.ReadFile(src) // #nosec G304
 	if err != nil {
 		return err
 	}
@@ -167,7 +166,7 @@ func (b *Builder) mergeFile(src string, dst *yaml.Node) error {
 }
 
 func (b *Builder) mergeDir(src string, dst *yaml.Node) error {
-	infos, err := ioutil.ReadDir(src)
+	infos, err := os.ReadDir(src)
 	if err != nil {
 		return err
 	}

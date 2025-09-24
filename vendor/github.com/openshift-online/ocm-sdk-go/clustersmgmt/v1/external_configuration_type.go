@@ -23,9 +23,10 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 //
 // Representation of cluster external configuration.
 type ExternalConfiguration struct {
-	bitmap_  uint32
-	labels   *LabelList
-	syncsets *SyncsetList
+	bitmap_   uint32
+	labels    *LabelList
+	manifests *ManifestList
+	syncsets  *SyncsetList
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -56,12 +57,35 @@ func (o *ExternalConfiguration) GetLabels() (value *LabelList, ok bool) {
 	return
 }
 
+// Manifests returns the value of the 'manifests' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// list of manifest externally configured for a hosted cluster.
+func (o *ExternalConfiguration) Manifests() *ManifestList {
+	if o != nil && o.bitmap_&2 != 0 {
+		return o.manifests
+	}
+	return nil
+}
+
+// GetManifests returns the value of the 'manifests' attribute and
+// a flag indicating if the attribute has a value.
+//
+// list of manifest externally configured for a hosted cluster.
+func (o *ExternalConfiguration) GetManifests() (value *ManifestList, ok bool) {
+	ok = o != nil && o.bitmap_&2 != 0
+	if ok {
+		value = o.manifests
+	}
+	return
+}
+
 // Syncsets returns the value of the 'syncsets' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
 //
 // list of syncsets externally configured on the cluster.
 func (o *ExternalConfiguration) Syncsets() *SyncsetList {
-	if o != nil && o.bitmap_&2 != 0 {
+	if o != nil && o.bitmap_&4 != 0 {
 		return o.syncsets
 	}
 	return nil
@@ -72,7 +96,7 @@ func (o *ExternalConfiguration) Syncsets() *SyncsetList {
 //
 // list of syncsets externally configured on the cluster.
 func (o *ExternalConfiguration) GetSyncsets() (value *SyncsetList, ok bool) {
-	ok = o != nil && o.bitmap_&2 != 0
+	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
 		value = o.syncsets
 	}
@@ -104,6 +128,29 @@ func (l *ExternalConfigurationList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ExternalConfigurationList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ExternalConfigurationList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ExternalConfigurationList) SetItems(items []*ExternalConfiguration) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ExternalConfigurationList) Items() []*ExternalConfiguration {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

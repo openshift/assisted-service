@@ -19,28 +19,14 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readUpgradePolicyStateGetRequest(request *UpgradePolicyStateGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeUpgradePolicyStateGetRequest(request *UpgradePolicyStateGetRequest, writer io.Writer) error {
 	return nil
 }
 func readUpgradePolicyStateGetResponse(response *UpgradePolicyStateGetResponse, reader io.Reader) error {
 	var err error
 	response.body, err = UnmarshalUpgradePolicyState(reader)
-	return err
-}
-func writeUpgradePolicyStateGetResponse(response *UpgradePolicyStateGetServerResponse, w http.ResponseWriter) error {
-	return MarshalUpgradePolicyState(response.body, w)
-}
-func readUpgradePolicyStateUpdateRequest(request *UpgradePolicyStateUpdateServerRequest, r *http.Request) error {
-	var err error
-	request.body, err = UnmarshalUpgradePolicyState(r.Body)
 	return err
 }
 func writeUpgradePolicyStateUpdateRequest(request *UpgradePolicyStateUpdateRequest, writer io.Writer) error {
@@ -50,7 +36,4 @@ func readUpgradePolicyStateUpdateResponse(response *UpgradePolicyStateUpdateResp
 	var err error
 	response.body, err = UnmarshalUpgradePolicyState(reader)
 	return err
-}
-func writeUpgradePolicyStateUpdateResponse(response *UpgradePolicyStateUpdateServerResponse, w http.ResponseWriter) error {
-	return MarshalUpgradePolicyState(response.body, w)
 }

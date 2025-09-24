@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalGithubIdentityProvider writes a value of the 'github_identity_provider' type to the given writer.
 func MarshalGithubIdentityProvider(object *GithubIdentityProvider, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeGithubIdentityProvider(object, stream)
-	stream.Flush()
+	WriteGithubIdentityProvider(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeGithubIdentityProvider writes a value of the 'github_identity_provider' type to the given stream.
-func writeGithubIdentityProvider(object *GithubIdentityProvider, stream *jsoniter.Stream) {
+// WriteGithubIdentityProvider writes a value of the 'github_identity_provider' type to the given stream.
+func WriteGithubIdentityProvider(object *GithubIdentityProvider, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -82,7 +84,7 @@ func writeGithubIdentityProvider(object *GithubIdentityProvider, stream *jsonite
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("organizations")
-		writeStringList(object.organizations, stream)
+		WriteStringList(object.organizations, stream)
 		count++
 	}
 	present_ = object.bitmap_&32 != 0 && object.teams != nil
@@ -91,8 +93,7 @@ func writeGithubIdentityProvider(object *GithubIdentityProvider, stream *jsonite
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("teams")
-		writeStringList(object.teams, stream)
-		count++
+		WriteStringList(object.teams, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -100,20 +101,17 @@ func writeGithubIdentityProvider(object *GithubIdentityProvider, stream *jsonite
 // UnmarshalGithubIdentityProvider reads a value of the 'github_identity_provider' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalGithubIdentityProvider(source interface{}) (object *GithubIdentityProvider, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readGithubIdentityProvider(iterator)
+	object = ReadGithubIdentityProvider(iterator)
 	err = iterator.Error
 	return
 }
 
-// readGithubIdentityProvider reads a value of the 'github_identity_provider' type from the given iterator.
-func readGithubIdentityProvider(iterator *jsoniter.Iterator) *GithubIdentityProvider {
+// ReadGithubIdentityProvider reads a value of the 'github_identity_provider' type from the given iterator.
+func ReadGithubIdentityProvider(iterator *jsoniter.Iterator) *GithubIdentityProvider {
 	object := &GithubIdentityProvider{}
 	for {
 		field := iterator.ReadObject()
@@ -138,11 +136,11 @@ func readGithubIdentityProvider(iterator *jsoniter.Iterator) *GithubIdentityProv
 			object.hostname = value
 			object.bitmap_ |= 8
 		case "organizations":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.organizations = value
 			object.bitmap_ |= 16
 		case "teams":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.teams = value
 			object.bitmap_ |= 32
 		default:
