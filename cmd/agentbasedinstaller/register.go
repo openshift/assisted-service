@@ -237,7 +237,7 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) (cluster *models.Cluster, err error) {
 	list, err := bmInventory.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 	if err != nil {
-		return nil, err
+		return nil, errorutil.GetAssistedError(err)
 	}
 	clusterList := list.Payload
 	numClusters := len(clusterList)
@@ -246,7 +246,7 @@ func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.Assist
 		return nil, errors.New(errorMessage)
 	}
 	if numClusters == 0 {
-		return nil, errors.New("No clusters registered in assisted-service")
+		return nil, nil
 	}
 	return clusterList[0], nil
 }
