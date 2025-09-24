@@ -2,6 +2,7 @@ package agentbasedinstaller
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net"
 	"os"
@@ -37,10 +38,29 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 		return nil, fmt.Errorf("Failed to list hosts: %w", errorutil.GetAssistedError(err))
 	}
 
+	// Only bother checking for fencing credentials if we have 2 hosts
+	var fencingCreds []*models.FencingCredentialsParams
+	if len(hostList.Payload) == 2 {
+		installConfigResponse, err := bmInventory.Installer.V2GetClusterInstallConfig(ctx, installer.NewV2GetClusterInstallConfigParams().WithClusterID(infraEnvID))
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get cluster install config: %w", errorutil.GetAssistedError(err))
+		}
+		fencingCreds, err = getFencingUpdateParams(installConfigResponse.Payload)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get fencing credentials: %w", err)
+		}
+	}
+
 	failures := []Failure{}
 
 	for _, host := range hostList.Payload {
-		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs); err != nil {
+		var fencingCred *models.FencingCredentialsParams
+		for _, fc := range fencingCreds {
+			if host.ID != nil && fc.Address != nil && strings.Contains(*fc.Address, host.ID.String()) {
+				fencingCred = fc
+			}
+		}
+		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs, fencingCred); err != nil {
 			if fail, ok := err.(Failure); ok {
 				failures = append(failures, fail)
 				log.Error(err.Error())
@@ -62,7 +82,7 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	return failures, nil
 }
 
-func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, hostConfigs HostConfigs) error {
+func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, hostConfigs HostConfigs, fencingCreds *models.FencingCredentialsParams) error {
 	log.Infof("Checking configuration for host %s", *host.ID)
 
 	if len(host.Inventory) == 0 {
@@ -98,6 +118,10 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	}
 	if applyRole(log, host, inventory, role, updateParams) {
 		changed = true
+	}
+
+	if fencingCreds != nil {
+		updateParams.FencingCredentials = fencingCreds
 	}
 
 	if !changed {
@@ -236,6 +260,45 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		})
 	}
 	return configs, nil
+}
+
+func getFencingUpdateParams(installConfigPayload string) ([]*models.FencingCredentialsParams, error) {
+
+	type FencingCredential struct {
+		Hostname                string  `json:"hostname"`
+		Address                 string  `json:"address"`
+		Username                string  `json:"username"`
+		Password                string  `json:"password"`
+		CertificateVerification *string `json:"certificateVerification,omitempty"`
+	}
+
+	type Fencing struct {
+		Credentials []FencingCredential `json:"credentials,omitempty"`
+	}
+
+	type ControlPlane struct {
+		Fencing *Fencing `json:"fencing,omitempty"`
+	}
+
+	type installConfig struct {
+		ControlPlane ControlPlane `json:"controlPlane"`
+	}
+
+	ic := &installConfig{}
+
+	if err := json.Unmarshal([]byte(installConfigPayload), &ic); err != nil {
+		return nil, fmt.Errorf("Failed to unmarshal cluster install config: %w", errorutil.GetAssistedError(err))
+	}
+	var updateParams []*models.FencingCredentialsParams
+	for _, credential := range ic.ControlPlane.Fencing.Credentials {
+		updateParams = append(updateParams, &models.FencingCredentialsParams{
+			Address:                 &credential.Address,
+			Username:                &credential.Username,
+			Password:                &credential.Password,
+			CertificateVerification: credential.CertificateVerification,
+		})
+	}
+	return updateParams, nil
 }
 
 type hostConfig struct {
