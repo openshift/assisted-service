@@ -158,7 +158,10 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	}
 
 	existingCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
-	if err == nil {
+	if err != nil {
+		log.Fatal(err.Error())
+	}
+	if existingCluster != nil {
 		log.Infof("Skipping cluster registration. Found existing cluster with id: %s", existingCluster.ID.String())
 		return existingCluster.ID.String()
 	}
@@ -200,7 +203,7 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	}
 
 	modelsCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
-	if err != nil {
+	if err != nil || modelsCluster == nil {
 		log.Fatal("Failed to find cluster when registering infraenv: ", err)
 	} else {
 		log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
