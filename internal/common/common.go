@@ -791,10 +791,7 @@ func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
 	if IsClusterTopologyHighlyAvailableArbiter(cluster) {
 		return false
 	}
-	// During agent based installation, the host role is not set yet, so we need to include the auto-assign hosts
-	masters := []models.Host{}
-	masters = append(masters, GetHostsByRole(cluster, models.HostRoleMaster)...)
-	masters = append(masters, GetHostsByRole(cluster, models.HostRoleAutoAssign)...)
+	masters := GetHostsByRole(cluster, models.HostRoleMaster)
 	if len(masters) != AllowedNumberOfMasterHostsInTwoNodesWithFencing {
 		return false
 	}
