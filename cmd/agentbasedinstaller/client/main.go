@@ -164,10 +164,14 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	}
 
 	modelsCluster, err := agentbasedinstaller.GetCluster(ctx, log, bmInventory)
-	if err != nil || modelsCluster == nil {
+	if err != nil {
 		log.Fatal("Failed to find cluster when registering infraenv: ", err)
 	} else {
-		log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+		if modelsCluster != nil {
+			log.Infof("Reference to cluster id: %s", modelsCluster.ID.String())
+		} else {
+			log.Info("No Cluster found, registering InfraEnv for late binding")
+		}
 	}
 
 	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,

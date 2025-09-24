@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/go-openapi/strfmt"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
@@ -159,7 +160,11 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		return nil, infraenvErr
 	}
 
-	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, modelsCluster.ID, modelsCluster.OpenshiftVersion)
+	var clusterID *strfmt.UUID
+	if modelsCluster != nil {
+		clusterID = modelsCluster.ID
+	}
+	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
 
 	var nmStateConfig aiv1beta1.NMStateConfig
 
