@@ -387,7 +387,10 @@ func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBare
 	}
 
 	fencingCredentials := make([]installcfg.FencingCredential, common.AllowedNumberOfMasterHostsInTwoNodesWithFencing)
-	for index, master := range common.GetHostsByRole(cluster, models.HostRoleMaster) {
+	masters := []models.Host{}
+	masters = append(masters, common.GetHostsByRole(cluster, models.HostRoleMaster)...)
+	masters = append(masters, common.GetHostsByRole(cluster, models.HostRoleAutoAssign)...)
+	for index, master := range masters {
 		hostFencingCredentials := models.FencingCredentialsParams{}
 		if err := json.Unmarshal([]byte(master.FencingCredentials), &hostFencingCredentials); err != nil {
 			i.log.WithError(err).Errorf("failed to unmarshal the fencing credentials of host %s", master.ID.String())
