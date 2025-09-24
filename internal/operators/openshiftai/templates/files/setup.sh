@@ -1,5 +1,5 @@
 # Name of the storage class:
-storage_class="ocs-storagecluster-ceph-rbd"
+{{ if .IsSNO }}storage_class='lvms-vg1'{{ else }}storage_class='ocs-storagecluster-ceph-rbd'{{ end }}
 wait_interval="30s"
 
 log() {

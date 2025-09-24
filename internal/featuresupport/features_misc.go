@@ -47,7 +47,6 @@ func (feature *SnoFeature) getIncompatibleFeatures(string) []models.FeatureSuppo
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
-		models.FeatureSupportLevelIDOPENSHIFTAI,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 		models.FeatureSupportLevelIDNODEHEALTHCHECK,
 		models.FeatureSupportLevelIDSELFNODEREMEDIATION,

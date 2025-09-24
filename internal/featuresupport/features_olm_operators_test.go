@@ -114,7 +114,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 				models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 				models.FeatureSupportLevelIDODF,
-				models.FeatureSupportLevelIDOPENSHIFTAI,
 				models.FeatureSupportLevelIDVIPAUTOALLOC,
 				models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 			}
@@ -123,7 +122,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 				models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 				models.FeatureSupportLevelIDODF,
-				models.FeatureSupportLevelIDOPENSHIFTAI,
 				models.FeatureSupportLevelIDVIPAUTOALLOC,
 				models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 			}
@@ -132,13 +130,11 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 				models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 				models.FeatureSupportLevelIDODF,
-				models.FeatureSupportLevelIDOPENSHIFTAI,
 			}
 			incompatibleFeatures["4.16.0-rc0"] = []models.FeatureSupportLevelID{
 				models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 				models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 				models.FeatureSupportLevelIDODF,
-				models.FeatureSupportLevelIDOPENSHIFTAI,
 			}
 
 			testIncompatibleFeatures := []struct {
