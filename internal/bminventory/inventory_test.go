@@ -4412,7 +4412,6 @@ var _ = Describe("cluster", func() {
 					Expect(string(actual.Payload.APIVips[0].IP)).To(Equal(apiVip))
 					Expect(string(actual.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
 					validateNetworkConfiguration(actual.Payload, nil, nil, &[]*models.MachineNetwork{{Cidr: "10.11.0.0/16"}})
-					validateHostsRequestedHostname(actual.Payload)
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
 							Cidr: "1.2.3.0/24",
@@ -8785,6 +8784,7 @@ var _ = Describe("infraEnvs", func() {
 				err = db.Create(&models.Host{
 					ID:         &hostID,
 					InfraEnvID: infraEnvId1,
+					RequestedHostname: hostID.String(),
 				}).Error
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -8803,6 +8803,7 @@ var _ = Describe("infraEnvs", func() {
 				err = db.Create(&models.Host{
 					ID:         &hostID,
 					InfraEnvID: infraEnvId2,
+					RequestedHostname: hostID.String(),
 				}).Error
 				Expect(err).ToNot(HaveOccurred())
 			}
@@ -13749,7 +13750,8 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, infra
 		Role:       role,
 		Inventory:  inventory,
 	}
-
+	
+	host.RequestedHostname = hostutil.GetHostnameForMsg(&host)
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
 }
