@@ -101,6 +101,7 @@ type AgentReconciler struct {
 	AgentContainerImage        string
 	HostFSMountDir             string
 	reclaimer                  *agentReclaimer
+	ImageServiceEnabled        bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -671,6 +672,10 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.Na
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
+	// if image service is disabled, reclaim will never work because boot artifacts cannot be downloaded
+	if !r.ImageServiceEnabled {
+		return false
+	}
 	// default to not attempting to reclaim as that's the safer route
 	if foundBMH, err := r.bmhExists(ctx, agent); err != nil || foundBMH {
 		if err != nil {
