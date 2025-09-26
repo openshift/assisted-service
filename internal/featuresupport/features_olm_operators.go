@@ -677,7 +677,7 @@ func (feature *OscFeature) getSupportLevel(filters SupportLevelFilters) (models.
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
 	}
 
-	return models.SupportLevelTechPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (feature *OscFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
