@@ -390,7 +390,7 @@ func GetHostCountByRole(db *gorm.DB, clusterID strfmt.UUID, role models.HostRole
 	return &count, nil
 }
 
-func prepareClusterDBWithJoins(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, conditions ...interface{}) *gorm.DB {
+func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, conditions ...interface{}) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()
 	}
@@ -458,7 +458,7 @@ func prepareClusterDBWithJoins(db *gorm.DB, eagerLoading EagerLoadingState, incl
 func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
 	var cluster Cluster
 
-	db = prepareClusterDBWithJoins(db, eagerLoading, includeDeleted)
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Take(&cluster, where...).Error
 	if err != nil {
 		return nil, err
@@ -473,7 +473,7 @@ func GetClusterFromDBWhereForUpdate(db *gorm.DB, eagerLoading EagerLoadingState,
 		return transaction.AddForUpdateQueryOption(db)
 	}
 
-	db = prepareClusterDBWithJoins(transaction.AddForUpdateQueryOption(db), eagerLoading, includeDeleted, forUpdateCondition)
+	db = prepareClusterDB(transaction.AddForUpdateQueryOption(db), eagerLoading, includeDeleted, forUpdateCondition)
 	err := db.Take(&cluster, where...).Error
 	if err != nil {
 		return nil, err
@@ -484,7 +484,7 @@ func GetClusterFromDBWhereForUpdate(db *gorm.DB, eagerLoading EagerLoadingState,
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
 	var clusters []*Cluster
 
-	db = prepareClusterDBWithJoins(db, eagerLoading, includeDeleted)
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 
 	err := db.Find(&clusters, where...).Error
 	if err != nil {
