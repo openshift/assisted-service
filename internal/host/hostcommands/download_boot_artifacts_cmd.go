@@ -46,6 +46,7 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 	if err != nil {
 		return nil, err
 	}
+
 	osImage, err := c.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
 	if err != nil {
 		return nil, err

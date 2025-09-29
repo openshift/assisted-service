@@ -24,8 +24,8 @@ type OSImages interface {
 
 type osImageList models.OsImages
 
-func NewOSImages(images models.OsImages) (OSImages, error) {
-	if len(images) == 0 {
+func NewOSImages(images models.OsImages, enableImageService bool) (OSImages, error) {
+	if len(images) == 0 && enableImageService {
 		return nil, errors.New("No OS images provided")
 	}
 	for _, osImage := range images {

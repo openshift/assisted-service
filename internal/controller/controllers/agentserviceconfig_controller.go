@@ -97,6 +97,7 @@ const (
 	userConfigHashAnnotation                     = "agent-install.openshift.io/user-config-hash"
 	osImagesAdditionalParamsConfigHashAnnotation = "agent-install.openshift.io/os-images-additional-params-config-hash"
 	osImagesCAConfigHashAnnotation               = "agent-install.openshift.io/os-images-ca-hash"
+	enableImageServiceAnnotation                 = "agent-install.openshift.io/enable-image-service"
 	imageServiceStatefulSetFinalizerName         = imageServiceName + "." + aiv1beta1.Group + "/ai-deprovision"
 	agentServiceConfigFinalizerName              = "agentserviceconfig." + aiv1beta1.Group + "/ai-deprovision"
 
@@ -291,13 +292,20 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		return ctrl.Result{}, nil
 	}
 
+	// If image service is disabled and osImages is populated, add error condition
+	if !isImageServiceEnabled(asc.Object.GetAnnotations()) && len(asc.spec.OSImages) > 0 {
+		osImagesError := fmt.Errorf("osImages should be empty when image service is disabled")
+		registerOSImageError(ctx, osImagesError, asc)
+		return ctrl.Result{}, osImagesError
+	}
+
 	// Remove IPXE HTTP routes if not needed
 	if err := cleanHTTPRoute(ctx, log, asc); err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
 	// Reconcile components
-	for _, component := range getComponents(asc.spec, asc.rec.IsOpenShift) {
+	for _, component := range getComponents(asc.spec, asc.rec.IsOpenShift, asc.Object.GetAnnotations()) {
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			return result, err
 		}
@@ -308,10 +316,11 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
-	// Ensure image-service StatefulSet is reconciled
-	if err := ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
-		return ctrl.Result{Requeue: true}, err
-
+	// Ensure image-service StatefulSet is reconciled (only if image service is not disabled)
+	if isImageServiceEnabled(asc.Object.GetAnnotations()) {
+		if err := ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
 	}
 
 	return updateConditions(ctx, log, asc)
@@ -367,44 +376,62 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Res
 	return ctrl.Result{}, nil
 }
 
-func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool) []component {
+func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool, annotations map[string]string) []component {
+	imageServiceEnabled := isImageServiceEnabled(annotations)
+
 	components := []component{
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
-		{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
-		{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
-		{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
-		// needs to be created after the route to pull the hostname into the configmap
-		{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM},
 	}
+
+	if imageServiceEnabled {
+		components = append(components,
+			component{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
+			component{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
+			component{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
+		)
+	}
+
 	if isOpenshift {
 		components = append(components,
 			component{"ServiceMonitor", aiv1beta1.ReasonAgentServiceMonitorFailure, newServiceMonitor},
 			component{"IngressCertConfigMap", aiv1beta1.ReasonIngressCertFailure, newIngressCertCM},
-			// this is only for mounting in the https certs
-			component{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
 			component{"ClusterTrustedCAConfigMap", aiv1beta1.ReasonConfigFailure, newClusterTrustedCACM},
 			component{"AssistedTrustedCAConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedTrustedCACM},
 		)
+
+		if imageServiceEnabled {
+			components = append(components,
+				// this is only for mounting in the https certs
+				component{"ImageServiceConfigMap", aiv1beta1.ReasonConfigFailure, newImageServiceConfigMap},
+			)
+		}
+
 		// Additional routes need to be synced if HTTP iPXE routes are exposed
 		if exposeIPXEHTTPRoute(spec) {
 			components = append(components,
-				component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
 				component{"AgentIPXERoute", aiv1beta1.ReasonAgentRouteFailure, newAgentIPXERoute},
 			)
+			if imageServiceEnabled {
+				components = append(components,
+					component{"ImageServiceIPXERoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceIPXERoute},
+				)
+			}
 		}
 	} else {
 		components = append(components, certManagerComponents()...)
 	}
+	// needs to be created after all routes to pull the hostnames into the configmap
+	components = append(components,
+		component{"AssistedServiceConfigMap", aiv1beta1.ReasonConfigFailure, newAssistedCM})
 	components = append(components,
 		// needs to be created after all of the configmaps to calculate the config hash and ensure the correct data exists
 		component{"AssistedServiceDeployment", aiv1beta1.ReasonDeploymentFailure, newAssistedServiceDeployment})
 	return components
-
 }
 
 func (r *AgentServiceConfigReconciler) getWebhookComponents() []component {
@@ -581,12 +608,18 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (stri
 		}
 	}
 
-	// monitor statefulset
+	return monitorImageServiceStatefulSet(ctx, log, asc)
+}
+
+// Monitor Image Service StatefulSet. NOOP if image service is disabled.
+func monitorImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc ASC) (string, error) {
+	if !isImageServiceEnabled(asc.Object.GetAnnotations()) {
+		return "", nil
+	}
 	ss := &appsv1.StatefulSet{}
 	if err := asc.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: asc.namespace}, ss); err != nil {
 		return "", err
 	}
-
 	desiredReplicas := *ss.Spec.Replicas
 	for kind, replicas := range map[string]int32{
 		"created": ss.Status.Replicas,
@@ -598,7 +631,6 @@ func monitorOperands(ctx context.Context, log logrus.FieldLogger, asc ASC) (stri
 			return fmt.Sprintf("StatefulSet %s %s replicas does not match desired replicas", imageServiceName, kind), nil
 		}
 	}
-
 	return "", nil
 }
 
@@ -1239,10 +1271,14 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		return nil, nil, err
 	}
 
-	imageServiceURL, err := urlForRoute(ctx, asc, imageServiceName)
-	if err != nil {
-		log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
-		return nil, nil, err
+	// When image service is disabled, set to empty string
+	var imageServiceURL string
+	if isImageServiceEnabled(asc.Object.GetAnnotations()) {
+		imageServiceURL, err = urlForRoute(ctx, asc, imageServiceName)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to get URL for route %s", imageServiceName)
+			return nil, nil, err
+		}
 	}
 
 	cm := &corev1.ConfigMap{
@@ -1266,7 +1302,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"CONTROLLER_IMAGE":       ControllerImage(),
 			"INSTALLER_IMAGE":        InstallerImage(),
 			"SELF_VERSION":           ServiceImage(asc.Object),
-			"OS_IMAGES":              getOSImages(log, asc.spec),
+			"OS_IMAGES":              getOSImages(log, asc.spec, asc.Object.GetAnnotations()),
 			"MUST_GATHER_IMAGES":     getMustGatherImages(log, asc.spec),
 			"ISO_IMAGE_TYPE":         "minimal-iso",
 			"S3_USE_SSL":             "false",
@@ -1329,6 +1365,15 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		copyEnv(cm.Data, "DEPLOYMENT_TYPE")
 		copyEnv(cm.Data, "DEPLOYMENT_VERSION")
 		getDeploymentData(ctx, cm, asc)
+
+		cm.Data["ENABLE_IMAGE_SERVICE"] = "true"
+		// Set ENABLE_IMAGE_SERVICE environment variable based on annotation
+		if !isImageServiceEnabled(asc.Object.GetAnnotations()) {
+			cm.Data["ENABLE_IMAGE_SERVICE"] = "false"
+			log.Infof("Image service disabled via annotation, setting ENABLE_IMAGE_SERVICE=false")
+			asc.rec.Recorder.Event(asc.Object, "Normal", "ImageServiceDisabled", "Image service has been disabled via annotation")
+		}
+
 		return nil
 	}
 
@@ -1420,7 +1465,7 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 	imageServiceBaseURL := getImageService(ctx, log, asc)
 	containerEnv := []corev1.EnvVar{
 		{Name: "LISTEN_PORT", Value: imageHandlerPort.String()},
-		{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec)},
+		{Name: "RHCOS_VERSIONS", Value: getOSImages(log, asc.spec, asc.Object.GetAnnotations())},
 		{Name: "ASSISTED_SERVICE_HOST", Value: serviceName + "." + asc.namespace + ".svc:" + servicePort.String()},
 		{Name: "IMAGE_SERVICE_BASE_URL", Value: imageServiceBaseURL},
 		{Name: "INSECURE_SKIP_VERIFY", Value: skipVerifyTLS},
@@ -2243,17 +2288,25 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 // getOSImages returns the value of OS_IMAGES variable
 // to be stored in the service's ConfigMap
 //
-//  1. If osImages field is not present in the AgentServiceConfig's Spec
+//  1. If image service is disabled via annotation, returns empty JSON array "[]"
+//
+//  2. If osImages field is not present in the AgentServiceConfig's Spec
 //     it returns the value of OS_IMAGES env variable.
 //     This is also the fallback behavior in case of a processing error.
 //
-//  2. If osImages field is present in the AgentServiceConfig's Spec it
+//  3. If osImages field is present in the AgentServiceConfig's Spec it
 //     converts the structure to the one that can be recognize by the service
 //     and returns it as a JSON string.
 //
-//  3. In case both sources are present, the Spec values overrides the env
+//  4. In case both sources are present, the Spec values overrides the env
 //     values.
-func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec) string {
+func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec, annotations map[string]string) string {
+	// If image service is disabled, return empty array
+	if !isImageServiceEnabled(annotations) {
+		log.Info("Image service is disabled, returning empty OS images list")
+		return "[]"
+	}
+
 	if spec.OSImages == nil {
 		return OSImages()
 	}
@@ -2293,6 +2346,19 @@ func exposeIPXEHTTPRoute(spec *aiv1beta1.AgentServiceConfigSpec) bool {
 	default:
 		return false
 	}
+}
+
+// isImageServiceEnabled returns true if the enable-image-service annotation is set to "true" or not present (default enabled)
+func isImageServiceEnabled(annotations map[string]string) bool {
+	if annotations == nil {
+		return true
+	}
+	value := annotations[enableImageServiceAnnotation]
+	// If annotation is not set, default to enabled
+	if value == "" {
+		return true
+	}
+	return value == "true"
 }
 
 func getCMHash(ctx context.Context, asc ASC, namespacedName types.NamespacedName) (string, error) {
@@ -2839,6 +2905,17 @@ func registerCACertFailureCondition(ctx context.Context, log logrus.FieldLogger,
 	return nil
 }
 
+func registerOSImageError(ctx context.Context, err error, asc ASC) bool {
+	return conditionsv1.SetStatusConditionNoHeartbeat(
+		asc.conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonOSImagesShouldBeEmptyFailure,
+			Message: err.Error(),
+		},
+	)
+}
+
 func registerOSImagesAdditionalParamsFailureCondition(ctx context.Context, log logrus.FieldLogger, err error, asc ASC) error {
 	conditionsv1.SetStatusConditionNoHeartbeat(
 		asc.conditions, conditionsv1.Condition{
@@ -2920,6 +2997,7 @@ func validateImmutableAnnotations(ctx context.Context, log logrus.FieldLogger, a
 	immutableAnnotations := []string{
 		aiv1beta1.PVCPrefixAnnotation,
 		aiv1beta1.SecretsPrefixAnnotation,
+		enableImageServiceAnnotation,
 	}
 
 	// Check if we have stored the initial state in a special annotation

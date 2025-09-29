@@ -1107,6 +1107,152 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 })
 
+var _ = Describe("agentserviceconfig_controller with enable-image-service annotation", func() {
+	var (
+		asc                             *aiv1beta1.AgentServiceConfig
+		ascr                            *AgentServiceConfigReconciler
+		agentinstalladmissionDeployment *appsv1.Deployment
+
+		ctx       = context.Background()
+		ingressCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      defaultIngressCertCMName,
+				Namespace: defaultIngressCertCMNamespace,
+			},
+		}
+		route = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+
+		clusterTrustedCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      clusterCAConfigMapName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{caBundleKey: "example-cluster-trusted-bundle"},
+		}
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		asc.ObjectMeta.Annotations = map[string]string{
+			"agent-install.openshift.io/enable-image-service": "false",
+		}
+	})
+
+	It("should not deploy image service resources when enable-image-service annotation is set to false", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: testNamespace,
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+
+		ascr = newTestReconciler(asc, ingressCM, route, agentinstalladmissionDeployment, clusterTrustedCM)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(Succeed())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		// Verify that assisted-service resources ARE created (main service should still work)
+		assistedServiceFound := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assistedServiceFound)).To(Succeed())
+
+		// Verify that ENABLE_IMAGE_SERVICE env var is set in the ConfigMap (loaded via envFrom)
+		assistedCMFound := &corev1.ConfigMap{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assistedCMFound)).To(Succeed())
+		Expect(assistedCMFound.Data["ENABLE_IMAGE_SERVICE"]).To(Equal("false"), "ENABLE_IMAGE_SERVICE should be set to 'false' in the ConfigMap")
+
+		// Verify that the deployment is configured to load environment variables from the ConfigMap
+		serviceContainer := assistedServiceFound.Spec.Template.Spec.Containers[0]
+		var foundConfigMapRef bool
+		for _, envFrom := range serviceContainer.EnvFrom {
+			if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == serviceName {
+				foundConfigMapRef = true
+				break
+			}
+		}
+		Expect(foundConfigMapRef).To(BeTrue(), "Deployment should be configured to load environment variables from ConfigMap")
+
+		assistedServiceServiceFound := &corev1.Service{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assistedServiceServiceFound)).To(Succeed())
+
+		// Verify that image service resources are NOT created
+		imageServiceStatefulSetFound := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceStatefulSetFound)).ToNot(Succeed())
+
+		imageServiceServiceFound := &corev1.Service{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceServiceFound)).ToNot(Succeed())
+
+		imageServiceRouteFound := &routev1.Route{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceRouteFound)).ToNot(Succeed())
+
+		imageServiceSAFound := &corev1.ServiceAccount{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceSAFound)).ToNot(Succeed())
+
+		imageServiceCMFound := &corev1.ConfigMap{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageServiceCMFound)).ToNot(Succeed())
+	})
+
+	It("should set empty OS_IMAGES environment variable when image service is disabled", func() {
+		agentinstalladmissionDeployment = &appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "agentinstalladmission",
+				Namespace: testNamespace,
+			},
+			Status: appsv1.DeploymentStatus{
+				Conditions: []appsv1.DeploymentCondition{
+					{
+						Type:   appsv1.DeploymentAvailable,
+						Status: corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+
+		ascr = newTestReconciler(asc, ingressCM, route, agentinstalladmissionDeployment, clusterTrustedCM)
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(Succeed())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		// Check that the assisted-service ConfigMap has empty OS_IMAGES
+		assistedCMFound := &corev1.ConfigMap{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assistedCMFound)).To(Succeed())
+		Expect(assistedCMFound.Data["OS_IMAGES"]).To(Equal("[]"))
+		Expect(assistedCMFound.Data["IMAGE_SERVICE_BASE_URL"]).To(Equal(""))
+
+		// Also verify that ENABLE_IMAGE_SERVICE env var is set in the ConfigMap (already checked above)
+		Expect(assistedCMFound.Data["ENABLE_IMAGE_SERVICE"]).To(Equal("false"), "ENABLE_IMAGE_SERVICE should be set to 'false' in the ConfigMap")
+
+		// Verify that the deployment is configured to load environment variables from the ConfigMap
+		assistedServiceFound := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assistedServiceFound)).To(Succeed())
+
+		serviceContainer := assistedServiceFound.Spec.Template.Spec.Containers[0]
+		var foundConfigMapRef bool
+		for _, envFrom := range serviceContainer.EnvFrom {
+			if envFrom.ConfigMapRef != nil && envFrom.ConfigMapRef.Name == serviceName {
+				foundConfigMapRef = true
+				break
+			}
+		}
+		Expect(foundConfigMapRef).To(BeTrue(), "Deployment should be configured to load environment variables from ConfigMap")
+	})
+})
+
 var _ = Describe("newImageServiceService", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig
@@ -2345,9 +2491,9 @@ var _ = Describe("getOSImages", func() {
 			asc.Spec.OSImages = t.spec
 			// verify the result
 			if t.expected != "" {
-				Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(t.expected))
+				Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(t.expected))
 			} else {
-				Expect(getOSImages(log, &asc.Spec)).To(Equal(""))
+				Expect(getOSImages(log, &asc.Spec, nil)).To(Equal(""))
 			}
 		})
 	}
@@ -2370,31 +2516,31 @@ var _ = Describe("getOSImages", func() {
 			defer os.Unsetenv(OsImagesEnvVar)
 
 			asc = newASCDefault()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OS images specified", func() {
 		It("should build OS images", func() {
 			asc, expectedEnv = newASCWithOSImages()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with multiple OS images specified", func() {
 		It("should build OS images with multiple keys", func() {
 			asc, expectedEnv = newASCWithMultipleOpenshiftVersions()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with duplicate OS images specified", func() {
 		It("should take the last specified version", func() {
 			asc, expectedEnv = newASCWithDuplicateOpenshiftVersions()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OS images x.y.z specified", func() {
 		It("should only specify x.y", func() {
 			asc, expectedEnv = newASCWithLongOpenshiftVersion()
-			Expect(getOSImages(log, &asc.Spec)).To(MatchJSON(expectedEnv))
+			Expect(getOSImages(log, &asc.Spec, nil)).To(MatchJSON(expectedEnv))
 		})
 	})
 })
@@ -3415,6 +3561,25 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			condition := conditionsv1.FindStatusCondition(updatedASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
 			Expect(condition).ToNot(BeNil())
 			Expect(condition.Reason).ToNot(Equal(aiv1beta1.ReasonImmutableAnnotationFailure))
+		})
+
+		It("should fail when image service is disabled and osImages is populated", func() {
+			ascObj.Annotations = map[string]string{
+				"agent-install.openshift.io/enable-image-service": "false",
+			}
+			ascObj.Spec.OSImages = nil
+			Expect(reconciler.Client.Create(ctx, ascObj)).To(Succeed())
+
+			_, err := reconciler.Reconcile(ctx, req)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that initial state was recorded
+			updatedASC := &aiv1beta1.AgentServiceConfig{}
+			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
+
+			condition := conditionsv1.FindStatusCondition(updatedASC.Status.Conditions, aiv1beta1.ConditionReconcileCompleted)
+			Expect(condition).ToNot(BeNil())
+			Expect(condition.Reason).ToNot(Equal(aiv1beta1.ReasonOSImagesShouldBeEmptyFailure))
 		})
 	})
 
