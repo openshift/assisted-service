@@ -378,7 +378,7 @@ var _ = Describe("GetReleaseImage", func() {
 	})
 
 	It("get from ReleaseImages", func() {
-		osImages, err := NewOSImages(defaultOsImages)
+		osImages, err := NewOSImages(defaultOsImages, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		for _, key := range osImages.GetOpenshiftVersions() {

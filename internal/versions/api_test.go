@@ -90,7 +90,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// validate fields
-		_, err = NewOSImages(osImages)
+		_, err = NewOSImages(osImages, false)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		bytes, err = os.ReadFile("../../data/default_release_images.json")

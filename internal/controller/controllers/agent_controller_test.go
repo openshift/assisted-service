@@ -104,6 +104,7 @@ var _ = Describe("agent reconcile", func() {
 
 		hr = &AgentReconciler{
 			Client:                c,
+			ImageServiceEnabled:   true,
 			APIReader:             c,
 			Scheme:                scheme.Scheme,
 			Log:                   common.GetTestLog(),
@@ -2557,6 +2558,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			APIReader:                  c,
 			SpokeK8sClientFactory:      mockClientFactory,
 			ApproveCsrsRequeueDuration: time.Minute,
+			ImageServiceEnabled:        true,
 		}
 		sId := strfmt.UUID(uuid.New().String())
 		hostId = strfmt.UUID(uuid.New().String())
@@ -3397,10 +3399,11 @@ var _ = Describe("TestConditions", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		hr = &AgentReconciler{
-			Client:    c,
-			Scheme:    scheme.Scheme,
-			Log:       common.GetTestLog(),
-			Installer: mockInstallerInternal,
+			Client:              c,
+			ImageServiceEnabled: true,
+			Scheme:              scheme.Scheme,
+			Log:                 common.GetTestLog(),
+			Installer:           mockInstallerInternal,
 		}
 		sId := strfmt.UUID(uuid.New().String())
 		hostId = strfmt.UUID(uuid.New().String())
@@ -4146,6 +4149,7 @@ var _ = Describe("spokeKubeClient", func() {
 			Log:                   common.GetTestLog(),
 			APIReader:             c,
 			SpokeK8sClientFactory: mockClientFactory,
+			ImageServiceEnabled:   true,
 		}
 		cdSpec = hivev1.ClusterDeploymentSpec{
 			ClusterName:     clusterName,
@@ -4251,6 +4255,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 			Log:                   common.GetTestLog(),
 			Installer:             mockInstallerInternal,
 			SpokeK8sClientFactory: mockClientFactory,
+			ImageServiceEnabled:   true,
 		}
 		agent = &v1beta1.Agent{
 			ObjectMeta: metav1.ObjectMeta{
@@ -4676,6 +4681,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			Installer:             mockInstallerInternal,
 			SpokeK8sClientFactory: mockClientFactory,
 			AgentContainerImage:   agentImage,
+			ImageServiceEnabled:   true,
 		}
 		sId = strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}

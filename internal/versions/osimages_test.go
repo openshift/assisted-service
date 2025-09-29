@@ -8,6 +8,8 @@ import (
 	models "github.com/openshift/assisted-service/models"
 )
 
+const imageServiceEnabled = true
+
 var _ = Describe("NewOSImages", func() {
 	It("should fail when missing OpenshiftVersion", func() {
 		osImages := models.OsImages{
@@ -18,7 +20,7 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -31,7 +33,7 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -44,7 +46,7 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -57,7 +59,7 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -70,7 +72,7 @@ var _ = Describe("NewOSImages", func() {
 			},
 		}
 
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 })
@@ -83,7 +85,7 @@ var _ = Describe("GetOsImage", func() {
 	Context("with default images", func() {
 		BeforeEach(func() {
 			var err error
-			images, err = NewOSImages(defaultOsImages)
+			images, err = NewOSImages(defaultOsImages, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -161,7 +163,7 @@ var _ = Describe("GetOsImage", func() {
 					Version:          swag.String("version-4101.123-0"),
 				},
 			}
-			images, err = NewOSImages(patchVersionOsImages)
+			images, err = NewOSImages(patchVersionOsImages, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -181,7 +183,7 @@ var _ = Describe("GetOsImage", func() {
 
 var _ = Describe("GetLatestOsImage", func() {
 	It("only one OS image", func() {
-		images, err := NewOSImages(defaultOsImages[0:1])
+		images, err := NewOSImages(defaultOsImages[0:1], imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
@@ -191,7 +193,7 @@ var _ = Describe("GetLatestOsImage", func() {
 	})
 
 	It("Multiple OS images", func() {
-		images, err := NewOSImages(defaultOsImages)
+		images, err := NewOSImages(defaultOsImages, imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture)
@@ -201,7 +203,7 @@ var _ = Describe("GetLatestOsImage", func() {
 	})
 
 	It("fails to get OS images for multiarch", func() {
-		images, err := NewOSImages(defaultOsImages)
+		images, err := NewOSImages(defaultOsImages, imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		osImage, err := images.GetLatestOsImage(common.MultiCPUArchitecture)
@@ -218,7 +220,7 @@ var _ = Describe("GetOsImageOrLatest", func() {
 
 	BeforeEach(func() {
 		var err error
-		images, err = NewOSImages(defaultOsImages)
+		images, err = NewOSImages(defaultOsImages, imageServiceEnabled)
 		Expect(err).To(BeNil())
 	})
 
@@ -263,7 +265,7 @@ var _ = Describe("GetCPUArchitectures", func() {
 	Context("with default images", func() {
 		BeforeEach(func() {
 			var err error
-			images, err = NewOSImages(defaultOsImages)
+			images, err = NewOSImages(defaultOsImages, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
@@ -285,7 +287,7 @@ var _ = Describe("GetCPUArchitectures", func() {
 
 var _ = Describe("NewOSImages", func() {
 	validateImages := func(osImages models.OsImages) error {
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		return err
 	}
 	It("succeeds for a valid image list", func() {
@@ -306,8 +308,13 @@ var _ = Describe("NewOSImages", func() {
 		Expect(validateImages(osImages)).To(Succeed())
 	})
 
-	It("fails when no images are provided", func() {
+	It("fails when no images are provided and image service is enabled", func() {
 		Expect(validateImages(models.OsImages{})).NotTo(Succeed())
+	})
+
+	It("succeeds when no images are provided but image service is disabled", func() {
+		_, err := NewOSImages(models.OsImages{}, !imageServiceEnabled)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 	It("fails when url field is missing", func() {
 		osImages := models.OsImages{
@@ -349,7 +356,7 @@ var _ = Describe("NewOSImages", func() {
 				Version:          swag.String("version-49.123-0"),
 			},
 		}
-		_, err := NewOSImages(osImages)
+		_, err := NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 
 		osImages = models.OsImages{
@@ -360,7 +367,7 @@ var _ = Describe("NewOSImages", func() {
 				Version:          swag.String("version-49.123-0"),
 			},
 		}
-		_, err = NewOSImages(osImages)
+		_, err = NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
 })
