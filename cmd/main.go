@@ -342,11 +342,12 @@ func main() {
 	var startupLeader leader.ElectorInterface
 
 	mirrorRegistriesBuilder := mirrorregistries.New(Options.ForceInsecurePolicyJson)
+	sys := system.NewLocalSystemInfo()
 	releaseHandler := oc.NewRelease(
 		&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay},
 		mirrorRegistriesBuilder,
-		system.NewLocalSystemInfo(),
+		sys,
 	)
 
 	versionHandler, versionsAPIHandler, err := createVersionHandlers(
@@ -640,7 +641,7 @@ func main() {
 				InsecureIPXEURLs:    generateInsecureIPXEURLs,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
-			spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil)
+			spokeClientFactory, err := spoke_k8s_client.NewFactory(log, nil, sys)
 			failOnError(err, "unable to create spoke client factory")
 
 			cluster_client := ctrlMgr.GetClient()
