@@ -3615,8 +3615,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 
-			for idx := range tests {
-				test := tests[idx]
+			for _, test := range tests {
 				It(test.name, func() {
 					backEndCluster := getDefaultTestCluster()
 					for _, network := range test.dbMachineNetworks {
@@ -4858,8 +4857,7 @@ var _ = Describe("TestConditions", func() {
 		},
 	}
 
-	for i := range tests {
-		t := tests[i]
+	for _, t := range tests {
 		It(t.name, func() {
 			backEndCluster.Status = swag.String(t.clusterStatus)
 			backEndCluster.StatusInfo = swag.String(t.statusInfo)
@@ -5022,8 +5020,7 @@ var _ = Describe("selectClusterNetworkType", func() {
 			resultNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
 		},
 	}
-	for i := range tests {
-		t := tests[i]
+	for _, t := range tests {
 		It("getNetworkType", func() {
 			ClusterUpdateParams := &models.V2ClusterUpdateParams{
 				ServiceNetworks: t.paramServiceNetworks,
