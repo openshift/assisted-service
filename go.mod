@@ -2,6 +2,8 @@ module github.com/openshift/assisted-service
 
 go 1.21
 
+toolchain go1.24.6
+
 require (
 	github.com/IBM/netaddr v1.5.0
 	github.com/NYTimes/gziphandler v1.1.1

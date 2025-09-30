@@ -601,7 +601,6 @@ var _ = Describe("RegisterHost", func() {
 			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign},
 			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster},
 		} {
-			test := test
 
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
 				test.availability, test.expectedRole), func() {
@@ -2912,8 +2911,7 @@ var _ = Describe("cluster", func() {
 					},
 				}
 
-				for i := range tests {
-					test := tests[i]
+				for _, test := range tests {
 					It(test.name, func() {
 						// Setup
 						clusterID = strfmt.UUID(uuid.New().String())
@@ -10905,7 +10903,6 @@ var _ = Describe("infraEnvs host", func() {
 					expectedNumOfUpdateCalls: 1,
 				},
 			} {
-				test := test
 				It(test.name, func() {
 					mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
@@ -11556,8 +11553,7 @@ var _ = Describe("List clusters", func() {
 			},
 		}
 
-		for index := range tests {
-			test := tests[index]
+		for _, test := range tests {
 			It(fmt.Sprintf("%s role", test.role), func() {
 				payload := &ocm.AuthPayload{Role: test.role}
 				authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
@@ -16804,8 +16800,7 @@ var _ = Describe("AMS subscriptions", func() {
 			{status: "failed"},
 		}
 
-		for i := range tests {
-			test := tests[i]
+		for _, test := range tests {
 
 			ignitionReader := io.NopCloser(strings.NewReader(`{
 					"ignition":{"version":"3.1.0"},
