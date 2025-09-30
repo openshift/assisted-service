@@ -286,7 +286,6 @@ var _ = Describe("dns name", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("Domain name \"%s\" - testing: \"%s\"", t.domainName, t.reason), func() {
 			_, err := ValidateDomainNameFormat(t.domainName)
 			if t.valid {
@@ -325,7 +324,6 @@ var _ = Describe("NTP source", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("NTP source \"%s\"", t.ntpSource), func() {
 			if t.valid {
 				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeTrue())
@@ -410,7 +408,6 @@ var _ = Describe("ValidateHostname", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.description, func() {
 			err := ValidateHostname(t.hostname)
 			if t.valid {
@@ -477,7 +474,6 @@ var _ = Describe("ValidateTags", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("Cluster Tags: \"%s\"", t.tags), func() {
 			err := ValidateTags(t.tags)
 			if t.valid {

@@ -348,8 +348,7 @@ var _ = Describe("UpdateMachineNetwork", func() {
 
 	})
 
-	for i := range tests {
-		test := tests[i]
+	for _, test := range tests {
 		It(test.name, func() {
 			id := strfmt.UUID(uuid.New().String())
 			cluster := &common.Cluster{
