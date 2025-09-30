@@ -560,7 +560,6 @@ spec:
 				reverseManifestsSearch: true,
 			},
 		} {
-			t := t
 
 			It(t.name, func() {
 
