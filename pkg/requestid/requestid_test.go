@@ -70,7 +70,6 @@ func TestTransport(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			var tr mockTransport
 			defer tr.AssertExpectations(t)
@@ -97,7 +96,6 @@ func TestMiddleware(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			// create a handler to use as "next" which will verify the request
 			nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
