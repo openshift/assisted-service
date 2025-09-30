@@ -72,8 +72,7 @@ var _ = Describe("GetHostnameAndEffectiveRoleByHostID", func() {
 		}
 
 		inventoryCache := make(InventoryCache)
-		for i := range testCases {
-			test := testCases[i]
+		for _, test := range testCases {
 			It(test.name, func() {
 				hosts := []*models.Host{}
 				for _, v := range test.hostRolesIpv4 {
