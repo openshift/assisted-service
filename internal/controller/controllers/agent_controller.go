@@ -650,6 +650,24 @@ func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent)
 	return true, nil
 }
 
+func (r *AgentReconciler) getBmh(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
+	if !ok {
+		return nil, errors.New("failed to get bmh, agent bmh label is empty")
+	}
+
+	bmhKey := types.NamespacedName{
+		Name:      bmhName,
+		Namespace: agent.Namespace,
+	}
+	bmh := &bmh_v1alpha1.BareMetalHost{}
+	if err := r.Client.Get(ctx, bmhKey, bmh); err != nil {
+		return nil, err
+	}
+
+	return bmh, nil
+}
+
 func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.NamespacedName) (bool, error) {
 	cd := &hivev1.ClusterDeployment{}
 	if err := r.Client.Get(ctx, clusterRef, cd); err != nil {
@@ -669,6 +687,28 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.Na
 	}
 
 	return aci.DeletionTimestamp.IsZero(), nil
+}
+
+func (r *AgentReconciler) getAgentClusterInstall(ctx context.Context, agent *aiv1beta1.Agent) (*hiveext.AgentClusterInstall, error) {
+	cdRef := types.NamespacedName{
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+	}
+	cd := &hivev1.ClusterDeployment{}
+	if err := r.Client.Get(ctx, cdRef, cd); err != nil {
+		return nil, err
+	}
+
+	if cd.Spec.ClusterInstallRef == nil {
+		return nil, errors.New("failed to get agent cluster install, cluster install ref is empty")
+	}
+	aciRef := types.NamespacedName{Name: cd.Spec.ClusterInstallRef.Name, Namespace: cd.Namespace}
+	aci := &hiveext.AgentClusterInstall{}
+	if err := r.Client.Get(ctx, aciRef, aci); err != nil {
+		return nil, err
+	}
+
+	return aci, nil
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
@@ -1661,6 +1701,76 @@ func (r *AgentReconciler) updateNodeLabels(log logrus.FieldLogger, host *common.
 	return false, nil
 }
 
+func (r *AgentReconciler) updateHostFencingCredentials(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
+	var agentFencingCredentials *models.FencingCredentialsParams
+
+	if agent.Spec.FencingCredentialsSecretName != "" {
+		secretRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Spec.FencingCredentialsSecretName}
+		secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+		if err != nil {
+			log.WithError(err).Errorf("failed to get fencing credentials secret for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+
+		agentFencingCredentials = &models.FencingCredentialsParams{
+			Address:  swag.String(string(secret.Data["address"])),
+			Password: swag.String(string(secret.Data["password"])),
+			Username: swag.String(string(secret.Data["username"])),
+		}
+		certificateVerification, ok := secret.Data["certificateVerification"]
+		if ok {
+			agentFencingCredentials.CertificateVerification = swag.String(string(certificateVerification))
+		}
+	} else if agent.Spec.ClusterDeploymentName != nil {
+		// If the agent is part of a TNF cluster and didn't set FencingCredentialsSecretName then we'll create fencing credentials from the BMH
+		aci, err := r.getAgentClusterInstall(ctx, agent)
+		if err != nil {
+			log.WithError(err).Errorf("failed to get agent cluster install for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+
+		if aci.Spec.ProvisionRequirements.ControlPlaneAgents == common.AllowedNumberOfMasterHostsInTwoNodesWithFencing &&
+			aci.Spec.ProvisionRequirements.ArbiterAgents == 0 {
+			bmh, err := r.getBmh(ctx, agent)
+			if err != nil {
+				log.WithError(err).Errorf("failed to get bmh for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+				return false, err
+			}
+
+			secretRef := types.NamespacedName{Namespace: bmh.Namespace, Name: bmh.Spec.BMC.CredentialsName}
+			secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+			if err != nil {
+				log.WithError(err).Errorf("failed to get bmh credentials secret for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+				return false, err
+			}
+
+			agentFencingCredentials = &models.FencingCredentialsParams{
+				Address:  swag.String(bmh.Spec.BMC.Address),
+				Password: swag.String(string(secret.Data["password"])),
+				Username: swag.String(string(secret.Data["username"])),
+			}
+			if bmh.Spec.BMC.DisableCertificateVerification {
+				agentFencingCredentials.CertificateVerification = swag.String("Disabled")
+			}
+		}
+	}
+
+	if agentFencingCredentials != nil {
+		fencingCredentials, err := json.Marshal(agentFencingCredentials)
+		if err != nil {
+			log.WithError(err).Errorf("failed to marshal fencing credentials for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+
+		if host.FencingCredentials != string(fencingCredentials) {
+			params.HostUpdateParams.FencingCredentials = agentFencingCredentials
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) (*common.Host, error) {
 	spec := agent.Spec
 	var err error
@@ -1696,7 +1806,12 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return internalHost, err
 	}
 
-	hostUpdate = hostUpdate || nodesUpdated
+	fencingCredentialsUpdated, err := r.updateHostFencingCredentials(ctx, log, internalHost, agent, params)
+	if err != nil {
+		return internalHost, err
+	}
+
+	hostUpdate = hostUpdate || nodesUpdated || fencingCredentialsUpdated
 
 	if spec.Hostname != "" && spec.Hostname != internalHost.RequestedHostname {
 		hostUpdate = true

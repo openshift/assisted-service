@@ -530,6 +530,7 @@ var _ = Describe("bmac reconcile", func() {
 			annotations[BMH_AGENT_MACHINE_CONFIG_POOL] = "number-8"
 			annotations[BMH_AGENT_INSTALLER_ARGS] = `["--args", "aaaa"]`
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = "agent-ignition"
+			annotations[BMH_AGENT_FENCING_SECRET] = "fencing-secret"
 
 			// Add node labels annotations
 			annotations[NODE_LABEL_PREFIX+"first-label"] = ""
@@ -616,6 +617,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 				Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+				Expect(updatedAgent.Spec.FencingCredentialsSecretName).To(Equal("fencing-secret"))
 			})
 
 			Context("should set the agent spec node labels based on the corresponding BMH annotations", func() {
@@ -1098,6 +1100,7 @@ var _ = Describe("bmac reconcile", func() {
 					Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 					Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 					Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+					Expect(updatedAgent.Spec.FencingCredentialsSecretName).To(Equal("fencing-secret"))
 				}
 			})
 		})
