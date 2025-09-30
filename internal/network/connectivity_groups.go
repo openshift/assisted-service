@@ -79,12 +79,30 @@ type connectivitySet struct {
 	groupId groupId
 }
 
+func safeUint64Index(value int) (uint64, error) {
+	if value < 0 {
+		return 0, fmt.Errorf("invalid connectivity index %d", value)
+	}
+	return uint64(value), nil // #nosec G115 -- value validated to be non-negative
+}
+
 func NewConnectivitySet(size int) *connectivitySet {
-	return &connectivitySet{array: bitarray.NewBitArray(uint64(size))}
+	if size < 0 {
+		panic(fmt.Sprintf("invalid connectivity set size %d", size))
+	}
+	idx, err := safeUint64Index(size)
+	if err != nil {
+		panic(err)
+	}
+	return &connectivitySet{array: bitarray.NewBitArray(idx)}
 }
 
 func (c *connectivitySet) add(item int) error {
-	return c.array.SetBit(uint64(item))
+	idx, err := safeUint64Index(item)
+	if err != nil {
+		return err
+	}
+	return c.array.SetBit(idx)
 }
 
 func (c *connectivitySet) intersect(other *connectivitySet) *connectivitySet {
@@ -100,7 +118,11 @@ func (c *connectivitySet) union(other *connectivitySet) *connectivitySet {
 }
 
 func (c *connectivitySet) containsElement(id int) bool {
-	b, err := c.array.GetBit(uint64(id))
+	idx, err := safeUint64Index(id)
+	if err != nil {
+		return false
+	}
+	b, err := c.array.GetBit(idx)
 	return err == nil && b
 }
 
