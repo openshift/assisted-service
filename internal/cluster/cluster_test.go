@@ -863,7 +863,6 @@ var _ = Describe("lease timeout event", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                &id,
@@ -1413,7 +1412,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                    &id,
@@ -2012,8 +2010,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		},
 	}
 
-	for i := range tests {
-		t := tests[i]
+	for _, t := range tests {
 		It(t.name, func() {
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
@@ -2253,8 +2250,7 @@ var _ = Describe("SetVipsData", func() {
 		},
 	}
 
-	for i := range tests {
-		t := tests[i]
+	for _, t := range tests {
 		It(t.name, func() {
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
@@ -3579,8 +3575,7 @@ var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
 		},
 	}
 
-	for i := range tests {
-		t := tests[i]
+	for _, t := range tests {
 		It(t.name, func() {
 			id := strfmt.UUID(uuid.New().String())
 			cluster := &common.Cluster{Cluster: models.Cluster{
@@ -3880,8 +3875,7 @@ var _ = Describe("Console-operator's availability", func() {
 		},
 	}
 
-	for i := range tests {
-		test := tests[i]
+	for _, test := range tests {
 		It(test.name, func() {
 			c = createCluster(test.clusterStatus, test.ops)
 			Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(Equal(test.result))
