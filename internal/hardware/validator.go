@@ -24,6 +24,13 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+func nonNegativeUint64(value int64) uint64 {
+	if value < 0 {
+		return 0
+	}
+	return uint64(value) // #nosec G115 -- value is coerced to non-negative above
+}
+
 const (
 	tooSmallDiskTemplate       = "Disk is too small (disk only has %s, but %s are required)"
 	wrongDriveTypeTemplate     = "Drive type is %s, it must be one of %s."
@@ -125,11 +132,18 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	notEligibleReasons := v.purgeServiceReasons(disk.InstallationEligibility.NotEligibleReasons)
 
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+	diskSizeBytes := disk.SizeBytes
+	if diskSizeBytes < 0 {
+		diskSizeBytes = 0
+	}
+	if minSizeBytes < 0 {
+		minSizeBytes = 0
+	}
 	if disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
-				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
+				humanize.Bytes(nonNegativeUint64(diskSizeBytes)), humanize.Bytes(nonNegativeUint64(minSizeBytes))))
 	}
 
 	if !v.IsValidStorageDeviceType(disk, hostArchitecture, clusterVersion) {

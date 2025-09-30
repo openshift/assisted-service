@@ -60,7 +60,6 @@ var _ = Describe("Installation Disk selection", func() {
 			inventoryDisks:             []*models.Disk{{ID: otherDiskId, Name: otherDiskName}},
 			expectedInstallationDiskId: otherDiskId},
 	} {
-		test := test
 		It(test.testName, func() {
 			selectedDisk := DetermineInstallationDisk(test.inventoryDisks, test.currentInstallationDisk)
 
