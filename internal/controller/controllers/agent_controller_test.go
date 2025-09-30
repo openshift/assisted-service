@@ -297,6 +297,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		Expect(c.Create(ctx, host)).To(BeNil())
 
@@ -368,6 +370,8 @@ var _ = Describe("agent reconcile", func() {
 		host.ObjectMeta.Labels[v1beta1.InfraEnvNameLabel] = "infraEnvName"
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		getHostBeforeUpdate := mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
 		getHostAfterUpdate := mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(afterUpdateHost, nil).AnyTimes()
 		gomock.InOrder(getHostBeforeUpdate, getHostAfterUpdate)
@@ -388,6 +392,11 @@ var _ = Describe("agent reconcile", func() {
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment, opts ...client.GetOption) error {
 				return c.Get(ctx, name, cd, opts...)
+			},
+		).AnyTimes()
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, aci *hiveext.AgentClusterInstall, opts ...client.GetOption) error {
+				return c.Get(ctx, name, aci, opts...)
 			},
 		).AnyTimes()
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
@@ -458,6 +467,8 @@ var _ = Describe("agent reconcile", func() {
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -509,6 +520,8 @@ var _ = Describe("agent reconcile", func() {
 			}
 			clusterDeployment = newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+			Expect(c.Create(ctx, aci)).To(BeNil())
 
 			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -567,8 +580,6 @@ var _ = Describe("agent reconcile", func() {
 				host.SetLabels(labels)
 				bmh := newBMH("my-bmh", &bmh_v1alpha1.BareMetalHostSpec{})
 				Expect(c.Create(ctx, bmh)).ToNot(HaveOccurred())
-				aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
-				Expect(c.Create(ctx, aci)).To(BeNil())
 			})
 			createKubeconfigSecret := func(clusterDeploymentName string) {
 				secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeploymentName)
@@ -715,6 +726,205 @@ var _ = Describe("agent reconcile", func() {
 		})
 	})
 
+	Context("update host fencing credentials", func() {
+		var (
+			hostId, infraEnvId strfmt.UUID
+			commonHost         *common.Host
+			host               *v1beta1.Agent
+			clusterDeployment  *hivev1.ClusterDeployment
+		)
+		BeforeEach(func() {
+			hostId = strfmt.UUID(uuid.New().String())
+			infraEnvId = strfmt.UUID(uuid.New().String())
+			commonHost = &common.Host{
+				Host: models.Host{
+					ID:         &hostId,
+					ClusterID:  &sId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+					InfraEnvID: infraEnvId,
+				},
+			}
+			backEndCluster = &common.Cluster{Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				}}}
+
+			host = newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+			clusterDeployment = newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+			aci.Spec.ProvisionRequirements = hiveext.ProvisionRequirements{
+				ControlPlaneAgents: common.AllowedNumberOfMasterHostsInTwoNodesWithFencing,
+				ArbiterAgents:      0,
+				WorkerAgents:       0,
+			}
+			Expect(c.Create(ctx, aci)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		})
+
+		Context("credentials are from secret", func() {
+			It("secret doesn't set certificateVerification", func() {
+				fencingCredentials := &models.FencingCredentialsParams{
+					Address:  swag.String("https://bmc.example.com"),
+					Username: swag.String("admin"),
+					Password: swag.String("password123"),
+				}
+				fencingSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "fencing-secret",
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"address":  []byte(*fencingCredentials.Address),
+						"username": []byte(*fencingCredentials.Username),
+						"password": []byte(*fencingCredentials.Password),
+					},
+				}
+				Expect(c.Create(ctx, fencingSecret)).To(Succeed())
+				host.Spec.FencingCredentialsSecretName = "fencing-secret"
+
+				mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+					func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+						Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+					}).Return(commonHost, nil).Times(1)
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("secret sets certificateVerification", func() {
+				fencingCredentials := &models.FencingCredentialsParams{
+					Address:                 swag.String("https://bmc.example.com"),
+					Username:                swag.String("admin"),
+					Password:                swag.String("password123"),
+					CertificateVerification: swag.String("Disabled"),
+				}
+				fencingSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "fencing-secret",
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"address":                 []byte(*fencingCredentials.Address),
+						"username":                []byte(*fencingCredentials.Username),
+						"password":                []byte(*fencingCredentials.Password),
+						"certificateVerification": []byte(*fencingCredentials.CertificateVerification),
+					},
+				}
+				Expect(c.Create(ctx, fencingSecret)).To(Succeed())
+				host.Spec.FencingCredentialsSecretName = "fencing-secret"
+
+				mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+					func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+						Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+					}).Return(commonHost, nil).Times(1)
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("secret does not exist", func() {
+				host.Spec.FencingCredentialsSecretName = "fencing-secret"
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+			})
+		})
+
+		Context("credentials are from BMH", func() {
+			It("without disableCertificateVerification", func() {
+				fencingCredentials := &models.FencingCredentialsParams{
+					Address:  swag.String("https://bmc.example.com"),
+					Username: swag.String("admin"),
+					Password: swag.String("password123"),
+				}
+				bmcSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bmc-secret",
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"username": []byte(*fencingCredentials.Username),
+						"password": []byte(*fencingCredentials.Password),
+					},
+				}
+				Expect(c.Create(ctx, bmcSecret)).ToNot(HaveOccurred())
+				bmh := newBMH("test-bmh", &bmh_v1alpha1.BareMetalHostSpec{
+					BMC: bmh_v1alpha1.BMCDetails{
+						Address:         *fencingCredentials.Address,
+						CredentialsName: "bmc-secret",
+					},
+				})
+				Expect(c.Create(ctx, bmh)).ToNot(HaveOccurred())
+				host.ObjectMeta.Labels = map[string]string{
+					AGENT_BMH_LABEL: "test-bmh",
+				}
+
+				mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+					func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+						Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+					}).Return(commonHost, nil).Times(1)
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("with disableCertificateVerification", func() {
+				fencingCredentials := &models.FencingCredentialsParams{
+					Address:                 swag.String("https://bmc.example.com"),
+					Username:                swag.String("admin"),
+					Password:                swag.String("password123"),
+					CertificateVerification: swag.String("Disabled"),
+				}
+				bmcSecret := &corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "bmc-secret",
+						Namespace: testNamespace,
+					},
+					Data: map[string][]byte{
+						"username": []byte(*fencingCredentials.Username),
+						"password": []byte(*fencingCredentials.Password),
+					},
+				}
+				Expect(c.Create(ctx, bmcSecret)).ToNot(HaveOccurred())
+				bmh := newBMH("test-bmh", &bmh_v1alpha1.BareMetalHostSpec{
+					BMC: bmh_v1alpha1.BMCDetails{
+						Address:                        *fencingCredentials.Address,
+						CredentialsName:                "bmc-secret",
+						DisableCertificateVerification: true,
+					},
+				})
+				Expect(c.Create(ctx, bmh)).ToNot(HaveOccurred())
+				host.ObjectMeta.Labels = map[string]string{
+					AGENT_BMH_LABEL: "test-bmh",
+				}
+
+				mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+					func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+						Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+					}).Return(commonHost, nil).Times(1)
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+		})
+	})
+
 	It("Agent update empty disk path", func() {
 		newInstallDiskPath := ""
 		hostId := strfmt.UUID(uuid.New().String())
@@ -739,6 +949,8 @@ var _ = Describe("agent reconcile", func() {
 		host.Spec.InstallationDiskID = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(nil, nil).Times(0)
@@ -783,6 +995,8 @@ var _ = Describe("agent reconcile", func() {
 		host.Spec.Role = models.HostRole(newRole)
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
@@ -830,6 +1044,8 @@ var _ = Describe("agent reconcile", func() {
 		host.Spec.Role = models.HostRole(newRole)
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -884,6 +1100,8 @@ var _ = Describe("agent reconcile", func() {
 		host.Spec.Approved = true
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
@@ -1395,6 +1613,8 @@ var _ = Describe("agent reconcile", func() {
 			cdSpec.ClusterMetadata = &hivev1.ClusterMetadata{AdminKubeconfigSecretRef: corev1.LocalObjectReference{Name: secretName}}
 			clusterDeployment := newClusterDeployment(clusterDeploymentName, testNamespace, cdSpec)
 			Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+			aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec(clusterDeploymentName), clusterDeployment)
+			Expect(c.Create(ctx, aci)).To(BeNil())
 
 			infraEnvId := strfmt.UUID(uuid.New().String())
 			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
@@ -1585,6 +1805,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -1631,6 +1853,8 @@ var _ = Describe("agent reconcile", func() {
 		By("before installation")
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -1692,6 +1916,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1796,6 +2022,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -1954,6 +2182,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
@@ -2026,6 +2256,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -2073,6 +2305,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).Times(1)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
@@ -2123,6 +2357,8 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
@@ -3423,6 +3659,8 @@ var _ = Describe("TestConditions", func() {
 			}}}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
 		agentKey = types.NamespacedName{
 			Namespace: testNamespace,
@@ -4692,9 +4930,11 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 	})
 
 	It("should restore Host by bound Agent", func() {
-		// Create ClusterDeployment
+		// Create ClusterDeployment + AgentClusterInstall
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		// Create Agent
 		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -4786,9 +5026,11 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 	})
 
 	It("should restore Host with missing state", func() {
-		// Create ClusterDeployment
+		// Create ClusterDeployment + AgentClusterInstall
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		// Create Agent
 		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -4853,9 +5095,11 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		Expect(err).To(BeNil())
 		stringifiedValidationInfo := string(bytesValidationInfo)
 
-		// Create ClusterDeployment
+		// Create ClusterDeployment + AgentClusterInstall
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+		Expect(c.Create(ctx, aci)).To(BeNil())
 
 		// Create Agent
 		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -4985,9 +5229,11 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 	})
 	Context("Agent Stage", func() {
 		It("should restore the Agent's stage if it's valid", func() {
-			// Create ClusterDeployment
+			// Create ClusterDeployment + AgentClusterInstall
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+			Expect(c.Create(ctx, aci)).To(BeNil())
 
 			// Create Agent
 			agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace}})
@@ -5044,9 +5290,11 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
 		})
 		It("should not restore the Agent's stage if it's invalid", func() {
-			// Create ClusterDeployment
+			// Create ClusterDeployment + AgentClusterInstall
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+			Expect(c.Create(ctx, aci)).To(BeNil())
 
 			// Create Agent
 			agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace}})

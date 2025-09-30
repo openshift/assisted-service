@@ -91,6 +91,7 @@ const (
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
+	BMH_AGENT_FENCING_SECRET            = "bmac.agent-install.openshift.io/fencing-secret"
 	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
 	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
@@ -460,6 +461,13 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	if val, ok := annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]; ok {
 		if agent.Spec.IgnitionConfigOverrides != val {
 			agent.Spec.IgnitionConfigOverrides = val
+			dirty = true
+		}
+	}
+
+	if val, ok := annotations[BMH_AGENT_FENCING_SECRET]; ok {
+		if agent.Spec.FencingCredentialsSecretName != val {
+			agent.Spec.FencingCredentialsSecretName = val
 			dirty = true
 		}
 	}
