@@ -1767,6 +1767,16 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		}
 	}
 
+	if internalHost.FencingCredentials != "" {
+		hostUpdate = true
+		hostFencingCredentials := models.FencingCredentialsParams{}
+		if err := json.Unmarshal([]byte(internalHost.FencingCredentials), &hostFencingCredentials); err != nil {
+			log.WithError(err).Errorf("failed to unmarshal the fencing credentials of host %s", internalHost.ID.String())
+		} else {
+			params.HostUpdateParams.FencingCredentials = &hostFencingCredentials
+		}
+	}
+
 	if hostUpdate {
 		var hostStatusesBeforeInstallationOrUnbound = []string{
 			models.HostStatusDiscovering, models.HostStatusKnown, models.HostStatusDisconnected,
