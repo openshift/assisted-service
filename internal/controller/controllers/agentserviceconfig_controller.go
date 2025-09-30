@@ -21,6 +21,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -102,6 +103,25 @@ const (
 	osImageAdditionalParamsHeadersKey     = "headers"
 	osImageAdditionalParamsQueryParamsKey = "query_params"
 )
+
+func int32FromInt(value int) (int32, error) {
+	if value < math.MinInt32 || value > math.MaxInt32 {
+		return 0, fmt.Errorf("value %d overflows int32", value)
+	}
+	return int32(value), nil
+}
+
+func int32PortValue(value intstr.IntOrString) (int32, error) {
+	return int32FromInt(value.IntValue())
+}
+
+func mustInt32PortValue(value intstr.IntOrString) int32 {
+	portValue, err := int32PortValue(value)
+	if err != nil {
+		panic(err)
+	}
+	return portValue
+}
 
 var (
 	servicePort          = intstr.Parse("8090")
@@ -615,11 +635,19 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
+		servicePortValue, err := int32PortValue(servicePort)
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[0].Port = servicePortValue
 		svc.Spec.Ports[0].TargetPort = servicePort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", serviceName)
-		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue())
+		serviceHTTPPortValue, err := int32PortValue(serviceHTTPPort)
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[1].Port = serviceHTTPPortValue
 		svc.Spec.Ports[1].TargetPort = serviceHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
@@ -649,11 +677,19 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = imageServiceName
-		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue())
+		imageHandlerPortValue, err := int32PortValue(imageHandlerPort)
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[0].Port = imageHandlerPortValue
 		svc.Spec.Ports[0].TargetPort = imageHandlerPort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", imageServiceName)
-		svc.Spec.Ports[1].Port = int32(imageHandlerHTTPPort.IntValue())
+		imageHandlerHTTPPortValue, err := int32PortValue(imageHandlerHTTPPort)
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[1].Port = imageHandlerHTTPPortValue
 		svc.Spec.Ports[1].TargetPort = imageHandlerHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": imageServiceName}
@@ -1219,11 +1255,11 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		Image: ImageServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(imageHandlerPort.IntValue()),
+				ContainerPort: mustInt32PortValue(imageHandlerPort),
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(imageHandlerHTTPPort.IntValue()),
+				ContainerPort: mustInt32PortValue(imageHandlerHTTPPort),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1605,11 +1641,11 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		Image: ServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(servicePort.IntValue()),
+				ContainerPort: mustInt32PortValue(servicePort),
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(serviceHTTPPort.IntValue()),
+				ContainerPort: mustInt32PortValue(serviceHTTPPort),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1653,7 +1689,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,
-				ContainerPort: int32(databasePort.IntValue()),
+				ContainerPort: mustInt32PortValue(databasePort),
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
