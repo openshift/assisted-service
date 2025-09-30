@@ -556,7 +556,6 @@ var _ = Describe("vip dhcp allocation", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("VIP DHCP allocation: %t, machine network: %s", t.vipDHCPAllocation, t.machineNetworkCIDR), func() {
 			if t.valid {
 				Expect(ValidateVipDHCPAllocationWithIPv6(t.vipDHCPAllocation, t.machineNetworkCIDR)).ToNot(HaveOccurred())
@@ -655,7 +654,6 @@ var _ = Describe("IPv6 support", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("IPv6 support validation. Supported: %t, IP addresses/CIDRs: %v", t.ipV6Supported, t.element), func() {
 			if t.valid {
 				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).ToNot(HaveOccurred())

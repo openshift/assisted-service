@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"math"
 	"math/big"
 	"net/url"
 	"sort"
@@ -311,9 +312,16 @@ func checksumSecret(m map[string][]byte) (string, error) {
 	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
 
+func hostPrefixToInt32(prefix int64) int32 {
+	if prefix < math.MinInt32 || prefix > math.MaxInt32 {
+		panic(fmt.Sprintf("host prefix %d overflows int32", prefix))
+	}
+	return int32(prefix)
+}
+
 func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.ClusterNetworkEntry {
 	return funk.Map(networks, func(net *models.ClusterNetwork) hiveext.ClusterNetworkEntry {
-		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
+		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: hostPrefixToInt32(net.HostPrefix)}
 	}).([]hiveext.ClusterNetworkEntry)
 }
 
