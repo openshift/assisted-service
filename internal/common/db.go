@@ -395,16 +395,60 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 		db = db.Unscoped()
 	}
 
-	conditions = append(conditions, func(db *gorm.DB) *gorm.DB {
-		if includeDeleted {
-			return db.Unscoped()
-		}
+	if !eagerLoading {
 		return db
-	})
+	}
 
-	if eagerLoading {
-		for _, tableName := range ClusterSubTables {
-			db = LoadTableFromDB(db, tableName, conditions...)
+	tableConfigs := []struct {
+		association string
+		tableName   string
+	}{
+		{MonitoredOperatorsTable, "monitored_operators"},
+		{ClusterNetworksTable, "cluster_networks"},
+		{ServiceNetworksTable, "service_networks"},
+		{MachineNetworksTable, "machine_networks"},
+		{APIVIPsTable, "api_vips"},
+		{IngressVIPsTable, "ingress_vips"},
+	}
+
+	if !includeDeleted {
+		db = db.Preload(HostsTable, func(db *gorm.DB) *gorm.DB {
+			preloadDB := db.Joins("INNER JOIN clusters ON hosts.cluster_id = clusters.id").
+				Where("hosts.deleted_at IS NULL AND clusters.deleted_at IS NULL")
+
+			if len(conditions) > 0 {
+				preloadDB = preloadDB.Where(conditions[0], conditions[1:]...)
+			}
+			return preloadDB
+		})
+
+		for _, config := range tableConfigs {
+			db = db.Preload(config.association, func(db *gorm.DB) *gorm.DB {
+				preloadDB := db.Joins("INNER JOIN clusters ON " + config.tableName + ".cluster_id = clusters.id").
+					Where("clusters.deleted_at IS NULL")
+				if len(conditions) > 0 {
+					preloadDB = preloadDB.Where(conditions[0], conditions[1:]...)
+				}
+				return preloadDB
+			})
+		}
+	} else {
+		db = db.Preload(HostsTable, func(db *gorm.DB) *gorm.DB {
+			preloadDB := db.Unscoped().Joins("INNER JOIN clusters ON hosts.cluster_id = clusters.id")
+			if len(conditions) > 0 {
+				preloadDB = preloadDB.Where(conditions[0], conditions[1:]...)
+			}
+			return preloadDB
+		})
+
+		for _, config := range tableConfigs {
+			db = db.Preload(config.association, func(db *gorm.DB) *gorm.DB {
+				preloadDB := db.Unscoped().Joins("INNER JOIN clusters ON " + config.tableName + ".cluster_id = clusters.id")
+				if len(conditions) > 0 {
+					preloadDB = preloadDB.Where(conditions[0], conditions[1:]...)
+				}
+				return preloadDB
+			})
 		}
 	}
 
@@ -441,6 +485,7 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 	var clusters []*Cluster
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
+
 	err := db.Find(&clusters, where...).Error
 	if err != nil {
 		return nil, err
