@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAWSSpotMarketOptions writes a value of the 'AWS_spot_market_options' type to the given writer.
 func MarshalAWSSpotMarketOptions(object *AWSSpotMarketOptions, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAWSSpotMarketOptions(object, stream)
-	stream.Flush()
+	WriteAWSSpotMarketOptions(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAWSSpotMarketOptions writes a value of the 'AWS_spot_market_options' type to the given stream.
-func writeAWSSpotMarketOptions(object *AWSSpotMarketOptions, stream *jsoniter.Stream) {
+// WriteAWSSpotMarketOptions writes a value of the 'AWS_spot_market_options' type to the given stream.
+func WriteAWSSpotMarketOptions(object *AWSSpotMarketOptions, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -70,7 +72,6 @@ func writeAWSSpotMarketOptions(object *AWSSpotMarketOptions, stream *jsoniter.St
 		}
 		stream.WriteObjectField("max_price")
 		stream.WriteFloat64(object.maxPrice)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -78,20 +79,17 @@ func writeAWSSpotMarketOptions(object *AWSSpotMarketOptions, stream *jsoniter.St
 // UnmarshalAWSSpotMarketOptions reads a value of the 'AWS_spot_market_options' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAWSSpotMarketOptions(source interface{}) (object *AWSSpotMarketOptions, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAWSSpotMarketOptions(iterator)
+	object = ReadAWSSpotMarketOptions(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAWSSpotMarketOptions reads a value of the 'AWS_spot_market_options' type from the given iterator.
-func readAWSSpotMarketOptions(iterator *jsoniter.Iterator) *AWSSpotMarketOptions {
+// ReadAWSSpotMarketOptions reads a value of the 'AWS_spot_market_options' type from the given iterator.
+func ReadAWSSpotMarketOptions(iterator *jsoniter.Iterator) *AWSSpotMarketOptions {
 	object := &AWSSpotMarketOptions{}
 	for {
 		field := iterator.ReadObject()

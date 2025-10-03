@@ -54,9 +54,12 @@ func (b *LogBuilder) HREF(value string) *LogBuilder {
 	return b
 }
 
+// Empty returns true if the builder is empty, i.e. no attribute has a value.
+func (b *LogBuilder) Empty() bool {
+	return b == nil || b.bitmap_&^1 == 0
+}
+
 // Content sets the value of the 'content' attribute to the given value.
-//
-//
 func (b *LogBuilder) Content(value string) *LogBuilder {
 	b.content = value
 	b.bitmap_ |= 8

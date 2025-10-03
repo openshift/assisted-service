@@ -19,14 +19,8 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readNodesMetricQueryGetRequest(request *NodesMetricQueryGetServerRequest, r *http.Request) error {
-	return nil
-}
 func writeNodesMetricQueryGetRequest(request *NodesMetricQueryGetRequest, writer io.Writer) error {
 	return nil
 }
@@ -34,7 +28,4 @@ func readNodesMetricQueryGetResponse(response *NodesMetricQueryGetResponse, read
 	var err error
 	response.body, err = UnmarshalNodesInfo(reader)
 	return err
-}
-func writeNodesMetricQueryGetResponse(response *NodesMetricQueryGetServerResponse, w http.ResponseWriter) error {
-	return MarshalNodesInfo(response.body, w)
 }

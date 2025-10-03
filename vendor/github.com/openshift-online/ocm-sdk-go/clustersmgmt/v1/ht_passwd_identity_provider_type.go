@@ -26,6 +26,7 @@ type HTPasswdIdentityProvider struct {
 	bitmap_  uint32
 	password string
 	username string
+	users    *HTPasswdUserList
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -79,6 +80,29 @@ func (o *HTPasswdIdentityProvider) GetUsername() (value string, ok bool) {
 	return
 }
 
+// Users returns the value of the 'users' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Link to the collection of _HTPasswd_ users.
+func (o *HTPasswdIdentityProvider) Users() *HTPasswdUserList {
+	if o != nil && o.bitmap_&4 != 0 {
+		return o.users
+	}
+	return nil
+}
+
+// GetUsers returns the value of the 'users' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Link to the collection of _HTPasswd_ users.
+func (o *HTPasswdIdentityProvider) GetUsers() (value *HTPasswdUserList, ok bool) {
+	ok = o != nil && o.bitmap_&4 != 0
+	if ok {
+		value = o.users
+	}
+	return
+}
+
 // HTPasswdIdentityProviderListKind is the name of the type used to represent list of objects of
 // type 'HT_passwd_identity_provider'.
 const HTPasswdIdentityProviderListKind = "HTPasswdIdentityProviderList"
@@ -104,6 +128,29 @@ func (l *HTPasswdIdentityProviderList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *HTPasswdIdentityProviderList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *HTPasswdIdentityProviderList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *HTPasswdIdentityProviderList) SetItems(items []*HTPasswdIdentityProvider) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *HTPasswdIdentityProviderList) Items() []*HTPasswdIdentityProvider {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSelfFeatureReviewRequest writes a value of the 'self_feature_review_request' type to the given writer.
 func MarshalSelfFeatureReviewRequest(object *SelfFeatureReviewRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSelfFeatureReviewRequest(object, stream)
-	stream.Flush()
+	WriteSelfFeatureReviewRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSelfFeatureReviewRequest writes a value of the 'self_feature_review_request' type to the given stream.
-func writeSelfFeatureReviewRequest(object *SelfFeatureReviewRequest, stream *jsoniter.Stream) {
+// WriteSelfFeatureReviewRequest writes a value of the 'self_feature_review_request' type to the given stream.
+func WriteSelfFeatureReviewRequest(object *SelfFeatureReviewRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writeSelfFeatureReviewRequest(object *SelfFeatureReviewRequest, stream *jso
 		}
 		stream.WriteObjectField("feature")
 		stream.WriteString(object.feature)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writeSelfFeatureReviewRequest(object *SelfFeatureReviewRequest, stream *jso
 // UnmarshalSelfFeatureReviewRequest reads a value of the 'self_feature_review_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSelfFeatureReviewRequest(source interface{}) (object *SelfFeatureReviewRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSelfFeatureReviewRequest(iterator)
+	object = ReadSelfFeatureReviewRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSelfFeatureReviewRequest reads a value of the 'self_feature_review_request' type from the given iterator.
-func readSelfFeatureReviewRequest(iterator *jsoniter.Iterator) *SelfFeatureReviewRequest {
+// ReadSelfFeatureReviewRequest reads a value of the 'self_feature_review_request' type from the given iterator.
+func ReadSelfFeatureReviewRequest(iterator *jsoniter.Iterator) *SelfFeatureReviewRequest {
 	object := &SelfFeatureReviewRequest{}
 	for {
 		field := iterator.ReadObject()

@@ -22,7 +22,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
@@ -109,7 +108,7 @@ func (r *Request) SendContext(ctx context.Context) (result *Response, err error)
 	}
 	var body io.ReadCloser
 	if r.body != nil {
-		body = ioutil.NopCloser(bytes.NewBuffer(r.body))
+		body = io.NopCloser(bytes.NewBuffer(r.body))
 	}
 	request := &http.Request{
 		Method: r.method,
@@ -128,7 +127,7 @@ func (r *Request) SendContext(ctx context.Context) (result *Response, err error)
 	result = new(Response)
 	result.status = response.StatusCode
 	result.header = response.Header
-	result.body, err = ioutil.ReadAll(response.Body)
+	result.body, err = io.ReadAll(response.Body)
 	if err != nil {
 		return
 	}

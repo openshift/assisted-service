@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalInstanceIAMRoles writes a value of the 'instance_IAM_roles' type to the given writer.
 func MarshalInstanceIAMRoles(object *InstanceIAMRoles, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeInstanceIAMRoles(object, stream)
-	stream.Flush()
+	WriteInstanceIAMRoles(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeInstanceIAMRoles writes a value of the 'instance_IAM_roles' type to the given stream.
-func writeInstanceIAMRoles(object *InstanceIAMRoles, stream *jsoniter.Stream) {
+// WriteInstanceIAMRoles writes a value of the 'instance_IAM_roles' type to the given stream.
+func WriteInstanceIAMRoles(object *InstanceIAMRoles, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,7 +58,6 @@ func writeInstanceIAMRoles(object *InstanceIAMRoles, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("worker_role_arn")
 		stream.WriteString(object.workerRoleARN)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -64,20 +65,17 @@ func writeInstanceIAMRoles(object *InstanceIAMRoles, stream *jsoniter.Stream) {
 // UnmarshalInstanceIAMRoles reads a value of the 'instance_IAM_roles' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalInstanceIAMRoles(source interface{}) (object *InstanceIAMRoles, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readInstanceIAMRoles(iterator)
+	object = ReadInstanceIAMRoles(iterator)
 	err = iterator.Error
 	return
 }
 
-// readInstanceIAMRoles reads a value of the 'instance_IAM_roles' type from the given iterator.
-func readInstanceIAMRoles(iterator *jsoniter.Iterator) *InstanceIAMRoles {
+// ReadInstanceIAMRoles reads a value of the 'instance_IAM_roles' type from the given iterator.
+func ReadInstanceIAMRoles(iterator *jsoniter.Iterator) *InstanceIAMRoles {
 	object := &InstanceIAMRoles{}
 	for {
 		field := iterator.ReadObject()
