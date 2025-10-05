@@ -53,6 +53,28 @@
             ],
             "depNameTemplate": "registry.access.redhat.com/ubi9/go-toolset",
             "datasourceTemplate": "docker"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": [
+                "^Dockerfile.assisted-service$"
+            ],
+            "matchStrings": [
+                "FROM registry.access.redhat.com/ubi\\$RHEL_VERSION/go-toolset:(?<currentValue>.*?) AS golang\\n"
+            ],
+            "depNameTemplate": "registry.access.redhat.com/ubi8/go-toolset",
+            "datasourceTemplate": "docker"
+        },
+        {
+            "customType": "regex",
+            "fileMatch": [
+                "^Dockerfile.assisted-service-rhel8-mce$"
+            ],
+            "matchStrings": [
+                "FROM --platform=\\$BUILDPLATFORM registry.access.redhat.com/ubi8/go-toolset:(?<currentValue>.*?) AS builder\\n"
+            ],
+            "depNameTemplate": "registry.access.redhat.com/ubi8/go-toolset",
+            "datasourceTemplate": "docker"
         }
     ],
 
