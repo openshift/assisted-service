@@ -46,7 +46,7 @@ func newPreprovisioningImage(name, namespace, labelKey, labelValue, bmhName stri
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
-			Labels:    AddLabel(nil, labelKey, labelValue),
+			Labels:    addKeyValue(nil, labelKey, labelValue),
 			OwnerReferences: []metav1.OwnerReference{{
 				APIVersion: "metal3.io/v1alpha1",
 				Kind:       "BareMetalHost",

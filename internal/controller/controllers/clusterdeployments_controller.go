@@ -671,8 +671,8 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 		Data: data,
 	}
 
-	s.Labels = AddLabel(s.Labels, "hive.openshift.io/cluster-deployment-name", cluster.Name)
-	s.Labels = AddLabel(s.Labels, "hive.openshift.io/secret-type", secretType)
+	s.Labels = addKeyValue(s.Labels, "hive.openshift.io/cluster-deployment-name", cluster.Name)
+	s.Labels = addKeyValue(s.Labels, "hive.openshift.io/secret-type", secretType)
 
 	deploymentGVK, err := apiutil.GVKForObject(cluster, r.Scheme)
 	if err != nil {

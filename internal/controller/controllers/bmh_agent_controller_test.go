@@ -530,6 +530,7 @@ var _ = Describe("bmac reconcile", func() {
 			annotations[BMH_AGENT_MACHINE_CONFIG_POOL] = "number-8"
 			annotations[BMH_AGENT_INSTALLER_ARGS] = `["--args", "aaaa"]`
 			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = "agent-ignition"
+			annotations[BMH_AGENT_FENCING_ANNOTATION] = "fencing-secret"
 
 			// Add node labels annotations
 			annotations[NODE_LABEL_PREFIX+"first-label"] = ""
@@ -616,6 +617,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 				Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+				Expect(updatedAgent.Spec.FencingCredentialsSecretName).To(Equal("fencing-secret"))
 			})
 
 			Context("should set the agent spec node labels based on the corresponding BMH annotations", func() {
@@ -694,12 +696,12 @@ var _ = Describe("bmac reconcile", func() {
 					addAnnotation(bmh, AGENT_LABEL_PREFIX+key, value)
 				}
 				expectToContainKeyValue := func(agent *v1beta1.Agent, key, value string) {
-					v, exists := getLabel(agent.Labels, key)
+					v, exists := getValue(agent.Labels, key)
 					Expect(exists).To(BeTrue())
 					Expect(v).To(Equal(value))
 				}
 				expectToNotContainKey := func(agent *v1beta1.Agent, key string) {
-					_, exists := getLabel(agent.Labels, key)
+					_, exists := getValue(agent.Labels, key)
 					Expect(exists).To(BeFalse())
 				}
 				BeforeEach(func() {
@@ -741,6 +743,32 @@ var _ = Describe("bmac reconcile", func() {
 					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 					Expect(err).To(BeNil())
 					expectToContainKeyValue(updatedAgent, "forth-label", "forth-label-value")
+				})
+			})
+			Context("should set the agent's annotations", func() {
+				It("agent belongs to TNF and doesn't specify fencing credentials secret name - add annotation for setting fencing credentials", func() {
+					clusterDeployment := newClusterDeployment("testCluster", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+					Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+					aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+					aci.Spec.ProvisionRequirements = hiveext.ProvisionRequirements{
+						ControlPlaneAgents: common.AllowedNumberOfMasterHostsInTwoNodesWithFencing,
+						ArbiterAgents:      0,
+						WorkerAgents:       0,
+					}
+					Expect(c.Create(ctx, aci)).To(BeNil())
+					agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: "testCluster", Namespace: testNamespace}
+					Expect(c.Update(ctx, agent)).To(BeNil())
+					delete(host.Annotations, BMH_AGENT_FENCING_ANNOTATION)
+					Expect(c.Update(ctx, host)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					Expect(c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)).ToNot(HaveOccurred())
+					_, ok := updatedAgent.ObjectMeta.Annotations[AGENT_SET_FENCING_CREDENTIALS]
+					Expect(ok).To(BeTrue())
 				})
 			})
 			Context("reconcile cluster reference", func() {
@@ -1098,6 +1126,7 @@ var _ = Describe("bmac reconcile", func() {
 					Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 					Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 					Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
+					Expect(updatedAgent.Spec.FencingCredentialsSecretName).To(Equal("fencing-secret"))
 				}
 			})
 		})
@@ -2292,6 +2321,12 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should keep provisioned state when adding cluster-reference annotation", func() {
+				// Create cluster deployment and agent cluster install
+				clusterDeployment := newClusterDeployment("testCluster", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+				Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+				aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
+				Expect(c.Create(ctx, aci)).To(BeNil())
+
 				// Add 'cluster-reference' annotation
 				clusterRef := fmt.Sprintf("%s/%s", testNamespace, "testCluster")
 				bmh.ObjectMeta.Annotations[BMH_CLUSTER_REFERENCE] = clusterRef

@@ -650,6 +650,24 @@ func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent)
 	return true, nil
 }
 
+func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
+	if !ok {
+		return nil, errors.New("failed to get bmh, agent bmh label is empty")
+	}
+
+	bmhKey := types.NamespacedName{
+		Name:      bmhName,
+		Namespace: agent.Namespace,
+	}
+	bmh := &bmh_v1alpha1.BareMetalHost{}
+	if err := r.Client.Get(ctx, bmhKey, bmh); err != nil {
+		return nil, err
+	}
+
+	return bmh, nil
+}
+
 func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.NamespacedName) (bool, error) {
 	cd := &hivev1.ClusterDeployment{}
 	if err := r.Client.Get(ctx, clusterRef, cd); err != nil {
@@ -1661,6 +1679,88 @@ func (r *AgentReconciler) updateNodeLabels(log logrus.FieldLogger, host *common.
 	return false, nil
 }
 
+func (r *AgentReconciler) updateHostFencingCredentials(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
+	var agentFencingCredentials *models.FencingCredentialsParams
+
+	if agent.Spec.FencingCredentialsSecretName != "" {
+		secretRef := types.NamespacedName{Namespace: agent.Namespace, Name: agent.Spec.FencingCredentialsSecretName}
+		secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+		if err != nil {
+			log.WithError(err).Errorf("failed to get fencing credentials secret for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+
+		agentFencingCredentials = &models.FencingCredentialsParams{
+			Address:  swag.String(string(secret.Data["address"])),
+			Password: swag.String(string(secret.Data["password"])),
+			Username: swag.String(string(secret.Data["username"])),
+		}
+		certificateVerification, ok := secret.Data["certificateVerification"]
+		if ok {
+			agentFencingCredentials.CertificateVerification = swag.String(string(certificateVerification))
+		}
+	} else {
+		_, ok := agent.ObjectMeta.Annotations[AGENT_SET_FENCING_CREDENTIALS]
+		if ok {
+			bmh, err := r.getBMH(ctx, agent)
+			if err != nil {
+				log.WithError(err).Errorf("failed to get bmh for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+				return false, err
+			}
+
+			secretRef := types.NamespacedName{Namespace: bmh.Namespace, Name: bmh.Spec.BMC.CredentialsName}
+			secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+			if err != nil {
+				log.WithError(err).Errorf("failed to get bmh credentials secret for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+				return false, err
+			}
+
+			agentFencingCredentials = &models.FencingCredentialsParams{
+				Address:  swag.String(bmh.Spec.BMC.Address),
+				Password: swag.String(string(secret.Data["password"])),
+				Username: swag.String(string(secret.Data["username"])),
+			}
+			if bmh.Spec.BMC.DisableCertificateVerification {
+				agentFencingCredentials.CertificateVerification = swag.String("Disabled")
+			}
+		}
+	}
+
+	if agentFencingCredentials != nil {
+		fencingCredentials, err := json.Marshal(agentFencingCredentials)
+		if err != nil {
+			log.WithError(err).Errorf("failed to marshal fencing credentials for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
+			return false, err
+		}
+
+		if host.FencingCredentials != string(fencingCredentials) {
+			params.HostUpdateParams.FencingCredentials = agentFencingCredentials
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (r *AgentReconciler) updateHostIgnitionEndpointToken(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
+	if agent.Spec.IgnitionEndpointTokenReference != nil {
+		token, err := r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get ignition token")
+			return false, err
+		}
+
+		if token != host.IgnitionEndpointToken {
+			params.HostUpdateParams.IgnitionEndpointToken = &token
+			return true, nil
+		}
+	} else if host.IgnitionEndpointToken != "" {
+		params.HostUpdateParams.IgnitionEndpointToken = swag.String("")
+		return true, nil
+	}
+	return false, nil
+}
+
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) (*common.Host, error) {
 	spec := agent.Spec
 	var err error
@@ -1696,7 +1796,12 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return internalHost, err
 	}
 
-	hostUpdate = hostUpdate || nodesUpdated
+	fencingCredentialsUpdated, err := r.updateHostFencingCredentials(ctx, log, internalHost, agent, params)
+	if err != nil {
+		return internalHost, err
+	}
+
+	hostUpdate = hostUpdate || nodesUpdated || fencingCredentialsUpdated
 
 	if spec.Hostname != "" && spec.Hostname != internalHost.RequestedHostname {
 		hostUpdate = true
@@ -1721,24 +1826,11 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		}
 	}
 
-	if spec.IgnitionEndpointTokenReference != nil {
-		var token string
-		token, err = r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get ignition token")
-			return internalHost, err
-		}
-
-		if token != internalHost.IgnitionEndpointToken {
-			hostUpdate = true
-			params.HostUpdateParams.IgnitionEndpointToken = &token
-		}
-	} else {
-		if internalHost.IgnitionEndpointToken != "" {
-			hostUpdate = true
-			params.HostUpdateParams.IgnitionEndpointToken = swag.String("")
-		}
+	IgnitionEndpointTokenUpdated, err := r.updateHostIgnitionEndpointToken(ctx, log, internalHost, agent, params)
+	if err != nil {
+		return internalHost, err
 	}
+	hostUpdate = hostUpdate || IgnitionEndpointTokenUpdated
 
 	if agent.Spec.IgnitionEndpointHTTPHeaders != nil {
 		hostIgnitionEndpointHTTPHeaders := make(map[string]string)

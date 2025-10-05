@@ -174,22 +174,22 @@ func (u *DummyCRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogge
 	return nil
 }
 
-func AddLabel(labels map[string]string, labelKey, labelValue string) map[string]string {
-	if labelKey == "" {
+func addKeyValue(m map[string]string, key, value string) map[string]string {
+	if key == "" {
 		// Don't need to add a label.
-		return labels
+		return m
 	}
-	if labels == nil {
-		labels = make(map[string]string)
+	if m == nil {
+		m = make(map[string]string)
 	}
-	labels[labelKey] = labelValue
-	return labels
+	m[key] = value
+	return m
 }
 
-func getLabel(labels map[string]string, labelKey string) (value string, exists bool) {
-	if labels == nil {
+func getValue(m map[string]string, key string) (value string, exists bool) {
+	if m == nil {
 		return "", false
 	}
-	value, exists = labels[labelKey]
+	value, exists = m[key]
 	return
 }

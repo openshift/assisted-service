@@ -32,6 +32,7 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -78,6 +79,7 @@ type BMACReconciler struct {
 
 const (
 	AGENT_BMH_LABEL                     = "agent-install.openshift.io/bmh"
+	AGENT_SET_FENCING_CREDENTIALS       = "agent-install.openshift.io/set-fencing-credentials"
 	BMH_AGENT_ROLE                      = "bmac.agent-install.openshift.io/role"
 	BMH_AGENT_HOSTNAME                  = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL       = "bmac.agent-install.openshift.io/machine-config-pool"
@@ -91,6 +93,7 @@ const (
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
+	BMH_AGENT_FENCING_ANNOTATION        = "bmac.agent-install.openshift.io/fencing-credentials-secret-name"
 	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
 	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
@@ -303,7 +306,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
-	result = r.reconcileAgentSpec(log, bmh, agent, infraEnv)
+	result = r.reconcileAgentSpec(ctx, log, bmh, agent, infraEnv)
 	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
 		return res.Result()
 	}
@@ -421,7 +424,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 // Unless there are errors, the agent should be `Approved` at the end of this
 // reconcile and a label should be set on it referencing the BMH. No changes to
 // the BMH should happen in this reconcile step.
-func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
+func (r *BMACReconciler) reconcileAgentSpec(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
 
 	log.Debugf("Setting agent spec according to BMH")
 
@@ -460,6 +463,13 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	if val, ok := annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]; ok {
 		if agent.Spec.IgnitionConfigOverrides != val {
 			agent.Spec.IgnitionConfigOverrides = val
+			dirty = true
+		}
+	}
+
+	if val, ok := annotations[BMH_AGENT_FENCING_ANNOTATION]; ok {
+		if agent.Spec.FencingCredentialsSecretName != val {
+			agent.Spec.FencingCredentialsSecretName = val
 			dirty = true
 		}
 	}
@@ -512,6 +522,15 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
+	setDirty, err = r.reconcileAgentAnnotations(ctx, agent)
+	if err != nil {
+		log.WithError(err).Errorf("failed to reconcile bmh agent annotations %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileError{err: err}
+	}
+	if setDirty {
+		dirty = true
+	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
@@ -546,9 +565,9 @@ func (r *BMACReconciler) reconcileAgentLabels(bmh *bmh_v1alpha1.BareMetalHost, a
 	var ret bool
 	labels := agent.GetLabels()
 	for key, value := range agentLabels {
-		existingValue, exists := getLabel(labels, key)
+		existingValue, exists := getValue(labels, key)
 		if !exists || existingValue != value {
-			labels = AddLabel(labels, key, value)
+			labels = addKeyValue(labels, key, value)
 			ret = true
 		}
 	}
@@ -556,6 +575,37 @@ func (r *BMACReconciler) reconcileAgentLabels(bmh *bmh_v1alpha1.BareMetalHost, a
 		agent.SetLabels(labels)
 	}
 	return ret, nil
+}
+
+func (r *BMACReconciler) reconcileAgentAnnotations(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	var dirty bool
+	agentAnnotations := make(map[string]string)
+
+	if agent.Spec.FencingCredentialsSecretName == "" &&
+		agent.Spec.ClusterDeploymentName != nil {
+		aci, err := getAgentClusterInstallFromAgent(ctx, r.Client, agent)
+		if err != nil {
+			return false, err
+		}
+
+		if aci.Spec.ProvisionRequirements.ControlPlaneAgents == common.AllowedNumberOfMasterHostsInTwoNodesWithFencing &&
+			aci.Spec.ProvisionRequirements.ArbiterAgents == 0 {
+			agentAnnotations[AGENT_SET_FENCING_CREDENTIALS] = ""
+		}
+	}
+
+	annotations := agent.GetAnnotations()
+	for key, value := range agentAnnotations {
+		existingValue, exists := getValue(annotations, key)
+		if !exists || existingValue != value {
+			annotations = addKeyValue(annotations, key, value)
+			dirty = true
+		}
+	}
+	if dirty {
+		agent.SetAnnotations(annotations)
+	}
+	return dirty, nil
 }
 
 func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
@@ -1557,9 +1607,9 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 		}
 
 		// Setting the same labels as the rest of the machines in the spoke cluster
-		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
-		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, role)
-		machine.Labels = AddLabel(machine.Labels, MACHINE_TYPE, role)
+		machine.Labels = addKeyValue(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
+		machine.Labels = addKeyValue(machine.Labels, MACHINE_ROLE, role)
+		machine.Labels = addKeyValue(machine.Labels, MACHINE_TYPE, role)
 		return nil
 	}
 
