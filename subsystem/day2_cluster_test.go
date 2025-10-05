@@ -525,6 +525,7 @@ var _ = Describe("Day2 cluster with bind/unbind hosts", func() {
 				Name:               swag.String("test-cluster"),
 				APIVipDnsname:      swag.String("api.test-cluster.example.com"),
 				OpenshiftClusterID: &openshiftClusterID,
+				OpenshiftVersion:   openshiftVersion,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

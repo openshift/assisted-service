@@ -715,6 +715,114 @@ var _ = Describe("agent reconcile", func() {
 		})
 	})
 
+	Context("update host fencing credentials", func() {
+		var (
+			hostId, infraEnvId strfmt.UUID
+			commonHost         *common.Host
+			host               *v1beta1.Agent
+			clusterDeployment  *hivev1.ClusterDeployment
+		)
+		BeforeEach(func() {
+			hostId = strfmt.UUID(uuid.New().String())
+			infraEnvId = strfmt.UUID(uuid.New().String())
+			commonHost = &common.Host{
+				Host: models.Host{
+					ID:         &hostId,
+					ClusterID:  &sId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+					InfraEnvID: infraEnvId,
+				},
+			}
+			backEndCluster = &common.Cluster{Cluster: models.Cluster{
+				ID: &sId,
+				Hosts: []*models.Host{
+					&commonHost.Host,
+				}}}
+
+			host = newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+			clusterDeployment = newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		})
+
+		It("secret doesn't set certificateVerification", func() {
+			fencingCredentials := &models.FencingCredentialsParams{
+				Address:  swag.String("https://bmc.example.com"),
+				Username: swag.String("admin"),
+				Password: swag.String("password123"),
+			}
+			fencingSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fencing-secret",
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"address":  []byte(*fencingCredentials.Address),
+					"username": []byte(*fencingCredentials.Username),
+					"password": []byte(*fencingCredentials.Password),
+				},
+			}
+			Expect(c.Create(ctx, fencingSecret)).To(Succeed())
+			host.Spec.FencingCredentialsSecretRef = "fencing-secret"
+
+			mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+				func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+					Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+				}).Return(commonHost, nil).Times(1)
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+			Expect(c.Create(ctx, host)).To(BeNil())
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("secret sets certificateVerification", func() {
+			fencingCredentials := &models.FencingCredentialsParams{
+				Address:                 swag.String("https://bmc.example.com"),
+				Username:                swag.String("admin"),
+				Password:                swag.String("password123"),
+				CertificateVerification: swag.String("Disabled"),
+			}
+			fencingSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "fencing-secret",
+					Namespace: testNamespace,
+				},
+				Data: map[string][]byte{
+					"address":                 []byte(*fencingCredentials.Address),
+					"username":                []byte(*fencingCredentials.Username),
+					"password":                []byte(*fencingCredentials.Password),
+					"certificateVerification": []byte(*fencingCredentials.CertificateVerification),
+				},
+			}
+			Expect(c.Create(ctx, fencingSecret)).To(Succeed())
+			host.Spec.FencingCredentialsSecretRef = "fencing-secret"
+
+			mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Do(
+				func(ctx context.Context, params installer.V2UpdateHostParams, interactive bminventory.Interactivity) {
+					Expect(params.HostUpdateParams.FencingCredentials).To(Equal(fencingCredentials))
+				}).Return(commonHost, nil).Times(1)
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+			Expect(c.Create(ctx, host)).To(BeNil())
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("secret does not exist", func() {
+			host.Spec.FencingCredentialsSecretRef = "fencing-secret"
+			allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+			Expect(c.Create(ctx, host)).To(BeNil())
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+		})
+	})
+
 	It("Agent update empty disk path", func() {
 		newInstallDiskPath := ""
 		hostId := strfmt.UUID(uuid.New().String())

@@ -199,6 +199,8 @@ type AgentSpec struct {
 	IgnitionEndpointHTTPHeaders map[string]string `json:"ignitionEndpointHTTPHeaders,omitempty"`
 	// NodeLabels are the labels to be applied on the node associated with this agent
 	NodeLabels map[string]string `json:"nodeLabels,omitempty"`
+	// FencingCredentialsSecretRef is a name of a secret in the Agent's namespace that contains fencing credentials
+	FencingCredentialsSecretRef string `json:"fencingCredentialsSecretRef,omitempty"`
 }
 
 type IgnitionEndpointTokenReference struct {
