@@ -143,6 +143,6 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 // GetBundleLabels returns bundle labels for MetalLB
-func (o *operator) GetBundleLabels() []string {
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }
