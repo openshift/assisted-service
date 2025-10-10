@@ -117,6 +117,6 @@ func (l *lsOperator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 // GetBundleLabels returns the bundle labels for the LSO operator
-func (l *lsOperator) GetBundleLabels() []string {
+func (l *lsOperator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }

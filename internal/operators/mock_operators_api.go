@@ -10,6 +10,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	featuresupport "github.com/openshift/assisted-service/internal/featuresupport"
 	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
 )
@@ -80,18 +81,18 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock
 }
 
 // GetBundle mocks base method.
-func (m *MockAPI) GetBundle(arg0 string) (*models.Bundle, error) {
+func (m *MockAPI) GetBundle(arg0 string, arg1 []models.FeatureSupportLevelID) (*models.Bundle, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBundle", arg0)
+	ret := m.ctrl.Call(m, "GetBundle", arg0, arg1)
 	ret0, _ := ret[0].(*models.Bundle)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetBundle indicates an expected call of GetBundle.
-func (mr *MockAPIMockRecorder) GetBundle(arg0 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GetBundle(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundle", reflect.TypeOf((*MockAPI)(nil).GetBundle), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundle", reflect.TypeOf((*MockAPI)(nil).GetBundle), arg0, arg1)
 }
 
 // GetMonitoredOperatorsList mocks base method.
@@ -211,17 +212,17 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 }
 
 // ListBundles mocks base method.
-func (m *MockAPI) ListBundles() []*models.Bundle {
+func (m *MockAPI) ListBundles(arg0 *featuresupport.SupportLevelFilters, arg1 []models.FeatureSupportLevelID) []*models.Bundle {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListBundles")
+	ret := m.ctrl.Call(m, "ListBundles", arg0, arg1)
 	ret0, _ := ret[0].([]*models.Bundle)
 	return ret0
 }
 
 // ListBundles indicates an expected call of ListBundles.
-func (mr *MockAPIMockRecorder) ListBundles() *gomock.Call {
+func (mr *MockAPIMockRecorder) ListBundles(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBundles", reflect.TypeOf((*MockAPI)(nil).ListBundles))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBundles", reflect.TypeOf((*MockAPI)(nil).ListBundles), arg0, arg1)
 }
 
 // ResolveDependencies mocks base method.

@@ -53,17 +53,17 @@ func (mr *MockOperatorMockRecorder) GenerateManifests(arg0 interface{}) *gomock.
 }
 
 // GetBundleLabels mocks base method.
-func (m *MockOperator) GetBundleLabels() []string {
+func (m *MockOperator) GetBundleLabels(arg0 []models.FeatureSupportLevelID) []string {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBundleLabels")
+	ret := m.ctrl.Call(m, "GetBundleLabels", arg0)
 	ret0, _ := ret[0].([]string)
 	return ret0
 }
 
 // GetBundleLabels indicates an expected call of GetBundleLabels.
-func (mr *MockOperatorMockRecorder) GetBundleLabels() *gomock.Call {
+func (mr *MockOperatorMockRecorder) GetBundleLabels(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundleLabels", reflect.TypeOf((*MockOperator)(nil).GetBundleLabels))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundleLabels", reflect.TypeOf((*MockOperator)(nil).GetBundleLabels), arg0)
 }
 
 // GetClusterValidationIDs mocks base method.

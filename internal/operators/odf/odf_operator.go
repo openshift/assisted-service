@@ -3,6 +3,7 @@ package odf
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 	"unicode"
 
@@ -283,7 +284,6 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		CPUCores: o.config.ODFPerHostCPUStandardMode + (diskCount * o.config.ODFPerDiskCPUCount),
 		RAMMib:   conversions.GibToMib(o.config.ODFPerHostMemoryGiBStandardMode + (diskCount * o.config.ODFPerDiskRAMGiB)),
 	}, nil
-
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
@@ -328,8 +328,14 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDODF
 }
 
-// GetBundleLabels returns the bundle labels for the LSO operator
-func (l *operator) GetBundleLabels() []string {
+// GetBundleLabels returns the bundle labels for the ODF operator
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
+	// For SNO feature, exclude from openshift-ai bundle
+	if slices.Contains(featureIDs, models.FeatureSupportLevelIDSNO) {
+		return []string{}
+	}
+
+	// For non-SNO deployments, use the default bundle behavior
 	return []string(Operator.Bundles)
 }
 

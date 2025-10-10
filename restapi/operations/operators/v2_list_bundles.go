@@ -32,9 +32,9 @@ func NewV2ListBundles(ctx *middleware.Context, handler V2ListBundlesHandler) *V2
 /*
 	V2ListBundles swagger:route GET /v2/operators/bundles operators v2ListBundles
 
-# Get list of avaliable bundles
+# Get list of available bundles
 
-Retrieves a list of avaliable bundles.
+Retrieves a list of available bundles filtered by support level.
 */
 type V2ListBundles struct {
 	Context *middleware.Context

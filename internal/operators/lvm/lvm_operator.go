@@ -3,6 +3,7 @@ package lvm
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
@@ -238,7 +239,13 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDLVM
 }
 
-// GetBundleLabels returns the bundle labels for the LSO operator
-func (o *operator) GetBundleLabels() []string {
-	return []string(Operator.Bundles)
+// GetBundleLabels returns the bundle labels for the LVM operator
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
+	// For SNO feature, include in openshift-ai bundle
+	if slices.Contains(featureIDs, models.FeatureSupportLevelIDSNO) {
+		return []string{"openshift-ai"}
+	}
+
+	// For non-SNO deployments, LVM is not in any bundle by default
+	return []string{}
 }
