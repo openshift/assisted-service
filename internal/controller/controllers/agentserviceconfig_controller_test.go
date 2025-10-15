@@ -2268,19 +2268,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		Expect(found.Spec.Template.Spec.Containers[0].Image).To(Equal("quay.io/edge-infrastructure/assisted-service:latest"))
 	})
 
-	It("deploys the default image when the base image annotation is set to el8 (since 'el8' is removed)", func() {
-		asc = newASCDefault()
-		setAnnotation(&asc.ObjectMeta, serviceImageBaseAnnotation, serviceImageBaseEL8)
-		ascr = newTestReconciler(asc, route, assistedCM, assistedTrustedCM)
-		ascc = initASC(ascr, asc)
-		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
-
-		found := &appsv1.Deployment{}
-		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-		Expect(found.Spec.Template.Spec.Containers[0].Image).To(Equal("quay.io/edge-infrastructure/assisted-service:latest"))
-	})
-
-	It("deploys the default image when the base image annotation is set to any value other than el8", func() {
+	It("deploys the default image when the base image annotation is set to any value", func() {
 		asc = newASCDefault()
 		setAnnotation(&asc.ObjectMeta, serviceImageBaseAnnotation, "el10")
 		ascr = newTestReconciler(asc, route, assistedCM, assistedTrustedCM)
