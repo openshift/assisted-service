@@ -373,6 +373,52 @@ func GenerateTestDefaultInventory() string {
 	return string(b)
 }
 
+func GenerateTestInventoryWithExtraDisks() string {
+	disks := []*models.Disk{
+		{
+			SizeBytes: 128849018880,
+			DriveType: models.DriveTypeHDD,
+			ID:        "/dev/disk/by-id/test-disk-id",
+			Name:      "test-disk",
+			Serial:    "test-serial",
+			Path:      "/dev/disk/by-path/test-disk-path",
+			ByPath:    "/dev/disk/by-path/test-disk-path",
+		},
+		{
+			SizeBytes: 128849018880,
+			DriveType: models.DriveTypeHDD,
+			ID:        "/dev/disk/by-id/test-disk-id-2",
+			Name:      "test-disk-2",
+			Serial:    "test-serial-2",
+			Path:      "/dev/disk/by-path/test-disk-path-2",
+			ByPath:    "/dev/disk/by-path/test-disk-path-2",
+		},
+	}
+
+	inventory := &models.Inventory{
+		CPU: &models.CPU{
+			Architecture: models.ClusterCPUArchitectureX8664,
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		Disks:  disks,
+		Routes: TestDefaultRouteConfiguration,
+	}
+
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func generateInterfaces(amount int, intfType string) []*models.Interface {
 	interfaces := make([]*models.Interface, amount)
 	for i := 0; i < amount; i++ {

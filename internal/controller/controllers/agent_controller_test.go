@@ -327,14 +327,14 @@ var _ = Describe("agent reconcile", func() {
 		hr.Client = mockClient
 		newHostName := "hostname123"
 		newRole := "worker"
-		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
+		newInstallDiskPath := "/dev/disk/by-id/test-disk-id-2"
 		hostId := strfmt.UUID(uuid.New().String())
 		infraEnvId := strfmt.UUID(uuid.New().String())
 		beforeUpdateHost := &common.Host{
 			Host: models.Host{
 				ID:         &hostId,
 				ClusterID:  &sId,
-				Inventory:  common.GenerateTestDefaultInventory(),
+				Inventory:  common.GenerateTestInventoryWithExtraDisks(),
 				Status:     swag.String(models.HostStatusInsufficient),
 				StatusInfo: swag.String("I am insufficient"),
 				InfraEnvID: infraEnvId,
@@ -344,7 +344,7 @@ var _ = Describe("agent reconcile", func() {
 			Host: models.Host{
 				ID:                 &hostId,
 				ClusterID:          &sId,
-				Inventory:          common.GenerateTestDefaultInventory(),
+				Inventory:          common.GenerateTestInventoryWithExtraDisks(),
 				Status:             swag.String(models.HostStatusKnown),
 				StatusInfo:         swag.String("I am known"),
 				InfraEnvID:         infraEnvId,
@@ -865,6 +865,109 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	It("Agent update new disk ID using by path", func() {
+		newInstallDiskPath := "/dev/disk/by-path/test-disk-path-2"
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:                 &hostId,
+				ClusterID:          &sId,
+				InfraEnvID:         infraEnvId,
+				Inventory:          common.GenerateTestInventoryWithExtraDisks(),
+				InstallationDiskID: "/dev/disk/by-id/test-disk-id",
+				Status:             swag.String(models.HostStatusKnown),
+				StatusInfo:         swag.String("Some status info"),
+			},
+		}
+		afterUpdateHost := &common.Host{
+			Host: models.Host{
+				ID:                 &hostId,
+				ClusterID:          &sId,
+				InfraEnvID:         infraEnvId,
+				Inventory:          common.GenerateTestInventoryWithExtraDisks(),
+				InstallationDiskID: "/dev/disk/by-id/test-disk-id-2",
+				Status:             swag.String(models.HostStatusKnown),
+				StatusInfo:         swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host.Spec.InstallationDiskPath = newInstallDiskPath
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(afterUpdateHost, nil).Times(1)
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvNAme")
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(agent.Spec.InstallationDiskPath).To(Equal(newInstallDiskPath))
+		Expect(agent.Status.InstallationDiskID).To(Equal("/dev/disk/by-id/test-disk-id-2"))
+	})
+
+	It("Agent update using the same byPath as the installation disk ID shouldn't update", func() {
+		newInstallDiskPath := "/dev/disk/by-path/test-disk-path"
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:                 &hostId,
+				ClusterID:          &sId,
+				InfraEnvID:         infraEnvId,
+				Inventory:          common.GenerateTestInventoryWithExtraDisks(),
+				InstallationDiskID: "/dev/disk/by-id/test-disk-id",
+				Status:             swag.String(models.HostStatusKnown),
+				StatusInfo:         swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host.Spec.InstallationDiskPath = newInstallDiskPath
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInternal(gomock.Any(), gomock.Any(), bminventory.NonInteractive).Return(nil, nil).Times(0)
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvNAme")
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(agent.Spec.InstallationDiskPath).To(Equal(newInstallDiskPath))
+		Expect(agent.Status.InstallationDiskID).To(Equal("/dev/disk/by-id/test-disk-id"))
 	})
 
 	It("Host parameters are not updated post install", func() {
