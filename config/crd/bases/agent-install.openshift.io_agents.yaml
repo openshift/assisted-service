@@ -118,6 +118,10 @@ spec:
                 description: InstallationDiskID defines the installation destination
                   disk (must be equal to the inventory disk id).
                 type: string
+              installation_disk_path:
+                description: InstallationDiskPath defines the installation destination
+                  disk using either its by-id or by-path value.
+                type: string
               installerArgs:
                 description: Json formatted string containing the user overrides for
                   the host's coreos installer args
