@@ -153,10 +153,12 @@ func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *m
 		return nil
 	}
 
-	// We changed the host.installationDiskPath to contain the disk id instead of the disk path.
-	// We will search for the installation path in the disk.Id and the disk.Path field for backward compatibility.
+	// Match installationPath against:
+	// - disk.ID (by-id identifier)
+	// - disk.ByPath (/dev/disk/by-path/...)
+	// - device full name (/dev/<node>) used historically by assisted-service
 	result := funk.Find(disks, func(disk *models.Disk) bool {
-		return disk.ID == installationPath || common.GetDeviceFullName(disk) == installationPath
+		return disk.ID == installationPath || disk.ByPath == installationPath || common.GetDeviceFullName(disk) == installationPath
 	})
 
 	if result == nil {
