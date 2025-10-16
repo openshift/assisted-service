@@ -61,7 +61,7 @@ linters:
     - unconvert
     - gci
     - goimports
-    - exportloopref
+    - copyloopvar
 
 linters-settings:
   govet:

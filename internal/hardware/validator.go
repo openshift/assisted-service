@@ -35,6 +35,13 @@ const (
 	ErrsInIscsiDisableMultipathInstallation = "Installation on multipath device is not possible due to errors on at least one iSCSI disk"
 )
 
+func safeUint64(value int64) uint64 {
+	if value < 0 {
+		return 0
+	}
+	return uint64(value)
+}
+
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
@@ -135,11 +142,20 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	notEligibleReasons := v.purgeServiceReasons(disk.InstallationEligibility.NotEligibleReasons)
 
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
-	if disk.SizeBytes < minSizeBytes {
+	diskSize := disk.SizeBytes
+	if diskSize < 0 {
+		diskSize = 0
+	}
+	requiredSize := minSizeBytes
+	if requiredSize < 0 {
+		requiredSize = 0
+	}
+
+	if diskSize < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
-				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
+				humanize.Bytes(safeUint64(diskSize)), humanize.Bytes(safeUint64(requiredSize))))
 	}
 
 	hostArchitecture := inventory.CPU.Architecture
