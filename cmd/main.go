@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // #nosec G108 -- pprof is intentionally exposed for debugging
 	"os"
 	"os/signal"
 	"path/filepath"
