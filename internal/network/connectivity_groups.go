@@ -85,10 +85,17 @@ type connectivitySet struct {
 }
 
 func NewConnectivitySet(size int) *connectivitySet {
-	return &connectivitySet{array: bitarray.NewBitArray(uint64(size))}
+	var capacity uint64
+	if size > 0 {
+		capacity = uint64(size)
+	}
+	return &connectivitySet{array: bitarray.NewBitArray(capacity)}
 }
 
 func (c *connectivitySet) add(item int) error {
+	if item < 0 {
+		return errors.Errorf("connectivity index must be non-negative: %d", item)
+	}
 	return c.array.SetBit(uint64(item))
 }
 
@@ -105,6 +112,9 @@ func (c *connectivitySet) union(other *connectivitySet) *connectivitySet {
 }
 
 func (c *connectivitySet) containsElement(id int) bool {
+	if id < 0 {
+		return false
+	}
 	b, err := c.array.GetBit(uint64(id))
 	return err == nil && b
 }

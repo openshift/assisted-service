@@ -1,11 +1,11 @@
 module github.com/openshift/assisted-service/api
 
-go 1.20
+go 1.21
 
 require (
 	github.com/openshift/assisted-service/models v0.0.0
-	github.com/openshift/custom-resource-status v1.1.2
-	github.com/openshift/hive/apis v0.0.0-20220222213051-def9088fdb5a
+	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
+	github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27
 	k8s.io/api v0.29.5
 	k8s.io/apimachinery v0.29.5
 	sigs.k8s.io/controller-runtime v0.13.1
@@ -36,13 +36,13 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/openshift/api v0.0.0-20220831183848-09c070622e2c // indirect
+	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c // indirect
 	github.com/openshift/assisted-service v1.0.10-0.20230830164851-6573b5d7021d // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.2 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/text v0.21.0 // indirect
+	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -55,5 +55,5 @@ require (
 
 replace (
 	github.com/openshift/assisted-service/models => ../models
-	golang.org/x/net => golang.org/x/net v0.33.0
+	golang.org/x/net => golang.org/x/net v0.24.0
 )

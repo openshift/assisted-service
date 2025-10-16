@@ -129,7 +129,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				tooSmallDiskTemplate,
-				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
+				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes)))) //nolint:gosec
 	}
 
 	if !v.IsValidStorageDeviceType(disk, hostArchitecture, clusterVersion) {
