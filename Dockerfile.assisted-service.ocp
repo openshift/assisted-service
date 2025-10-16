@@ -2,7 +2,7 @@
 # than this Dockerfile. ART will be unable to build your component or
 # reconcile this Dockerfile until that disparity is addressed.
 # Build binaries
-FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.20-openshift-4.15 AS builder
+FROM registry.ci.openshift.org/ocp/builder:rhel-8-golang-1.24-openshift-4.21 AS builder
 WORKDIR /src
 COPY . .
 

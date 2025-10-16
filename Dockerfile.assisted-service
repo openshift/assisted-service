@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.20 AS golang
+FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS golang
 
 # Build binaries
 FROM quay.io/centos/centos:stream9 as builder
