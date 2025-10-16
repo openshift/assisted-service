@@ -123,7 +123,11 @@ func VerifyClusterCidrSize(hostNetworkPrefix int, clusterNetworkCIDR string, num
 	}
 	// 63 to avoid overflow
 	possibleNumHosts := uint64(1) << min(63, max(hostNetworkPrefix-clusterNetworkPrefix, 0))
-	if uint64(requestedNumHosts) > possibleNumHosts {
+	requestedNumHostsUint := uint64(0)
+	if requestedNumHosts > 0 {
+		requestedNumHostsUint = uint64(requestedNumHosts)
+	}
+	if requestedNumHostsUint > possibleNumHosts {
 		return errors.Errorf("Cluster network CIDR prefix %d does not contain enough addresses for %d hosts each one with %d prefix (%d addresses)",
 			clusterNetworkPrefix, numberOfHosts, hostNetworkPrefix, uint64(1)<<min(63, bits-hostNetworkPrefix))
 	}
@@ -169,7 +173,11 @@ func isMachineNetworkCidrBigEnough(hosts []*models.Host, machineNetworkCidr stri
 		return networkPrefix <= bits-MinSNOMachineMaskDelta
 	}
 
-	//possible hosts in the range is the width of the range minus 2 network addresses minus 2 addresses for vips
-	var availableAddresses int64 = (int64)(uint64(1)<<(bits-networkPrefix)) - int64(numOfHosts) - int64(4)
+	addressBits := bits - networkPrefix
+	if addressBits >= 63 {
+		return true
+	}
+	totalAddresses := int64(1) << addressBits
+	availableAddresses := totalAddresses - int64(numOfHosts) - int64(4)
 	return availableAddresses >= 0
 }

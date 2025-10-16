@@ -21,6 +21,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -665,11 +666,19 @@ func newAgentService(ctx context.Context, log logrus.FieldLogger, asc ASC) (clie
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = int32(servicePort.IntValue())
+		apiPort, err := toInt32(servicePort.IntValue())
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[0].Port = apiPort
 		svc.Spec.Ports[0].TargetPort = servicePort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", serviceName)
-		svc.Spec.Ports[1].Port = int32(serviceHTTPPort.IntValue())
+		httpPort, err := toInt32(serviceHTTPPort.IntValue())
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[1].Port = httpPort
 		svc.Spec.Ports[1].TargetPort = serviceHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
@@ -701,11 +710,19 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{}, corev1.ServicePort{})
 		}
 		svc.Spec.Ports[0].Name = imageServiceName
-		svc.Spec.Ports[0].Port = int32(imageHandlerPort.IntValue())
+		handlerPort, err := toInt32(imageHandlerPort.IntValue())
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[0].Port = handlerPort
 		svc.Spec.Ports[0].TargetPort = imageHandlerPort
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Ports[1].Name = fmt.Sprintf("%s-http", imageServiceName)
-		svc.Spec.Ports[1].Port = int32(imageHandlerHTTPPort.IntValue())
+		handlerHTTPPort, err := toInt32(imageHandlerHTTPPort.IntValue())
+		if err != nil {
+			return err
+		}
+		svc.Spec.Ports[1].Port = handlerHTTPPort
 		svc.Spec.Ports[1].TargetPort = imageHandlerHTTPPort
 		svc.Spec.Ports[1].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": imageServiceName}
@@ -754,7 +771,11 @@ func newAgentRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, int32(servicePort.IntValue()))
+		port, err := toInt32(servicePort.IntValue())
+		if err != nil {
+			return nil, nil, err
+		}
+		return newIngress(asc, serviceName, asc.spec.Ingress.AssistedServiceHostname, port)
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -877,7 +898,11 @@ func newImageServiceRoute(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 		if asc.spec.Ingress == nil {
 			return nil, nil, fmt.Errorf("ingress config is required for non-OpenShift deployments")
 		}
-		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, int32(imageHandlerPort.IntValue()))
+		port, err := toInt32(imageHandlerPort.IntValue())
+		if err != nil {
+			return nil, nil, err
+		}
+		return newIngress(asc, imageServiceName, asc.spec.Ingress.ImageServiceHostname, port)
 	}
 	weight := int32(100)
 	route := &routev1.Route{
@@ -1331,6 +1356,23 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 	return cm, mutateFn, nil
 }
 
+func toInt32(value int) (int32, error) {
+	if value > math.MaxInt32 || value < math.MinInt32 {
+		return 0, fmt.Errorf("value %d is outside the supported int32 range", value)
+	}
+	return int32(value), nil
+}
+
+func clampToInt32(value int) int32 {
+	if value > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if value < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(value)
+}
+
 // TODO: Remove this whole block and getVersionFromDeployment() function
 // once ACM/MCE allows env var injection https://issues.redhat.com/browse/ACM-9362
 func getDeploymentData(ctx context.Context, cm *corev1.ConfigMap, asc ASC) {
@@ -1423,6 +1465,8 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		{Name: "image-service-data", MountPath: "/data"},
 	}
 	var healthCheckScheme corev1.URIScheme
+	handlerPortValue := clampToInt32(imageHandlerPort.IntValue())
+	handlerHTTPPortValue := clampToInt32(imageHandlerHTTPPort.IntValue())
 
 	// enable https only for openshift
 	if asc.rec.IsOpenShift {
@@ -1450,11 +1494,11 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 		Image: ImageServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(imageHandlerPort.IntValue()),
+				ContainerPort: handlerPortValue,
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(imageHandlerHTTPPort.IntValue()),
+				ContainerPort: handlerHTTPPortValue,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1915,16 +1959,19 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		healthCheckScheme = corev1.URISchemeHTTP
 	}
 
+	servicePortValue := clampToInt32(servicePort.IntValue())
+	serviceHTTPPortValue := clampToInt32(serviceHTTPPort.IntValue())
+
 	serviceContainer := corev1.Container{
 		Name:  serviceName,
 		Image: ServiceImage(asc.Object),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: int32(servicePort.IntValue()),
+				ContainerPort: servicePortValue,
 				Protocol:      corev1.ProtocolTCP,
 			},
 			{
-				ContainerPort: int32(serviceHTTPPort.IntValue()),
+				ContainerPort: serviceHTTPPortValue,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -1958,13 +2005,15 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		},
 	}
 
+	databasePortValue := clampToInt32(databasePort.IntValue())
+
 	postgresContainer := corev1.Container{
 		Name:  databaseName,
 		Image: DatabaseImage(),
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,
-				ContainerPort: int32(databasePort.IntValue()),
+				ContainerPort: databasePortValue,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},

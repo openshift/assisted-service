@@ -717,7 +717,7 @@ func (g *installerGenerator) expandMultiDocYaml(ctx context.Context, manifestPat
 // bootstrap ignition file
 func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath string) error {
 	log := logutil.FromContext(ctx, g.log)
-	//nolint:shadow
+	//nolint:govet
 	config, err := parseIgnitionFile(bootstrapPath)
 	if err != nil {
 		g.log.Error(err)

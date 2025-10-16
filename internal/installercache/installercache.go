@@ -3,6 +3,7 @@ package installercache
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -173,7 +174,13 @@ func (i *Installers) extractReleaseIfNeeded(path, releaseID, releaseIDMirror, pu
 	if err != nil && !os.IsNotExist(err) {
 		return 0, false, errors.Wrapf(err, "could not determine disk usage information for cache dir %s", i.config.CacheDir)
 	}
-	if i.shouldEvict(int64(usedBytes)) && !i.evict() {
+	usedBytesInt := int64(0)
+	if usedBytes > math.MaxInt64 {
+		usedBytesInt = math.MaxInt64
+	} else {
+		usedBytesInt = int64(usedBytes)
+	}
+	if i.shouldEvict(usedBytesInt) && !i.evict() {
 		return 0, false, &errorInsufficientCacheCapacity{Message: fmt.Sprintf("insufficient capacity in %s to store release", i.config.CacheDir)}
 	}
 	extractStartTime := time.Now()
