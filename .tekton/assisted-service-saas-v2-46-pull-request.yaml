@@ -1,0 +1,57 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  annotations:
+    build.appstudio.openshift.io/repo: https://github.com/openshift/assisted-service?rev={{revision}}
+    build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
+    build.appstudio.redhat.com/target_branch: '{{target_branch}}'
+    pipelinesascode.tekton.dev/max-keep-runs: "3"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "v2.46"
+  creationTimestamp:
+  labels:
+    appstudio.openshift.io/application: assisted-service-saas-v2-46
+    appstudio.openshift.io/component: assisted-service-saas-v2-46
+    pipelines.appstudio.openshift.io/type: build
+  name: assisted-service-saas-v2-46-on-pull-request
+  namespace: assisted-installer-tenant
+spec:
+  params:
+    - name: git-url
+      value: '{{source_url}}'
+    - name: revision
+      value: '{{revision}}'
+    - name: output-image
+      value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-service-saas-v2-46/assisted-service-saas-v2-46:on-pr-{{revision}}
+    - name: image-expires-after
+      value: 5d
+    - name: dockerfile
+      value: Dockerfile.assisted-service
+    - name: path-context
+      value: .
+    - name: build-args
+      value:
+        - release={{target_branch}}
+        - version={{revision}}
+    - name: build-source-image
+      value: "true"
+    - name: sast-snyk-check-args
+      value: "--project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66"
+    - name: sast-snyk-check-ignore-file-paths
+      value: "tools/wait_for_assisted_service.py,tools/deploy_wiremock.py"
+  pipelineRef:
+    resolver: git
+    params:
+      - name: url
+        value: "https://github.com/openshift-assisted/assisted-installer-konflux-pipelines.git"
+      - name: revision
+        value: main
+      - name: pathInRepo
+        value: "pipelines/standard-pipeline.yaml"
+  taskRunTemplate:
+    serviceAccountName:  build-pipeline-assisted-service-saas-v2-46
+  workspaces:
+    - name: git-auth
+      secret:
+        secretName: '{{ git_auth_secret }}'
+status: {}
