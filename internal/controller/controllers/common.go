@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"math"
 	"math/big"
 	"net/url"
 	"sort"
@@ -313,7 +314,11 @@ func checksumSecret(m map[string][]byte) (string, error) {
 
 func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.ClusterNetworkEntry {
 	return funk.Map(networks, func(net *models.ClusterNetwork) hiveext.ClusterNetworkEntry {
-		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: int32(net.HostPrefix)}
+		var hostPrefix int32
+		if net != nil {
+			hostPrefix = safeInt32FromInt64(net.HostPrefix)
+		}
+		return hiveext.ClusterNetworkEntry{CIDR: string(net.Cidr), HostPrefix: hostPrefix}
 	}).([]hiveext.ClusterNetworkEntry)
 }
 
@@ -345,6 +350,16 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
 		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
 	}).([]*models.MachineNetwork)
+}
+
+func safeInt32FromInt64(value int64) int32 {
+	if value > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if value < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(value)
 }
 
 func ApiVipsArrayToStrings(vips []*models.APIVip) []string {
