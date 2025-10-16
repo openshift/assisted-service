@@ -323,7 +323,7 @@ func GetDiskEncryptionForDay2(log logrus.FieldLogger, host *models.Host) (*ignit
 	}
 
 	// Checks if LUKS (disk encryption) exists
-	if config.Storage.Luks == nil || len(config.Storage.Luks) == 0 {
+	if len(config.Storage.Luks) == 0 {
 		// Disk encryption is disabled
 		return nil, nil
 	}
