@@ -393,7 +393,7 @@ spec:
           device: /dev/disk/by-partlabel/root
           clevis:
             tpm2: true
-          options: [--cipher, aes-cbc-essiv:sha256]
+          options: [--cipher, aes-xts-plain64]
           wipeVolume: true
       filesystems:
         - device: /dev/mapper/root
@@ -421,7 +421,7 @@ spec:
                 thumbprint: PLjNyRdGw03zlRoGjQYMahSZGu9
               - url: http://tang.example.com:7501
                 thumbprint: PLjNyRdGw03zlRoGjQYMahSZGu8
-          options: [--cipher, aes-cbc-essiv:sha256]
+          options: [--cipher, aes-xts-plain64]
           wipeVolume: true
       filesystems:
         - device: /dev/mapper/root
