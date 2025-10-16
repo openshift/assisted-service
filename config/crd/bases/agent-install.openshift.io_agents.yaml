@@ -82,6 +82,10 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+              fencingCredentialsSecretName:
+                description: FencingCredentialsSecretName is a name of a secret containing
+                  fencing credentials
+                type: string
               hostname:
                 type: string
               ignitionConfigOverrides:

@@ -470,6 +470,22 @@ func getClusterDeploymentFromAgent(ctx context.Context, client client.Client, ag
 	return &cd, nil
 }
 
+// getAgentClusterInstallFromAgent retrieves the AgentClusterInstall that the Agent belongs to
+func getAgentClusterInstallFromAgent(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (*hiveext.AgentClusterInstall, error) {
+	cd, err := getClusterDeploymentFromAgent(ctx, client, agent)
+	if err != nil {
+		return nil, err
+	}
+
+	aciRef := types.NamespacedName{Name: cd.Spec.ClusterInstallRef.Name, Namespace: cd.Namespace}
+	aci := &hiveext.AgentClusterInstall{}
+	if err = client.Get(ctx, aciRef, aci); err != nil {
+		return nil, errors.Wrapf(err, "Failed to get agent cluster install %s/%s", aciRef.Namespace, aciRef.Name)
+	}
+
+	return aci, nil
+}
+
 func setAnnotation(meta *metav1.ObjectMeta, key string, value string) {
 	if meta.Annotations == nil {
 		meta.Annotations = make(map[string]string)
