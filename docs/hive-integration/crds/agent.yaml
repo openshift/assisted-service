@@ -1,0 +1,483 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: Agent
+metadata:
+  annotations:
+    agent.agent-install.openshift.io/current-stage: Done
+    agent.agent-install.openshift.io/inventory: '{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"command_line":"BOOT_IMAGE=(hd0,gpt3)/boot/ostree/rhcos-d51ce27a5e4848866676bed634d3de22a7c71dbf8c23446ef20d1e3240d90c89/vmlinuz-5.14.0-570.39.1.el9_6.x86_64
+      rw ignition.firstboot ostree=/ostree/boot.1/rhcos/d51ce27a5e4848866676bed634d3de22a7c71dbf8c23446ef20d1e3240d90c89/0
+      ignition.platform.id=baremetal\n","current_boot_mode":"uefi","device_type":"persistent","secure_boot_state":"Disabled"},"cpu":{"architecture":"x86_64","count":8,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pdcm","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","ssbd","ibrs","ibpb","stibp","ibrs_enhanced","tpr_shadow","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","avx2","smep","bmi2","erms","invpcid","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","vnmi","umip","pku","ospke","avx512_vnni","md_clear","flush_l1d","arch_capabilities","indirect_thunk_its"],"model_name":"Intel(R)
+      Xeon(R) Gold 5218R CPU @ 2.10GHz"},"disks":[{"bootable":true,"by_path":"/dev/disk/by-path/pci-0000:03:00.0-scsi-0:0:0:0","drive_type":"HDD","has_uuid":true,"hctl":"0:0:0:0","id":"/dev/disk/by-path/pci-0000:03:00.0-scsi-0:0:0:0","installation_eligibility":{"eligible":true,"not_eligible_reasons":null},"model":"QEMU_HARDDISK","name":"sda","path":"/dev/sda","serial":"drive-scsi0-0-0-0","size_bytes":128849018880,"vendor":"QEMU"}],"gpus":[{"address":"0000:00:01.0","device_id":"1050","name":"Virtio
+      1.0 GPU","vendor":"Red Hat, Inc.","vendor_id":"1af4"}],"hostname":"okd-5","interfaces":[{"flags":["up","broadcast","multicast","running"],"has_carrier":true,"ipv4_addresses":["192.168.1.100/24"],"ipv6_addresses":[],"mac_address":"00:60:2f:31:00:00","mtu":1500,"name":"enp1s0","product":"0x0001","speed_mbps":-1,"type":"physical","vendor":"0x1af4"}],"memory":{"physical_bytes":17179869184,"physical_bytes_method":"dmidecode","usable_bytes":16744599552},"routes":[{"destination":"0.0.0.0","family":2,"gateway":"192.168.1.1","interface":"enp1s0","metric":100},{"destination":"192.168.1.0","family":2,"interface":"enp1s0","metric":100},{"destination":"::1","family":10,"interface":"lo","metric":256},{"destination":"fe80::","family":10,"interface":"enp1s0","metric":1024}],"system_vendor":{"manufacturer":"Red
+      Hat","product_name":"KVM","virtual":true},"tpm_version":"none"}'
+    agent.agent-install.openshift.io/role: worker
+    agent.agent-install.openshift.io/state: installed
+    agent.agent-install.openshift.io/validations-info: '{"hardware":[{"id":"has-inventory","status":"success","message":"Valid
+      inventory exists for the host"},{"id":"has-min-cpu-cores","status":"success","message":"Sufficient
+      CPU cores"},{"id":"has-min-memory","status":"success","message":"Sufficient
+      minimum RAM"},{"id":"has-min-valid-disks","status":"success","message":"Sufficient
+      disk capacity"},{"id":"has-cpu-cores-for-role","status":"success","message":"Sufficient
+      CPU cores for role worker"},{"id":"has-memory-for-role","status":"success","message":"Sufficient
+      RAM for role worker"},{"id":"hostname-unique","status":"success","message":"Hostname
+      okd-5 is unique in cluster"},{"id":"hostname-valid","status":"success","message":"Hostname
+      okd-5 is allowed"},{"id":"sufficient-installation-disk-speed","status":"success","message":"Speed
+      of installation disk has not yet been measured"},{"id":"compatible-with-cluster-platform","status":"success","message":"Host
+      is compatible with cluster platform baremetal"},{"id":"no-skip-installation-disk","status":"success","message":"No
+      request to skip formatting of the installation disk"},{"id":"no-skip-missing-disk","status":"success","message":"All
+      disks that have skipped formatting are present in the host inventory"}],"network":[{"id":"machine-cidr-defined","status":"success","message":"No
+      Machine Network CIDR needed: Day2 cluster"},{"id":"belongs-to-machine-cidr","status":"success","message":"No
+      machine network CIDR validation needed: Day2 cluster"},{"id":"belongs-to-majority-group","status":"success","message":"Host
+      has connectivity to the majority of hosts in the cluster"},{"id":"mtu-valid","status":"success","message":"MTU
+      is ok"},{"id":"valid-platform-network-settings","status":"success","message":"Platform
+      KVM is allowed"},{"id":"container-images-available","status":"success","message":"All
+      required container images were either pulled successfully or no attempt was
+      made to pull them"},{"id":"sufficient-network-latency-requirement-for-role","status":"success","message":"Network
+      latency requirement has been satisfied."},{"id":"sufficient-packet-loss-requirement-for-role","status":"success","message":"Packet
+      loss requirement has been satisfied."},{"id":"has-default-route","status":"success","message":"Host
+      has been configured with at least one default route."},{"id":"api-domain-name-resolved-correctly","status":"success","message":"Domain
+      name resolution for the api.test-multinode.lab.home domain was successful
+      or not required"},{"id":"api-int-domain-name-resolved-correctly","status":"success","message":"Domain
+      name resolution for the api-int.test-multinode.lab.home domain was successful
+      or not required"},{"id":"apps-domain-name-resolved-correctly","status":"success","message":"Domain
+      name resolution for the *.apps.test-multinode.lab.home domain was successful
+      or not required"},{"id":"dns-wildcard-not-configured","status":"success","message":"DNS
+      wildcard check was successful"},{"id":"non-overlapping-subnets","status":"success","message":"Host
+      subnets are not overlapping"},{"id":"no-ip-collisions-in-network","status":"success","message":"Skipping
+      validation for day 2 host 0479107b-3436-45d3-83a8-cb9a1dc4fb9e"}],"operators":[{"id":"amd-gpu-requirements-satisfied","status":"success","message":"amd-gpu
+      is disabled"},{"id":"authorino-requirements-satisfied","status":"success","message":"authorino
+      is disabled"},{"id":"cluster-observability-requirements-satisfied","status":"success","message":"cluster-observability
+      is disabled"},{"id":"cnv-requirements-satisfied","status":"success","message":"cnv
+      is disabled"},{"id":"fence-agents-remediation-requirements-satisfied","status":"success","message":"fence-agents-remediation
+      is disabled"},{"id":"kmm-requirements-satisfied","status":"success","message":"kmm
+      is disabled"},{"id":"kube-descheduler-requirements-satisfied","status":"success","message":"kube-descheduler
+      is disabled"},{"id":"lso-requirements-satisfied","status":"success","message":"lso
+      is disabled"},{"id":"lvm-requirements-satisfied","status":"success","message":"lvm
+      is disabled"},{"id":"mce-requirements-satisfied","status":"success","message":"mce
+      is disabled"},{"id":"metallb-requirements-satisfied","status":"success","message":"metallb
+      is disabled"},{"id":"mtv-requirements-satisfied","status":"success","message":"mtv
+      is disabled"},{"id":"nmstate-requirements-satisfied","status":"success","message":"nmstate
+      is disabled"},{"id":"node-feature-discovery-requirements-satisfied","status":"success","message":"node-feature-discovery
+      is disabled"},{"id":"node-healthcheck-requirements-satisfied","status":"success","message":"node-healthcheck
+      is disabled"},{"id":"node-maintenance-requirements-satisfied","status":"success","message":"node-maintenance
+      is disabled"},{"id":"numa-resources-requirements-satisfied","status":"success","message":"numaresources
+      is disabled"},{"id":"nvidia-gpu-requirements-satisfied","status":"success","message":"nvidia-gpu
+      is disabled"},{"id":"oadp-requirements-satisfied","status":"success","message":"oadp
+      is disabled"},{"id":"odf-requirements-satisfied","status":"success","message":"odf
+      is disabled"},{"id":"openshift-ai-requirements-satisfied","status":"success","message":"openshift-ai
+      is disabled"},{"id":"osc-requirements-satisfied","status":"success","message":"osc
+      is disabled"},{"id":"pipelines-requirements-satisfied","status":"success","message":"pipelines
+      is disabled"},{"id":"self-node-remediation-requirements-satisfied","status":"success","message":"self-node-remediation
+      is disabled"},{"id":"serverless-requirements-satisfied","status":"success","message":"serverless
+      is disabled"},{"id":"servicemesh-requirements-satisfied","status":"success","message":"servicemesh
+      is disabled"}]}'
+    inventory.agent-install.openshift.io/version: "0.1"
+  creationTimestamp: "2025-10-15T17:10:55Z"
+  finalizers:
+  - agent.agent-install.openshift.io/ai-deprovision
+  generation: 2
+  labels:
+    agent-install.openshift.io/clusterdeployment-namespace: demo
+    infraenvs.agent-install.openshift.io: test-multinode-worker-795mc-bghxj
+    inventory.agent-install.openshift.io/cpu-architecture: x86_64
+    inventory.agent-install.openshift.io/cpu-virtenabled: "true"
+    inventory.agent-install.openshift.io/host-isvirtual: "true"
+    inventory.agent-install.openshift.io/host-manufacturer: RedHat
+    inventory.agent-install.openshift.io/host-productname: KVM
+    inventory.agent-install.openshift.io/storage-hasnonrotationaldisk: "false"
+  name: 0479107b-3436-45d3-83a8-cb9a1dc4fb9e
+  namespace: demo
+  resourceVersion: "418252"
+  uid: 568774a7-6a66-4117-9e1c-bb6fcaeaec55
+spec:
+  approved: true
+  clusterDeploymentName:
+    name: test-multinode
+    namespace: demo
+  ignitionConfigOverrides: '{"ignition":{"config":{"replace":{"verification":{}}},"proxy":{},"security":{"tls":{}},"timeouts":{},"version":"3.1.0"},"passwd":{},"storage":{"files":[{"group":{},"overwrite":true,"path":"/usr/local/bin/kubelet_custom_labels","user":{"name":"root"},"contents":{"source":"data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKZWNobyAiQ1VTVE9NX0tVQkVMRVRfTEFCRUxTPW1ldGFsMy5pby91dWlkPSIke01FVEFEQVRBX1VVSUR9IiIgfCB0ZWUgLWEgL2V0Yy9rdWJlcm5ldGVzL2t1YmVsZXQtZW52ID4vZGV2L251bGwK","verification":{}},"mode":493},{"group":{},"overwrite":true,"path":"/usr/local/bin/configdrive_metadata","user":{"name":"root"},"contents":{"source":"data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCmVudl9maWxlPS9ldGMvbWV0YWRhdGFfZW52CmNvbmZpZ19kaXI9JChta3RlbXAgLWQpCnN1ZG8gbW91bnQgLUwgY29uZmlnLTIgJGNvbmZpZ19kaXIKY2F0ICRjb25maWdfZGlyL29wZW5zdGFjay9sYXRlc3QvbWV0YV9kYXRhLmpzb24gfCBqcSAtciAnLiB8IGtleXNbXScgfCB3aGlsZSByZWFkIGtleTsgZG8gdmFsdWU9JChqcSAtciAiLltcIiRrZXlcIl0iICRjb25maWdfZGlyL29wZW5zdGFjay9sYXRlc3QvbWV0YV9kYXRhLmpzb24pOyBlY2hvICJNRVRBREFUQV8kKGVjaG8gJHtrZXl9IHwgdHIgYS16IEEtWiB8IHRyIC0gXyk9JHt2YWx1ZX0iOyBkb25lIHwgc29ydCB8IHVuaXEgfCBzdWRvIHRlZSAkZW52X2ZpbGUK","verification":{}},"mode":493}]},"systemd":{"units":[{"contents":"[Unit]\nDescription=Configdrive
+    Metadata\nBefore=kubelet-customlabels.service\nAfter=ostree-finalize-staged.service\n\n[Service]\nType=oneshot\n\nExecStart=/usr/local/bin/configdrive_metadata\n[Install]\nWantedBy=multi-user.target\n","enabled":true,"name":"configdrive-metadata.service"},{"contents":"[Unit]\nDescription=Kubelet
+    Custom Labels\nBefore=kubelet.service\nAfter=ostree-finalize-staged.service\n\n[Service]\nType=oneshot\nEnvironmentFile=/etc/metadata_env\n\nExecStart=/usr/local/bin/kubelet_custom_labels\n[Install]\nWantedBy=multi-user.target\n","enabled":true,"name":"kubelet-customlabels.service"}]}}'
+  installerArgs: '[]'
+  role: worker
+status:
+  conditions:
+  - lastTransitionTime: "2025-10-15T17:11:01Z"
+    message: The Spec has been successfully applied
+    reason: SyncOK
+    status: "True"
+    type: SpecSynced
+  - lastTransitionTime: "2025-10-15T17:10:55Z"
+    message: The agent's connection to the installation service is unimpaired
+    reason: AgentIsConnected
+    status: "True"
+    type: Connected
+  - lastTransitionTime: "2025-10-15T17:12:21Z"
+    message: The agent installation stopped
+    reason: AgentInstallationStopped
+    status: "True"
+    type: RequirementsMet
+  - lastTransitionTime: "2025-10-15T17:12:21Z"
+    message: The agent's validations are passing
+    reason: ValidationsPassing
+    status: "True"
+    type: Validated
+  - lastTransitionTime: "2025-10-15T17:39:06Z"
+    message: 'The installation has completed: Done'
+    reason: InstallationCompleted
+    status: "True"
+    type: Installed
+  - lastTransitionTime: "2025-10-15T17:10:55Z"
+    message: The agent is bound to a cluster deployment
+    reason: Bound
+    status: "True"
+    type: Bound
+  debugInfo:
+    eventsURL: https://assisted-service.assisted-installer.com/api/assisted-install/v2/events?api_key=<key>&host_id=0479107b-3436-45d3-83a8-cb9a1dc4fb9e
+    logsURL: https://assisted-service.assisted-installer.com/api/assisted-install/v2/clusters/b53c1137-37e7-4088-9787-9c892faaf8a9/logs?api_key=<key>&host_id=0479107b-3436-45d3-83a8-cb9a1dc4fb9e&logs_type=host
+    state: installed
+    stateInfo: Done
+  installation_disk_id: /dev/disk/by-path/pci-0000:03:00.0-scsi-0:0:0:0
+  inventory:
+    bmcAddress: 0.0.0.0
+    bmcV6Address: ::/0
+    boot:
+      currentBootMode: uefi
+      deviceType: persistent
+    cpu:
+      architecture: x86_64
+      count: 8
+      flags:
+      - fpu
+      - vme
+      - de
+      - pse
+      - tsc
+      - msr
+      - pae
+      - mce
+      - cx8
+      - apic
+      - sep
+      - mtrr
+      - pge
+      - mca
+      - cmov
+      - pat
+      - pse36
+      - clflush
+      - mmx
+      - fxsr
+      - sse
+      - sse2
+      - ss
+      - syscall
+      - nx
+      - pdpe1gb
+      - rdtscp
+      - lm
+      - constant_tsc
+      - arch_perfmon
+      - rep_good
+      - nopl
+      - xtopology
+      - cpuid
+      - tsc_known_freq
+      - pni
+      - pclmulqdq
+      - vmx
+      - ssse3
+      - fma
+      - cx16
+      - pdcm
+      - pcid
+      - sse4_1
+      - sse4_2
+      - x2apic
+      - movbe
+      - popcnt
+      - tsc_deadline_timer
+      - aes
+      - xsave
+      - avx
+      - f16c
+      - rdrand
+      - hypervisor
+      - lahf_lm
+      - abm
+      - 3dnowprefetch
+      - cpuid_fault
+      - ssbd
+      - ibrs
+      - ibpb
+      - stibp
+      - ibrs_enhanced
+      - tpr_shadow
+      - flexpriority
+      - ept
+      - vpid
+      - ept_ad
+      - fsgsbase
+      - tsc_adjust
+      - bmi1
+      - avx2
+      - smep
+      - bmi2
+      - erms
+      - invpcid
+      - mpx
+      - avx512f
+      - avx512dq
+      - rdseed
+      - adx
+      - smap
+      - clflushopt
+      - clwb
+      - avx512cd
+      - avx512bw
+      - avx512vl
+      - xsaveopt
+      - xsavec
+      - xgetbv1
+      - xsaves
+      - arat
+      - vnmi
+      - umip
+      - pku
+      - ospke
+      - avx512_vnni
+      - md_clear
+      - flush_l1d
+      - arch_capabilities
+      - indirect_thunk_its
+      modelName: Intel(R) Xeon(R) Gold 5218R CPU @ 2.10GHz
+    disks:
+    - bootable: true
+      byPath: /dev/disk/by-path/pci-0000:03:00.0-scsi-0:0:0:0
+      driveType: HDD
+      hctl: "0:0:0:0"
+      id: /dev/disk/by-path/pci-0000:03:00.0-scsi-0:0:0:0
+      installationEligibility:
+        eligible: true
+        notEligibleReasons: []
+      ioPerf: {}
+      model: QEMU_HARDDISK
+      name: sda
+      path: /dev/sda
+      serial: drive-scsi0-0-0-0
+      sizeBytes: 128849018880
+      vendor: QEMU
+    hostname: okd-5
+    interfaces:
+    - flags:
+      - up
+      - broadcast
+      - multicast
+      - running
+      hasCarrier: true
+      ipV4Addresses:
+      - 192.168.1.100/24
+      ipV6Addresses: []
+      macAddress: 00:60:2f:31:00:00
+      mtu: 1500
+      name: enp1s0
+      product: "0x0001"
+      speedMbps: -1
+      vendor: "0x1af4"
+    memory:
+      physicalBytes: 17179869184
+      usableBytes: 16744599552
+    systemVendor:
+      manufacturer: Red Hat
+      productName: KVM
+      virtual: true
+  kind: Host
+  ntpSources:
+  - sourceName: 0.pool.ntp.org
+    sourceState: unreachable
+  - sourceName: 1.pool.ntp.org
+    sourceState: unreachable
+  - sourceName: 2.pool.ntp.org
+    sourceState: unreachable
+  - sourceName: 3.pool.ntp.org
+    sourceState: unreachable
+  progress:
+    currentStage: Done
+    installationPercentage: 100
+    progressStages:
+    - Starting installation
+    - Installing
+    - Writing image to disk
+    - Waiting for control plane
+    - Rebooting
+    - Waiting for ignition
+    - Configuring
+    - Joined
+    - Done
+    stageStartTime: "2025-10-15T17:39:06Z"
+    stageUpdateTime: "2025-10-15T17:39:06Z"
+  role: worker
+  validationsInfo:
+    hardware:
+    - id: has-inventory
+      message: Valid inventory exists for the host
+      status: success
+    - id: has-min-cpu-cores
+      message: Sufficient CPU cores
+      status: success
+    - id: has-min-memory
+      message: Sufficient minimum RAM
+      status: success
+    - id: has-min-valid-disks
+      message: Sufficient disk capacity
+      status: success
+    - id: has-cpu-cores-for-role
+      message: Sufficient CPU cores for role worker
+      status: success
+    - id: has-memory-for-role
+      message: Sufficient RAM for role worker
+      status: success
+    - id: hostname-unique
+      message: Hostname okd-5 is unique in cluster
+      status: success
+    - id: hostname-valid
+      message: Hostname okd-5 is allowed
+      status: success
+    - id: sufficient-installation-disk-speed
+      message: Speed of installation disk has not yet been measured
+      status: success
+    - id: compatible-with-cluster-platform
+      message: Host is compatible with cluster platform baremetal
+      status: success
+    - id: no-skip-installation-disk
+      message: No request to skip formatting of the installation disk
+      status: success
+    - id: no-skip-missing-disk
+      message: All disks that have skipped formatting are present in the host inventory
+      status: success
+    network:
+    - id: machine-cidr-defined
+      message: 'No Machine Network CIDR needed: Day2 cluster'
+      status: success
+    - id: belongs-to-machine-cidr
+      message: 'No machine network CIDR validation needed: Day2 cluster'
+      status: success
+    - id: belongs-to-majority-group
+      message: Host has connectivity to the majority of hosts in the cluster
+      status: success
+    - id: mtu-valid
+      message: MTU is ok
+      status: success
+    - id: valid-platform-network-settings
+      message: Platform KVM is allowed
+      status: success
+    - id: container-images-available
+      message: All required container images were either pulled successfully or
+        no attempt was made to pull them
+      status: success
+    - id: sufficient-network-latency-requirement-for-role
+      message: Network latency requirement has been satisfied.
+      status: success
+    - id: sufficient-packet-loss-requirement-for-role
+      message: Packet loss requirement has been satisfied.
+      status: success
+    - id: has-default-route
+      message: Host has been configured with at least one default route.
+      status: success
+    - id: api-domain-name-resolved-correctly
+      message: Domain name resolution for the api.test-multinode.lab.home domain
+        was successful or not required
+      status: success
+    - id: api-int-domain-name-resolved-correctly
+      message: Domain name resolution for the api-int.test-multinode.lab.home domain
+        was successful or not required
+      status: success
+    - id: apps-domain-name-resolved-correctly
+      message: Domain name resolution for the *.apps.test-multinode.lab.home domain
+        was successful or not required
+      status: success
+    - id: dns-wildcard-not-configured
+      message: DNS wildcard check was successful
+      status: success
+    - id: non-overlapping-subnets
+      message: Host subnets are not overlapping
+      status: success
+    - id: no-ip-collisions-in-network
+      message: Skipping validation for day 2 host 0479107b-3436-45d3-83a8-cb9a1dc4fb9e
+      status: success
+    operators:
+    - id: amd-gpu-requirements-satisfied
+      message: amd-gpu is disabled
+      status: success
+    - id: authorino-requirements-satisfied
+      message: authorino is disabled
+      status: success
+    - id: cluster-observability-requirements-satisfied
+      message: cluster-observability is disabled
+      status: success
+    - id: cnv-requirements-satisfied
+      message: cnv is disabled
+      status: success
+    - id: fence-agents-remediation-requirements-satisfied
+      message: fence-agents-remediation is disabled
+      status: success
+    - id: kmm-requirements-satisfied
+      message: kmm is disabled
+      status: success
+    - id: kube-descheduler-requirements-satisfied
+      message: kube-descheduler is disabled
+      status: success
+    - id: lso-requirements-satisfied
+      message: lso is disabled
+      status: success
+    - id: lvm-requirements-satisfied
+      message: lvm is disabled
+      status: success
+    - id: mce-requirements-satisfied
+      message: mce is disabled
+      status: success
+    - id: metallb-requirements-satisfied
+      message: metallb is disabled
+      status: success
+    - id: mtv-requirements-satisfied
+      message: mtv is disabled
+      status: success
+    - id: nmstate-requirements-satisfied
+      message: nmstate is disabled
+      status: success
+    - id: node-feature-discovery-requirements-satisfied
+      message: node-feature-discovery is disabled
+      status: success
+    - id: node-healthcheck-requirements-satisfied
+      message: node-healthcheck is disabled
+      status: success
+    - id: node-maintenance-requirements-satisfied
+      message: node-maintenance is disabled
+      status: success
+    - id: numa-resources-requirements-satisfied
+      message: numaresources is disabled
+      status: success
+    - id: nvidia-gpu-requirements-satisfied
+      message: nvidia-gpu is disabled
+      status: success
+    - id: oadp-requirements-satisfied
+      message: oadp is disabled
+      status: success
+    - id: odf-requirements-satisfied
+      message: odf is disabled
+      status: success
+    - id: openshift-ai-requirements-satisfied
+      message: openshift-ai is disabled
+      status: success
+    - id: osc-requirements-satisfied
+      message: osc is disabled
+      status: success
+    - id: pipelines-requirements-satisfied
+      message: pipelines is disabled
+      status: success
+    - id: self-node-remediation-requirements-satisfied
+      message: self-node-remediation is disabled
+      status: success
+    - id: serverless-requirements-satisfied
+      message: serverless is disabled
+      status: success
+    - id: servicemesh-requirements-satisfied
+      message: servicemesh is disabled
+      status: success
