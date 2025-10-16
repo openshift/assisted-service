@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalAWSVolume writes a value of the 'AWS_volume' type to the given writer.
 func MarshalAWSVolume(object *AWSVolume, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeAWSVolume(object, stream)
-	stream.Flush()
+	WriteAWSVolume(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeAWSVolume writes a value of the 'AWS_volume' type to the given stream.
-func writeAWSVolume(object *AWSVolume, stream *jsoniter.Stream) {
+// WriteAWSVolume writes a value of the 'AWS_volume' type to the given stream.
+func WriteAWSVolume(object *AWSVolume, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -56,16 +58,6 @@ func writeAWSVolume(object *AWSVolume, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("size")
 		stream.WriteInt(object.size)
-		count++
-	}
-	present_ = object.bitmap_&4 != 0
-	if present_ {
-		if count > 0 {
-			stream.WriteMore()
-		}
-		stream.WriteObjectField("type")
-		stream.WriteString(object.type_)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -73,20 +65,17 @@ func writeAWSVolume(object *AWSVolume, stream *jsoniter.Stream) {
 // UnmarshalAWSVolume reads a value of the 'AWS_volume' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalAWSVolume(source interface{}) (object *AWSVolume, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readAWSVolume(iterator)
+	object = ReadAWSVolume(iterator)
 	err = iterator.Error
 	return
 }
 
-// readAWSVolume reads a value of the 'AWS_volume' type from the given iterator.
-func readAWSVolume(iterator *jsoniter.Iterator) *AWSVolume {
+// ReadAWSVolume reads a value of the 'AWS_volume' type from the given iterator.
+func ReadAWSVolume(iterator *jsoniter.Iterator) *AWSVolume {
 	object := &AWSVolume{}
 	for {
 		field := iterator.ReadObject()
@@ -102,10 +91,6 @@ func readAWSVolume(iterator *jsoniter.Iterator) *AWSVolume {
 			value := iterator.ReadInt()
 			object.size = value
 			object.bitmap_ |= 2
-		case "type":
-			value := iterator.ReadString()
-			object.type_ = value
-			object.bitmap_ |= 4
 		default:
 			iterator.ReadAny()
 		}

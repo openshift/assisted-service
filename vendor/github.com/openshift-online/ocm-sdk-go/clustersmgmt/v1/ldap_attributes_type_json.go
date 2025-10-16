@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalLDAPAttributes writes a value of the 'LDAP_attributes' type to the given writer.
 func MarshalLDAPAttributes(object *LDAPAttributes, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeLDAPAttributes(object, stream)
-	stream.Flush()
+	WriteLDAPAttributes(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeLDAPAttributes writes a value of the 'LDAP_attributes' type to the given stream.
-func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
+// WriteLDAPAttributes writes a value of the 'LDAP_attributes' type to the given stream.
+func WriteLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -46,7 +48,7 @@ func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("id")
-		writeStringList(object.id, stream)
+		WriteStringList(object.id, stream)
 		count++
 	}
 	present_ = object.bitmap_&2 != 0 && object.email != nil
@@ -55,7 +57,7 @@ func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("email")
-		writeStringList(object.email, stream)
+		WriteStringList(object.email, stream)
 		count++
 	}
 	present_ = object.bitmap_&4 != 0 && object.name != nil
@@ -64,7 +66,7 @@ func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("name")
-		writeStringList(object.name, stream)
+		WriteStringList(object.name, stream)
 		count++
 	}
 	present_ = object.bitmap_&8 != 0 && object.preferredUsername != nil
@@ -73,8 +75,7 @@ func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("preferred_username")
-		writeStringList(object.preferredUsername, stream)
-		count++
+		WriteStringList(object.preferredUsername, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -82,20 +83,17 @@ func writeLDAPAttributes(object *LDAPAttributes, stream *jsoniter.Stream) {
 // UnmarshalLDAPAttributes reads a value of the 'LDAP_attributes' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalLDAPAttributes(source interface{}) (object *LDAPAttributes, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readLDAPAttributes(iterator)
+	object = ReadLDAPAttributes(iterator)
 	err = iterator.Error
 	return
 }
 
-// readLDAPAttributes reads a value of the 'LDAP_attributes' type from the given iterator.
-func readLDAPAttributes(iterator *jsoniter.Iterator) *LDAPAttributes {
+// ReadLDAPAttributes reads a value of the 'LDAP_attributes' type from the given iterator.
+func ReadLDAPAttributes(iterator *jsoniter.Iterator) *LDAPAttributes {
 	object := &LDAPAttributes{}
 	for {
 		field := iterator.ReadObject()
@@ -104,19 +102,19 @@ func readLDAPAttributes(iterator *jsoniter.Iterator) *LDAPAttributes {
 		}
 		switch field {
 		case "id":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.id = value
 			object.bitmap_ |= 1
 		case "email":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.email = value
 			object.bitmap_ |= 2
 		case "name":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.name = value
 			object.bitmap_ |= 4
 		case "preferred_username":
-			value := readStringList(iterator)
+			value := ReadStringList(iterator)
 			object.preferredUsername = value
 			object.bitmap_ |= 8
 		default:

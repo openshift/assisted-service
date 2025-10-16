@@ -37,6 +37,11 @@ func (b *GroupListBuilder) Items(values ...*GroupBuilder) *GroupListBuilder {
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *GroupListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *GroupListBuilder) Copy(list *GroupList) *GroupListBuilder {
 	if list == nil || list.items == nil {

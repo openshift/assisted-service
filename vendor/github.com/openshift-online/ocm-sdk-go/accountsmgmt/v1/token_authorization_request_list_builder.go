@@ -37,6 +37,11 @@ func (b *TokenAuthorizationRequestListBuilder) Items(values ...*TokenAuthorizati
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *TokenAuthorizationRequestListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *TokenAuthorizationRequestListBuilder) Copy(list *TokenAuthorizationRequestList) *TokenAuthorizationRequestListBuilder {
 	if list == nil || list.items == nil {

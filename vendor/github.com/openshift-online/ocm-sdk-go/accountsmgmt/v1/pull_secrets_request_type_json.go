@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalPullSecretsRequest writes a value of the 'pull_secrets_request' type to the given writer.
 func MarshalPullSecretsRequest(object *PullSecretsRequest, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writePullSecretsRequest(object, stream)
-	stream.Flush()
+	WritePullSecretsRequest(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writePullSecretsRequest writes a value of the 'pull_secrets_request' type to the given stream.
-func writePullSecretsRequest(object *PullSecretsRequest, stream *jsoniter.Stream) {
+// WritePullSecretsRequest writes a value of the 'pull_secrets_request' type to the given stream.
+func WritePullSecretsRequest(object *PullSecretsRequest, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	var present_ bool
@@ -47,7 +49,6 @@ func writePullSecretsRequest(object *PullSecretsRequest, stream *jsoniter.Stream
 		}
 		stream.WriteObjectField("external_resource_id")
 		stream.WriteString(object.externalResourceId)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -55,20 +56,17 @@ func writePullSecretsRequest(object *PullSecretsRequest, stream *jsoniter.Stream
 // UnmarshalPullSecretsRequest reads a value of the 'pull_secrets_request' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalPullSecretsRequest(source interface{}) (object *PullSecretsRequest, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readPullSecretsRequest(iterator)
+	object = ReadPullSecretsRequest(iterator)
 	err = iterator.Error
 	return
 }
 
-// readPullSecretsRequest reads a value of the 'pull_secrets_request' type from the given iterator.
-func readPullSecretsRequest(iterator *jsoniter.Iterator) *PullSecretsRequest {
+// ReadPullSecretsRequest reads a value of the 'pull_secrets_request' type from the given iterator.
+func ReadPullSecretsRequest(iterator *jsoniter.Iterator) *PullSecretsRequest {
 	object := &PullSecretsRequest{}
 	for {
 		field := iterator.ReadObject()

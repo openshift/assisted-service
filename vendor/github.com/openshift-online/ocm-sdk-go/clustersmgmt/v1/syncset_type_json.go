@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSyncset writes a value of the 'syncset' type to the given writer.
 func MarshalSyncset(object *Syncset, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSyncset(object, stream)
-	stream.Flush()
+	WriteSyncset(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSyncset writes a value of the 'syncset' type to the given stream.
-func writeSyncset(object *Syncset, stream *jsoniter.Stream) {
+// WriteSyncset writes a value of the 'syncset' type to the given stream.
+func WriteSyncset(object *Syncset, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -69,8 +71,7 @@ func writeSyncset(object *Syncset, stream *jsoniter.Stream) {
 			stream.WriteMore()
 		}
 		stream.WriteObjectField("resources")
-		writeInterfaceList(object.resources, stream)
-		count++
+		WriteInterfaceList(object.resources, stream)
 	}
 	stream.WriteObjectEnd()
 }
@@ -78,20 +79,17 @@ func writeSyncset(object *Syncset, stream *jsoniter.Stream) {
 // UnmarshalSyncset reads a value of the 'syncset' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSyncset(source interface{}) (object *Syncset, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSyncset(iterator)
+	object = ReadSyncset(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSyncset reads a value of the 'syncset' type from the given iterator.
-func readSyncset(iterator *jsoniter.Iterator) *Syncset {
+// ReadSyncset reads a value of the 'syncset' type from the given iterator.
+func ReadSyncset(iterator *jsoniter.Iterator) *Syncset {
 	object := &Syncset{}
 	for {
 		field := iterator.ReadObject()
@@ -111,7 +109,7 @@ func readSyncset(iterator *jsoniter.Iterator) *Syncset {
 			object.href = iterator.ReadString()
 			object.bitmap_ |= 4
 		case "resources":
-			value := readInterfaceList(iterator)
+			value := ReadInterfaceList(iterator)
 			object.resources = value
 			object.bitmap_ |= 8
 		default:

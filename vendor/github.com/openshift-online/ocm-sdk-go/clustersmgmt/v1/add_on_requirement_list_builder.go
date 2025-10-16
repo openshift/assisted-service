@@ -37,6 +37,11 @@ func (b *AddOnRequirementListBuilder) Items(values ...*AddOnRequirementBuilder) 
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *AddOnRequirementListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *AddOnRequirementListBuilder) Copy(list *AddOnRequirementList) *AddOnRequirementListBuilder {
 	if list == nil || list.items == nil {

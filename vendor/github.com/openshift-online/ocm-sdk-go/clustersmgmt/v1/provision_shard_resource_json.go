@@ -19,12 +19,12 @@ limitations under the License.
 
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
-import (
-	"io"
-	"net/http"
-)
+import "io"
 
-func readProvisionShardGetRequest(request *ProvisionShardGetServerRequest, r *http.Request) error {
+func writeProvisionShardDeleteRequest(request *ProvisionShardDeleteRequest, writer io.Writer) error {
+	return nil
+}
+func readProvisionShardDeleteResponse(response *ProvisionShardDeleteResponse, reader io.Reader) error {
 	return nil
 }
 func writeProvisionShardGetRequest(request *ProvisionShardGetRequest, writer io.Writer) error {
@@ -35,6 +35,11 @@ func readProvisionShardGetResponse(response *ProvisionShardGetResponse, reader i
 	response.body, err = UnmarshalProvisionShard(reader)
 	return err
 }
-func writeProvisionShardGetResponse(response *ProvisionShardGetServerResponse, w http.ResponseWriter) error {
-	return MarshalProvisionShard(response.body, w)
+func writeProvisionShardUpdateRequest(request *ProvisionShardUpdateRequest, writer io.Writer) error {
+	return MarshalProvisionShard(request.body, writer)
+}
+func readProvisionShardUpdateResponse(response *ProvisionShardUpdateResponse, reader io.Reader) error {
+	var err error
+	response.body, err = UnmarshalProvisionShard(reader)
+	return err
 }

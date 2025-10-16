@@ -21,7 +21,6 @@ package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
 	"io"
-	"net/http"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
@@ -30,13 +29,16 @@ import (
 // MarshalSupportCaseResponse writes a value of the 'support_case_response' type to the given writer.
 func MarshalSupportCaseResponse(object *SupportCaseResponse, writer io.Writer) error {
 	stream := helpers.NewStream(writer)
-	writeSupportCaseResponse(object, stream)
-	stream.Flush()
+	WriteSupportCaseResponse(object, stream)
+	err := stream.Flush()
+	if err != nil {
+		return err
+	}
 	return stream.Error
 }
 
-// writeSupportCaseResponse writes a value of the 'support_case_response' type to the given stream.
-func writeSupportCaseResponse(object *SupportCaseResponse, stream *jsoniter.Stream) {
+// WriteSupportCaseResponse writes a value of the 'support_case_response' type to the given stream.
+func WriteSupportCaseResponse(object *SupportCaseResponse, stream *jsoniter.Stream) {
 	count := 0
 	stream.WriteObjectStart()
 	stream.WriteObjectField("kind")
@@ -142,7 +144,6 @@ func writeSupportCaseResponse(object *SupportCaseResponse, stream *jsoniter.Stre
 		}
 		stream.WriteObjectField("summary")
 		stream.WriteString(object.summary)
-		count++
 	}
 	stream.WriteObjectEnd()
 }
@@ -150,20 +151,17 @@ func writeSupportCaseResponse(object *SupportCaseResponse, stream *jsoniter.Stre
 // UnmarshalSupportCaseResponse reads a value of the 'support_case_response' type from the given
 // source, which can be an slice of bytes, a string or a reader.
 func UnmarshalSupportCaseResponse(source interface{}) (object *SupportCaseResponse, err error) {
-	if source == http.NoBody {
-		return
-	}
 	iterator, err := helpers.NewIterator(source)
 	if err != nil {
 		return
 	}
-	object = readSupportCaseResponse(iterator)
+	object = ReadSupportCaseResponse(iterator)
 	err = iterator.Error
 	return
 }
 
-// readSupportCaseResponse reads a value of the 'support_case_response' type from the given iterator.
-func readSupportCaseResponse(iterator *jsoniter.Iterator) *SupportCaseResponse {
+// ReadSupportCaseResponse reads a value of the 'support_case_response' type from the given iterator.
+func ReadSupportCaseResponse(iterator *jsoniter.Iterator) *SupportCaseResponse {
 	object := &SupportCaseResponse{}
 	for {
 		field := iterator.ReadObject()

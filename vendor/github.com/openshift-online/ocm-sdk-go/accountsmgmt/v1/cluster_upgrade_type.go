@@ -24,8 +24,6 @@ import (
 )
 
 // ClusterUpgrade represents the values of the 'cluster_upgrade' type.
-//
-//
 type ClusterUpgrade struct {
 	bitmap_          uint32
 	state            string
@@ -41,8 +39,6 @@ func (o *ClusterUpgrade) Empty() bool {
 
 // Available returns the value of the 'available' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterUpgrade) Available() bool {
 	if o != nil && o.bitmap_&1 != 0 {
 		return o.available
@@ -52,8 +48,6 @@ func (o *ClusterUpgrade) Available() bool {
 
 // GetAvailable returns the value of the 'available' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterUpgrade) GetAvailable() (value bool, ok bool) {
 	ok = o != nil && o.bitmap_&1 != 0
 	if ok {
@@ -64,8 +58,6 @@ func (o *ClusterUpgrade) GetAvailable() (value bool, ok bool) {
 
 // State returns the value of the 'state' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterUpgrade) State() string {
 	if o != nil && o.bitmap_&2 != 0 {
 		return o.state
@@ -75,8 +67,6 @@ func (o *ClusterUpgrade) State() string {
 
 // GetState returns the value of the 'state' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterUpgrade) GetState() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&2 != 0
 	if ok {
@@ -87,8 +77,6 @@ func (o *ClusterUpgrade) GetState() (value string, ok bool) {
 
 // UpdatedTimestamp returns the value of the 'updated_timestamp' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterUpgrade) UpdatedTimestamp() time.Time {
 	if o != nil && o.bitmap_&4 != 0 {
 		return o.updatedTimestamp
@@ -98,8 +86,6 @@ func (o *ClusterUpgrade) UpdatedTimestamp() time.Time {
 
 // GetUpdatedTimestamp returns the value of the 'updated_timestamp' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterUpgrade) GetUpdatedTimestamp() (value time.Time, ok bool) {
 	ok = o != nil && o.bitmap_&4 != 0
 	if ok {
@@ -110,8 +96,6 @@ func (o *ClusterUpgrade) GetUpdatedTimestamp() (value time.Time, ok bool) {
 
 // Version returns the value of the 'version' attribute, or
 // the zero value of the type if the attribute doesn't have a value.
-//
-//
 func (o *ClusterUpgrade) Version() string {
 	if o != nil && o.bitmap_&8 != 0 {
 		return o.version
@@ -121,8 +105,6 @@ func (o *ClusterUpgrade) Version() string {
 
 // GetVersion returns the value of the 'version' attribute and
 // a flag indicating if the attribute has a value.
-//
-//
 func (o *ClusterUpgrade) GetVersion() (value string, ok bool) {
 	ok = o != nil && o.bitmap_&8 != 0
 	if ok {
@@ -156,6 +138,29 @@ func (l *ClusterUpgradeList) Len() int {
 		return 0
 	}
 	return len(l.items)
+}
+
+// Items sets the items of the list.
+func (l *ClusterUpgradeList) SetLink(link bool) {
+	l.link = link
+}
+
+// Items sets the items of the list.
+func (l *ClusterUpgradeList) SetHREF(href string) {
+	l.href = href
+}
+
+// Items sets the items of the list.
+func (l *ClusterUpgradeList) SetItems(items []*ClusterUpgrade) {
+	l.items = items
+}
+
+// Items returns the items of the list.
+func (l *ClusterUpgradeList) Items() []*ClusterUpgrade {
+	if l == nil {
+		return nil
+	}
+	return l.items
 }
 
 // Empty returns true if the list is empty.

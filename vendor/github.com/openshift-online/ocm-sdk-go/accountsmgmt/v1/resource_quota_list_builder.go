@@ -37,6 +37,11 @@ func (b *ResourceQuotaListBuilder) Items(values ...*ResourceQuotaBuilder) *Resou
 	return b
 }
 
+// Empty returns true if the list is empty.
+func (b *ResourceQuotaListBuilder) Empty() bool {
+	return b == nil || len(b.items) == 0
+}
+
 // Copy copies the items of the given list into this builder, discarding any previous items.
 func (b *ResourceQuotaListBuilder) Copy(list *ResourceQuotaList) *ResourceQuotaListBuilder {
 	if list == nil || list.items == nil {
