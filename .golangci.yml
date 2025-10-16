@@ -74,3 +74,6 @@ linters-settings:
           - Warnf
           - Errorf
           - Fatalf
+
+run:
+  modules-download-mode: vendor
