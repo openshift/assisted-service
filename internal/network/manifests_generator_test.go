@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
 	"github.com/pkg/errors"
@@ -1043,6 +1044,75 @@ var _ = Describe("disk encryption manifest", func() {
 			mockManifestsApi.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Times(t.numOfManifests)
 			err := manifestsGeneratorApi.AddDiskEncryptionManifest(ctx, log, &c)
 			Expect(err).ToNot(HaveOccurred())
+		})
+	}
+})
+
+var _ = Describe("GetDiskEncryptionCipher", func() {
+	var (
+		log            *logrus.Logger
+		ctrl           *gomock.Controller
+		manifestsApi   *manifestsapi.MockManifestsAPI
+		mockSystemInfo *system.MockSystemInfo
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = manifestsapi.NewMockManifestsAPI(ctrl)
+		mockSystemInfo = system.NewMockSystemInfo(ctrl)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	for _, t := range []struct {
+		name           string
+		fipsEnabled    bool
+		fipsError      bool
+		configCipher   string
+		expectedCipher string
+	}{
+		{
+			name:           "FIPS enabled",
+			fipsEnabled:    true,
+			expectedCipher: "aes-xts-plain64",
+		},
+		{
+			name:           "FIPS disabled",
+			fipsEnabled:    false,
+			expectedCipher: "aes-cbc-essiv:sha256",
+		},
+		{
+			name:           "explicit config",
+			configCipher:   "custom-cipher",
+			expectedCipher: "custom-cipher",
+		},
+		{
+			name:           "FIPS check error",
+			fipsError:      true,
+			expectedCipher: "aes-cbc-essiv:sha256",
+		},
+	} {
+		t := t
+		It(t.name, func() {
+			if t.configCipher == "" {
+				if t.fipsError {
+					mockSystemInfo.EXPECT().FIPSEnabled().Return(false, errors.New("failed to check FIPS status"))
+				} else {
+					mockSystemInfo.EXPECT().FIPSEnabled().Return(t.fipsEnabled, nil)
+				}
+			}
+
+			manifestsGeneratorApi := &ManifestsGenerator{
+				manifestsApi: manifestsApi,
+				Config:       Config{DiskEncryptionCipher: t.configCipher},
+				systemInfo:   mockSystemInfo,
+			}
+
+			cipher := manifestsGeneratorApi.GetDiskEncryptionCipher(log)
+			Expect(cipher).To(Equal(t.expectedCipher))
 		})
 	}
 })
