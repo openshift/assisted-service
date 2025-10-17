@@ -11,7 +11,7 @@ RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=
 
 
 # Create final image
-FROM registry.ci.openshift.org/ocp/4.19:base-rhel9
+FROM registry.ci.openshift.org/ocp/4.21:base-rhel9
 
 LABEL io.openshift.release.operator=true
 
