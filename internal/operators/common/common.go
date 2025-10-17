@@ -54,7 +54,7 @@ func GenerateManifests(
 	for _, openshiftTemplatePath := range openshiftTemplatePaths {
 		manifestName := path.Base(openshiftTemplatePath)
 		var manifestContent []byte
-		manifestContent, err = executeTemplate(
+		manifestContent, err = ExecuteTemplate(
 			openshiftTemplatePath, templates, config, operator,
 		)
 		if err != nil {
@@ -71,7 +71,7 @@ func GenerateManifests(
 
 	for _, customTemplatePath := range customTemplatePaths {
 		var manifestContent []byte
-		manifestContent, err = executeTemplate(
+		manifestContent, err = ExecuteTemplate(
 			customTemplatePath, templates, config, operator,
 		)
 		if err != nil {
@@ -86,7 +86,7 @@ func GenerateManifests(
 	return
 }
 
-func executeTemplate(
+func ExecuteTemplate(
 	name string,
 	templates *template.Template,
 	config any,
