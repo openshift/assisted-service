@@ -2605,6 +2605,7 @@ func (e *HostStageTimedOutEvent) FormatMessage() string {
 //
 type HostRoleUpdatedEvent struct {
     eventName string
+    ClusterId *strfmt.UUID
     HostId strfmt.UUID
     InfraEnvId strfmt.UUID
     HostName string
@@ -2614,6 +2615,7 @@ type HostRoleUpdatedEvent struct {
 var HostRoleUpdatedEventName string = "host_role_updated"
 
 func NewHostRoleUpdatedEvent(
+    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
@@ -2621,6 +2623,7 @@ func NewHostRoleUpdatedEvent(
 ) *HostRoleUpdatedEvent {
     return &HostRoleUpdatedEvent{
         eventName: HostRoleUpdatedEventName,
+        ClusterId: clusterId,
         HostId: hostId,
         InfraEnvId: infraEnvId,
         HostName: hostName,
@@ -2631,11 +2634,13 @@ func NewHostRoleUpdatedEvent(
 func SendHostRoleUpdatedEvent(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
+    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     suggestedRole string,) {
     ev := NewHostRoleUpdatedEvent(
+        clusterId,
         hostId,
         infraEnvId,
         hostName,
@@ -2647,12 +2652,14 @@ func SendHostRoleUpdatedEvent(
 func SendHostRoleUpdatedEventAtTime(
     ctx context.Context,
     eventsHandler eventsapi.Sender,
+    clusterId *strfmt.UUID,
     hostId strfmt.UUID,
     infraEnvId strfmt.UUID,
     hostName string,
     suggestedRole string,
     eventTime time.Time) {
     ev := NewHostRoleUpdatedEvent(
+        clusterId,
         hostId,
         infraEnvId,
         hostName,
@@ -2669,7 +2676,7 @@ func (e *HostRoleUpdatedEvent) GetSeverity() string {
     return "info"
 }
 func (e *HostRoleUpdatedEvent) GetClusterId() *strfmt.UUID {
-    return nil
+    return e.ClusterId
 }
 func (e *HostRoleUpdatedEvent) GetHostId() strfmt.UUID {
     return e.HostId
@@ -2682,6 +2689,7 @@ func (e *HostRoleUpdatedEvent) GetInfraEnvId() strfmt.UUID {
 
 func (e *HostRoleUpdatedEvent) format(message *string) string {
     r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
         "{host_id}", fmt.Sprint(e.HostId),
         "{infra_env_id}", fmt.Sprint(e.InfraEnvId),
         "{host_name}", fmt.Sprint(e.HostName),

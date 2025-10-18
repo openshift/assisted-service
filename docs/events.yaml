@@ -285,6 +285,7 @@ x-events:
   event_type: host
   severity: "info"
   properties:
+    cluster_id: UUID_PTR
     host_id: UUID
     infra_env_id: UUID
     host_name: string
