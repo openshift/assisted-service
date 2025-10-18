@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"regexp"
 
+	"github.com/go-openapi/strfmt"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
@@ -159,7 +160,11 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		return nil, infraenvErr
 	}
 
-	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, modelsCluster.ID, modelsCluster.OpenshiftVersion)
+	var clusterID *strfmt.UUID
+	if modelsCluster != nil {
+		clusterID = modelsCluster.ID
+	}
+	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
 
 	var nmStateConfig aiv1beta1.NMStateConfig
 
@@ -237,7 +242,7 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall) (cluster *models.Cluster, err error) {
 	list, err := bmInventory.Installer.V2ListClusters(ctx, &installer.V2ListClustersParams{})
 	if err != nil {
-		return nil, err
+		return nil, errorutil.GetAssistedError(err)
 	}
 	clusterList := list.Payload
 	numClusters := len(clusterList)
@@ -246,7 +251,7 @@ func GetCluster(ctx context.Context, log *log.Logger, bmInventory *client.Assist
 		return nil, errors.New(errorMessage)
 	}
 	if numClusters == 0 {
-		return nil, errors.New("No clusters registered in assisted-service")
+		return nil, nil
 	}
 	return clusterList[0], nil
 }
