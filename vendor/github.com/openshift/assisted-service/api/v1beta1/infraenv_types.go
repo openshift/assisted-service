@@ -25,11 +25,15 @@ import (
 )
 
 const (
-	ImageCreatedReason       = "ImageCreated"
-	ImageStateCreated        = "Image has been created"
-	ImageCreationErrorReason = "ImageCreationError"
-	ImageStateFailedToCreate = "Failed to create image"
-	InfraEnvNameLabel        = "infraenvs.agent-install.openshift.io"
+	ImageCreatedReason       	      = "ImageCreated"
+	ImageStateCreated        	      = "Image has been created"
+	ImageCreationErrorReason 	      = "ImageCreationError"
+	ImageStateFailedToCreate 	      = "Failed to create image"
+	InfraEnvNameLabel        	      = "infraenvs.agent-install.openshift.io"
+	MissingClusterDeploymentReason    = "MissingClusterDeployment"
+	MissingClusterDeploymentReference = "ClusterDeployment is missing"
+	InfraEnvAvailableReason           = "InfraEnvAvailable"
+	InfraEnvAvailableMessage          = "InfraEnv is available"
 )
 
 // ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
@@ -44,7 +48,9 @@ type ClusterReference struct {
 }
 
 const (
-	ImageCreatedCondition conditionsv1.ConditionType = "ImageCreated"
+	ImageCreatedCondition      conditionsv1.ConditionType = "ImageCreated"
+	ClusterDeploymentReference conditionsv1.ConditionType = "ClusterDeploymentReference"
+
 )
 
 type InfraEnvSpec struct {

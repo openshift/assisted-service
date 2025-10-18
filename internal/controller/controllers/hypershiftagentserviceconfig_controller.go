@@ -220,9 +220,11 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 		return result, err
 	}
 
-	// Ensure image-service StatefulSet is reconciled
-	if err = ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
-		return ctrl.Result{Requeue: true}, err
+	// Ensure image-service StatefulSet is reconciled (only if image service is not disabled)
+	if isImageServiceEnabled(asc.Object.GetAnnotations()) {
+		if err = ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
+			return ctrl.Result{Requeue: true}, err
+		}
 	}
 
 	log.Info("read certificate from hub")
@@ -250,7 +252,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Result, error) {
 	hubComponents := []component{}
 	hubComponents = append(hubComponents, assistedServiceRBAC_hub...)
-	hubComponents = append(hubComponents, getComponents(asc.spec, asc.rec.IsOpenShift)...)
+	hubComponents = append(hubComponents, getComponents(asc.spec, asc.rec.IsOpenShift, asc.Object.GetAnnotations())...)
 	hubComponents = append(hubComponents, hr.getWebhookComponents_hub()...)
 
 	// Reconcile hub components
