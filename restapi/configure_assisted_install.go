@@ -271,7 +271,7 @@ type OperatorsAPI interface {
 	/* V2GetBundle Get operator properties for a bundle */
 	V2GetBundle(ctx context.Context, params operators.V2GetBundleParams) middleware.Responder
 
-	/* V2ListBundles Get list of avaliable bundles */
+	/* V2ListBundles Get list of available bundles */
 	V2ListBundles(ctx context.Context, params operators.V2ListBundlesParams) middleware.Responder
 
 	/* V2ListOfClusterOperators Lists operators to be monitored for a cluster. */
