@@ -269,6 +269,7 @@ Those examples are here for reference.
 
 You will likely need to adapt those for your own needs.
 
+* [Agent](crds/agent.yaml)
 * [InfraEnv](crds/infraEnv.yaml)
 * [InfraEnv Late Binding](crds/infraEnvLateBinding.yaml)
 * [NMState Config](crds/nmstate.yaml)
