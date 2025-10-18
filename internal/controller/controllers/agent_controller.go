@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -1714,10 +1715,16 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		params.HostUpdateParams.HostRole = &role
 	}
 
-	if spec.InstallationDiskID != "" && spec.InstallationDiskID != internalHost.InstallationDiskID {
+	diskUpdateNeeded, newDiskID, err := updateInstallDisk(&internalHost.Host, spec.InstallationDiskID, spec.InstallationDiskByPath)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to update installation disk for host %s", internalHost.ID)
+		return internalHost, err
+	}
+
+	if diskUpdateNeeded {
 		hostUpdate = true
 		params.HostUpdateParams.DisksSelectedConfig = []*models.DiskConfigParams{
-			{ID: &spec.InstallationDiskID, Role: models.DiskRoleInstall},
+			{ID: &newDiskID, Role: models.DiskRoleInstall},
 		}
 	}
 
@@ -1799,6 +1806,30 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	log.Debugf("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
 	return returnedHost, nil
+}
+
+// Check if the installation disk needs to be updated based on the disk ID or path provided
+func updateInstallDisk(host *models.Host, desiredDiskID, desiredDiskByPath string) (bool, string, error) {
+	if desiredDiskByPath == "" && desiredDiskID == "" {
+		// If both fields are empty, there is no desired disk and no update needed
+		return false, "", nil
+	}
+	diskID := desiredDiskID
+	if desiredDiskByPath != "" {
+		diskID = desiredDiskByPath
+	}
+	if hostutil.GetHostInstallationPath(host) == "" {
+		return true, diskID, nil
+	}
+	installationDisk, err := hostutil.GetHostInstallationDisk(host)
+	if err != nil {
+		return false, "", err
+	}
+	if installationDisk == nil {
+		return true, diskID, nil
+	}
+	matchesInstallDisk := diskID == installationDisk.ID || diskID == installationDisk.Path
+	return !matchesInstallDisk, diskID, nil
 }
 
 func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {

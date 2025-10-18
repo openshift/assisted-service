@@ -120,6 +120,10 @@ spec:
                 - name
                 - namespace
                 type: object
+              installation_disk_by_path:
+                description: InstallationDiskByPath defines the installation destination
+                  disk using its by-path value.
+                type: string
               installation_disk_id:
                 description: InstallationDiskID defines the installation destination
                   disk (must be equal to the inventory disk id).
