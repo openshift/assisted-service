@@ -2457,7 +2457,7 @@ var _ = Describe("cluster", func() {
 						ingressVip := "8.8.8.1"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
-						err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+						err := "dual-stack apiVIPs must include exactly one IPv6 address"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -2493,30 +2493,39 @@ var _ = Describe("cluster", func() {
 						Expect(cluster.IngressVips).To(Equal(ingressVips))
 					})
 
-					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative", func() {
+					It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - positive (OCP 4.12+)", func() {
+						mockClusterRegisterSuccessWithVersion("x86_64", "4.12.0")
+						mockUsageReports()
+
 						apiVip := "2001:db8::1"
 						ingressVip := "2001:db8::2"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
-						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
-								OpenshiftVersion: swag.String(openshiftVersion),
+								OpenshiftVersion: swag.String("4.12.0"), // Use 4.12+ for IPv6-primary support
 								PullSecret:       swag.String(fakePullSecret),
 								APIVips:          apiVips,
 								IngressVips:      ingressVips,
 							},
 						})
-						verifyApiErrorString(reply, http.StatusBadRequest, err)
+						Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+						actualReply := reply.(*installer.V2RegisterClusterCreated)
+						Expect(actualReply.Payload.APIVips).To(HaveLen(2))
+						Expect(actualReply.Payload.IngressVips).To(HaveLen(2))
+						Expect(string(actualReply.Payload.APIVips[0].IP)).To(Equal(apiVip))
+						Expect(string(actualReply.Payload.APIVips[1].IP)).To(Equal("8.8.8.7"))
+						Expect(string(actualReply.Payload.IngressVips[0].IP)).To(Equal(ingressVip))
+						Expect(string(actualReply.Payload.IngressVips[1].IP)).To(Equal("8.8.8.1"))
 					})
 
-					It("Two APIVips and Two IngressVips - IPv6 - negative", func() {
+					It("Two APIVips and Two IngressVips - IPv6 - negative on cluster creation", func() {
 						apiVip := "2001:db8::1"
 						ingressVip := "2001:db8::2"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
-						err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
+						err := "dual-stack apiVIPs must include exactly one IPv4 address"
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -3224,7 +3233,7 @@ var _ = Describe("cluster", func() {
 					ingressVip := "1.2.3.101"
 					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.8")}}
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.2")}}
-					err := "the second element of apiVIPs must be an IPv6 address. got: 8.8.8.8"
+					err := "dual-stack apiVIPs must include exactly one IPv6 address"
 
 					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
@@ -3268,48 +3277,6 @@ var _ = Describe("cluster", func() {
 					cluster := reply.(*installer.V2UpdateClusterCreated).Payload
 					Expect(cluster.APIVips).To(Equal(apiVips))
 					Expect(cluster.IngressVips).To(Equal(ingressVips))
-				})
-
-				It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative", func() {
-					apiVip := "2001:db8::1"
-					ingressVip := "2001:db8::2"
-					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
-					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
-					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
-
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Name:        swag.String("some-cluster-name"),
-							PullSecret:  swag.String(fakePullSecret),
-							APIVips:     apiVips,
-							IngressVips: ingressVips,
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, err)
-				})
-
-				It("Two APIVips and Two ingressVips - IPv6 - negative", func() {
-					apiVip := "2001:db8::1"
-					ingressVip := "2001:db8::2"
-					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::3")}}
-					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::4")}}
-					err := "the first element of apiVIPs must be an IPv4 address. got: 2001:db8::1"
-
-					mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-
-					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Name:        swag.String("some-cluster-name"),
-							PullSecret:  swag.String(fakePullSecret),
-							APIVips:     apiVips,
-							IngressVips: ingressVips,
-						},
-					})
-					verifyApiErrorString(reply, http.StatusBadRequest, err)
 				})
 
 				It("More than two APIVips and More than two ingressVips -  negative", func() {
@@ -4524,7 +4491,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6-primary dual-stack requires OpenShift 4.12+")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -19427,24 +19394,120 @@ var _ = Describe("Dual-stack cluster", func() {
 			}
 		})
 
-		Context("Cluster with wrong network order", func() {
-			It("v6-first in cluster networks rejected", func() {
-				errStr := "First cluster network has to be IPv4 subnet"
+		Context("Cluster with IPv6-primary dual-stack networks (version-aware)", func() {
+			BeforeEach(func() {
+				Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+				db, dbName = common.PrepareTestDB()
+				cfg.DiskEncryptionSupport = false
+				bm = createInventory(db, cfg)
+				bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+					db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+				mockUsageReports()
+			})
+			AfterEach(func() {
+				ctrl.Finish()
+				common.DeleteTestDB(db, dbName)
+			})
+			It("v6-first in cluster networks rejected (OCP < 4.12)", func() {
 				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.11.0")
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.12+), got 1003:db8::/53")
 			})
-			It("v6-first in service networks rejected", func() {
-				errStr := "First service network has to be IPv4 subnet"
+			It("v6-first in service networks rejected (OCP < 4.12)", func() {
 				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.11.0")
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First service networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.12+), got 1002:db8::/119")
 			})
-			It("v6-first in machine networks rejected", func() {
-				errStr := "First machine network has to be IPv4 subnet"
+			It("v6-first in machine networks rejected (OCP < 4.12)", func() {
+				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.11.0")
+				reply := bm.V2RegisterCluster(ctx, params)
+				verifyApiErrorString(reply, http.StatusBadRequest, "First machine networks has to be IPv4 subnet (IPv6-primary dual-stack requires OpenShift 4.12+), got 1001:db8::/120")
+			})
+			It("v6-first in machine/service/cluster networks accepted (OCP 4.12+)", func() {
+				mockClusterRegisterSuccess(true)
+				mockAMSSubscription(ctx)
+
+				params.NewClusterParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
+				params.NewClusterParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
 				params.NewClusterParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
 				reply := bm.V2RegisterCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, errStr)
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				cluster := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(cluster.ClusterNetworks).To(HaveLen(2))
+				Expect(cluster.ServiceNetworks).To(HaveLen(2))
+				Expect(cluster.MachineNetworks).To(HaveLen(2))
+
+				// Verify that IPv6 networks come first (IPv6-primary)
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+			})
+
+			It("RegisterClusterInternal should register IPv6-first cluster and set PrimaryIPStack", func() {
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.12.0")
+				mockAMSSubscription(ctx)
+
+				params.NewClusterParams.Name = swag.String("test-ipv6-multinode")
+				params.NewClusterParams.OpenshiftVersion = swag.String("4.12.0")
+				params.NewClusterParams.PullSecret = swag.String(fakePullSecret)
+				params.NewClusterParams.BaseDNSDomain = "example.com"
+				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "2001:db8::/53", HostPrefix: 64},
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},
+				}
+				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "2001:db9::/112"},
+					{Cidr: "172.30.0.0/16"},
+				}
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/120"},
+					{Cidr: "192.168.126.0/24"},
+				}
+
+				cluster, err := bm.RegisterClusterInternal(ctx, nil, nil, params)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify PrimaryIPStack is set to IPv6
+				var dbCluster common.Cluster
+				err = db.First(&dbCluster, "id = ?", *cluster.ID).Error
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbCluster.PrimaryIPStack).NotTo(BeNil())
+				Expect(*dbCluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+
+				// Verify networks are IPv6-first
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(Equal("2001:db8::/53"))
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(Equal("2001:db9::/112"))
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db9::/120"))
+			})
+
+			It("RegisterClusterInternal should reject inconsistent IP family order", func() {
+				// Need minimal mocks for the validation path up to setPrimaryIPStack
+				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
+
+				params.NewClusterParams.Name = swag.String("test-inconsistent")
+				params.NewClusterParams.PullSecret = swag.String(fakePullSecret)
+				params.NewClusterParams.BaseDNSDomain = "example.com"
+				params.NewClusterParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "2001:db8::/53", HostPrefix: 64}, // IPv6 first
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},
+				}
+				params.NewClusterParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "172.30.0.0/16"}, // IPv4 first - inconsistent!
+					{Cidr: "2001:db9::/112"},
+				}
+				params.NewClusterParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/120"}, // IPv6 first - matches cluster networks
+					{Cidr: "192.168.126.0/24"},
+				}
+
+				_, err := bm.RegisterClusterInternal(ctx, nil, nil, params)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 			})
 		})
 
@@ -19495,21 +19558,96 @@ var _ = Describe("Dual-stack cluster", func() {
 			}
 		})
 
-		Context("Cluster with wrong network order", func() {
-			It("v6-first in cluster networks rejected", func() {
+		Context("Cluster with IPv6-primary dual-stack networks (version-aware)", func() {
+			// Create a cluster with OCP 4.12+ for IPv6-primary tests
+			var cluster412ID strfmt.UUID
+			BeforeEach(func() {
+				mockUsageReports()
+				cluster412ID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:               &cluster412ID,
+					OpenshiftVersion: common.MinimalVersionForIPV6PrimaryWithDualStack,
+					Status:           swag.String(models.ClusterStatusReady),
+					CPUArchitecture:  models.ClusterCPUArchitectureX8664,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				params = installer.V2UpdateClusterParams{ClusterID: cluster412ID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{},
+				}
+			})
+
+			It("v6-first in machine/service/cluster networks accepted (OCP 4.12+)", func() {
+				By("setup IPv6-primary dual stack networking")
+				cluster412 := &common.Cluster{Cluster: models.Cluster{
+					ID: &cluster412ID,
+				}}
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster412)).Return(nil).Times(1)
+
 				params.ClusterUpdateParams.ClusterNetworks = TestDualStackNetworkingWrongOrder.ClusterNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First cluster network has to be IPv4 subnet")
-			})
-			It("v6-first in service networks rejected", func() {
 				params.ClusterUpdateParams.ServiceNetworks = TestDualStackNetworkingWrongOrder.ServiceNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First service network has to be IPv4 subnet")
-			})
-			It("v6-first in machine networks rejected", func() {
 				params.ClusterUpdateParams.MachineNetworks = TestDualStackNetworkingWrongOrder.MachineNetworks
-				reply := bm.V2UpdateCluster(ctx, params)
-				verifyApiErrorString(reply, http.StatusBadRequest, "First machine network has to be IPv4 subnet")
+
+				cluster, err := bm.UpdateClusterNonInteractive(ctx, params, nil)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.ClusterNetworks).To(HaveLen(2))
+				Expect(cluster.ServiceNetworks).To(HaveLen(2))
+				Expect(cluster.MachineNetworks).To(HaveLen(2))
+
+				// Verify that IPv6 networks come first (IPv6-primary)
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(ContainSubstring(":")) // IPv6 contains ":"
+			})
+
+			It("v2UpdateClusterInternal should set PrimaryIPStack for IPv6-first networks", func() {
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterUpdateSuccess(1, 0)
+
+				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "2001:db8::/53", HostPrefix: 64},
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},
+				}
+				params.ClusterUpdateParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "2001:db9::/112"},
+					{Cidr: "172.30.0.0/16"},
+				}
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/120"},
+					{Cidr: "192.168.126.0/24"},
+				}
+
+				updatedCluster, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify PrimaryIPStack is set to IPv6
+				var dbCluster common.Cluster
+				err = db.First(&dbCluster, "id = ?", cluster412ID).Error
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbCluster.PrimaryIPStack).NotTo(BeNil())
+				Expect(*dbCluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+
+				// Verify networks are IPv6-first
+				Expect(string(updatedCluster.MachineNetworks[0].Cidr)).To(Equal("2001:db9::/120"))
+				Expect(string(updatedCluster.ClusterNetworks[0].Cidr)).To(Equal("2001:db8::/53"))
+			})
+
+			It("v2UpdateClusterInternal should reject inconsistent IP family order", func() {
+				// Need VerifyClusterUpdatability mock since it's called before setPrimaryIPStack
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "2001:db8::/53", HostPrefix: 64}, // IPv6 first
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},
+				}
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "192.168.126.0/24"}, // IPv4 first - inconsistent!
+					{Cidr: "2001:db9::/120"},
+				}
+
+				_, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 			})
 		})
 
@@ -21050,60 +21188,6 @@ var _ = Describe("UpdateIgnitionEndpointIfHasMCSCert", func() {
 
 })
 
-var _ = Describe("V2UpdateHostIgnition unbound blabla", func() {
-	var (
-		bm     *bareMetalInventory
-		cfg    Config
-		db     *gorm.DB
-		dbName string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		bm = createInventory(db, cfg)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
-	It("unbound host ignition update", func() {
-		infraEnvID := strfmt.UUID(uuid.New().String())
-		infraEnv := &common.InfraEnv{
-			InfraEnv: models.InfraEnv{
-				ID: &infraEnvID,
-			},
-		}
-		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
-
-		hostID := strfmt.UUID(uuid.New().String())
-		host := models.Host{
-			ID:         &hostID,
-			InfraEnvID: infraEnvID,
-			Kind:       swag.String(models.HostKindHost),
-			Status:     swag.String(models.HostStatusKnownUnbound),
-			Role:       models.HostRoleAutoAssign,
-		}
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-
-		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		params := installer.V2UpdateHostIgnitionParams{
-			InfraEnvID:         infraEnvID,
-			HostID:             hostID,
-			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
-		}
-
-		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
-			eventstest.WithNameMatcher(eventgen.HostDiscoveryIgnitionConfigAppliedEventName),
-			eventstest.WithHostIdMatcher(params.HostID.String()),
-			eventstest.WithInfraEnvIdMatcher(params.InfraEnvID.String())))
-
-		response := bm.V2UpdateHostIgnition(context.TODO(), params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.V2UpdateHostIgnitionCreated{}))
-	})
-})
-
 func getDummyCluster() common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
 	c := common.Cluster{
@@ -21150,3 +21234,313 @@ func getMirrorRegistryConfigurations(registriesToml, certificate string) (*commo
 
 	return mirrors, imageDigestMirrors
 }
+
+var _ = Describe("Primary IP Stack Functionality", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		dbName    string
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+
+		cfg = Config{
+			DefaultClusterNetworkCidr:       "10.128.0.0/14",
+			DefaultServiceNetworkCidr:       "172.30.0.0/16",
+			DefaultClusterNetworkHostPrefix: 23,
+		}
+
+		bm = createInventory(db, cfg)
+
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Describe("setPrimaryIPStack", func() {
+		Context("Single stack clusters", func() {
+			It("should set PrimaryIPStack to nil for IPv4-only cluster", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              &clusterID,
+						MachineNetworks: []*models.MachineNetwork{{Cidr: "10.0.0.0/16"}},
+						APIVips:         []*models.APIVip{{IP: "10.0.1.1"}},
+						IngressVips:     []*models.IngressVip{{IP: "10.0.1.2"}},
+						ServiceNetworks: []*models.ServiceNetwork{{Cidr: "172.30.0.0/16"}},
+						ClusterNetworks: []*models.ClusterNetwork{{Cidr: "10.128.0.0/14"}},
+					},
+				}
+
+				err := bm.setPrimaryIPStack(cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.PrimaryIPStack).To(BeNil())
+			})
+
+			It("should set PrimaryIPStack to nil for IPv6-only cluster", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:              &clusterID,
+						MachineNetworks: []*models.MachineNetwork{{Cidr: "2001:db8::/64"}},
+						APIVips:         []*models.APIVip{{IP: "2001:db8::1"}},
+						IngressVips:     []*models.IngressVip{{IP: "2001:db8::2"}},
+						ServiceNetworks: []*models.ServiceNetwork{{Cidr: "2001:db8:1::/64"}},
+						ClusterNetworks: []*models.ClusterNetwork{{Cidr: "2001:db8:2::/64"}},
+					},
+				}
+
+				err := bm.setPrimaryIPStack(cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.PrimaryIPStack).To(BeNil())
+			})
+		})
+
+		Context("Dual stack clusters", func() {
+			It("should set PrimaryIPStack to IPv4 for IPv4-first dual stack", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: "4.12.0", // Required for dual-stack support
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "10.0.0.0/16"},
+							{Cidr: "2001:db8::/64"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "10.0.1.1"},
+							{IP: "2001:db8::1"},
+						},
+						IngressVips: []*models.IngressVip{
+							{IP: "10.0.1.2"},
+							{IP: "2001:db8::2"},
+						},
+						ServiceNetworks: []*models.ServiceNetwork{
+							{Cidr: "172.30.0.0/16"},
+							{Cidr: "2001:db8:1::/64"},
+						},
+						ClusterNetworks: []*models.ClusterNetwork{
+							{Cidr: "10.128.0.0/14"},
+							{Cidr: "2001:db8:2::/64"},
+						},
+					},
+				}
+
+				err := bm.setPrimaryIPStack(cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
+				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4))
+			})
+
+			It("should set PrimaryIPStack to IPv6 for IPv6-first dual stack", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: "4.12.0", // Required for IPv6-primary support
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "2001:db8::/64"},
+							{Cidr: "10.0.0.0/16"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "2001:db8::1"},
+							{IP: "10.0.1.1"},
+						},
+						IngressVips: []*models.IngressVip{
+							{IP: "2001:db8::2"},
+							{IP: "10.0.1.2"},
+						},
+						ServiceNetworks: []*models.ServiceNetwork{
+							{Cidr: "2001:db8:1::/64"},
+							{Cidr: "172.30.0.0/16"},
+						},
+						ClusterNetworks: []*models.ClusterNetwork{
+							{Cidr: "2001:db8:2::/64"},
+							{Cidr: "10.128.0.0/14"},
+						},
+					},
+				}
+
+				err := bm.setPrimaryIPStack(cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
+				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+			})
+
+			It("should return error for inconsistent IP family order", func() {
+				cluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: "4.12.0",
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "10.0.0.0/16"}, // IPv4 first
+							{Cidr: "2001:db8::/64"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "2001:db8::1"}, // IPv6 first - inconsistent!
+							{IP: "10.0.1.1"},
+						},
+						ServiceNetworks: []*models.ServiceNetwork{
+							{Cidr: "172.30.0.0/16"}, // IPv4 first
+							{Cidr: "2001:db8:1::/64"},
+						},
+						ClusterNetworks: []*models.ClusterNetwork{
+							{Cidr: "10.128.0.0/14"}, // IPv4 first
+							{Cidr: "2001:db8:2::/64"},
+						},
+					},
+				}
+
+				err := bm.setPrimaryIPStack(cluster)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
+			})
+		})
+	})
+
+	Describe("orderClusterNetworks", func() {
+		Context("IPv4 primary stack", func() {
+			It("should not change networks already in IPv4-first order", func() {
+				cluster := &common.Cluster{
+					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV4}[0],
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "10.0.0.0/16"},
+							{Cidr: "2001:db8::/64"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "10.0.1.1"},
+							{IP: "2001:db8::1"},
+						},
+						IngressVips: []*models.IngressVip{
+							{IP: "10.0.1.2"},
+							{IP: "2001:db8::2"},
+						},
+						ServiceNetworks: []*models.ServiceNetwork{
+							{Cidr: "172.30.0.0/16"},
+							{Cidr: "2001:db8:1::/64"},
+						},
+						ClusterNetworks: []*models.ClusterNetwork{
+							{Cidr: "10.128.0.0/14", HostPrefix: 23},
+							{Cidr: "2001:db8:2::/64", HostPrefix: 64},
+						},
+					},
+				}
+
+				bm.orderClusterNetworks(cluster)
+
+				// Networks should remain in IPv4-first order
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("10.0.0.0/16"))
+				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(cluster.APIVips[0].IP)).To(Equal("10.0.1.1"))
+				Expect(string(cluster.APIVips[1].IP)).To(Equal("2001:db8::1"))
+				Expect(string(cluster.IngressVips[0].IP)).To(Equal("10.0.1.2"))
+				Expect(string(cluster.IngressVips[1].IP)).To(Equal("2001:db8::2"))
+				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(Equal("172.30.0.0/16"))
+				Expect(string(cluster.ServiceNetworks[1].Cidr)).To(Equal("2001:db8:1::/64"))
+				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(Equal("10.128.0.0/14"))
+				Expect(string(cluster.ClusterNetworks[1].Cidr)).To(Equal("2001:db8:2::/64"))
+			})
+
+			It("should reorder IPv6-first networks to IPv4-first", func() {
+				cluster := &common.Cluster{
+					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV4}[0],
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "2001:db8::/64"},
+							{Cidr: "10.0.0.0/16"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "2001:db8::1"},
+							{IP: "10.0.1.1"},
+						},
+					},
+				}
+
+				bm.orderClusterNetworks(cluster)
+
+				// Networks should be reordered to IPv4-first
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("10.0.0.0/16"))
+				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(cluster.APIVips[0].IP)).To(Equal("10.0.1.1"))
+				Expect(string(cluster.APIVips[1].IP)).To(Equal("2001:db8::1"))
+			})
+		})
+
+		Context("IPv6 primary stack", func() {
+			It("should not change networks already in IPv6-first order", func() {
+				cluster := &common.Cluster{
+					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV6}[0],
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "2001:db8::/64"},
+							{Cidr: "10.0.0.0/16"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "2001:db8::1"},
+							{IP: "10.0.1.1"},
+						},
+					},
+				}
+
+				bm.orderClusterNetworks(cluster)
+
+				// Networks should remain in IPv6-first order
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
+				Expect(string(cluster.APIVips[0].IP)).To(Equal("2001:db8::1"))
+				Expect(string(cluster.APIVips[1].IP)).To(Equal("10.0.1.1"))
+			})
+
+			It("should reorder IPv4-first networks to IPv6-first", func() {
+				cluster := &common.Cluster{
+					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV6}[0],
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "10.0.0.0/16"},
+							{Cidr: "2001:db8::/64"},
+						},
+						APIVips: []*models.APIVip{
+							{IP: "10.0.1.1"},
+							{IP: "2001:db8::1"},
+						},
+					},
+				}
+
+				bm.orderClusterNetworks(cluster)
+
+				// Networks should be reordered to IPv6-first
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
+				Expect(string(cluster.APIVips[0].IP)).To(Equal("2001:db8::1"))
+				Expect(string(cluster.APIVips[1].IP)).To(Equal("10.0.1.1"))
+			})
+		})
+
+		Context("No primary stack set", func() {
+			It("should not change networks when PrimaryIPStack is nil", func() {
+				cluster := &common.Cluster{
+					PrimaryIPStack: nil,
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "2001:db8::/64"},
+							{Cidr: "10.0.0.0/16"},
+						},
+					},
+				}
+
+				bm.orderClusterNetworks(cluster)
+
+				// Networks should remain unchanged
+				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
+			})
+		})
+	})
+})

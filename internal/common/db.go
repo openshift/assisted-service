@@ -38,6 +38,17 @@ type Notifiable interface {
 	Payload() any
 }
 
+// PrimaryIPStack defines which IP family is considered primary in a dual-stack configuration.
+type PrimaryIPStack string
+
+const (
+	// PrimaryIPStackV4 indicates the primary stack is IPv4.
+	PrimaryIPStackV4 PrimaryIPStack = "ipv4"
+
+	// PrimaryIPStackV6 indicates the primary stack is IPv6.
+	PrimaryIPStackV6 PrimaryIPStack = "ipv6"
+)
+
 type Cluster struct {
 	models.Cluster
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
@@ -87,6 +98,11 @@ type Cluster struct {
 
 	// A JSON blob in which holds the cluster mirror registry if set
 	MirrorRegistryConfiguration string `json:"mirror_registry_configuration" gorm:"type:TEXT"`
+
+	// PrimaryIPStack will be 'nil' for single-stack clusters
+	// and populated only when the configuration is dual-stack.
+	// The `omitempty` tag ensures it's omitted from JSON when nil.
+	PrimaryIPStack *PrimaryIPStack `json:"primary_ip_stack,omitempty"`
 }
 
 func (c *Cluster) GetClusterID() *strfmt.UUID {

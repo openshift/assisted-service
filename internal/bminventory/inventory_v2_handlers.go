@@ -323,6 +323,8 @@ func (b *bareMetalInventory) V2ResetCluster(ctx context.Context, params installe
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
+		b.orderClusterNetworks(cluster)
+
 		if err := b.clusterApi.ResetCluster(ctx, cluster, "cluster was reset by user", tx); err != nil {
 			return err
 		}
@@ -448,6 +450,8 @@ func (b *bareMetalInventory) V2CompleteInstallation(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	b.orderClusterNetworks(cluster)
 
 	parse := func(data interface{}) ([]models.OperatorMonitorReport, error) {
 		raw, err := json.Marshal(data)
