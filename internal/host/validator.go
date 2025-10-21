@@ -173,19 +173,19 @@ func (c *validationContext) validateMachineCIDR() error {
 }
 
 func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Validator) error {
-	requirements, err := hwValidator.GetClusterHostRequirements(context.TODO(), c.cluster, c.host)
+	requirements, err := hwValidator.GetClusterHostRequirements(c.ctx, c.cluster, c.host)
 	c.clusterHostRequirements = requirements
 	return err
 }
 
 func (c *validationContext) loadInfraEnvHostRequirements(hwValidator hardware.Validator) error {
-	requirements, err := hwValidator.GetInfraEnvHostRequirements(context.TODO(), c.infraEnv)
+	requirements, err := hwValidator.GetInfraEnvHostRequirements(c.ctx, c.infraEnv)
 	c.clusterHostRequirements = requirements
 	return err
 }
 
 func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Validator) error {
-	requirements, err := hwValidator.GetPreflightHardwareRequirements(context.TODO(), c.cluster)
+	requirements, err := hwValidator.GetPreflightHardwareRequirements(c.ctx, c.cluster)
 	if err != nil {
 		return err
 	}
@@ -197,7 +197,7 @@ func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Vali
 }
 
 func (c *validationContext) loadGeneralInfraEnvMinRequirements(hwValidator hardware.Validator) error {
-	requirements, err := hwValidator.GetPreflightInfraEnvHardwareRequirements(context.TODO(), c.infraEnv)
+	requirements, err := hwValidator.GetPreflightInfraEnvHardwareRequirements(c.ctx, c.infraEnv)
 	if err != nil {
 		return err
 	}
