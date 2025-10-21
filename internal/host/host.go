@@ -446,7 +446,7 @@ func (m *Manager) refreshRoleInternal(ctx context.Context, h *models.Host, db *g
 					if err = updateRole(m.log, h, h.Role, suggestedRole, db, string(h.Role)); err == nil {
 						h.SuggestedRole = suggestedRole
 						m.log.Infof("suggested role for host %s is %s", *h.ID, suggestedRole)
-						eventgen.SendHostRoleUpdatedEvent(ctx, m.eventsHandler, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h), string(suggestedRole))
+						eventgen.SendHostRoleUpdatedEvent(ctx, m.eventsHandler, h.ClusterID, *h.ID, h.InfraEnvID, hostutil.GetHostnameForMsg(h), string(suggestedRole))
 					}
 				}
 			}
