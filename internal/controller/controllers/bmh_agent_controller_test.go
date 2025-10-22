@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
@@ -872,6 +873,132 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: clusterNamespace,
 					}))
 				})
+			})
+			Context("reconcile fencing credentials", func() {
+				It("BMH has set fencing credentials secret annotation", func() {
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+					Expect(err).To(BeNil())
+					updatedHost.ObjectMeta.Annotations[BMH_AGENT_FENCING_CREDENTIALS_SECRET_NAME] = "fencing-secret"
+					Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(updatedHost))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.FencingCredentialsSecretRef).To(Equal("fencing-secret"))
+				})
+				It("BMH has set fencing credentials secret annotation and agent has a different value", func() {
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+					Expect(err).To(BeNil())
+					updatedHost.ObjectMeta.Annotations[BMH_AGENT_FENCING_CREDENTIALS_SECRET_NAME] = "fencing-secret"
+					Expect(c.Update(ctx, updatedHost)).To(BeNil())
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					updatedAgent.Spec.FencingCredentialsSecretRef = "existing-fencing-credentials"
+					Expect(c.Update(ctx, updatedAgent)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(updatedHost))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.FencingCredentialsSecretRef).To(Equal("fencing-secret"))
+				})
+				It("BMH has set fencing credentials secret annotation and create fencing credentials secret annotation", func() {
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+					Expect(err).To(BeNil())
+					updatedHost.ObjectMeta.Annotations[BMH_AGENT_FENCING_CREDENTIALS_SECRET_NAME] = "fencing-secret"
+					updatedHost.ObjectMeta.Annotations[BMH_AGENT_CREATE_FENCING_CREDENTIALS_SECRET] = ""
+					Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(updatedHost))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.FencingCredentialsSecretRef).To(Equal("fencing-secret"))
+				})
+				It("agent has fencing credentials and BMH does not have any fencing annotation", func() {
+					updatedAgent := &v1beta1.Agent{}
+					err := c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					updatedAgent.Spec.FencingCredentialsSecretRef = "existing-fencing-credentials"
+					Expect(c.Update(ctx, updatedAgent)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					Expect(updatedAgent.Spec.FencingCredentialsSecretRef).To(Equal("existing-fencing-credentials"))
+				})
+				DescribeTable("create fencing credentials secret from BMH", func(certificateVerification string) {
+					fencingCredentials := &models.FencingCredentialsParams{
+						Address:  swag.String("https://bmc.example.com"),
+						Username: swag.String("admin"),
+						Password: swag.String("password123"),
+					}
+					bmcSecret := &corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bmc-secret",
+							Namespace: testNamespace,
+						},
+						Data: map[string][]byte{
+							"username": []byte(*fencingCredentials.Username),
+							"password": []byte(*fencingCredentials.Password),
+						},
+					}
+					Expect(c.Create(ctx, bmcSecret)).ToNot(HaveOccurred())
+					updatedHost := &bmh_v1alpha1.BareMetalHost{}
+					err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+					Expect(err).To(BeNil())
+					updatedHost.ObjectMeta.Annotations[BMH_AGENT_CREATE_FENCING_CREDENTIALS_SECRET] = ""
+					updatedHost.Spec.BMC = bmh_v1alpha1.BMCDetails{
+						Address:         *fencingCredentials.Address,
+						CredentialsName: "bmc-secret",
+					}
+					if certificateVerification == "Disabled" {
+						updatedHost.Spec.BMC.DisableCertificateVerification = true
+					}
+					Expect(c.Update(ctx, updatedHost)).To(BeNil())
+					updatedAgent := &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					updatedAgent.Spec.FencingCredentialsSecretRef = "existing-fencing-credentials"
+					Expect(c.Update(ctx, updatedAgent)).To(BeNil())
+
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(updatedHost))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+
+					updatedAgent = &v1beta1.Agent{}
+					err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+					Expect(err).To(BeNil())
+					fencingCredentialsSecretName := fmt.Sprintf(AGENT_FENCING_NAME_FORMAT, agent.Name)
+					Expect(updatedAgent.Spec.FencingCredentialsSecretRef).To(Equal(fencingCredentialsSecretName))
+
+					fencingCredentialsSecret := &corev1.Secret{}
+					err = c.Get(ctx, types.NamespacedName{Name: fencingCredentialsSecretName, Namespace: agent.Namespace}, fencingCredentialsSecret)
+					Expect(err).To(BeNil())
+					Expect(string(fencingCredentialsSecret.Data["address"])).To(Equal(*fencingCredentials.Address))
+					Expect(string(fencingCredentialsSecret.Data["username"])).To(Equal(*fencingCredentials.Username))
+					Expect(string(fencingCredentialsSecret.Data["password"])).To(Equal(*fencingCredentials.Password))
+					Expect(string(fencingCredentialsSecret.Data["certificateVerification"])).To(Equal(certificateVerification))
+				},
+					Entry("certificate verification is enabled", "Enabled"),
+					Entry("certificate verification is disabled", "Disabled"),
+				)
 			})
 			It("should set invalid InstallationDiskID if RootDeviceHints device name doesn't match", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}

@@ -92,6 +92,10 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+              fencingCredentialsSecretRef:
+                description: FencingCredentialsSecretRef is a name of a secret in
+                  the Agent's namespace that contains fencing credentials
+                type: string
               hostname:
                 type: string
               ignitionConfigOverrides:

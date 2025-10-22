@@ -18132,7 +18132,7 @@ var _ = Describe("BindHost", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		infraEnvID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindCluster)}}).Error
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID, Kind: swag.String(models.ClusterKindCluster), OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -18418,6 +18418,54 @@ var _ = Describe("BindHost", func() {
 		response = bm.V2DeregisterCluster(ctx, deregisterParams)
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 	})
+
+	It("successful bind with fencing credentials", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
+	It("failed bind because openshift version doesn't support fencing credentials", func() {
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "has fencing credentials")
+	})
 })
 
 var _ = Describe("BindHost - with rhsso auth", func() {
@@ -18452,9 +18500,10 @@ var _ = Describe("BindHost - with rhsso auth", func() {
 
 		err := db.Create(&common.Cluster{
 			Cluster: models.Cluster{
-				ID:       &clusterID,
-				Kind:     swag.String(models.ClusterKindCluster),
-				UserName: userName1}}).Error
+				ID:               &clusterID,
+				Kind:             swag.String(models.ClusterKindCluster),
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				UserName:         userName1}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		err = db.Create(&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())

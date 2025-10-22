@@ -28,6 +28,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -107,6 +108,10 @@ const (
 	BMH_NODE_DRAIN_START_ANNOTATION   = "bmac.agent-install.openshift.io/drain-started-at"
 	BMH_NODE_DRAIN_TIMEOUT_ANNOTATION = "bmac.agent-install.openshift.io/drain-timeout" // in time.Duration format
 	BMH_NODE_DRAIN_STATUS_ANNOTATION  = "bmac.agent-install.openshift.io/drain-status"
+
+	BMH_AGENT_FENCING_CREDENTIALS_SECRET_NAME   = "bmac.agent-install.openshift.io/fencing-credentials-secret-name"   // nolint: gosec
+	BMH_AGENT_CREATE_FENCING_CREDENTIALS_SECRET = "bmac.agent-install.openshift.io/create-fencing-credentials-secret" // nolint: gosec
+	AGENT_FENCING_NAME_FORMAT                   = "%s-fencing-credentials"
 
 	drainStatusSuccess    = "drain succeeded"
 	drainStatusInProgress = "draining in progress"
@@ -303,7 +308,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
-	result = r.reconcileAgentSpec(log, bmh, agent, infraEnv)
+	result = r.reconcileAgentSpec(ctx, log, bmh, agent, infraEnv)
 	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
 		return res.Result()
 	}
@@ -421,7 +426,7 @@ func (r *BMACReconciler) handleBMHFinalizer(ctx context.Context, log logrus.Fiel
 // Unless there are errors, the agent should be `Approved` at the end of this
 // reconcile and a label should be set on it referencing the BMH. No changes to
 // the BMH should happen in this reconcile step.
-func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
+func (r *BMACReconciler) reconcileAgentSpec(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) reconcileResult {
 
 	log.Debugf("Setting agent spec according to BMH")
 
@@ -512,6 +517,15 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 		dirty = true
 	}
 
+	setDirty, err = r.reconcileAgentFencingCredentials(ctx, bmh, agent)
+	if err != nil {
+		log.WithError(err).Errorf("failed to reconcile agent fencing credentials %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileError{err: err}
+	}
+	if setDirty {
+		dirty = true
+	}
+
 	log.Debugf("Agent spec reconcile finished:  %v", agent)
 
 	return reconcileComplete{dirty: dirty}
@@ -556,6 +570,83 @@ func (r *BMACReconciler) reconcileAgentLabels(bmh *bmh_v1alpha1.BareMetalHost, a
 		agent.SetLabels(labels)
 	}
 	return ret, nil
+}
+
+func (r *BMACReconciler) reconcileAgentFencingCredentials(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) (bool, error) {
+	if val, ok := bmh.ObjectMeta.Annotations[BMH_AGENT_FENCING_CREDENTIALS_SECRET_NAME]; ok {
+		if agent.Spec.FencingCredentialsSecretRef != val {
+			agent.Spec.FencingCredentialsSecretRef = val
+			return true, nil
+		}
+		return false, nil
+	}
+
+	if _, ok := bmh.ObjectMeta.Annotations[BMH_AGENT_CREATE_FENCING_CREDENTIALS_SECRET]; !ok {
+		return false, nil
+	}
+
+	fencingCredentialsSecretName := fmt.Sprintf(AGENT_FENCING_NAME_FORMAT, agent.ObjectMeta.Name)
+	err := r.reconcileFencingCredentialsSecret(ctx, bmh, agent, fencingCredentialsSecretName)
+	if err != nil {
+		return false, err
+	}
+
+	if agent.Spec.FencingCredentialsSecretRef != fencingCredentialsSecretName {
+		agent.Spec.FencingCredentialsSecretRef = fencingCredentialsSecretName
+		return true, nil
+	}
+	return false, nil
+}
+
+func (r *BMACReconciler) reconcileFencingCredentialsSecret(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, fencingCredentialsSecretName string) error {
+	bmhCredentialsSecretRef := types.NamespacedName{Namespace: bmh.Namespace, Name: bmh.Spec.BMC.CredentialsName}
+	bmhCredentialsSecret, err := getSecret(ctx, r.Client, r.APIReader, bmhCredentialsSecretRef)
+	if err != nil {
+		return err
+	}
+
+	fencingCredentials := &models.FencingCredentialsParams{
+		Address:  swag.String(bmh.Spec.BMC.Address),
+		Password: swag.String(string(bmhCredentialsSecret.Data["password"])),
+		Username: swag.String(string(bmhCredentialsSecret.Data["username"])),
+	}
+	if bmh.Spec.BMC.DisableCertificateVerification {
+		fencingCredentials.CertificateVerification = swag.String("Disabled")
+	} else {
+		fencingCredentials.CertificateVerification = swag.String("Enabled")
+	}
+
+	fencingCredentialsData := map[string][]byte{
+		"address":                 []byte(*fencingCredentials.Address),
+		"username":                []byte(*fencingCredentials.Username),
+		"password":                []byte(*fencingCredentials.Password),
+		"certificateVerification": []byte(*fencingCredentials.CertificateVerification),
+	}
+
+	fencingCredentialsSecretRef := types.NamespacedName{Namespace: agent.Namespace, Name: fencingCredentialsSecretName}
+	fencingCredentialsSecret, err := getSecret(ctx, r.Client, r.APIReader, fencingCredentialsSecretRef)
+	if err != nil {
+		if !k8serrors.IsNotFound(err) {
+			return err
+		}
+
+		fencingCredentialsSecret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      fencingCredentialsSecretName,
+				Namespace: agent.Namespace,
+			},
+			Data: fencingCredentialsData,
+		}
+		err = r.Create(ctx, fencingCredentialsSecret)
+	} else {
+		fencingCredentialsSecret.Data = fencingCredentialsData
+		err = r.Update(ctx, fencingCredentialsSecret)
+	}
+	if err != nil {
+		return err
+	}
+
+	return ensureSecretIsLabelled(ctx, r.Client, fencingCredentialsSecret, fencingCredentialsSecretRef)
 }
 
 func (r *BMACReconciler) reconcileClusterReference(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
