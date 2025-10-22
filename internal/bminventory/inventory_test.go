@@ -13915,7 +13915,8 @@ var _ = Describe("RegisterCluster", func() {
 			NewClusterParams := getDefaultClusterCreateParams()
 			NewClusterParams.OpenshiftVersion = t.OpenShiftVersion
 			NewClusterParams.HighAvailabilityMode = t.HighAvailabilityMode
-			NewClusterParams.Platform = &t.Platform
+			platform := t.Platform
+			NewClusterParams.Platform = &platform
 
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: NewClusterParams,
