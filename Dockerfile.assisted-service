@@ -1,6 +1,6 @@
 ARG RHEL_VERSION=9
 
-FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.20 AS golang
+FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.24 AS golang
 
 # Build binaries
 FROM quay.io/centos/centos:stream$RHEL_VERSION as builder
