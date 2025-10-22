@@ -184,7 +184,7 @@ func areISCSIHoldersValid(disk *models.Disk, inventory *models.Inventory) error 
 	holders := strings.Split(disk.Holders, ",")
 	for _, holder := range holders {
 		if _, exists := multipathDiskNamesMap[holder]; exists {
-			return fmt.Errorf(iSCSIWithMultipathHolder)
+			return fmt.Errorf("%s", iSCSIWithMultipathHolder)
 		}
 	}
 
