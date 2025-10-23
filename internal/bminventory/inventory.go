@@ -6291,12 +6291,12 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 	switch params.FileName {
 	case "discovery.ign":
 		if common.ImageTypeValue(infraEnv.Type) == models.ImageTypeDisconnectedIso {
-			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.SkipEagerLoading)
+			cluster, clusterErr := common.GetClusterFromDB(b.db, infraEnv.ClusterID, common.UseEagerLoading)
 			if clusterErr != nil {
 				b.log.WithError(clusterErr).Errorf("Failed to get cluster for disconnected ignition generation, infraEnv %s", infraEnv.ID)
 				return common.GenerateErrorResponder(clusterErr)
 			}
-			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster)
 			if err != nil {
 				b.log.WithError(err).Error("Failed to generate disconnected ignition")
 				return common.GenerateErrorResponder(err)
