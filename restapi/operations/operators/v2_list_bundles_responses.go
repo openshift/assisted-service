@@ -61,6 +61,51 @@ func (o *V2ListBundlesOK) WriteResponse(rw http.ResponseWriter, producer runtime
 	}
 }
 
+// V2ListBundlesBadRequestCode is the HTTP code returned for type V2ListBundlesBadRequest
+const V2ListBundlesBadRequestCode int = 400
+
+/*
+V2ListBundlesBadRequest Error.
+
+swagger:response v2ListBundlesBadRequest
+*/
+type V2ListBundlesBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2ListBundlesBadRequest creates V2ListBundlesBadRequest with default headers values
+func NewV2ListBundlesBadRequest() *V2ListBundlesBadRequest {
+
+	return &V2ListBundlesBadRequest{}
+}
+
+// WithPayload adds the payload to the v2 list bundles bad request response
+func (o *V2ListBundlesBadRequest) WithPayload(payload *models.Error) *V2ListBundlesBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 list bundles bad request response
+func (o *V2ListBundlesBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2ListBundlesBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // V2ListBundlesInternalServerErrorCode is the HTTP code returned for type V2ListBundlesInternalServerError
 const V2ListBundlesInternalServerErrorCode int = 500
 

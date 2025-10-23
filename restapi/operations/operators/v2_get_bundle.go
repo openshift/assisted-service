@@ -34,7 +34,7 @@ func NewV2GetBundle(ctx *middleware.Context, handler V2GetBundleHandler) *V2GetB
 
 # Get operator properties for a bundle
 
-Retrieves an array of operator properties for the specified bundle.
+Retrieves an array of operator properties for the specified bundle when some features are activated.
 */
 type V2GetBundle struct {
 	Context *middleware.Context

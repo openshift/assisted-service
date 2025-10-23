@@ -9,11 +9,21 @@ import (
 	"errors"
 	"net/url"
 	golangswaggerpaths "path"
+
+	"github.com/go-openapi/swag"
 )
 
 // V2ListBundlesURL generates an URL for the v2 list bundles operation
 type V2ListBundlesURL struct {
+	CPUArchitecture      *string
+	ExternalPlatformName *string
+	FeatureIds           []string
+	OpenshiftVersion     *string
+	PlatformType         *string
+
 	_basePath string
+	// avoid unkeyed usage
+	_ struct{}
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
@@ -42,6 +52,56 @@ func (o *V2ListBundlesURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var cPUArchitectureQ string
+	if o.CPUArchitecture != nil {
+		cPUArchitectureQ = *o.CPUArchitecture
+	}
+	if cPUArchitectureQ != "" {
+		qs.Set("cpu_architecture", cPUArchitectureQ)
+	}
+
+	var externalPlatformNameQ string
+	if o.ExternalPlatformName != nil {
+		externalPlatformNameQ = *o.ExternalPlatformName
+	}
+	if externalPlatformNameQ != "" {
+		qs.Set("external_platform_name", externalPlatformNameQ)
+	}
+
+	var featureIdsIR []string
+	for _, featureIdsI := range o.FeatureIds {
+		featureIdsIS := featureIdsI
+		if featureIdsIS != "" {
+			featureIdsIR = append(featureIdsIR, featureIdsIS)
+		}
+	}
+
+	featureIds := swag.JoinByFormat(featureIdsIR, "multi")
+
+	for _, qsv := range featureIds {
+		qs.Add("feature_ids", qsv)
+	}
+
+	var openshiftVersionQ string
+	if o.OpenshiftVersion != nil {
+		openshiftVersionQ = *o.OpenshiftVersion
+	}
+	if openshiftVersionQ != "" {
+		qs.Set("openshift_version", openshiftVersionQ)
+	}
+
+	var platformTypeQ string
+	if o.PlatformType != nil {
+		platformTypeQ = *o.PlatformType
+	}
+	if platformTypeQ != "" {
+		qs.Set("platform_type", platformTypeQ)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

@@ -58,6 +58,51 @@ func (o *V2GetBundleOK) WriteResponse(rw http.ResponseWriter, producer runtime.P
 	}
 }
 
+// V2GetBundleBadRequestCode is the HTTP code returned for type V2GetBundleBadRequest
+const V2GetBundleBadRequestCode int = 400
+
+/*
+V2GetBundleBadRequest Error.
+
+swagger:response v2GetBundleBadRequest
+*/
+type V2GetBundleBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2GetBundleBadRequest creates V2GetBundleBadRequest with default headers values
+func NewV2GetBundleBadRequest() *V2GetBundleBadRequest {
+
+	return &V2GetBundleBadRequest{}
+}
+
+// WithPayload adds the payload to the v2 get bundle bad request response
+func (o *V2GetBundleBadRequest) WithPayload(payload *models.Error) *V2GetBundleBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 get bundle bad request response
+func (o *V2GetBundleBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2GetBundleBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // V2GetBundleNotFoundCode is the HTTP code returned for type V2GetBundleNotFound
 const V2GetBundleNotFoundCode int = 404
 

@@ -2747,9 +2747,39 @@ paths:
     get:
       tags:
         - operators
-      summary: Get list of avaliable bundles 
-      description: Retrieves a list of avaliable bundles.
+      summary: Get list of available bundles 
+      description: Retrieves a list of available bundles filtered by support level.
       operationId: V2ListBundles
+      parameters:
+        - in: query
+          name: openshift_version
+          type: string
+          description: Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.
+        - in: query
+          name: cpu_architecture
+          description: The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
+          type: string
+          # TODO: remove arm64 when AI moves to using aarch64
+          enum: [ 'x86_64', 'aarch64', 'arm64','ppc64le','s390x','multi' ]
+          default: x86_64
+        - in: query
+          name: platform_type
+          description: The provider platform type. openshift_version must be set.
+          type: string
+          enum: [ 'baremetal', 'none', 'nutanix', 'vsphere', 'external' ]
+        - in: query
+          name: external_platform_name
+          description: External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external or if openshift_version is not set.
+          type: string
+        - in: query
+          name: feature_ids
+          description: Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
+          type: array
+          items:
+            type: string
+            enum:
+              - 'SNO'
+          collectionFormat: multi
       responses:
         "200":
           description: Success
@@ -2757,6 +2787,10 @@ paths:
             type: array
             items:
               $ref: '#/definitions/bundle'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         "500":
           description: Internal server error
           schema:
@@ -2767,19 +2801,32 @@ paths:
       tags:
         - operators
       summary: Get operator properties for a bundle
-      description: Retrieves an array of operator properties for the specified bundle.
+      description: Retrieves an array of operator properties for the specified bundle when some features are activated.
       operationId: V2GetBundle
       parameters:
         - in: path
           name: id
-          description: Identifier of the bundle, for example, `virtualization` or `openshift-ai-nvidia`.
+          description: Identifier of the bundle, for example, `virtualization` or `openshift-ai`.
           required: true
           type: string
+        - in: query
+          name: feature_ids
+          description: Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
+          type: array
+          items:
+            type: string
+            enum:
+              - 'SNO'
+          collectionFormat: multi
       responses:
         "200":
           description: Success
           schema:
             $ref: '#/definitions/bundle'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         "404":
           description: Bundle not found
           schema:

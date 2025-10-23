@@ -88,10 +88,10 @@ type API interface {
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
 	// EnsureOperatorPrerequisite Ensure that for the given operators has the base prerequisite for installation
 	EnsureOperatorPrerequisite(cluster *common.Cluster, openshiftVersion string, cpuArchitecture string, operators []*models.MonitoredOperator) error
-	// ListBundles returns the list of available bundles
-	ListBundles() []*models.Bundle
-	// GetBundle returns the Bundle object
-	GetBundle(bundleID string) (*models.Bundle, error)
+	// ListBundles returns the list of available bundles filtered by feature support
+	ListBundles(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) []*models.Bundle
+	// GetBundle returns the Bundle object with operators based on feature IDs
+	GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error)
 	// GetOperatorDependenciesFeatureID returns the list of dependencies
 	GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID
 }
@@ -571,34 +571,46 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 	return nil
 }
 
-// ListBundles returns a list of available bundles.
-func (mgr *Manager) ListBundles() []*models.Bundle {
-	var bundles []*models.Bundle
+// ListBundles returns a list of available bundles filtered by feature support.
+func (mgr *Manager) ListBundles(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) []*models.Bundle {
+	var ret []*models.Bundle
+
 	for _, basicBundleDetails := range operatorscommon.Bundles {
-		completeBundleDeetails, err := mgr.GetBundle(basicBundleDetails.ID)
+		// Get the bundle with operators based on feature IDs
+		completeBundleDetails, err := mgr.GetBundle(basicBundleDetails.ID, featureIDs)
 		if err != nil {
 			mgr.log.Error(err)
 			continue
 		}
-		bundles = append(bundles, completeBundleDeetails)
+
+		// Check if all operators in the bundle are supported using featuresupport API
+		if mgr.isBundleSupported(completeBundleDetails, filters) {
+			ret = append(ret, completeBundleDetails)
+		}
 	}
-	return bundles
+
+	return ret
 }
 
-// GetBundle returns the Bundle object
-func (mgr *Manager) GetBundle(bundleID string) (*models.Bundle, error) {
+// GetBundle returns the Bundle object with operators based on feature IDs
+func (mgr *Manager) GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error) {
 	bundle, ok := mgr.lookupBundle(bundleID)
 	if !ok {
 		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
 	}
+
+	// Get all operators for the bundle based on feature IDs
 	for _, operator := range mgr.olmOperators {
-		for _, operatorBundle := range operator.GetBundleLabels() {
+		operatorBundles := operator.GetBundleLabels(featureIDs)
+		for _, operatorBundle := range operatorBundles {
 			if operatorBundle == bundleID {
-				bundle.Operators = append(bundle.Operators, operator.GetName())
+				operatorName := operator.GetName()
+				bundle.Operators = append(bundle.Operators, operatorName)
 				break
 			}
 		}
 	}
+
 	return bundle, nil
 }
 
@@ -614,6 +626,7 @@ func (mgr *Manager) lookupBundle(bundleID string) (result *models.Bundle, ok boo
 			return
 		}
 	}
+
 	return
 }
 
@@ -629,4 +642,51 @@ func (mgr *Manager) GetOperatorDependenciesFeatureID() []OperatorFeatureSupportI
 	}
 
 	return ret
+}
+
+// isBundleSupported checks if all operators in a bundle are supported using featuresupport API
+func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresupport.SupportLevelFilters) bool {
+	// If bundle has no operators, it's not supported
+	if len(bundle.Operators) == 0 {
+		return false
+	}
+
+	// If there is no filter, it's always supported
+	if filters == nil {
+		return true
+	}
+
+	// Check each operator in the bundle using featuresupport API
+	for _, operatorName := range bundle.Operators {
+		operatorFeatureSupportID, err := mgr.getOperatorFeatureSupportID(operatorName)
+		if err != nil {
+			mgr.log.WithError(err).Warnf("Operator %s has no feature support ID", operatorName)
+
+			return false
+		}
+
+		if !mgr.isOperatorSupported(operatorFeatureSupportID, *filters) {
+			return false
+		}
+	}
+
+	return true
+}
+
+// getOperatorFeatureSupportID gets the feature support ID for an operator
+func (mgr *Manager) getOperatorFeatureSupportID(operatorName string) (models.FeatureSupportLevelID, error) {
+	operator, ok := mgr.olmOperators[operatorName]
+	if !ok {
+		return "", fmt.Errorf("operator %s not found", operatorName)
+	}
+
+	return operator.GetFeatureSupportID(), nil
+}
+
+// isOperatorSupported checks if an operator is supported using featuresupport API
+func (mgr *Manager) isOperatorSupported(featureID models.FeatureSupportLevelID, filters featuresupport.SupportLevelFilters) bool {
+	supportLevel := featuresupport.GetSupportLevel(featureID, filters)
+
+	// Consider the operator supported if it's not unavailable or unsupported
+	return supportLevel != models.SupportLevelUnavailable && supportLevel != models.SupportLevelUnsupported
 }

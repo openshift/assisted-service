@@ -6,18 +6,29 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
 // NewV2ListBundlesParams creates a new V2ListBundlesParams object
-//
-// There are no default values defined in the spec.
+// with the default values initialized.
 func NewV2ListBundlesParams() V2ListBundlesParams {
 
-	return V2ListBundlesParams{}
+	var (
+		// initialize parameters with default values
+
+		cPUArchitectureDefault = string("x86_64")
+	)
+
+	return V2ListBundlesParams{
+		CPUArchitecture: &cPUArchitectureDefault,
+	}
 }
 
 // V2ListBundlesParams contains all the bound params for the v2 list bundles operation
@@ -28,6 +39,29 @@ type V2ListBundlesParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
+	  In: query
+	  Default: "x86_64"
+	*/
+	CPUArchitecture *string
+	/*External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external or if openshift_version is not set.
+	  In: query
+	*/
+	ExternalPlatformName *string
+	/*Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
+	  In: query
+	  Collection Format: multi
+	*/
+	FeatureIds []string
+	/*Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.
+	  In: query
+	*/
+	OpenshiftVersion *string
+	/*The provider platform type. openshift_version must be set.
+	  In: query
+	*/
+	PlatformType *string
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -39,8 +73,161 @@ func (o *V2ListBundlesParams) BindRequest(r *http.Request, route *middleware.Mat
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
+	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
+	if err := o.bindCPUArchitecture(qCPUArchitecture, qhkCPUArchitecture, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qExternalPlatformName, qhkExternalPlatformName, _ := qs.GetOK("external_platform_name")
+	if err := o.bindExternalPlatformName(qExternalPlatformName, qhkExternalPlatformName, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qFeatureIds, qhkFeatureIds, _ := qs.GetOK("feature_ids")
+	if err := o.bindFeatureIds(qFeatureIds, qhkFeatureIds, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qOpenshiftVersion, qhkOpenshiftVersion, _ := qs.GetOK("openshift_version")
+	if err := o.bindOpenshiftVersion(qOpenshiftVersion, qhkOpenshiftVersion, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qPlatformType, qhkPlatformType, _ := qs.GetOK("platform_type")
+	if err := o.bindPlatformType(qPlatformType, qhkPlatformType, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindCPUArchitecture binds and validates parameter CPUArchitecture from query.
+func (o *V2ListBundlesParams) bindCPUArchitecture(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2ListBundlesParams()
+		return nil
+	}
+	o.CPUArchitecture = &raw
+
+	if err := o.validateCPUArchitecture(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateCPUArchitecture carries on validations for parameter CPUArchitecture
+func (o *V2ListBundlesParams) validateCPUArchitecture(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []interface{}{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// bindExternalPlatformName binds and validates parameter ExternalPlatformName from query.
+func (o *V2ListBundlesParams) bindExternalPlatformName(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.ExternalPlatformName = &raw
+
+	return nil
+}
+
+// bindFeatureIds binds and validates array parameter FeatureIds from query.
+//
+// Arrays are parsed according to CollectionFormat: "multi" (defaults to "csv" when empty).
+func (o *V2ListBundlesParams) bindFeatureIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	// CollectionFormat: multi
+	featureIdsIC := rawData
+	if len(featureIdsIC) == 0 {
+		return nil
+	}
+
+	var featureIdsIR []string
+	for i, featureIdsIV := range featureIdsIC {
+		featureIdsI := featureIdsIV
+
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []interface{}{"SNO"}, true); err != nil {
+			return err
+		}
+
+		featureIdsIR = append(featureIdsIR, featureIdsI)
+	}
+
+	o.FeatureIds = featureIdsIR
+
+	return nil
+}
+
+// bindOpenshiftVersion binds and validates parameter OpenshiftVersion from query.
+func (o *V2ListBundlesParams) bindOpenshiftVersion(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.OpenshiftVersion = &raw
+
+	return nil
+}
+
+// bindPlatformType binds and validates parameter PlatformType from query.
+func (o *V2ListBundlesParams) bindPlatformType(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		return nil
+	}
+	o.PlatformType = &raw
+
+	if err := o.validatePlatformType(formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validatePlatformType carries on validations for parameter PlatformType
+func (o *V2ListBundlesParams) validatePlatformType(formats strfmt.Registry) error {
+
+	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "external"}, true); err != nil {
+		return err
+	}
+
 	return nil
 }
