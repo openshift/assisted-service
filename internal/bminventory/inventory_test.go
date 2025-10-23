@@ -1930,25 +1930,10 @@ var _ = Describe("cluster", func() {
 							masterHostId3,
 						}),
 					},
-					{
-						Cidr: "10.11.0.0/16",
-						HostIds: sortedHosts([]strfmt.UUID{
-							masterHostId1,
-							masterHostId2,
-						}),
-					},
-					{
-						Cidr: "7.8.9.0/24",
-						HostIds: []strfmt.UUID{
-							masterHostId3,
-						},
-					},
 				})
 				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-				Expect(len(actualNetworks)).To(Equal(3))
+				Expect(len(actualNetworks)).To(Equal(1))
 				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
 				Expect(actualNetworks).To(Equal(expectedNetworks))
 			})
 			It("exclude hosts", func() {
@@ -4389,25 +4374,10 @@ var _ = Describe("cluster", func() {
 								masterHostId3,
 							}),
 						},
-						{
-							Cidr: "10.11.0.0/16",
-							HostIds: sortedHosts([]strfmt.UUID{
-								masterHostId1,
-								masterHostId2,
-							}),
-						},
-						{
-							Cidr: "7.8.9.0/24",
-							HostIds: []strfmt.UUID{
-								masterHostId3,
-							},
-						},
 					})
 					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-					Expect(len(actualNetworks)).To(Equal(3))
+					Expect(len(actualNetworks)).To(Equal(1))
 					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
 					Expect(actualNetworks).To(Equal(expectedNetworks))
 				})
 
@@ -4553,25 +4523,10 @@ var _ = Describe("cluster", func() {
 								masterHostId3,
 							}),
 						},
-						{
-							Cidr: "10.11.0.0/16",
-							HostIds: sortedHosts([]strfmt.UUID{
-								masterHostId1,
-								masterHostId2,
-							}),
-						},
-						{
-							Cidr: "7.8.9.0/24",
-							HostIds: []strfmt.UUID{
-								masterHostId3,
-							},
-						},
 					})
 					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-					Expect(len(actualNetworks)).To(Equal(3))
+					Expect(len(actualNetworks)).To(Equal(1))
 					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
 					Expect(actualNetworks).To(Equal(expectedNetworks))
 				})
 				Context("Overlapping", func() {
@@ -4729,25 +4684,10 @@ var _ = Describe("cluster", func() {
 									masterHostId3,
 								}),
 							},
-							{
-								Cidr: "10.11.0.0/16",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-								}),
-							},
-							{
-								Cidr: "7.8.9.0/24",
-								HostIds: []strfmt.UUID{
-									masterHostId3,
-								},
-							},
 						})
 						actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-						Expect(len(actualNetworks)).To(Equal(3))
+						Expect(len(actualNetworks)).To(Equal(1))
 						actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-						actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-						actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
 						Expect(actualNetworks).To(Equal(expectedNetworks))
 					})
 
@@ -19159,6 +19099,50 @@ var _ = Describe("Calculate host networks", func() {
 		Expect(len(networks[1].HostIds)).To(Equal(1))
 		Expect(networks[1].HostIds[0]).To(Equal(hostID))
 
+	})
+	It("includes only networks present on all hosts with inventory", func() {
+		hostID1 := strfmt.UUID(uuid.New().String())
+		hostID2 := strfmt.UUID(uuid.New().String())
+
+		addHost(hostID1, models.HostRoleMaster, models.HostStatusKnown, "kind", clusterID, clusterID,
+			getInventoryStr("host1", "bios", "10.0.0.1/24", "192.168.1.1/24"), db)
+
+		addHost(hostID2, models.HostRoleMaster, models.HostStatusKnown, "kind", clusterID, clusterID,
+			getInventoryStr("host2", "bios", "192.168.1.2/24"), db)
+
+		cfg.IPv6Support = false
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+
+		Expect(networks).To(HaveLen(1))
+		Expect(networks[0].Cidr).To(Equal("192.168.1.0/24"))
+		Expect(networks[0].HostIds).To(ContainElements(hostID1, hostID2))
+	})
+
+	It("skips networks when not all hosts with inventory are connected", func() {
+		hostID1 := strfmt.UUID(uuid.New().String())
+		hostID2 := strfmt.UUID(uuid.New().String())
+		hostID3 := strfmt.UUID(uuid.New().String())
+
+		addHost(hostID1, models.HostRoleMaster, models.HostStatusKnown, "kind", clusterID, clusterID,
+			getInventoryStr("h1", "bios", "172.16.0.1/16"), db)
+		addHost(hostID2, models.HostRoleMaster, models.HostStatusKnown, "kind", clusterID, clusterID,
+			getInventoryStr("h2", "bios", "172.16.0.2/16"), db)
+
+		addHost(hostID3, models.HostRoleMaster, models.HostStatusKnown, "kind", clusterID, clusterID,
+			getInventoryStr("h3", "bios", "10.10.0.1/24"), db)
+
+		cfg.IPv6Support = false
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+
+		Expect(networks).To(HaveLen(0))
 	})
 })
 
