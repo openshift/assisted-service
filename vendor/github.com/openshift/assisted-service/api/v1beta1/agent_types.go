@@ -188,7 +188,11 @@ type AgentSpec struct {
 	MachineConfigPool     string            `json:"machineConfigPool,omitempty"`
 	Approved              bool              `json:"approved"`
 	// InstallationDiskID defines the installation destination disk (must be equal to the inventory disk id).
+	// +optional
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
+	// InstallationDiskByPath defines the installation destination disk using its by-path value.
+	// +optional
+	InstallationDiskByPath string `json:"installation_disk_by_path,omitempty"`
 	// Json formatted string containing the user overrides for the host's coreos installer args
 	InstallerArgs string `json:"installerArgs,omitempty"`
 	// Json formatted string containing the user overrides for the host's ignition config

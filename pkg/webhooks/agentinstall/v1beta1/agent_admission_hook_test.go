@@ -220,6 +220,94 @@ var _ = Describe("agent web validate", func() {
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
+		{
+			name: "Test Agent create does not fail when both InstallationDiskID and InstallationDiskByPath are not set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test Agent create does fail when both InstallationDiskID and InstallationDiskByPath are set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "installationDiskID",
+				InstallationDiskByPath: "installationDiskByPath",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test Agent create does not fail when only InstallationDiskID is set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "installationDiskID",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test Agent create does not fail when only InstallationDiskByPath is set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "installationDiskByPath",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test Agent update does not fail when both InstallationDiskID and InstallationDiskByPath are not set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			oldSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test Agent update does fail when both InstallationDiskID and InstallationDiskByPath are set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "installationDiskID",
+				InstallationDiskByPath: "installationDiskByPath",
+			},
+			oldSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test Agent update does not fail when only InstallationDiskID is set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "installationDiskID",
+				InstallationDiskByPath: "",
+			},
+			oldSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test Agent update does not fail when only InstallationDiskByPath is set",
+			newSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "installationDiskByPath",
+			},
+			oldSpec: v1beta1.AgentSpec{
+				InstallationDiskID:     "",
+				InstallationDiskByPath: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
 	}
 
 	for i := range cases {
