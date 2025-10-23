@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.21
+go 1.24
 
 require (
 	github.com/IBM/netaddr v1.5.0
@@ -47,7 +47,7 @@ require (
 	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.34.1
-	github.com/openshift-online/ocm-sdk-go v0.1.467
+	github.com/openshift-online/ocm-sdk-go v0.1.480
 	github.com/openshift/api v0.0.0-20240521212423-414cf30d37be
 	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
 	github.com/openshift/assisted-service/api v0.0.0
@@ -132,6 +132,8 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.435 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.435 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect

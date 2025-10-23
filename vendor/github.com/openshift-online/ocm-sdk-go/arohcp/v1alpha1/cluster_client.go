@@ -51,11 +51,21 @@ func NewClusterClient(transport http.RoundTripper, path string) *ClusterClient {
 	}
 }
 
-// Delete creates a request for the 'delete' method.
+// Delete creates a request for the 'async_delete' method.
 //
 // Deletes the cluster.
 func (c *ClusterClient) Delete() *ClusterDeleteRequest {
 	return &ClusterDeleteRequest{
+		transport: c.transport,
+		path:      c.path,
+	}
+}
+
+// Update creates a request for the 'async_update' method.
+//
+// Updates the cluster.
+func (c *ClusterClient) Update() *ClusterUpdateRequest {
+	return &ClusterUpdateRequest{
 		transport: c.transport,
 		path:      c.path,
 	}
@@ -71,14 +81,22 @@ func (c *ClusterClient) Get() *ClusterGetRequest {
 	}
 }
 
-// Update creates a request for the 'update' method.
+// Autoscaler returns the target 'autoscaler' resource.
+func (c *ClusterClient) Autoscaler() *AutoscalerClient {
+	return NewAutoscalerClient(
+		c.transport,
+		path.Join(c.path, "autoscaler"),
+	)
+}
+
+// ExternalAuthConfig returns the target 'external_auth_config' resource.
 //
-// Updates the cluster.
-func (c *ClusterClient) Update() *ClusterUpdateRequest {
-	return &ClusterUpdateRequest{
-		transport: c.transport,
-		path:      c.path,
-	}
+// Reference to the resource that manages the external authentication configuration.
+func (c *ClusterClient) ExternalAuthConfig() *ExternalAuthConfigClient {
+	return NewExternalAuthConfigClient(
+		c.transport,
+		path.Join(c.path, "external_auth_config"),
+	)
 }
 
 // InflightChecks returns the target 'inflight_checks' resource.
@@ -92,6 +110,8 @@ func (c *ClusterClient) InflightChecks() *InflightChecksClient {
 }
 
 // NodePools returns the target 'node_pools' resource.
+//
+// Reference to the resource that manages the collection of node pool resources.
 func (c *ClusterClient) NodePools() *NodePoolsClient {
 	return NewNodePoolsClient(
 		c.transport,
@@ -100,6 +120,8 @@ func (c *ClusterClient) NodePools() *NodePoolsClient {
 }
 
 // Status returns the target 'cluster_status' resource.
+//
+// Reference to the resource that manages the detailed status of the cluster.
 func (c *ClusterClient) Status() *ClusterStatusClient {
 	return NewClusterStatusClient(
 		c.transport,
@@ -224,14 +246,15 @@ func (c *ClusterClient) Poll() *ClusterPollRequest {
 	}
 }
 
-// ClusterDeleteRequest is the request for the 'delete' method.
+// ClusterDeleteRequest is the request for the 'async_delete' method.
 type ClusterDeleteRequest struct {
-	transport  http.RoundTripper
-	path       string
-	query      url.Values
-	header     http.Header
-	bestEffort *bool
-	dryRun     *bool
+	transport   http.RoundTripper
+	path        string
+	query       url.Values
+	header      http.Header
+	bestEffort  *bool
+	deprovision *bool
+	dryRun      *bool
 }
 
 // Parameter adds a query parameter.
@@ -261,6 +284,15 @@ func (r *ClusterDeleteRequest) BestEffort(value bool) *ClusterDeleteRequest {
 	return r
 }
 
+// Deprovision sets the value of the 'deprovision' parameter.
+//
+// If false it will only delete from OCM but not the actual cluster resources.
+// false is only allowed for OCP clusters. true by default.
+func (r *ClusterDeleteRequest) Deprovision(value bool) *ClusterDeleteRequest {
+	r.deprovision = &value
+	return r
+}
+
 // DryRun sets the value of the 'dry_run' parameter.
 //
 // Dry run flag is used to check if the operation can be completed, but won't delete.
@@ -282,6 +314,9 @@ func (r *ClusterDeleteRequest) SendContext(ctx context.Context) (result *Cluster
 	query := helpers.CopyQuery(r.query)
 	if r.bestEffort != nil {
 		helpers.AddValue(&query, "best_effort", *r.bestEffort)
+	}
+	if r.deprovision != nil {
+		helpers.AddValue(&query, "deprovision", *r.deprovision)
 	}
 	if r.dryRun != nil {
 		helpers.AddValue(&query, "dry_run", *r.dryRun)
@@ -324,7 +359,7 @@ func (r *ClusterDeleteRequest) SendContext(ctx context.Context) (result *Cluster
 	return
 }
 
-// ClusterDeleteResponse is the response for the 'delete' method.
+// ClusterDeleteResponse is the response for the 'async_delete' method.
 type ClusterDeleteResponse struct {
 	status int
 	header http.Header
@@ -353,6 +388,149 @@ func (r *ClusterDeleteResponse) Error() *errors.Error {
 		return nil
 	}
 	return r.err
+}
+
+// ClusterUpdateRequest is the request for the 'async_update' method.
+type ClusterUpdateRequest struct {
+	transport http.RoundTripper
+	path      string
+	query     url.Values
+	header    http.Header
+	body      *Cluster
+}
+
+// Parameter adds a query parameter.
+func (r *ClusterUpdateRequest) Parameter(name string, value interface{}) *ClusterUpdateRequest {
+	helpers.AddValue(&r.query, name, value)
+	return r
+}
+
+// Header adds a request header.
+func (r *ClusterUpdateRequest) Header(name string, value interface{}) *ClusterUpdateRequest {
+	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterUpdateRequest) Impersonate(user string) *ClusterUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// Body sets the value of the 'body' parameter.
+func (r *ClusterUpdateRequest) Body(value *Cluster) *ClusterUpdateRequest {
+	r.body = value
+	return r
+}
+
+// Send sends this request, waits for the response, and returns it.
+//
+// This is a potentially lengthy operation, as it requires network communication.
+// Consider using a context and the SendContext method.
+func (r *ClusterUpdateRequest) Send() (result *ClusterUpdateResponse, err error) {
+	return r.SendContext(context.Background())
+}
+
+// SendContext sends this request, waits for the response, and returns it.
+func (r *ClusterUpdateRequest) SendContext(ctx context.Context) (result *ClusterUpdateResponse, err error) {
+	query := helpers.CopyQuery(r.query)
+	header := helpers.CopyHeader(r.header)
+	buffer := &bytes.Buffer{}
+	err = writeClusterAsyncUpdateRequest(r, buffer)
+	if err != nil {
+		return
+	}
+	uri := &url.URL{
+		Path:     r.path,
+		RawQuery: query.Encode(),
+	}
+	request := &http.Request{
+		Method: "PATCH",
+		URL:    uri,
+		Header: header,
+		Body:   io.NopCloser(buffer),
+	}
+	if ctx != nil {
+		request = request.WithContext(ctx)
+	}
+	response, err := r.transport.RoundTrip(request)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	result = &ClusterUpdateResponse{}
+	result.status = response.StatusCode
+	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
+	if result.status >= 400 {
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
+		if err != nil {
+			return
+		}
+		err = result.err
+		return
+	}
+	err = readClusterAsyncUpdateResponse(result, reader)
+	if err != nil {
+		return
+	}
+	return
+}
+
+// ClusterUpdateResponse is the response for the 'async_update' method.
+type ClusterUpdateResponse struct {
+	status int
+	header http.Header
+	err    *errors.Error
+	body   *Cluster
+}
+
+// Status returns the response status code.
+func (r *ClusterUpdateResponse) Status() int {
+	if r == nil {
+		return 0
+	}
+	return r.status
+}
+
+// Header returns header of the response.
+func (r *ClusterUpdateResponse) Header() http.Header {
+	if r == nil {
+		return nil
+	}
+	return r.header
+}
+
+// Error returns the response error.
+func (r *ClusterUpdateResponse) Error() *errors.Error {
+	if r == nil {
+		return nil
+	}
+	return r.err
+}
+
+// Body returns the value of the 'body' parameter.
+func (r *ClusterUpdateResponse) Body() *Cluster {
+	if r == nil {
+		return nil
+	}
+	return r.body
+}
+
+// GetBody returns the value of the 'body' parameter and
+// a flag indicating if the parameter has a value.
+func (r *ClusterUpdateResponse) GetBody() (value *Cluster, ok bool) {
+	ok = r != nil && r.body != nil
+	if ok {
+		value = r.body
+	}
+	return
 }
 
 // ClusterGetRequest is the request for the 'get' method.
@@ -478,149 +656,6 @@ func (r *ClusterGetResponse) Body() *Cluster {
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
 func (r *ClusterGetResponse) GetBody() (value *Cluster, ok bool) {
-	ok = r != nil && r.body != nil
-	if ok {
-		value = r.body
-	}
-	return
-}
-
-// ClusterUpdateRequest is the request for the 'update' method.
-type ClusterUpdateRequest struct {
-	transport http.RoundTripper
-	path      string
-	query     url.Values
-	header    http.Header
-	body      *Cluster
-}
-
-// Parameter adds a query parameter.
-func (r *ClusterUpdateRequest) Parameter(name string, value interface{}) *ClusterUpdateRequest {
-	helpers.AddValue(&r.query, name, value)
-	return r
-}
-
-// Header adds a request header.
-func (r *ClusterUpdateRequest) Header(name string, value interface{}) *ClusterUpdateRequest {
-	helpers.AddHeader(&r.header, name, value)
-	return r
-}
-
-// Impersonate wraps requests on behalf of another user.
-// Note: Services that do not support this feature may silently ignore this call.
-func (r *ClusterUpdateRequest) Impersonate(user string) *ClusterUpdateRequest {
-	helpers.AddImpersonationHeader(&r.header, user)
-	return r
-}
-
-// Body sets the value of the 'body' parameter.
-func (r *ClusterUpdateRequest) Body(value *Cluster) *ClusterUpdateRequest {
-	r.body = value
-	return r
-}
-
-// Send sends this request, waits for the response, and returns it.
-//
-// This is a potentially lengthy operation, as it requires network communication.
-// Consider using a context and the SendContext method.
-func (r *ClusterUpdateRequest) Send() (result *ClusterUpdateResponse, err error) {
-	return r.SendContext(context.Background())
-}
-
-// SendContext sends this request, waits for the response, and returns it.
-func (r *ClusterUpdateRequest) SendContext(ctx context.Context) (result *ClusterUpdateResponse, err error) {
-	query := helpers.CopyQuery(r.query)
-	header := helpers.CopyHeader(r.header)
-	buffer := &bytes.Buffer{}
-	err = writeClusterUpdateRequest(r, buffer)
-	if err != nil {
-		return
-	}
-	uri := &url.URL{
-		Path:     r.path,
-		RawQuery: query.Encode(),
-	}
-	request := &http.Request{
-		Method: "PATCH",
-		URL:    uri,
-		Header: header,
-		Body:   io.NopCloser(buffer),
-	}
-	if ctx != nil {
-		request = request.WithContext(ctx)
-	}
-	response, err := r.transport.RoundTrip(request)
-	if err != nil {
-		return
-	}
-	defer response.Body.Close()
-	result = &ClusterUpdateResponse{}
-	result.status = response.StatusCode
-	result.header = response.Header
-	reader := bufio.NewReader(response.Body)
-	_, err = reader.Peek(1)
-	if err == io.EOF {
-		err = nil
-		return
-	}
-	if result.status >= 400 {
-		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
-		if err != nil {
-			return
-		}
-		err = result.err
-		return
-	}
-	err = readClusterUpdateResponse(result, reader)
-	if err != nil {
-		return
-	}
-	return
-}
-
-// ClusterUpdateResponse is the response for the 'update' method.
-type ClusterUpdateResponse struct {
-	status int
-	header http.Header
-	err    *errors.Error
-	body   *Cluster
-}
-
-// Status returns the response status code.
-func (r *ClusterUpdateResponse) Status() int {
-	if r == nil {
-		return 0
-	}
-	return r.status
-}
-
-// Header returns header of the response.
-func (r *ClusterUpdateResponse) Header() http.Header {
-	if r == nil {
-		return nil
-	}
-	return r.header
-}
-
-// Error returns the response error.
-func (r *ClusterUpdateResponse) Error() *errors.Error {
-	if r == nil {
-		return nil
-	}
-	return r.err
-}
-
-// Body returns the value of the 'body' parameter.
-func (r *ClusterUpdateResponse) Body() *Cluster {
-	if r == nil {
-		return nil
-	}
-	return r.body
-}
-
-// GetBody returns the value of the 'body' parameter and
-// a flag indicating if the parameter has a value.
-func (r *ClusterUpdateResponse) GetBody() (value *Cluster, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
 		value = r.body

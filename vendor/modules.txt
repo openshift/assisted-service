@@ -671,8 +671,39 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/openshift-online/ocm-sdk-go v0.1.467
-## explicit; go 1.21
+# github.com/openshift-online/ocm-api-model/clientapi v0.0.435
+## explicit; go 1.23.0
+github.com/openshift-online/ocm-api-model/clientapi/accesstransparency/v1
+github.com/openshift-online/ocm-api-model/clientapi/accountsmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/addonsmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/arohcp/v1alpha1
+github.com/openshift-online/ocm-api-model/clientapi/authorizations/v1
+github.com/openshift-online/ocm-api-model/clientapi/clustersmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/dependencymagnet
+github.com/openshift-online/ocm-api-model/clientapi/helpers
+github.com/openshift-online/ocm-api-model/clientapi/jobqueue/v1
+github.com/openshift-online/ocm-api-model/clientapi/osdfleetmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/servicelogs/v1
+github.com/openshift-online/ocm-api-model/clientapi/servicemgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/statusboard/v1
+github.com/openshift-online/ocm-api-model/clientapi/webrca/v1
+# github.com/openshift-online/ocm-api-model/model v0.0.435
+## explicit; go 1.23.0
+github.com/openshift-online/ocm-api-model/model/access_transparency/v1
+github.com/openshift-online/ocm-api-model/model/accounts_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/addons_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/aro_hcp/v1alpha1
+github.com/openshift-online/ocm-api-model/model/authorizations/v1
+github.com/openshift-online/ocm-api-model/model/clusters_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/dependencymagnet
+github.com/openshift-online/ocm-api-model/model/job_queue/v1
+github.com/openshift-online/ocm-api-model/model/osd_fleet_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/service_logs/v1
+github.com/openshift-online/ocm-api-model/model/service_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/status_board/v1
+github.com/openshift-online/ocm-api-model/model/web_rca/v1
+# github.com/openshift-online/ocm-sdk-go v0.1.480
+## explicit; go 1.23.0
 github.com/openshift-online/ocm-sdk-go
 github.com/openshift-online/ocm-sdk-go/accesstransparency
 github.com/openshift-online/ocm-sdk-go/accesstransparency/v1

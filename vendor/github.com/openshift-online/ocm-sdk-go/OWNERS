@@ -13,6 +13,8 @@ approvers:
 - nimrodshn
 - oriAdler
 - tzvatot
+- cristianoveiga
+- macgregor
 reviewers:
 - ciaranRoche
 - davidleerh
@@ -21,3 +23,5 @@ reviewers:
 - nimrodshn
 - oriAdler
 - tzvatot
+- cristianoveiga
+- macgregor
