@@ -39,6 +39,7 @@ type ManifestsGeneratorAPI interface {
 type Config struct {
 	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
 	EnableSingleNodeDnsmasq bool   `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
+	DiskEncryptionCipher    string `envconfig:"DISK_ENCRYPTION_CIPHER" default:"aes-xts-plain64"`
 }
 
 type ManifestsGenerator struct {
@@ -293,7 +294,7 @@ spec:
                 thumbprint: {{ .Thumbprint }}
             {{- end }}
 		  {{- end }}
-          options: [--cipher, aes-cbc-essiv:sha256]
+          options: [--cipher, {{ .CIPHER }}]
           wipeVolume: true
       filesystems:
         - device: /dev/mapper/root
@@ -331,7 +332,9 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		return nil
 	}
 
-	manifestParams := map[string]interface{}{}
+	manifestParams := map[string]interface{}{
+		"CIPHER": m.Config.DiskEncryptionCipher,
+	}
 
 	switch *c.DiskEncryption.Mode {
 
