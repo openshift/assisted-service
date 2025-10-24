@@ -6,6 +6,33 @@ import (
 	"github.com/pkg/errors"
 )
 
+// extractFirstIPAndType extracts the first IP and network type from any network list
+func extractFirstIPAndType(networks interface{}) (string, string) {
+	switch v := networks.(type) {
+	case []*models.MachineNetwork:
+		if len(v) > 0 && v[0] != nil {
+			return string(v[0].Cidr), "machine_networks"
+		}
+	case []*models.ServiceNetwork:
+		if len(v) > 0 && v[0] != nil {
+			return string(v[0].Cidr), "service_networks"
+		}
+	case []*models.ClusterNetwork:
+		if len(v) > 0 && v[0] != nil {
+			return string(v[0].Cidr), "cluster_networks"
+		}
+	case []*models.APIVip:
+		if len(v) > 0 && v[0] != nil {
+			return string(v[0].IP), "api_vips"
+		}
+	case []*models.IngressVip:
+		if len(v) > 0 && v[0] != nil {
+			return string(v[0].IP), "ingress_vips"
+		}
+	}
+	return "", ""
+}
+
 // GetPrimaryIPStack analyzes the provided networks and VIPs to determine
 // the primary IP stack based on which IP family appears first in the lists
 func GetPrimaryIPStack(
@@ -21,38 +48,33 @@ func GetPrimaryIPStack(
 	networkTypeMap := make(map[string]string)
 
 	// Machine Networks
-	if len(machineNetworks) > 0 && machineNetworks[0] != nil {
-		ip := string(machineNetworks[0].Cidr)
+	if ip, networkType := extractFirstIPAndType(machineNetworks); ip != "" {
 		firstIPs = append(firstIPs, ip)
-		networkTypeMap[ip] = "machine_networks"
+		networkTypeMap[ip] = networkType
 	}
 
 	// API VIPs
-	if len(apiVips) > 0 && apiVips[0] != nil {
-		ip := string(apiVips[0].IP)
+	if ip, networkType := extractFirstIPAndType(apiVips); ip != "" {
 		firstIPs = append(firstIPs, ip)
-		networkTypeMap[ip] = "api_vips"
+		networkTypeMap[ip] = networkType
 	}
 
 	// Ingress VIPs
-	if len(ingressVips) > 0 && ingressVips[0] != nil {
-		ip := string(ingressVips[0].IP)
+	if ip, networkType := extractFirstIPAndType(ingressVips); ip != "" {
 		firstIPs = append(firstIPs, ip)
-		networkTypeMap[ip] = "ingress_vips"
+		networkTypeMap[ip] = networkType
 	}
 
 	// Service Networks
-	if len(serviceNetworks) > 0 && serviceNetworks[0] != nil {
-		ip := string(serviceNetworks[0].Cidr)
+	if ip, networkType := extractFirstIPAndType(serviceNetworks); ip != "" {
 		firstIPs = append(firstIPs, ip)
-		networkTypeMap[ip] = "service_networks"
+		networkTypeMap[ip] = networkType
 	}
 
 	// Cluster Networks
-	if len(clusterNetworks) > 0 && clusterNetworks[0] != nil {
-		ip := string(clusterNetworks[0].Cidr)
+	if ip, networkType := extractFirstIPAndType(clusterNetworks); ip != "" {
 		firstIPs = append(firstIPs, ip)
-		networkTypeMap[ip] = "cluster_networks"
+		networkTypeMap[ip] = networkType
 	}
 
 	if len(firstIPs) == 0 {
@@ -91,6 +113,73 @@ func GetPrimaryIPStack(
 	}
 
 	return primaryStack, nil
+}
+
+// ValidateDualStackPartialUpdate validates that updated networks are consistent with existing PrimaryIPStack
+func ValidateDualStackPartialUpdate(
+	machineNetworks []*models.MachineNetwork,
+	apiVips []*models.APIVip,
+	ingressVips []*models.IngressVip,
+	serviceNetworks []*models.ServiceNetwork,
+	clusterNetworks []*models.ClusterNetwork,
+	expectedStack common.PrimaryIPStack,
+) error {
+	// Check each updated network type
+	if machineNetworks != nil {
+		if err := validateDualStackNetworkConsistency(machineNetworks, expectedStack); err != nil {
+			return err
+		}
+	}
+	if apiVips != nil {
+		if err := validateDualStackNetworkConsistency(apiVips, expectedStack); err != nil {
+			return err
+		}
+	}
+	if ingressVips != nil {
+		if err := validateDualStackNetworkConsistency(ingressVips, expectedStack); err != nil {
+			return err
+		}
+	}
+	if serviceNetworks != nil {
+		if err := validateDualStackNetworkConsistency(serviceNetworks, expectedStack); err != nil {
+			return err
+		}
+	}
+	if clusterNetworks != nil {
+		if err := validateDualStackNetworkConsistency(clusterNetworks, expectedStack); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateDualStackNetworkConsistency checks if a network list is consistent with the expected primary IP stack
+func validateDualStackNetworkConsistency(networks interface{}, expectedStack common.PrimaryIPStack) error {
+	// Get the first IP from the network list
+	firstIP, actualNetworkType := extractFirstIPAndType(networks)
+
+	if firstIP == "" {
+		return nil // No networks to validate
+	}
+
+	// Determine the actual IP family of the first IP
+	var actualStack common.PrimaryIPStack
+	if IsIPV4CIDR(firstIP) || IsIPv4Addr(firstIP) {
+		actualStack = common.PrimaryIPStackV4
+	} else if IsIPv6CIDR(firstIP) || IsIPv6Addr(firstIP) {
+		actualStack = common.PrimaryIPStackV6
+	} else {
+		return nil // Invalid IP, skip validation
+	}
+
+	// Check consistency
+	if actualStack != expectedStack {
+		return errors.Errorf("Inconsistent IP family order: %s first IP is %s but existing primary IP stack is %s. All networks must have the same IP family first",
+			actualNetworkType, firstIP, expectedStack)
+	}
+
+	return nil
 }
 
 // supportsIPv6PrimaryDualStack checks if the OpenShift version supports IPv6-primary dual-stack

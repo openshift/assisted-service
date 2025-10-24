@@ -325,6 +325,51 @@ func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
 	return nil
 }
 
+// updatePrimaryIPStack handles primary IP stack validation and calculation for network changes
+// Returns true if PrimaryIPStack was updated, false otherwise
+func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClusterParams, cluster *common.Cluster) (bool, error) {
+	// Only set primary IP stack if any networks or VIPs were actually updated
+	primaryIPStackNeedsUpdate := params.ClusterUpdateParams.ClusterNetworks != nil ||
+		params.ClusterUpdateParams.ServiceNetworks != nil ||
+		params.ClusterUpdateParams.MachineNetworks != nil ||
+		params.ClusterUpdateParams.APIVips != nil ||
+		params.ClusterUpdateParams.IngressVips != nil
+
+	if !primaryIPStackNeedsUpdate {
+		return false, nil
+	}
+
+	if (params.ClusterUpdateParams.ClusterNetworks != nil &&
+		params.ClusterUpdateParams.ServiceNetworks != nil &&
+		params.ClusterUpdateParams.MachineNetworks != nil &&
+		params.ClusterUpdateParams.APIVips != nil &&
+		params.ClusterUpdateParams.IngressVips != nil) || cluster.PrimaryIPStack == nil {
+		// Recalculate from scratch for full updates or new clusters
+		err := b.setPrimaryIPStack(cluster)
+		if err != nil {
+			b.log.WithError(err).Errorf("cluster update failed: unable to set primary IP stack")
+			return false, common.NewApiError(http.StatusBadRequest, err)
+		}
+		return true, nil // PrimaryIPStack was updated
+	}
+
+	// For partial updates, validate against existing PrimaryIPStack
+	err := network.ValidateDualStackPartialUpdate(
+		params.ClusterUpdateParams.MachineNetworks,
+		params.ClusterUpdateParams.APIVips,
+		params.ClusterUpdateParams.IngressVips,
+		params.ClusterUpdateParams.ServiceNetworks,
+		params.ClusterUpdateParams.ClusterNetworks,
+		*cluster.PrimaryIPStack,
+	)
+	if err != nil {
+		b.log.WithError(err).Errorf("cluster update failed: partial update inconsistent with existing primary IP stack")
+		return false, common.NewApiError(http.StatusBadRequest, err)
+	}
+	// Keep existing PrimaryIPStack - no update needed
+	return false, nil
+}
+
 func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
 	return b.secretValidator.ValidatePullSecret(additionalPublicRegistries, secret, username, releaseImageURL)
 }
@@ -2965,19 +3010,14 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 		return err
 	}
 
-	// Only set primary IP stack if any networks or VIPs were actually updated
-	if primaryIPStackNeedsUpdate := params.ClusterUpdateParams.ClusterNetworks != nil ||
-		params.ClusterUpdateParams.ServiceNetworks != nil ||
-		params.ClusterUpdateParams.MachineNetworks != nil ||
-		params.ClusterUpdateParams.APIVips != nil ||
-		params.ClusterUpdateParams.IngressVips != nil; primaryIPStackNeedsUpdate {
+	// Handle primary IP stack updates
+	primaryIPStackUpdated, err := b.updatePrimaryIPStack(params, cluster)
+	if err != nil {
+		return err
+	}
 
-		err = b.setPrimaryIPStack(cluster)
-		if err != nil {
-			log.WithError(err).Errorf("cluster update failed: unable to set primary IP stack")
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-
+	// Update the primary_ip_stack field only if it was actually updated
+	if primaryIPStackUpdated {
 		if cluster.PrimaryIPStack != nil {
 			updates["primary_ip_stack"] = *cluster.PrimaryIPStack
 		} else {

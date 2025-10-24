@@ -441,4 +441,103 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 			Expect(ip).To(Equal(""))
 		})
 	})
+
+	Describe("ValidateDualStackPartialUpdate", func() {
+		Context("IPv4 primary stack", func() {
+			It("should validate consistent IPv4-first networks", func() {
+				machineNetworks := []*models.MachineNetwork{
+					{Cidr: "10.0.0.0/16"}, // IPv4 first
+					{Cidr: "2001:db8::/64"},
+				}
+				apiVips := []*models.APIVip{
+					{IP: "10.0.1.1"}, // IPv4 first
+					{IP: "2001:db8::1"},
+				}
+
+				err := ValidateDualStackPartialUpdate(
+					machineNetworks,
+					apiVips,
+					nil, // ingressVips
+					nil, // serviceNetworks
+					nil, // clusterNetworks
+					common.PrimaryIPStackV4,
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should reject inconsistent IPv6-first networks", func() {
+				machineNetworks := []*models.MachineNetwork{
+					{Cidr: "2001:db8::/64"}, // IPv6 first - inconsistent!
+					{Cidr: "10.0.0.0/16"},
+				}
+
+				err := ValidateDualStackPartialUpdate(
+					machineNetworks,
+					nil, // apiVips
+					nil, // ingressVips
+					nil, // serviceNetworks
+					nil, // clusterNetworks
+					common.PrimaryIPStackV4,
+				)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
+				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is ipv4"))
+			})
+
+			It("should handle nil network parameters", func() {
+				err := ValidateDualStackPartialUpdate(
+					nil, // machineNetworks
+					nil, // apiVips
+					nil, // ingressVips
+					nil, // serviceNetworks
+					nil, // clusterNetworks
+					common.PrimaryIPStackV4,
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+		})
+
+		Context("IPv6 primary stack", func() {
+			It("should validate consistent IPv6-first networks", func() {
+				serviceNetworks := []*models.ServiceNetwork{
+					{Cidr: "2001:db8:1::/64"}, // IPv6 first
+					{Cidr: "172.30.0.0/16"},
+				}
+				clusterNetworks := []*models.ClusterNetwork{
+					{Cidr: "2001:db8:2::/64"}, // IPv6 first
+					{Cidr: "10.128.0.0/14"},
+				}
+
+				err := ValidateDualStackPartialUpdate(
+					nil, // machineNetworks
+					nil, // apiVips
+					nil, // ingressVips
+					serviceNetworks,
+					clusterNetworks,
+					common.PrimaryIPStackV6,
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should reject inconsistent IPv4-first networks", func() {
+				apiVips := []*models.APIVip{
+					{IP: "10.0.1.1"}, // IPv4 first - inconsistent!
+					{IP: "2001:db8::1"},
+				}
+
+				err := ValidateDualStackPartialUpdate(
+					nil, // machineNetworks
+					apiVips,
+					nil, // ingressVips
+					nil, // serviceNetworks
+					nil, // clusterNetworks
+					common.PrimaryIPStackV6,
+				)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
+				Expect(err.Error()).To(ContainSubstring("api_vips first IP is 10.0.1.1 but existing primary IP stack is ipv6"))
+			})
+		})
+	})
+
 })
