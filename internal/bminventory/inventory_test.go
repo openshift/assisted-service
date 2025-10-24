@@ -19682,6 +19682,108 @@ var _ = Describe("Dual-stack cluster", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 			})
+
+			It("v2UpdateClusterInternal should handle partial updates consistently", func() {
+				// First, create a cluster with IPv4-first dual-stack
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+				mockClusterUpdateSuccess(2, 0)
+
+				// Full update to create IPv4-first cluster
+				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "10.128.0.0/14", HostPrefix: 23}, // IPv4 first
+					{Cidr: "2001:db8::/53", HostPrefix: 64},
+				}
+				params.ClusterUpdateParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "172.30.0.0/16"}, // IPv4 first
+					{Cidr: "2001:db9::/112"},
+				}
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "192.168.126.0/24"}, // IPv4 first
+					{Cidr: "2001:db9::/120"},
+				}
+				params.ClusterUpdateParams.APIVips = []*models.APIVip{
+					{IP: "192.168.126.1"}, // IPv4 first
+					{IP: "2001:db9::1"},
+				}
+				params.ClusterUpdateParams.IngressVips = []*models.IngressVip{
+					{IP: "192.168.126.2"}, // IPv4 first
+					{IP: "2001:db9::2"},
+				}
+
+				_, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify PrimaryIPStack is set to IPv4
+				var dbCluster common.Cluster
+				err = db.First(&dbCluster, "id = ?", cluster412ID).Error
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbCluster.PrimaryIPStack).NotTo(BeNil())
+				Expect(*dbCluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4))
+
+				// Now test partial update - only update machine networks with consistent IPv4-first
+				params.ClusterUpdateParams = &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "10.0.0.0/16"}, // IPv4 first - consistent
+						{Cidr: "2001:db8::/64"},
+					},
+				}
+
+				updatedCluster, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Verify PrimaryIPStack remains IPv4 (no change)
+				err = db.First(&dbCluster, "id = ?", cluster412ID).Error
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dbCluster.PrimaryIPStack).NotTo(BeNil())
+				Expect(*dbCluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4))
+
+				// Verify machine networks were updated
+				Expect(string(updatedCluster.MachineNetworks[0].Cidr)).To(Equal("10.0.0.0/16"))
+			})
+
+			It("v2UpdateClusterInternal should reject partial updates with inconsistent IP family order", func() {
+				// First, create a cluster with IPv4-first dual-stack
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Times(2)
+				mockClusterUpdateSuccess(1, 0)
+
+				// Full update to create IPv4-first cluster
+				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "10.128.0.0/14", HostPrefix: 23}, // IPv4 first
+					{Cidr: "2001:db8::/53", HostPrefix: 64},
+				}
+				params.ClusterUpdateParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "172.30.0.0/16"}, // IPv4 first
+					{Cidr: "2001:db9::/112"},
+				}
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "192.168.126.0/24"}, // IPv4 first
+					{Cidr: "2001:db9::/120"},
+				}
+				params.ClusterUpdateParams.APIVips = []*models.APIVip{
+					{IP: "192.168.126.1"}, // IPv4 first
+					{IP: "2001:db9::1"},
+				}
+				params.ClusterUpdateParams.IngressVips = []*models.IngressVip{
+					{IP: "192.168.126.2"}, // IPv4 first
+					{IP: "2001:db9::2"},
+				}
+
+				_, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).NotTo(HaveOccurred())
+
+				// Now test partial update - update machine networks with inconsistent IPv6-first
+				params.ClusterUpdateParams = &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "2001:db8::/64"}, // IPv6 first - inconsistent!
+						{Cidr: "10.0.0.0/16"},
+					},
+				}
+
+				_, err = bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
+				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is ipv4"))
+			})
 		})
 
 		Context("Cluster with single network when two required", func() {
@@ -21573,6 +21675,164 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 				// Networks should remain unchanged
 				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
 				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
+			})
+		})
+	})
+
+	Describe("updatePrimaryIPStack", func() {
+		var (
+			cluster *common.Cluster
+			params  installer.V2UpdateClusterParams
+		)
+
+		BeforeEach(func() {
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &clusterID,
+					OpenshiftVersion: "4.12.0",
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "10.0.0.0/16"}, // IPv4 first
+						{Cidr: "2001:db8::/64"},
+					},
+					APIVips: []*models.APIVip{
+						{IP: "10.0.1.1"}, // IPv4 first
+						{IP: "2001:db8::1"},
+					},
+					ServiceNetworks: []*models.ServiceNetwork{
+						{Cidr: "172.30.0.0/16"}, // IPv4 first
+						{Cidr: "2001:db8:1::/64"},
+					},
+					ClusterNetworks: []*models.ClusterNetwork{
+						{Cidr: "10.128.0.0/14"}, // IPv4 first
+						{Cidr: "2001:db8:2::/64"},
+					},
+				},
+				PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV4}[0],
+			}
+
+			params = installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{},
+			}
+		})
+
+		Context("No network updates", func() {
+			It("should return false when no networks are updated", func() {
+				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated).To(BeFalse())
+			})
+		})
+
+		Context("Full network updates", func() {
+			BeforeEach(func() {
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/64"}, // IPv6 first
+					{Cidr: "192.168.1.0/24"},
+				}
+				params.ClusterUpdateParams.APIVips = []*models.APIVip{
+					{IP: "2001:db9::1"}, // IPv6 first
+					{IP: "192.168.1.1"},
+				}
+				params.ClusterUpdateParams.IngressVips = []*models.IngressVip{
+					{IP: "2001:db9::2"}, // IPv6 first
+					{IP: "192.168.1.2"},
+				}
+				params.ClusterUpdateParams.ServiceNetworks = []*models.ServiceNetwork{
+					{Cidr: "2001:db9:1::/64"}, // IPv6 first
+					{Cidr: "172.30.1.0/16"},
+				}
+				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
+					{Cidr: "2001:db9:2::/64"}, // IPv6 first
+					{Cidr: "10.128.1.0/14"},
+				}
+
+				// Update cluster networks to match the params (simulating what updateNetworks would do)
+				cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+				cluster.APIVips = params.ClusterUpdateParams.APIVips
+				cluster.IngressVips = params.ClusterUpdateParams.IngressVips
+				cluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
+				cluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
+			})
+
+			It("should recalculate PrimaryIPStack for full updates", func() {
+				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated).To(BeTrue())
+				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
+				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+			})
+		})
+
+		Context("Partial network updates", func() {
+			Context("Consistent updates", func() {
+				BeforeEach(func() {
+					params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"}, // IPv4 first - consistent
+						{Cidr: "2001:db9::/64"},
+					}
+				})
+
+				It("should validate and keep existing PrimaryIPStack", func() {
+					updated, err := bm.updatePrimaryIPStack(params, cluster)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(updated).To(BeFalse()) // No update needed
+					Expect(cluster.PrimaryIPStack).ToNot(BeNil())
+					Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4)) // Unchanged
+				})
+			})
+
+			Context("Inconsistent updates", func() {
+				BeforeEach(func() {
+					params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+						{Cidr: "2001:db9::/64"}, // IPv6 first - inconsistent!
+						{Cidr: "192.168.1.0/24"},
+					}
+				})
+
+				It("should return error for inconsistent partial update", func() {
+					updated, err := bm.updatePrimaryIPStack(params, cluster)
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
+					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is ipv4"))
+					Expect(updated).To(BeFalse())
+				})
+			})
+		})
+
+		Context("New cluster without PrimaryIPStack", func() {
+			BeforeEach(func() {
+				// Create a truly new cluster with no existing networks
+				clusterID := strfmt.UUID(uuid.New().String())
+				cluster = &common.Cluster{
+					Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: "4.12.0",
+						// No existing networks - truly new cluster
+						MachineNetworks: []*models.MachineNetwork{},
+						APIVips:         []*models.APIVip{},
+						IngressVips:     []*models.IngressVip{},
+						ServiceNetworks: []*models.ServiceNetwork{},
+						ClusterNetworks: []*models.ClusterNetwork{},
+					},
+					PrimaryIPStack: nil, // No existing primary IP stack
+				}
+
+				params.ClusterUpdateParams.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "2001:db9::/64"}, // IPv6 first
+					{Cidr: "192.168.1.0/24"},
+				}
+
+				// Update cluster networks to match the params (simulating what updateNetworks would do)
+				cluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
+			})
+
+			It("should recalculate PrimaryIPStack for new cluster", func() {
+				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updated).To(BeTrue())
+				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
+				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
 			})
 		})
 	})
