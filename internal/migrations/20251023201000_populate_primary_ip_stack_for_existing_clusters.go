@@ -16,8 +16,6 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 
 			err := tx.
 				Preload("MachineNetworks").
-				Preload("APIVips").
-				Preload("IngressVips").
 				Preload("ServiceNetworks").
 				Preload("ClusterNetworks").
 				Where("primary_ip_stack IS NULL").
@@ -30,25 +28,8 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 							continue
 						}
 
-						// Determine primary IP stack based on existing network configuration
-						primaryStack, err := network.GetPrimaryIPStack(
-							c.MachineNetworks,
-							c.APIVips,
-							c.IngressVips,
-							c.ServiceNetworks,
-							c.ClusterNetworks,
-						)
-						if err != nil {
-							return errors.Wrapf(err, "failed to determine the primary_ip_stack for cluster %s", c.ID)
-						}
-
-						// Update the cluster with the determined primary stack
-						if primaryStack != nil {
-							err = tx.Model(&c).Where("id = ?", c.ID).Update("primary_ip_stack", *primaryStack).Error
-						} else {
-							// Skip if primaryStack is nil (shouldn't happen for dual-stack, but safety check)
-							continue
-						}
+						// For dual-stack clusters, set primary IP stack to IPv4 (consistent default)
+						err := tx.Model(&c).Where("id = ?", c.ID).Update("primary_ip_stack", common.PrimaryIPStackV4).Error
 						if err != nil {
 							return errors.Wrapf(err, "failed to update primary_ip_stack for cluster %s", c.ID)
 						}
@@ -63,7 +44,7 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 	rollback := func(tx *gorm.DB) error { return nil }
 
 	return &gormigrate.Migration{
-		ID:       "20250929191200",
+		ID:       "20251023201000",
 		Migrate:  gormigrate.MigrateFunc(migrate),
 		Rollback: gormigrate.RollbackFunc(rollback),
 	}
