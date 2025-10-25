@@ -187,6 +187,21 @@ func (mr *MockInstallerInternalsMockRecorder) GetCredentialsInternal(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentialsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetCredentialsInternal), arg0, arg1)
 }
 
+// GetHostByIdInternal mocks base method.
+func (m *MockInstallerInternals) GetHostByIdInternal(arg0 context.Context, arg1 string) (*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostByIdInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostByIdInternal indicates an expected call of GetHostByIdInternal.
+func (mr *MockInstallerInternalsMockRecorder) GetHostByIdInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByIdInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetHostByIdInternal), arg0, arg1)
+}
+
 // GetHostByKubeKey mocks base method.
 func (m *MockInstallerInternals) GetHostByKubeKey(arg0 types.NamespacedName) (*common.Host, error) {
 	m.ctrl.T.Helper()
