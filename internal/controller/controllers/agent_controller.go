@@ -155,13 +155,15 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Restoring the Host according to values from Agent
-			if err = r.restoreHostByAgent(ctx, agent); err != nil {
+			var result ctrl.Result
+			result, err = r.restoreHostByAgent(ctx, log, agent, origAgent)
+			if err != nil {
 				log.WithError(err).Errorf("failed to restore Host %s according to the Agent", agent.Name)
-				return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+				return result, err
 			}
 			// Requeuing as the associated Host should exist now
 			log.Infof("Restored a Host for agent %s", agent.Name)
-			return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
+			return result, nil
 		} else {
 			log.WithError(err).Errorf("failed to retrieve Host %s from backend", agent.Name)
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
@@ -1866,12 +1868,12 @@ func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *m
 	return err
 }
 
-func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent) (ctrl.Result, error) {
 	// Get InfraEnv
 	infraEnvName, exist := agent.Labels[aiv1beta1.InfraEnvNameLabel]
 	if !exist {
 		r.Log.Errorf("Failed to find infraEnv name for agent %s in namespace %s", agent.Name, agent.Namespace)
-		return errors.New("Missing InfraEnv name label")
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, errors.New("Missing InfraEnv name label")
 	}
 	key := types.NamespacedName{
 		Name:      infraEnvName,
@@ -1881,10 +1883,10 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, agent *aiv1bet
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			r.Log.WithError(err).Errorf("InfraEnv with name '%s' is missing", infraEnvName)
-			return err
+			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 		}
 		r.Log.WithError(err).Errorf("Failed to get InfraEnv with name '%s'", infraEnvName)
-		return err
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 	}
 
 	// Get associated cluster if available
@@ -1899,18 +1901,36 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, agent *aiv1bet
 		if err != nil {
 			r.Log.WithError(err).Errorf("Failed to get cluster (name: %s namespace: %s)",
 				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-			return err
+			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 		}
 		clusterID = cluster.ID
+	}
+
+	// Check if a host with the same ID already exists (regardless of namespace)
+	// This prevents duplicate hosts and reports conflicts
+	existingHost, err := r.Installer.GetHostByIdInternal(ctx, agent.Name)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		r.Log.WithError(err).Errorf("Failed to check for existing host with ID %s", agent.Name)
+		return r.updateStatus(ctx, log, agent, origAgent, nil, nil, err, true)
+	} else if err == nil && existingHost != nil {
+		errMsg := fmt.Sprintf("Host with ID %s already exists in namespace %s. Agent creation conflicts with existing host.",
+			agent.Name, existingHost.KubeKeyNamespace)
+		r.Log.Error(errMsg)
+		return r.updateStatus(ctx, log, agent, origAgent, nil, nil, errors.New(errMsg), false)
 	}
 
 	host, err := createNewHost(agent, clusterID, *infraEnv.ID)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed to create Host with name '%s'", agent.Name)
-		return err
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 	}
 
-	return r.Installer.CreateHostInKubeKeyNamespace(ctx, key, host)
+	err = r.Installer.CreateHostInKubeKeyNamespace(ctx, key, host)
+	if err != nil {
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+	}
+
+	return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
 }
 
 func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strfmt.UUID) (*models.Host, error) {
