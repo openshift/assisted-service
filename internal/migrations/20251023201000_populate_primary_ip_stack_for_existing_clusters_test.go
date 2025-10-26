@@ -28,7 +28,7 @@ var _ = Describe("populatePrimaryIPStackForExistingClusters", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	It("should populate PrimaryIPStack for dual-stack IPv4-primary clusters", func() {
+	It("should populate PrimaryIPStack for dual-stack clusters (always IPv4)", func() {
 		// Create a dual-stack cluster with IPv4-first configuration
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
@@ -64,18 +64,18 @@ var _ = Describe("populatePrimaryIPStackForExistingClusters", func() {
 		Expect(migrateToBefore(db, migration.ID)).To(Succeed())
 		Expect(migrateTo(db, migration.ID)).To(Succeed())
 
-		// Verify the PrimaryIPStack was set correctly
+		// Verify the PrimaryIPStack was set to IPv4 (consistent default)
 		var primaryStack common.PrimaryIPStack
 		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
 		Expect(primaryStack).To(Equal(common.PrimaryIPStackV4))
 	})
 
-	It("should populate PrimaryIPStack for dual-stack IPv6-primary clusters", func() {
+	It("should populate PrimaryIPStack for dual-stack clusters regardless of order (always IPv4)", func() {
 		// Create a dual-stack cluster with IPv6-first configuration
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
 				ID:   &clusterID,
-				Name: "test-cluster-ipv6-primary",
+				Name: "test-cluster-ipv6-first",
 				MachineNetworks: []*models.MachineNetwork{
 					{Cidr: "2001:db8::/64"},    // IPv6 first
 					{Cidr: "192.168.127.0/24"}, // IPv4 second
@@ -104,10 +104,10 @@ var _ = Describe("populatePrimaryIPStackForExistingClusters", func() {
 		Expect(migrateToBefore(db, migration.ID)).To(Succeed())
 		Expect(migrateTo(db, migration.ID)).To(Succeed())
 
-		// Verify the PrimaryIPStack was set correctly
+		// Verify the PrimaryIPStack was set to IPv4 (consistent default regardless of order)
 		var primaryStack common.PrimaryIPStack
 		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
-		Expect(primaryStack).To(Equal(common.PrimaryIPStackV6))
+		Expect(primaryStack).To(Equal(common.PrimaryIPStackV4))
 	})
 
 	It("should leave PrimaryIPStack as nil for single-stack IPv4 clusters", func() {
@@ -164,13 +164,13 @@ var _ = Describe("populatePrimaryIPStackForExistingClusters", func() {
 
 		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
-		// Run the migration
+		// Run the migration - should succeed and set IPv4 as default
 		Expect(migrateToBefore(db, migration.ID)).To(Succeed())
-		Expect(migrateTo(db, migration.ID)).NotTo(Succeed())
+		Expect(migrateTo(db, migration.ID)).To(Succeed())
 
-		// Verify the PrimaryIPStack remains nil for inconsistent config
-		var updatedCluster common.Cluster
-		Expect(db.First(&updatedCluster, "id = ?", clusterID).Error).ToNot(HaveOccurred())
-		Expect(updatedCluster.PrimaryIPStack).To(BeNil())
+		// Verify the PrimaryIPStack was set to IPv4 (consistent default)
+		var primaryStack common.PrimaryIPStack
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
+		Expect(primaryStack).To(Equal(common.PrimaryIPStackV4))
 	})
 })
