@@ -54,7 +54,17 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 		})
 	}
 
-	rollback := func(tx *gorm.DB) error { return nil }
+	rollback := func(tx *gorm.DB) error {
+		// Set primary_ip_stack back to NULL for all clusters that had it set by this migration
+		// (all clusters where primary_ip_stack = 'IPv4')
+		err := tx.Model(&common.Cluster{}).
+			Where("primary_ip_stack = ?", common.PrimaryIPStackV4).
+			Update("primary_ip_stack", nil).Error
+		if err != nil {
+			return errors.Wrap(err, "failed to rollback primary_ip_stack")
+		}
+		return nil
+	}
 
 	return &gormigrate.Migration{
 		ID:       "20251023201000",

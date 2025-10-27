@@ -173,4 +173,54 @@ var _ = Describe("populatePrimaryIPStackForExistingClusters", func() {
 		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
 		Expect(primaryStack).To(Equal(common.PrimaryIPStackV4))
 	})
+
+	It("should rollback PrimaryIPStack to NULL", func() {
+		// Create a dual-stack cluster
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:   &clusterID,
+				Name: "test-cluster-rollback",
+				MachineNetworks: []*models.MachineNetwork{
+					{Cidr: "192.168.127.0/24"}, // IPv4 first
+					{Cidr: "2001:db8::/64"},    // IPv6 second
+				},
+				APIVips: []*models.APIVip{
+					{IP: "192.168.127.100"}, // IPv4 first
+					{IP: "2001:db8::1"},     // IPv6 second
+				},
+				IngressVips: []*models.IngressVip{
+					{IP: "192.168.127.101"}, // IPv4 first
+					{IP: "2001:db8::2"},     // IPv6 second
+				},
+				ServiceNetworks: []*models.ServiceNetwork{
+					{Cidr: "172.30.0.0/16"},   // IPv4 first
+					{Cidr: "2001:db8:1::/64"}, // IPv6 second
+				},
+				ClusterNetworks: []*models.ClusterNetwork{
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},   // IPv4 first
+					{Cidr: "2001:db8:2::/64", HostPrefix: 64}, // IPv6 second
+				},
+			},
+		}
+
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		// Run the migration - sets primary_ip_stack to IPv4
+		Expect(migrateToBefore(db, migration.ID)).To(Succeed())
+		Expect(migrateTo(db, migration.ID)).To(Succeed())
+
+		// Verify the PrimaryIPStack was set
+		var primaryStack common.PrimaryIPStack
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
+		Expect(primaryStack).To(Equal(common.PrimaryIPStackV4))
+
+		// Rollback the migration
+		gm := gormigrate.New(db, gormigrate.DefaultOptions, post())
+		Expect(gm.RollbackMigration(migration)).ToNot(HaveOccurred())
+
+		// Verify the PrimaryIPStack was reset to NULL
+		var primaryStackAfterRollback *common.PrimaryIPStack
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStackAfterRollback).Error).To(Succeed())
+		Expect(primaryStackAfterRollback).To(BeNil())
+	})
 })
