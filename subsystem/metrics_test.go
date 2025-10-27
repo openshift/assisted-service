@@ -505,6 +505,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			utils_test.TestContext.GenerateHWPostStepReply(ctx, h, utils_test.ValidHwInfo, "master-0")
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDMachineCidrDefined)
 
 			// check generated events
@@ -606,6 +607,7 @@ var _ = Describe("Metrics tests", func() {
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationChangedMetric)
@@ -632,6 +634,7 @@ var _ = Describe("Metrics tests", func() {
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
@@ -641,6 +644,7 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation success
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
 			// check generated events
@@ -699,6 +703,7 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
@@ -729,6 +734,7 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.V2UpdateVipParams(ctx, clusterID)
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 
