@@ -30,3 +30,5 @@ require (
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/golang/glog => github.com/golang/glog v1.2.4

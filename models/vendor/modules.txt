@@ -88,3 +88,4 @@ gorm.io/gorm/clause
 gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
+# github.com/golang/glog => github.com/golang/glog v1.2.4
