@@ -35,3 +35,5 @@ require (
 )
 
 replace github.com/openshift/assisted-service/models => ../models
+
+replace github.com/golang/glog => github.com/golang/glog v1.2.4
