@@ -18406,6 +18406,32 @@ var _ = Describe("BindHost", func() {
 		response := bm.BindHost(ctx, params)
 		verifyApiErrorString(response, http.StatusBadRequest, "has fencing credentials")
 	})
+
+	It("successfully binds day-2 hosts to cluster", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("kind", models.ClusterKindAddHostsCluster).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", "").Error).ShouldNot(HaveOccurred())
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
 })
 
 var _ = Describe("BindHost - with rhsso auth", func() {
