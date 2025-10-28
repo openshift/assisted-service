@@ -48,4 +48,27 @@ fi
 
 export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v${VERSION}}"
 export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}}"
-export OS_IMAGES="${OS_IMAGES:-$(echo ${DEFAULT_OS_IMAGES} | jq -rc 'map(select((.openshift_version|split(".")|map(tonumber)) >= [4,11]))')}"
+
+if [[ "${OPENSHIFT_CI:-false}" = "true" ]]; then
+    # Determine OpenShift version (x.y) from the assisted release image
+    if [ -n "${AUTHFILE:-}" ] && [ -f "${AUTHFILE}" ]; then
+    RELEASE_INFO=$(oc adm release info --registry-config "${AUTHFILE}" "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" -o json || true)
+    elif [ -n "${PULL_SECRET_FILE:-}" ] && [ -f "${PULL_SECRET_FILE}" ]; then
+    RELEASE_INFO=$(oc adm release info --registry-config "${PULL_SECRET_FILE}" "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" -o json || true)
+    else
+    RELEASE_INFO=$(oc adm release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" -o json || true)
+    fi
+
+    RELEASE_VERSION_FULL=$(echo "${RELEASE_INFO}" | jq -r '.metadata.version // empty')
+    if [ -n "${RELEASE_VERSION_FULL}" ]; then
+    OC_VERSION_MAJOR_MINOR=$(echo "${RELEASE_VERSION_FULL}" | cut -d'.' -f1-2)
+    else
+    # Assume same version as the hub cluster
+    OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
+    fi
+
+    export OS_IMAGES=$(echo "${DEFAULT_OS_IMAGES}" | jq --arg ver "${OC_VERSION_MAJOR_MINOR}" -c '[.[] | select(.openshift_version == $ver)]')
+
+else
+    export OS_IMAGES="${OS_IMAGES:-$(echo ${DEFAULT_OS_IMAGES} | jq -rc 'map(select((.openshift_version|split(".")|map(tonumber)) >= [4,11]))')}"
+fi
