@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"github.com/go-gormigrate/gormigrate/v2"
+	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/pkg/errors"
@@ -13,15 +14,15 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 		return db.Transaction(func(tx *gorm.DB) error {
 			const batchSize = 10 // Process 10 clusters at a time to avoid memory issues
 			var clusters []common.Cluster
+			var dualStackClusterIDs []strfmt.UUID
 
 			err := tx.
 				Preload("MachineNetworks").
-				Preload("APIVips").
-				Preload("IngressVips").
 				Preload("ServiceNetworks").
 				Preload("ClusterNetworks").
 				Where("primary_ip_stack IS NULL").
 				FindInBatches(&clusters, batchSize, func(batchTx *gorm.DB, batch int) error {
+					// Collect IDs of dual-stack clusters from this batch
 					for _, cluster := range clusters {
 						c := cluster
 
@@ -30,40 +31,33 @@ func populatePrimaryIPStackForExistingClusters() *gormigrate.Migration {
 							continue
 						}
 
-						// Determine primary IP stack based on existing network configuration
-						primaryStack, err := network.GetPrimaryIPStack(
-							c.MachineNetworks,
-							c.APIVips,
-							c.IngressVips,
-							c.ServiceNetworks,
-							c.ClusterNetworks,
-						)
-						if err != nil {
-							return errors.Wrapf(err, "failed to determine the primary_ip_stack for cluster %s", c.ID)
-						}
-
-						// Update the cluster with the determined primary stack
-						if primaryStack != nil {
-							err = tx.Model(&c).Where("id = ?", c.ID).Update("primary_ip_stack", *primaryStack).Error
-						} else {
-							// Skip if primaryStack is nil (shouldn't happen for dual-stack, but safety check)
-							continue
-						}
-						if err != nil {
-							return errors.Wrapf(err, "failed to update primary_ip_stack for cluster %s", c.ID)
-						}
+						dualStackClusterIDs = append(dualStackClusterIDs, *c.ID)
 					}
 					return nil
 				}).Error
 
-			return err
+			if err != nil {
+				return errors.Wrap(err, "failed to collect dual-stack cluster IDs")
+			}
+
+			// Single bulk update for all dual-stack clusters
+			if len(dualStackClusterIDs) > 0 {
+				err = tx.Model(&common.Cluster{}).
+					Where("id IN ?", dualStackClusterIDs).
+					Update("primary_ip_stack", common.PrimaryIPStackV4).Error
+				if err != nil {
+					return errors.Wrap(err, "failed to bulk update primary_ip_stack for dual-stack clusters")
+				}
+			}
+
+			return nil
 		})
 	}
 
 	rollback := func(tx *gorm.DB) error { return nil }
 
 	return &gormigrate.Migration{
-		ID:       "20250929191200",
+		ID:       "20251023201000",
 		Migrate:  gormigrate.MigrateFunc(migrate),
 		Rollback: gormigrate.RollbackFunc(rollback),
 	}
