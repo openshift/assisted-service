@@ -26,8 +26,5 @@ var _ = BeforeSuite(func() {
 	}
 
 	common.InitializeDBTest()
-})
-
-var _ = AfterSuite(func() {
-	common.TerminateDBTest()
+	DeferCleanup(common.TerminateDBTest)
 })

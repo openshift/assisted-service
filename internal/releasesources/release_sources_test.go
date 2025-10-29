@@ -15,10 +15,13 @@ import (
 
 func TestHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "releasesources")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+	DeferCleanup(common.TerminateDBTest)
+})
 
 func setGetReleasesMock(releasesMock *MockopenShiftReleasesAPIClientInterface, testsParams []RequestResponseParameters) {
 	for _, testParams := range testsParams {

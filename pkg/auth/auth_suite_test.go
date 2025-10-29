@@ -10,7 +10,10 @@ import (
 
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "auth tests")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+	DeferCleanup(common.TerminateDBTest)
+})
