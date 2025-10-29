@@ -15,10 +15,16 @@ import (
 
 func TestMigrations(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "Migrations Suite")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})
 
 // migrateToBefore is a helper function for migration tests
 // It runs all the migrations before the given one to simplify setting up a valid test scenario

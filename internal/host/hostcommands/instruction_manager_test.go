@@ -589,7 +589,13 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 
 func TestHostCommands(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "Host commands test Suite")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})
