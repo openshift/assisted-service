@@ -6074,13 +6074,15 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-	if err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if host.FencingCredentials != "" && !fencingClustersSupported {
-		err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
-		return nil, common.NewApiError(http.StatusBadRequest, err)
+	if !common.IsDay2Cluster(cluster) {
+		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
+		if fencingErr != nil {
+			return nil, common.NewApiError(http.StatusInternalServerError, fencingErr)
+		}
+		if host.FencingCredentials != "" && !fencingClustersSupported {
+			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	if err = b.clusterApi.AcceptRegistration(cluster); err != nil {
