@@ -30,11 +30,13 @@ import (
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "manifests_test")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+	DeferCleanup(common.TerminateDBTest)
+})
 
 const contentAsYAMLPatch = `---
 - op: replace
