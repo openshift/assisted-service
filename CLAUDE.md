@@ -145,7 +145,11 @@ Before running the make test targets, verify your environment:
 
 **1. Check for container runtime (Docker or Podman)**
 
-The `make unit-test` and `make ci-unit-test` targets require a container runtime to run PostgreSQL. Check availability first:
+Unit tests require a PostgreSQL database. The test framework can automatically create one in:
+- A Kubernetes cluster (if available)
+- A local container via testcontainers (if Docker/Podman available)
+
+Check container runtime availability:
 
 ```bash
 # Check for Podman
@@ -156,8 +160,8 @@ which docker && docker --version
 ```
 
 **Choose the appropriate make target based on availability:**
-- **If Podman/Docker is available:** Use `make unit-test` for full test coverage with database tests
-- **If NO container runtime:** Use `SKIP_UT_DB=1 make run-unit-test` to skip database-dependent tests
+- **If Podman/Docker is available:** Use `make unit-test` (automatically manages database lifecycle)
+- **If NO container runtime:** Tests will fail unless you manually run a PostgreSQL container first (see workaround below)
 
 **2. Check for gotestsum**
 
@@ -184,27 +188,48 @@ make unit-test
 ```
 
 This will:
-1. Start a PostgreSQL container
-2. Run all unit tests
+1. Start a PostgreSQL container at localhost:5433
+2. Run all unit tests (with SKIP_UT_DB=1, which tells tests to use localhost:5433)
 3. Kill the PostgreSQL container
 4. Generate coverage reports
 
-#### Run Unit Tests (Without Database)
+#### Understanding SKIP_UT_DB
 
-If you don't have Docker/Podman available:
+**Important:** Despite its confusing name, `SKIP_UT_DB` does **NOT** skip database-dependent tests!
+
+- **`SKIP_UT_DB=1`**: Tests assume PostgreSQL is already running at `localhost:5433` (they skip creating it)
+- **Without `SKIP_UT_DB`**: Tests will try to create PostgreSQL automatically (K8s pod → testcontainer fallback)
+
+**When to use `SKIP_UT_DB=1`:**
+- You've already started PostgreSQL at localhost:5433 (e.g., via `make run-db-container`)
+- You want to run tests multiple times without recreating the database each time
+
+**Running tests without a database will fail:**
 
 ```bash
-# Skip database-dependent tests
+# This will FAIL with connection errors:
 SKIP_UT_DB=1 make run-unit-test
+
+# Tests fail in BeforeSuite (~5 seconds) with:
+# "failed to connect to `host=127.0.0.1 user=postgres database=`:
+#  dial tcp 127.0.0.1:5433: connect: connection refused"
 ```
 
-Or directly with Go:
+#### Manual Database Management (For Development)
+
+If you want to run tests repeatedly without restarting the database each time:
 
 ```bash
-SKIP_UT_DB=1 go test ./... -count=1 -short
-```
+# Terminal 1: Start and keep database running
+make run-db-container
 
-**Note:** Tests that require database access will fail in BeforeSuite with a clear "connection refused" error message (exit after ~5 seconds). Tests that don't require database access will pass normally. This is expected behavior when running without a database.
+# Terminal 2: Run tests multiple times (fast iterations)
+SKIP_UT_DB=1 go test -v ./pkg/validations
+SKIP_UT_DB=1 go test -v ./internal/cluster
+
+# When done, kill the database
+make kill-db-container
+```
 
 #### Make Targets
 
@@ -349,7 +374,7 @@ The project has three main test categories:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SKIP_UT_DB` | Skip database container setup | unset |
+| `SKIP_UT_DB` | Skip auto-creating database; use localhost:5433 | unset |
 | `TEST` | Specific test package(s) to run | all non-subsystem |
 | `FOCUS` | Ginkgo focused specs (regex) | "" |
 | `SKIP` | Ginkgo skip specs (regex) | "" |
@@ -419,12 +444,12 @@ Cannot connect to the Docker daemon at unix:///var/run/docker.sock
 
 **Solutions:**
 1. Start Docker/Podman daemon
-2. Use `SKIP_UT_DB=1` to skip database-dependent tests
-3. Run specific test packages that don't need a database
+2. If Docker/Podman is unavailable, start PostgreSQL another way (system service, remote instance) listening at localhost:5433
+3. If you can't run PostgreSQL at all, test individual packages that don't require database (see below)
 
-#### Database Connection Errors
+#### Database Connection Errors (No Database Available)
 
-**Cause:** PostgreSQL container not running or can't connect
+**Cause:** No PostgreSQL running at localhost:5433
 
 **Symptoms:** Tests fail in BeforeSuite with error message:
 ```
@@ -432,15 +457,35 @@ failed to connect to `host=127.0.0.1 user=postgres database=`:
 dial tcp 127.0.0.1:5433: connect: connection refused
 ```
 
+**What to expect:**
+- Without `SKIP_UT_DB`: Tests will attempt to create PostgreSQL in K8s or via testcontainers, then fail if neither is available
+- With `SKIP_UT_DB=1`: Tests immediately try localhost:5433, fail fast (~5 seconds)
+
+**If you cannot run PostgreSQL at all:**
+- **Many packages don't require database** and can be tested individually
+- **No make target skips database tests** - you must run packages individually with `go test`
+- Packages that initialize database in BeforeSuite will fail fast with connection errors
+
+**Example packages that work without database:**
+```bash
+go test -v \
+  ./pkg/app \
+  ./pkg/conversions \
+  ./pkg/validations \
+  ./pkg/webhooks/agentinstall/v1beta1 \
+  ./internal/cluster/validations
+# See "Packages Known to Pass Without Dependencies" section above for full list
+```
+
 **Solutions:**
-1. Ensure Docker/Podman is running
-2. Use `SKIP_UT_DB=1` to skip database-dependent tests (tests will still fail fast with clear errors, but won't hang)
-3. Manually start container:
+1. Use `make unit-test` (requires Docker/Podman)
+2. Manually start PostgreSQL at localhost:5433 with credentials `postgres/admin`:
    ```bash
-   make run-db-container
-   # Run your tests
-   make kill-db-container
+   # Example: using system PostgreSQL or remote instance
+   # Configure it to listen on port 5433
+   # Then run: SKIP_UT_DB=1 go test ./...
    ```
+3. Test individual packages without database (shown above)
 
 #### "gotestsum: command not found"
 
@@ -456,9 +501,9 @@ dial tcp 127.0.0.1:5433: connect: connection refused
 **Cause:** User not in docker group
 
 **Solutions:**
-1. Add user to docker group: `sudo usermod -aG docker $USER`
+1. Add user to docker group: `sudo usermod -aG docker $USER` (requires logout/login)
 2. Use podman instead: `export CONTAINER_COMMAND=podman`
-3. Use `SKIP_UT_DB=1` to avoid needing containers
+3. Test individual packages that don't require database (see "Database Connection Errors" section above)
 
 #### Tests Fail with "build failed"
 
