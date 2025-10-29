@@ -1,24 +1,108 @@
-# Assisted Service - Testing Guide
+# CLAUDE.md
 
-Quick reference for running tests in the assisted-service project.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+Assisted Service is a REST/Kubernetes API service that installs OpenShift clusters with minimal infrastructure prerequisites. It supports highly-available control planes (3+ nodes) and Single-Node OpenShift (SNO). The service can operate in two modes:
+- **REST API mode**: Standalone service exposing REST endpoints
+- **Kube-API mode**: Operator exposing Kubernetes Custom Resources
+
+## Architecture
+
+### Core Components
+
+1. **bminventory** (`internal/bminventory/`) - Main business logic and REST API handlers
+   - Central orchestrator coordinating cluster and host operations
+   - Implements REST API endpoints defined in `swagger.yaml`
+
+2. **Cluster Management** (`internal/cluster/`) - Cluster lifecycle state machine
+   - State transitions and validations for cluster installation
+   - Works with cluster validation logic
+
+3. **Host Management** (`internal/host/`) - Host lifecycle state machine
+   - Manages individual host states and validations
+   - Coordinates with hardware validation
+
+4. **Controllers** (`internal/controller/`) - Kubernetes operator controllers
+   - Reconcile CRs: AgentServiceConfig, InfraEnv, Agent, etc.
+   - Only active in Kube-API mode
+
+5. **Storage Layer** - PostgreSQL database via GORM
+   - Models defined in `models/` (auto-generated from `swagger.yaml`)
+   - Migration scripts in `internal/migrations/`
+
+### Package Organization
+
+- `internal/` - Core business logic (not importable by other projects)
+  - `bminventory/` - Main API implementation
+  - `cluster/`, `host/`, `infraenv/` - Domain logic
+  - `hardware/`, `network/`, `connectivity/` - Validation logic
+  - `operators/` - Operator support (OLM, LSO, etc.)
+  - `controller/` - Kubernetes controllers
+
+- `pkg/` - Reusable utilities (importable by other projects)
+  - `auth/`, `db/`, `s3wrapper/`, `k8sclient/` - Infrastructure
+  - `validations/`, `conversions/` - Domain utilities
+
+- `restapi/` - Auto-generated REST server code (from `swagger.yaml`)
+- `client/` - Auto-generated REST client code
+- `api/` - Kubernetes API definitions (CRDs)
+- `models/` - Auto-generated data models
+
+## Common Development Commands
+
+### Building
+
+```bash
+# Build everything (runs lint + unit tests + build)
+skipper make all
+
+# Build service binary only (skip validation)
+skipper make build-minimal
+
+# Build service container image
+SERVICE=quay.io/<username>/assisted-service:<tag> skipper make build-image
+
+# Build in current environment (no container)
+make build-assisted-service
+```
+
+### Code Generation
+
+After modifying `swagger.yaml`, regenerate code:
+
+```bash
+skipper make generate-from-swagger
+```
+
+This regenerates:
+- `restapi/` - REST server code
+- `client/` - REST client code
+- `models/` - Data models
+
+After modifying CRD definitions in `api/`:
+
+```bash
+make generate  # Generates deepcopy, CRD manifests, etc.
+```
+
+### Linting
+
+```bash
+skipper make lint        # Run all linters
+skipper make format      # Auto-format code
+```
+
+## Testing
 
 For comprehensive testing documentation, see:
 - [Testing Overview](docs/dev/testing.md)
 - [Running Subsystem Tests](docs/dev/running-test.md)
 
-## Table of Contents
+### System Requirements
 
-- [System Requirements](#system-requirements)
-- [Quick Start](#quick-start)
-- [Unit Tests](#unit-tests)
-- [Subsystem Tests](#subsystem-tests)
-- [Running Specific Tests](#running-specific-tests)
-- [Environment Variables](#environment-variables)
-- [Troubleshooting](#troubleshooting)
-
-## System Requirements
-
-### Required Dependencies
+#### Required Dependencies
 
 1. **Go** (1.19+)
    - Check: `go version`
@@ -53,9 +137,9 @@ For comprehensive testing documentation, see:
    - `skipper` - Container-based build environment
    - `kind` - Kubernetes in Docker (for subsystem tests)
 
-## Quick Start
+### Quick Start
 
-### Prerequisites Check
+#### Prerequisites Check
 
 Before running the make test targets, verify your environment:
 
@@ -90,7 +174,9 @@ go install gotest.tools/gotestsum@latest
 export PATH=$PATH:$(go env GOPATH)/bin
 ```
 
-### Run All Unit Tests (Full)
+### Unit Tests
+
+#### Run All Unit Tests (Full)
 
 ```bash
 # Requires Docker/Podman running
@@ -103,7 +189,7 @@ This will:
 3. Kill the PostgreSQL container
 4. Generate coverage reports
 
-### Run Unit Tests (Without Database)
+#### Run Unit Tests (Without Database)
 
 If you don't have Docker/Podman available:
 
@@ -118,11 +204,9 @@ Or directly with Go:
 SKIP_UT_DB=1 go test ./... -count=1 -short
 ```
 
-**Note:** Some tests will fail without a database, but many will pass.
+**Note:** Tests that require database access will fail in BeforeSuite with a clear "connection refused" error message (exit after ~5 seconds). Tests that don't require database access will pass normally. This is expected behavior when running without a database.
 
-## Unit Tests
-
-### Make Targets
+#### Make Targets
 
 | Target | Description | Requirements |
 |--------|-------------|--------------|
@@ -132,7 +216,7 @@ SKIP_UT_DB=1 go test ./... -count=1 -short
 
 **Important:** All make test targets require gotestsum. Check with `which gotestsum` before running.
 
-### Coverage Reports
+#### Coverage Reports
 
 ```bash
 # Run tests with coverage
@@ -146,7 +230,165 @@ make display-coverage
 # - reports/unit_coverage.xml (CI mode)
 ```
 
-### Common Issues
+#### Running Specific Tests
+
+##### By Package
+
+```bash
+# Single package
+go test -v ./pkg/validations
+
+# Multiple packages
+go test -v ./pkg/validations ./pkg/webhooks/...
+
+# All packages under a directory
+go test -v ./internal/cluster/...
+```
+
+##### By Test Name
+
+```bash
+# Using -run flag (regex pattern)
+go test -v ./pkg/validations -run TestValidateCluster
+
+# Using Ginkgo focus
+FOCUS="install_cluster" make run-unit-test
+```
+
+##### Skip Tests
+
+```bash
+# Using Ginkgo skip
+SKIP="slow_test" make run-unit-test
+
+# Skip subsystem tests
+go test ./... -count=1 -short | grep -v subsystem
+```
+
+##### Packages Known to Pass Without Dependencies
+
+These packages typically don't require database or nmstate:
+
+```bash
+go test -v \
+  ./pkg/app \
+  ./pkg/conversions \
+  ./pkg/error \
+  ./pkg/filemiddleware \
+  ./pkg/jq \
+  ./pkg/kafka \
+  ./pkg/log \
+  ./pkg/mirrorregistries \
+  ./pkg/requestid \
+  ./pkg/s3wrapper \
+  ./pkg/secretdump \
+  ./pkg/thread \
+  ./pkg/validations \
+  ./pkg/webhooks/agentinstall/v1beta1 \
+  ./pkg/webhooks/hiveextension/v1beta1 \
+  ./internal/cluster/validations
+```
+
+### Subsystem Tests
+
+Subsystem tests require a running Kubernetes cluster with the assisted-service deployed.
+
+#### Prerequisites
+
+- `podman` and `kind` in $PATH
+- `skipper` tool
+- `gotestsum` (required for running tests)
+
+#### Setup and Run
+
+```bash
+# Install kind if needed
+make install-kind-if-needed
+
+# Deploy service for subsystem testing
+make deploy-service-for-subsystem-test
+
+# Run subsystem tests (REST-API mode)
+skipper make subsystem-test
+
+# Run subsystem tests (Kube-API mode)
+ENABLE_KUBE_API=true make deploy-service-for-subsystem-test
+skipper make subsystem-test-kube-api
+```
+
+#### Cleanup
+
+```bash
+make destroy-hub-cluster
+```
+
+See [Running Subsystem Tests](docs/dev/running-test.md) for more details.
+
+### Test Categories
+
+The project has three main test categories:
+
+1. **Unit Tests** (this guide)
+   - Fast, isolated tests
+   - Mock external dependencies
+   - Run with `make unit-test`
+
+2. **Subsystem Tests** ([running-test.md](docs/dev/running-test.md))
+   - Test service with mocked agent responses
+   - Require Kubernetes cluster
+   - Run with `skipper make subsystem-test`
+
+3. **E2E Tests** (External repositories)
+   - Full integration tests
+   - Upstream: [assisted-test-infra](https://github.com/openshift/assisted-test-infra)
+   - Downstream: QE maintained tests
+
+### Environment Variables
+
+#### Test Execution
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SKIP_UT_DB` | Skip database container setup | unset |
+| `TEST` | Specific test package(s) to run | all non-subsystem |
+| `FOCUS` | Ginkgo focused specs (regex) | "" |
+| `SKIP` | Ginkgo skip specs (regex) | "" |
+| `VERBOSE` | Enable verbose output | false |
+| `TIMEOUT` | Test timeout | 30m (unit), 120m (subsystem) |
+
+#### Coverage
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CI` | Enable CI mode (XML reports) | false |
+| `COVER_PROFILE` | Coverage output file | reports/unit_coverage.out |
+| `REPORTS` | Reports directory | ./reports |
+
+#### Subsystem Tests
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVICE_IMAGE` | Custom service image | (local build) |
+| `DEBUG_SERVICE` | Deploy in debug mode | false |
+| `ENABLE_KUBE_API` | Enable Kube-API mode | false |
+
+#### Examples
+
+```bash
+# Run specific package with verbose output
+VERBOSE=true go test -v ./pkg/validations
+
+# Run tests with custom timeout
+TIMEOUT=60m make run-unit-test
+
+# Run subsystem tests with focus
+FOCUS="installation" skipper make subsystem-test
+
+# Skip slow tests
+SKIP="slow" make run-unit-test
+```
+
+### Troubleshooting
 
 #### Missing nmstate.h
 
@@ -180,148 +422,45 @@ Cannot connect to the Docker daemon at unix:///var/run/docker.sock
 2. Use `SKIP_UT_DB=1` to skip database-dependent tests
 3. Run specific test packages that don't need a database
 
-## Subsystem Tests
+#### Database Connection Errors
 
-Subsystem tests require a running Kubernetes cluster with the assisted-service deployed.
+**Cause:** PostgreSQL container not running or can't connect
 
-### Prerequisites
-
-- `podman` and `kind` in $PATH
-- `skipper` tool
-- `gotestsum` (required for running tests)
-
-### Setup and Run
-
-```bash
-# Install kind if needed
-make install-kind-if-needed
-
-# Deploy service for subsystem testing
-make deploy-service-for-subsystem-test
-
-# Run subsystem tests (REST-API mode)
-skipper make subsystem-test
-
-# Run subsystem tests (Kube-API mode)
-ENABLE_KUBE_API=true make deploy-service-for-subsystem-test
-skipper make subsystem-test-kube-api
+**Symptoms:** Tests fail in BeforeSuite with error message:
+```
+failed to connect to `host=127.0.0.1 user=postgres database=`:
+dial tcp 127.0.0.1:5433: connect: connection refused
 ```
 
-### Cleanup
+**Solutions:**
+1. Ensure Docker/Podman is running
+2. Use `SKIP_UT_DB=1` to skip database-dependent tests (tests will still fail fast with clear errors, but won't hang)
+3. Manually start container:
+   ```bash
+   make run-db-container
+   # Run your tests
+   make kill-db-container
+   ```
 
-```bash
-make destroy-hub-cluster
-```
+#### "gotestsum: command not found"
 
-See [Running Subsystem Tests](docs/dev/running-test.md) for more details.
+**Cause:** gotestsum not installed
 
-## Running Specific Tests
+**Solutions:**
+1. Install: `go install gotest.tools/gotestsum@latest`
+2. Use Go directly: `go test ./...`
+3. Update PATH: `export PATH=$PATH:$(go env GOPATH)/bin`
 
-### By Package
+#### Permission Denied on Docker Socket
 
-```bash
-# Single package
-go test -v ./pkg/validations
+**Cause:** User not in docker group
 
-# Multiple packages
-go test -v ./pkg/validations ./pkg/webhooks/...
+**Solutions:**
+1. Add user to docker group: `sudo usermod -aG docker $USER`
+2. Use podman instead: `export CONTAINER_COMMAND=podman`
+3. Use `SKIP_UT_DB=1` to avoid needing containers
 
-# All packages under a directory
-go test -v ./internal/cluster/...
-```
-
-### By Test Name
-
-```bash
-# Using -run flag (regex pattern)
-go test -v ./pkg/validations -run TestValidateCluster
-
-# Using Ginkgo focus
-FOCUS="install_cluster" make run-unit-test
-```
-
-### Skip Tests
-
-```bash
-# Using Ginkgo skip
-SKIP="slow_test" make run-unit-test
-
-# Skip subsystem tests
-go test ./... -count=1 -short | grep -v subsystem
-```
-
-### Packages Known to Pass Without Dependencies
-
-These packages typically don't require database or nmstate:
-
-```bash
-go test -v \
-  ./pkg/app \
-  ./pkg/conversions \
-  ./pkg/error \
-  ./pkg/filemiddleware \
-  ./pkg/jq \
-  ./pkg/kafka \
-  ./pkg/log \
-  ./pkg/mirrorregistries \
-  ./pkg/requestid \
-  ./pkg/s3wrapper \
-  ./pkg/secretdump \
-  ./pkg/thread \
-  ./pkg/validations \
-  ./pkg/webhooks/agentinstall/v1beta1 \
-  ./pkg/webhooks/hiveextension/v1beta1 \
-  ./internal/cluster/validations
-```
-
-## Environment Variables
-
-### Test Execution
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SKIP_UT_DB` | Skip database container setup | unset |
-| `TEST` | Specific test package(s) to run | all non-subsystem |
-| `FOCUS` | Ginkgo focused specs (regex) | "" |
-| `SKIP` | Ginkgo skip specs (regex) | "" |
-| `VERBOSE` | Enable verbose output | false |
-| `TIMEOUT` | Test timeout | 30m (unit), 120m (subsystem) |
-
-### Coverage
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CI` | Enable CI mode (XML reports) | false |
-| `COVER_PROFILE` | Coverage output file | reports/unit_coverage.out |
-| `REPORTS` | Reports directory | ./reports |
-
-### Subsystem Tests
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SERVICE_IMAGE` | Custom service image | (local build) |
-| `DEBUG_SERVICE` | Deploy in debug mode | false |
-| `ENABLE_KUBE_API` | Enable Kube-API mode | false |
-
-### Examples
-
-```bash
-# Run specific package with verbose output
-VERBOSE=true go test -v ./pkg/validations
-
-# Run tests with custom timeout
-TIMEOUT=60m make run-unit-test
-
-# Run subsystem tests with focus
-FOCUS="installation" skipper make subsystem-test
-
-# Skip slow tests
-SKIP="slow" make run-unit-test
-```
-
-## Troubleshooting
-
-### Tests Fail with "build failed"
+#### Tests Fail with "build failed"
 
 **Cause:** Missing C dependencies (usually nmstate.h)
 
@@ -331,7 +470,7 @@ SKIP="slow" make run-unit-test
 2. Run tests for specific packages that don't need nmstate (see list above)
 3. Use build tags to exclude problematic packages (advanced)
 
-### Tests Timeout
+#### Tests Timeout
 
 **Cause:** Default timeout too short for slow machines
 
@@ -340,41 +479,9 @@ SKIP="slow" make run-unit-test
 TIMEOUT=60m make run-unit-test
 ```
 
-### Database Connection Errors
+### Advanced Usage
 
-**Cause:** PostgreSQL container not running or can't connect
-
-**Solutions:**
-1. Ensure Docker/Podman is running
-2. Use `SKIP_UT_DB=1` to skip database tests
-3. Manually start container:
-   ```bash
-   make run-db-container
-   # Run your tests
-   make kill-db-container
-   ```
-
-### "gotestsum: command not found"
-
-**Cause:** gotestsum not installed
-
-**Solutions:**
-1. Install: `go install gotest.tools/gotestsum@latest`
-2. Use Go directly: `go test ./...`
-3. Update PATH: `export PATH=$PATH:$(go env GOPATH)/bin`
-
-### Permission Denied on Docker Socket
-
-**Cause:** User not in docker group
-
-**Solutions:**
-1. Add user to docker group: `sudo usermod -aG docker $USER`
-2. Use podman instead: `export CONTAINER_COMMAND=podman`
-3. Use `SKIP_UT_DB=1` to avoid needing containers
-
-## Advanced Usage
-
-### Run with Coverage HTML Report
+#### Run with Coverage HTML Report
 
 ```bash
 make unit-test
@@ -382,14 +489,14 @@ go tool cover -html=reports/unit_coverage.out -o reports/coverage.html
 # Open reports/coverage.html in browser
 ```
 
-### Run Tests in CI Mode
+#### Run Tests in CI Mode
 
 ```bash
 CI=true make unit-test
 # Generates XML reports in reports/ directory
 ```
 
-### Debug Tests
+#### Debug Tests
 
 ```bash
 # Deploy service in debug mode
@@ -399,7 +506,7 @@ DEBUG_SERVICE=true make deploy-service-for-subsystem-test
 VERBOSE=true make run-unit-test
 ```
 
-### Quick Iteration During Development
+#### Quick Iteration During Development
 
 ```bash
 # Terminal 1: Keep database running
@@ -412,28 +519,109 @@ SKIP_UT_DB=1 go test -v ./pkg/your-package
 make kill-db-container
 ```
 
-## Test Categories
+## Deployment
 
-The project has three main test categories:
+### Local Development (Podman)
 
-1. **Unit Tests** (this guide)
-   - Fast, isolated tests
-   - Mock external dependencies
-   - Run with `make unit-test`
+Lightest environment for REST API testing:
 
-2. **Subsystem Tests** ([running-test.md](docs/dev/running-test.md))
-   - Test service with mocked agent responses
-   - Require Kubernetes cluster
-   - Run with `skipper make subsystem-test`
+```bash
+make deploy-onprem  # Starts DB, service, image-service, UI in pods
 
-3. **E2E Tests** (External repositories)
-   - Full integration tests
-   - Upstream: [assisted-test-infra](https://github.com/openshift/assisted-test-infra)
-   - Downstream: QE maintained tests
+# Access UI: http://localhost:8080
+# Access API: http://localhost:8090/api/assisted-install/v2/
+```
+
+Configuration in `deploy/podman/configmap.yml`.
+
+### Kubernetes (kind)
+
+Local Kubernetes environment with operator:
+
+```bash
+make deploy-dev-infra  # Creates kind cluster, deploys operator and services
+```
+
+### OpenShift
+
+```bash
+# Deploy with ingress
+skipper make deploy-all TARGET=oc-ingress
+
+# Optional parameters:
+# APPLY_NAMESPACE=False - Skip namespace creation
+# INGRESS_DOMAIN=apps.example.com - Specify domain
+# DISABLE_TLS=true - Use HTTP routes
+```
+
+See `docs/dev/README.md` for all deployment scenarios.
+
+## Key Patterns and Conventions
+
+### State Machines
+
+Cluster and Host entities use explicit state machines:
+- Cluster states: `models.ClusterStatus*` constants
+- Host states: `models.HostStatus*` constants
+- Transitions handled by `cluster.API` and `host.API` interfaces
+- State changes emit events via `eventsapi.Handler`
+
+### Error Handling
+
+- Use `pkg/error` for common error types
+- Add context with `errors.Wrap()` from `github.com/pkg/errors`
+- Log before returning errors: `log.WithError(err).Error("message")`
+
+### Database Operations
+
+- Use GORM ORM: `db.Model(&model).Where(...).Find(&results)`
+- Transactions via `pkg/transaction` wrapper
+- Always use preloading for associations: `.Preload("Hosts")`
+- Soft deletes enabled on most models (check `DeletedAt` field)
+
+### Logging
+
+- Use logrus structured logging: `log.WithFields(logrus.Fields{...}).Info("message")`
+- Request-scoped logger via `logutil.FromContext(ctx)`
+- Include request ID: `pkg/requestid.FromContext(ctx)`
+
+### Validation
+
+- Pre-flight validations in `internal/cluster/validations`, `internal/host/validations`
+- Hardware requirements in `data/default_hw_requirements.json`
+- Network validations via `internal/connectivity`, `internal/network`
+
+### API Versioning
+
+- REST API: v1 (deprecated), **v2 (current)** - see `swagger.yaml`
+- Kubernetes API: `v1beta1` - see `api/v1beta1/`
+
+## Git Commit Guidelines
+
+Commit messages should describe the change clearly. Pull request titles must reference a JIRA/GitHub issue (e.g., `MGMT-1234:`) or use `NO-ISSUE:` prefix.
+
+For complete guidelines and examples, see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## Important Files
+
+- `swagger.yaml` - REST API specification (source of truth for API)
+- `Makefile` - Build targets
+- `skipper.yaml` - Container build environment config
+- `data/default_hw_requirements.json` - Hardware validation rules
+- `data/default_must_gather_versions.json` - Must-gather image versions
+- `deploy/` - Deployment manifests for various environments
+- `docs/dev/` - Developer documentation
+- `docs/user-guide/` - User-facing documentation
+
+## CI/CD
+
+The project uses Prow (primary) and Jenkins (secondary) for CI/CD. For details on CI jobs, debugging failures, and adding new jobs, see [docs/dev/testing.md](docs/dev/testing.md#repository-ci).
 
 ## Additional Resources
 
 - [Testing Overview](docs/dev/testing.md) - Complete testing documentation
 - [Running Subsystem Tests](docs/dev/running-test.md) - Detailed subsystem test guide
 - [Debug Guide](docs/dev/debug.md) - Debugging assisted-service
-- [Contributing Guide](CONTRIBUTING.md) - Contribution guidelines
+- [Development Scenarios](docs/dev/README.md) - podman, kind, CRC, etc.
+- [User Guide](docs/user-guide/README.md) - API usage and workflows
+- [Contributing Guide](CONTRIBUTING.md) - PR process and commit guidelines
