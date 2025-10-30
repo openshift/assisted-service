@@ -24,6 +24,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,6 +53,7 @@ func newPreprovisioningImage(name, namespace, labelKey, labelValue, bmhName stri
 				Kind:       "BareMetalHost",
 				Name:       bmhName,
 			}},
+			Finalizers: []string{PreprovisioningImageFinalizerName},
 		},
 		Spec: metal3_v1alpha1.PreprovisioningImageSpec{
 			AcceptFormats: []metal3_v1alpha1.ImageFormat{
@@ -1148,3 +1150,186 @@ func validateStatus(imageURL string, ExpectedImageReadyCondition *conditionsv1.C
 		meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError)).Status)))
 
 }
+
+var _ = Describe("PreprovisioningImage deletion protection", func() {
+	var (
+		c                     client.Client
+		pr                    *PreprovisioningImageReconciler
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		mockCRDEventsHandler  *MockCRDEventsHandler
+		mockVersionHandler    *versions.MockHandler
+		mockOcRelease         *oc.MockRelease
+		mockBMOUtils          *MockBMOUtils
+		ctx                   = context.Background()
+		ppi                   *metal3_v1alpha1.PreprovisioningImage
+		bmh                   *metal3_v1alpha1.BareMetalHost
+	)
+
+	BeforeEach(func() {
+		schemes := runtime.NewScheme()
+		Expect(configv1.AddToScheme(schemes)).To(Succeed())
+		Expect(metal3_v1alpha1.AddToScheme(schemes)).To(Succeed())
+		Expect(aiv1beta1.AddToScheme(schemes)).To(Succeed())
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).
+			WithStatusSubresource(&metal3_v1alpha1.PreprovisioningImage{}, &metal3_v1alpha1.BareMetalHost{}).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
+		mockVersionHandler = versions.NewMockHandler(mockCtrl)
+		mockOcRelease = oc.NewMockRelease(mockCtrl)
+		mockBMOUtils = NewMockBMOUtils(mockCtrl)
+
+		pr = &PreprovisioningImageReconciler{
+			Client:           c,
+			Log:              common.GetTestLog(),
+			Installer:        mockInstallerInternal,
+			CRDEventsHandler: mockCRDEventsHandler,
+			VersionsHandler:  mockVersionHandler,
+			OcRelease:        mockOcRelease,
+			BMOUtils:         mockBMOUtils,
+		}
+
+		bmh = &metal3_v1alpha1.BareMetalHost{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "testBMH",
+				Namespace: testNamespace,
+			},
+			Spec: metal3_v1alpha1.BareMetalHostSpec{
+				AutomatedCleaningMode: metal3_v1alpha1.CleaningModeMetadata,
+			},
+		}
+		Expect(c.Create(ctx, bmh)).To(Succeed())
+
+		ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	Context("ensurePreprovisioningImageFinalizer", func() {
+		It("adds finalizer when not present on PreprovisioningImage", func() {
+			ppi.Finalizers = []string{}
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+
+			// Reconcile and verify finalizer was added
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(c.Get(ctx, key, ppi)).To(Succeed())
+			Expect(ppi.GetFinalizers()).To(ContainElement(PreprovisioningImageFinalizerName))
+		})
+
+		It("does nothing when finalizer is already present on PreprovisioningImage", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+
+			// Reconcile and verify finalizer was not added again
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(c.Get(ctx, key, ppi)).To(Succeed())
+			Expect(ppi.GetFinalizers()).To(HaveLen(1))
+			Expect(ppi.GetFinalizers()).To(ContainElement(PreprovisioningImageFinalizerName))
+		})
+	})
+
+	Context("handlePreprovisioningImageDeletion", func() {
+		It("allows deletion when finalizer is not present", func() {
+			ppi.OwnerReferences = []metav1.OwnerReference{}
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("removes finalizer and allows deletion when BMH not found", func() {
+			// Set owner reference to a non-existent BMH
+			ppi.OwnerReferences = []metav1.OwnerReference{{
+				APIVersion: "metal3.io/v1alpha1",
+				Kind:       "BareMetalHost",
+				Name:       "nonExistentBMH",
+			}}
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Reconcile and verify ppi was deleted
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("blocks deletion when BMH has metadata cleaning enabled and is being deleted", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+
+			// UpdateBMH to set metadata cleaning enabled
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Finalizers = []string{"arbitraryfinalizer"}
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			// Set BMH to be deleting
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result.Requeue).To(BeTrue())
+
+			// Verify finalizer was NOT removed
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(c.Get(ctx, key, ppi)).To(Succeed())
+			Expect(ppi.GetFinalizers()).To(ContainElement(PreprovisioningImageFinalizerName))
+		})
+
+		It("allows deletion when BMH has cleaning disabled", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Set BMH cleaning to disabled
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeDisabled
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("blocks deletion when BMH has metadata cleaning enabled but is NOT being deleted", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// BMH is not being deleted (no DeletionTimestamp)
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result.Requeue).To(BeTrue())
+
+			// Verify ppi finalizer was not removed
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(c.Get(ctx, key, ppi)).To(Succeed())
+			Expect(ppi.GetFinalizers()).To(ContainElement(PreprovisioningImageFinalizerName))
+		})
+	})
+})
