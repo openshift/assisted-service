@@ -92,6 +92,12 @@ type InfraEnv struct {
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
+	// The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.
+	// This is optional for disconnected-iso image type and specifies which host will run the assisted service
+	// during the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.
+	// Format: ipv4
+	RendezvousIP *strfmt.IPv4 `json:"rendezvous_ip,omitempty"`
+
 	// size bytes
 	// Minimum: 0
 	SizeBytes *int64 `json:"size_bytes,omitempty"`
@@ -152,6 +158,10 @@ func (m *InfraEnv) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateProxy(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRendezvousIP(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -346,6 +356,18 @@ func (m *InfraEnv) validateProxy(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *InfraEnv) validateRendezvousIP(formats strfmt.Registry) error {
+	if swag.IsZero(m.RendezvousIP) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("rendezvous_ip", "body", "ipv4", m.RendezvousIP.String(), formats); err != nil {
+		return err
 	}
 
 	return nil

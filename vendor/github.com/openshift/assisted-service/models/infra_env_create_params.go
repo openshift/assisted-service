@@ -62,6 +62,12 @@ type InfraEnvCreateParams struct {
 	// Required: true
 	PullSecret *string `json:"pull_secret"`
 
+	// The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.
+	// This is optional for disconnected-iso image type and specifies which host will run the assisted service
+	// during the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.
+	// Format: ipv4
+	RendezvousIP *strfmt.IPv4 `json:"rendezvous_ip,omitempty"`
+
 	// SSH public key for debugging the installation.
 	SSHAuthorizedKey *string `json:"ssh_authorized_key,omitempty"`
 
@@ -102,6 +108,10 @@ func (m *InfraEnvCreateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validatePullSecret(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRendezvousIP(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -255,6 +265,18 @@ func (m *InfraEnvCreateParams) validateProxy(formats strfmt.Registry) error {
 func (m *InfraEnvCreateParams) validatePullSecret(formats strfmt.Registry) error {
 
 	if err := validate.Required("pull_secret", "body", m.PullSecret); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnvCreateParams) validateRendezvousIP(formats strfmt.Registry) error {
+	if swag.IsZero(m.RendezvousIP) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("rendezvous_ip", "body", "ipv4", m.RendezvousIP.String(), formats); err != nil {
 		return err
 	}
 

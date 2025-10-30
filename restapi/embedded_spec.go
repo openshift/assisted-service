@@ -9259,6 +9259,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "format": "ipv4",
+          "x-nullable": true
+        },
         "size_bytes": {
           "type": "integer"
         },
@@ -9354,6 +9360,12 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "format": "ipv4",
+          "x-nullable": true
         },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",
@@ -20756,6 +20768,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "format": "ipv4",
+          "x-nullable": true
+        },
         "size_bytes": {
           "type": "integer",
           "minimum": 0
@@ -20852,6 +20870,12 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "format": "ipv4",
+          "x-nullable": true
         },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",
