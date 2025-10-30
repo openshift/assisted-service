@@ -6,11 +6,14 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/go-openapi/errors"
+	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/validate"
 )
 
 // NewV2GetBundleParams creates a new V2GetBundleParams object
@@ -30,7 +33,12 @@ type V2GetBundleParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*Identifier of the bundle, for example, `virtualization` or `openshift-ai-nvidia`.
+	/*Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
+	  In: query
+	  Collection Format: multi
+	*/
+	FeatureIds []string
+	/*Identifier of the bundle, for example, `virtualization` or `openshift-ai`.
 	  Required: true
 	  In: path
 	*/
@@ -46,6 +54,13 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 
 	o.HTTPRequest = r
 
+	qs := runtime.Values(r.URL.Query())
+
+	qFeatureIds, qhkFeatureIds, _ := qs.GetOK("feature_ids")
+	if err := o.bindFeatureIds(qFeatureIds, qhkFeatureIds, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	rID, rhkID, _ := route.Params.GetOK("id")
 	if err := o.bindID(rID, rhkID, route.Formats); err != nil {
 		res = append(res, err)
@@ -53,6 +68,32 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindFeatureIds binds and validates array parameter FeatureIds from query.
+//
+// Arrays are parsed according to CollectionFormat: "multi" (defaults to "csv" when empty).
+func (o *V2GetBundleParams) bindFeatureIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	// CollectionFormat: multi
+	featureIdsIC := rawData
+	if len(featureIdsIC) == 0 {
+		return nil
+	}
+
+	var featureIdsIR []string
+	for i, featureIdsIV := range featureIdsIC {
+		featureIdsI := featureIdsIV
+
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []interface{}{"SNO"}, true); err != nil {
+			return err
+		}
+
+		featureIdsIR = append(featureIdsIR, featureIdsI)
+	}
+
+	o.FeatureIds = featureIdsIR
+
 	return nil
 }
 

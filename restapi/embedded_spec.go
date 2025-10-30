@@ -5773,12 +5773,67 @@ func init() {
     },
     "/v2/operators/bundles": {
       "get": {
-        "description": "Retrieves a list of avaliable bundles.",
+        "description": "Retrieves a list of available bundles filtered by support level.",
         "tags": [
           "operators"
         ],
-        "summary": "Get list of avaliable bundles",
+        "summary": "Get list of available bundles",
         "operationId": "V2ListBundles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "name": "openshift_version",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.",
+            "name": "cpu_architecture",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "external"
+            ],
+            "type": "string",
+            "description": "The provider platform type. openshift_version must be set.",
+            "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external or if openshift_version is not set.",
+            "name": "external_platform_name",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SNO"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
+            "name": "feature_ids",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -5787,6 +5842,12 @@ func init() {
               "items": {
                 "$ref": "#/definitions/bundle"
               }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -5800,7 +5861,7 @@ func init() {
     },
     "/v2/operators/bundles/{id}": {
       "get": {
-        "description": "Retrieves an array of operator properties for the specified bundle.",
+        "description": "Retrieves an array of operator properties for the specified bundle when some features are activated.",
         "tags": [
           "operators"
         ],
@@ -5809,10 +5870,23 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
+            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai` + "`" + `.",
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SNO"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
+            "name": "feature_ids",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5820,6 +5894,12 @@ func init() {
             "description": "Success",
             "schema": {
               "$ref": "#/definitions/bundle"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "404": {
@@ -17104,12 +17184,67 @@ func init() {
     },
     "/v2/operators/bundles": {
       "get": {
-        "description": "Retrieves a list of avaliable bundles.",
+        "description": "Retrieves a list of available bundles filtered by support level.",
         "tags": [
           "operators"
         ],
-        "summary": "Get list of avaliable bundles",
+        "summary": "Get list of available bundles",
         "operationId": "V2ListBundles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "name": "openshift_version",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "x86_64",
+              "aarch64",
+              "arm64",
+              "ppc64le",
+              "s390x",
+              "multi"
+            ],
+            "type": "string",
+            "default": "x86_64",
+            "description": "The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.",
+            "name": "cpu_architecture",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "baremetal",
+              "none",
+              "nutanix",
+              "vsphere",
+              "external"
+            ],
+            "type": "string",
+            "description": "The provider platform type. openshift_version must be set.",
+            "name": "platform_type",
+            "in": "query"
+          },
+          {
+            "type": "string",
+            "description": "External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external or if openshift_version is not set.",
+            "name": "external_platform_name",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SNO"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
+            "name": "feature_ids",
+            "in": "query"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success",
@@ -17118,6 +17253,12 @@ func init() {
               "items": {
                 "$ref": "#/definitions/bundle"
               }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -17131,7 +17272,7 @@ func init() {
     },
     "/v2/operators/bundles/{id}": {
       "get": {
-        "description": "Retrieves an array of operator properties for the specified bundle.",
+        "description": "Retrieves an array of operator properties for the specified bundle when some features are activated.",
         "tags": [
           "operators"
         ],
@@ -17140,10 +17281,23 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai-nvidia` + "`" + `.",
+            "description": "Identifier of the bundle, for example, ` + "`" + `virtualization` + "`" + ` or ` + "`" + `openshift-ai` + "`" + `.",
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "array",
+            "items": {
+              "enum": [
+                "SNO"
+              ],
+              "type": "string"
+            },
+            "collectionFormat": "multi",
+            "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
+            "name": "feature_ids",
+            "in": "query"
           }
         ],
         "responses": {
@@ -17151,6 +17305,12 @@ func init() {
             "description": "Success",
             "schema": {
               "$ref": "#/definitions/bundle"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "404": {

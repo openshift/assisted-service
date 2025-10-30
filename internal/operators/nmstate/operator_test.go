@@ -34,7 +34,7 @@ var _ = Describe("NMState Operator", func() {
 		})
 
 		It("should return the right feature support id", func() {
-			Expect(operator.GetBundleLabels()).To(Equal(bundle))
+			Expect(operator.GetBundleLabels(nil)).To(Equal(bundle))
 		})
 	})
 })

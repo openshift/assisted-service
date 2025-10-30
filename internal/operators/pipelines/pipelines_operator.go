@@ -2,6 +2,7 @@ package pipelines
 
 import (
 	"context"
+	"slices"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
@@ -150,6 +151,12 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDPIPELINES
 }
 
-func (o *operator) GetBundleLabels() []string {
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
+	// For SNO feature, exclude from openshift-ai bundle
+	if slices.Contains(featureIDs, models.FeatureSupportLevelIDSNO) {
+		return []string{}
+	}
+
+	// For non-SNO deployments, use the default bundle behavior
 	return []string(Operator.Bundles)
 }

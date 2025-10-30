@@ -10,11 +10,15 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/swag"
 )
 
 // V2GetBundleURL generates an URL for the v2 get bundle operation
 type V2GetBundleURL struct {
 	ID string
+
+	FeatureIds []string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -54,6 +58,24 @@ func (o *V2GetBundleURL) Build() (*url.URL, error) {
 		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
+
+	qs := make(url.Values)
+
+	var featureIdsIR []string
+	for _, featureIdsI := range o.FeatureIds {
+		featureIdsIS := featureIdsI
+		if featureIdsIS != "" {
+			featureIdsIR = append(featureIdsIR, featureIdsIS)
+		}
+	}
+
+	featureIds := swag.JoinByFormat(featureIdsIR, "multi")
+
+	for _, qsv := range featureIds {
+		qs.Add("feature_ids", qsv)
+	}
+
+	_result.RawQuery = qs.Encode()
 
 	return &_result, nil
 }

@@ -9,12 +9,14 @@ import (
 	"regexp"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -913,7 +915,12 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("ListBundles should return the list of available bundles", func() {
-			bundles := manager.ListBundles()
+			filter := &featuresupport.SupportLevelFilters{
+				OpenshiftVersion: "4.14.0",
+				CPUArchitecture:  swag.String(models.ClusterCPUArchitectureX8664),
+			}
+
+			bundles := manager.ListBundles(filter, nil)
 			bundleIDs := make([]string, len(bundles))
 			for i, bundle := range bundles {
 				bundleIDs[i] = bundle.ID
@@ -925,7 +932,7 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("Virtualization bundle contains the MTV and CNV operators", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle).ToNot(BeNil())
 			Expect(bundle.Operators).To(ContainElements(
@@ -935,7 +942,7 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("OpenShift AI bundle contains the OpenShift AI, Serverless, ODF, ServiceMesh, pipelines, authorino and NFD operators", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle).ToNot(BeNil())
 			Expect(bundle.Operators).To(ConsistOf(
@@ -950,39 +957,44 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("LSO isn't part of any bundle", func() {
-			bundles := manager.ListBundles()
+			filter := &featuresupport.SupportLevelFilters{
+				OpenshiftVersion: "4.14.0",
+				CPUArchitecture:  swag.String(models.ClusterCPUArchitectureX8664),
+			}
+
+			bundles := manager.ListBundles(filter, nil)
 			for _, bundle := range bundles {
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
 			}
 		})
 
 		It("Fails with incorrect bundle name", func() {
-			bundle, err := manager.GetBundle("invalid bundle")
+			bundle, err := manager.GetBundle("invalid bundle", nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(MatchError("bundle 'invalid bundle' is not supported"))
 			Expect(bundle).To(BeNil())
 		})
 
 		It("OpenShift AI bundle should have a description", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Description).ToNot(BeEmpty())
 		})
 
 		It("OpenShift AI bundle should have a title", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Title).ToNot(BeEmpty())
 		})
 
 		It("Virtualization bundle should have a description", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Description).ToNot(BeEmpty())
 		})
 
 		It("Virtualization bundle should have a title", func() {
-			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID)
+			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Title).ToNot(BeEmpty())
 		})

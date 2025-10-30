@@ -221,7 +221,6 @@ func (o *operator) GetSupportedArchitectures() []string {
 	return []string{common.X86CPUArchitecture, common.PowerCPUArchitecture,
 		common.S390xCPUArchitecture, common.ARM64CPUArchitecture, common.AMD64CPUArchitecture,
 	}
-
 }
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
@@ -236,6 +235,6 @@ func GetMinDiskSizeGB(cluster *models.Cluster) int64 {
 }
 
 // GetBundleLabels returns the bundle labels for the LSO operator
-func (l *operator) GetBundleLabels() []string {
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }

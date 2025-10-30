@@ -332,7 +332,7 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 	return models.FeatureSupportLevelIDOPENSHIFTAI
 }
 
-// GetBundleLabels returns the bundle labels for the LSO operator
-func (l *operator) GetBundleLabels() []string {
+// GetBundleLabels returns the bundle labels for the OpenShift AI operator
+func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }
