@@ -48,13 +48,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
 type imageConditionReason string
 
-const archMismatchReason = "InfraEnvArchMismatch"
+const (
+	archMismatchReason                = "InfraEnvArchMismatch"
+	PreprovisioningImageFinalizerName = "preprovisioningimage." + aiv1beta1.Group + "/ai-deprovision"
+)
 
 type PreprovisioningImageControllerConfig struct {
 	// The default ironic agent image was obtained by running "oc adm release info --image-for=ironic-agent  quay.io/openshift-release-dev/ocp-release:4.11.0-fc.0-x86_64"
@@ -105,6 +109,15 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	if !image.ObjectMeta.DeletionTimestamp.IsZero() {
+		return r.handlePreprovisioningImageDeletion(ctx, log, image)
+	}
+
+	if !funk.ContainsString(image.GetFinalizers(), PreprovisioningImageFinalizerName) {
+		return r.ensurePreprovisioningImageFinalizer(ctx, log, image)
+	}
+
 	if !funk.Some(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO, metal3_v1alpha1.ImageFormatInitRD) {
 		// Currently, the PreprovisioningImageController only support ISO and InitRD image
 		log.Infof("Unsupported image format: %s", image.Spec.AcceptFormats)
@@ -115,7 +128,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		}
 		return ctrl.Result{}, err
 	}
-	// Consider adding finalizer in case we need to clean up resources
+
 	// Retrieve InfraEnv
 	infraEnv, err := r.findInfraEnvForPreprovisioningImage(ctx, log, image)
 	if err != nil {
@@ -637,6 +650,58 @@ func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Cont
 	}
 
 	return nil
+}
+
+// ensurePreprovisioningImageFinalizer adds a finalizer to the PreprovisioningImage
+func (r *PreprovisioningImageReconciler) ensurePreprovisioningImageFinalizer(ctx context.Context, log logrus.FieldLogger, image *metal3_v1alpha1.PreprovisioningImage) (ctrl.Result, error) {
+	controllerutil.AddFinalizer(image, PreprovisioningImageFinalizerName)
+	if err := r.Update(ctx, image); err != nil {
+		log.WithError(err).Errorf("failed to add finalizer %s to PreprovisioningImage %s/%s", PreprovisioningImageFinalizerName, image.Namespace, image.Name)
+		return ctrl.Result{Requeue: true}, err
+	}
+	return ctrl.Result{Requeue: true}, nil
+}
+
+// handlePreprovisioningImageDeletion handles the deletion of a PreprovisioningImage by checking if any BMHs
+// with automated cleaning enabled still reference it.
+func (r *PreprovisioningImageReconciler) handlePreprovisioningImageDeletion(ctx context.Context, log logrus.FieldLogger, image *metal3_v1alpha1.PreprovisioningImage) (ctrl.Result, error) {
+	if !funk.ContainsString(image.GetFinalizers(), PreprovisioningImageFinalizerName) {
+		// Allow deletion of the PreprovisioningImage if the finalizer is not present
+		return ctrl.Result{}, nil
+	}
+
+	// Get the BMH that owns this PreprovisioningImage
+	bmh, err := r.getBMH(ctx, image)
+	if err != nil {
+		if client.IgnoreNotFound(err) == nil || strings.Contains(err.Error(), "failed to find BMH owner") {
+			// BMH not found or this preprovisioningimage is not owned by a BMH, allow deletion of the PreprovisioningImage
+			log.Info("BMH not found, removing PreprovisioningImage finalizer")
+			controllerutil.RemoveFinalizer(image, PreprovisioningImageFinalizerName)
+			if err = r.Update(ctx, image); err != nil {
+				log.WithError(err).Errorf("failed to remove finalizer %s from PreprovisioningImage %s/%s", PreprovisioningImageFinalizerName, image.Namespace, image.Name)
+				return ctrl.Result{Requeue: true}, err
+			}
+			return ctrl.Result{}, nil
+		}
+		log.WithError(err).Error("failed to get BMH for PreprovisioningImage")
+		return ctrl.Result{RequeueAfter: longerRequeueAfterOnError}, err
+	}
+
+	// PreprovisioningImage should wait for a BMH with automated cleaning enabled to be deleted
+	if bmh.Spec.AutomatedCleaningMode != metal3_v1alpha1.CleaningModeDisabled {
+		log.Infof("Cannot delete PreprovisioningImage yet: BMH %s/%s with automatedCleaningMode=%s exists and requires the image for deprovisioning",
+			bmh.Namespace, bmh.Name, bmh.Spec.AutomatedCleaningMode)
+		return ctrl.Result{Requeue: true}, nil
+	}
+
+	// Safe to delete, remove finalizer
+	log.Info("Removing finalizer from PreprovisioningImage")
+	controllerutil.RemoveFinalizer(image, PreprovisioningImageFinalizerName)
+	if err := r.Update(ctx, image); err != nil {
+		log.WithError(err).Errorf("failed to remove finalizer %s from PreprovisioningImage %s/%s", PreprovisioningImageFinalizerName, image.Namespace, image.Name)
+		return ctrl.Result{Requeue: true}, err
+	}
+	return ctrl.Result{}, nil
 }
 
 // processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
