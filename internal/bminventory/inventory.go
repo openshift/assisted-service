@@ -5043,6 +5043,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				RendezvousIP:           params.InfraenvCreateParams.RendezvousIP,
 				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 				KernelArguments:        kernelArguments,
 				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
@@ -6338,7 +6339,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 				b.log.WithError(clusterErr).Errorf("Failed to get cluster for disconnected ignition generation, infraEnv %s", infraEnv.ID)
 				return common.GenerateErrorResponder(clusterErr)
 			}
-			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			if err != nil {
 				b.log.WithError(err).Error("Failed to generate disconnected ignition")
 				return common.GenerateErrorResponder(err)

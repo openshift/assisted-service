@@ -7717,6 +7717,14 @@ definitions:
       static_network_config:
         type: string
         description: static network configuration string in the format expected by discovery ignition generation.
+      rendezvous_ip:
+        type: string
+        description: |-
+          The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.
+          This is optional for disconnected-iso image type and specifies which host will run the assisted service
+          during the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.
+        x-nullable: true
+        format: ipv4
       type:
         $ref: '#/definitions/image_type'
       ignition_config_override:
@@ -7833,6 +7841,14 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/host_static_network_config'
+      rendezvous_ip:
+        type: string
+        description: |-
+          The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.
+          This is optional for disconnected-iso image type and specifies which host will run the assisted service
+          during the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.
+        x-nullable: true
+        format: ipv4
       image_type:
         $ref: '#/definitions/image_type'
       ignition_config_override:
