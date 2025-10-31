@@ -88,10 +88,11 @@ var _ = Describe("Agent service config controller storage validation", func() {
 		// Create the reconciler:
 		reconciler = &AgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Scheme:      cluster.Scheme(),
-				Log:         logrusLogger,
-				Recorder:    cluster.Recorder(),
-				IsOpenShift: true,
+				Scheme:          cluster.Scheme(),
+				Log:             logrusLogger,
+				Recorder:        cluster.Recorder(),
+				IsOpenShift:     true,
+				PodIntrospector: &mockPodIntrospector{imagePullSecrets: nil},
 			},
 			Client:    client,
 			Namespace: "assisted-installer",

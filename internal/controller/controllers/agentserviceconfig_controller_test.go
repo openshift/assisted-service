@@ -51,6 +51,15 @@ const (
 	testOSImagesAdditionalParamsName = "test-os-images-additional-params-secret"
 )
 
+// mockPodIntrospector is a mock implementation of PodIntrospector for testing
+type mockPodIntrospector struct {
+	imagePullSecrets []corev1.LocalObjectReference
+}
+
+func (m *mockPodIntrospector) GetImagePullSecrets(ctx context.Context) []corev1.LocalObjectReference {
+	return m.imagePullSecrets
+}
+
 func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler {
 	schemes := GetKubeClientSchemes()
 
@@ -67,8 +76,9 @@ func newTestReconciler(initObjs ...client.Object) *AgentServiceConfigReconciler 
 			Log:    logrus.New(),
 			// TODO(djzager): If we need to verify emitted events
 			// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
-			Recorder:    record.NewFakeRecorder(10),
-			IsOpenShift: true,
+			Recorder:        record.NewFakeRecorder(10),
+			IsOpenShift:     true,
+			PodIntrospector: &mockPodIntrospector{imagePullSecrets: nil}, // Default to no imagePullSecrets
 		},
 		Client:    c,
 		Namespace: testNamespace,
@@ -167,10 +177,11 @@ var _ = Describe("Agent service config controller ConfigMap validation", func() 
 		// Create the reconciler:
 		reconciler = &AgentServiceConfigReconciler{
 			AgentServiceConfigReconcileContext: AgentServiceConfigReconcileContext{
-				Scheme:      cluster.Scheme(),
-				Log:         logrusLogger,
-				Recorder:    cluster.Recorder(),
-				IsOpenShift: true,
+				Scheme:          cluster.Scheme(),
+				Log:             logrusLogger,
+				Recorder:        cluster.Recorder(),
+				IsOpenShift:     true,
+				PodIntrospector: &mockPodIntrospector{imagePullSecrets: nil}, // Default to no imagePullSecrets
 			},
 			Client:    client,
 			Namespace: "assisted-installer",
@@ -1019,7 +1030,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 	Context("with secrets prefix annotation on AgentServiceConfig", func() {
 		It("should create prefixed secret and references to it", func() {
-			asc := newASCDefault()
+			asc = newASCDefault()
 			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-secrets-prefix": "my-prefix-"}
 
 			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
@@ -1069,7 +1080,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 	Context("with PVC prefix annotation on AgentServiceConfig", func() {
 		It("should create prefixed PVC names", func() {
-			asc := newASCDefault()
+			asc = newASCDefault()
 			asc.ObjectMeta.Annotations = map[string]string{"unsupported.agent-install.openshift.io/assisted-service-pvc-prefix": "my-prefix-"}
 
 			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
@@ -1102,6 +1113,51 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 					},
 				),
 			)
+		})
+
+	})
+	Context("imagePullSecrets are not set when running on OCP", func() {
+		It("does not set imagePullSecrets when running on OCP", func() {
+			testImagePullSecrets := []corev1.LocalObjectReference{
+				{Name: "test-registry-secret-1"},
+				{Name: "test-registry-secret-2"},
+			}
+			// Create a mock PodIntrospector that returns no imagePullSecrets
+			mockPodIntrospector := &mockPodIntrospector{
+				imagePullSecrets: testImagePullSecrets,
+			}
+
+			ingressCM := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      defaultIngressCertCMName,
+					Namespace: defaultIngressCertCMNamespace,
+				},
+			}
+			asc = newASCDefault()
+			ascr = newTestReconciler(asc, ingressCM, route, imageRoute, clusterTrustedCM)
+			ascr.PodIntrospector = mockPodIntrospector
+			ascr.IsOpenShift = true
+			res, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+			By("checking assisted-service deployment has no imagePullSecrets")
+			deploy := appsv1.Deployment{}
+			key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+			Expect(ascr.Client.Get(ctx, key, &deploy)).To(Succeed())
+			Expect(deploy.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
+
+			By("checking assisted-image-service statefulset has no imagePullSecrets")
+			ss := appsv1.StatefulSet{}
+			key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+			Expect(ascr.Client.Get(ctx, key, &ss)).To(Succeed())
+			Expect(ss.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
+
+			By("checking webhook deployment has no imagePullSecrets")
+			webhookDeploy := appsv1.Deployment{}
+			key = types.NamespacedName{Name: "agentinstalladmission", Namespace: testNamespace}
+			Expect(ascr.Client.Get(ctx, key, &webhookDeploy)).To(Succeed())
+			Expect(webhookDeploy.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
 		})
 	})
 
@@ -3424,6 +3480,71 @@ var _ = Describe("Reconcile on non-OCP clusters", func() {
 			}
 		}
 		Expect(found).To(BeTrue(), "Expected to find the IMAGE_SERVICE_BASE_URL env var")
+	})
+
+	It("copies imagePullSecrets from operator pod to deployments and statefulsets", func() {
+		// Create a mock PodIntrospector that returns test imagePullSecrets
+		testImagePullSecrets := []corev1.LocalObjectReference{
+			{Name: "test-registry-secret-1"},
+			{Name: "test-registry-secret-2"},
+		}
+
+		mockPodIntrospector := &mockPodIntrospector{
+			imagePullSecrets: testImagePullSecrets,
+		}
+		reconciler.PodIntrospector = mockPodIntrospector
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		By("checking assisted-service deployment has imagePullSecrets")
+		deploy := appsv1.Deployment{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &deploy)).To(Succeed())
+		Expect(deploy.Spec.Template.Spec.ImagePullSecrets).To(Equal(testImagePullSecrets))
+
+		By("checking assisted-image-service statefulset has imagePullSecrets")
+		ss := appsv1.StatefulSet{}
+		key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+		Expect(ss.Spec.Template.Spec.ImagePullSecrets).To(Equal(testImagePullSecrets))
+
+		By("checking webhook deployment has imagePullSecrets")
+		webhookDeploy := appsv1.Deployment{}
+		key = types.NamespacedName{Name: "agentinstalladmission", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &webhookDeploy)).To(Succeed())
+		Expect(webhookDeploy.Spec.Template.Spec.ImagePullSecrets).To(Equal(testImagePullSecrets))
+	})
+
+	It("does not set imagePullSecrets when operator pod has none", func() {
+		// Create a mock PodIntrospector that returns no imagePullSecrets
+		mockPodIntrospector := &mockPodIntrospector{
+			imagePullSecrets: nil,
+		}
+		reconciler.PodIntrospector = mockPodIntrospector
+
+		res, err := reconciler.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		By("checking assisted-service deployment has no imagePullSecrets")
+		deploy := appsv1.Deployment{}
+		key := types.NamespacedName{Name: serviceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &deploy)).To(Succeed())
+		Expect(deploy.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
+
+		By("checking assisted-image-service statefulset has no imagePullSecrets")
+		ss := appsv1.StatefulSet{}
+		key = types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &ss)).To(Succeed())
+		Expect(ss.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
+
+		By("checking webhook deployment has no imagePullSecrets")
+		webhookDeploy := appsv1.Deployment{}
+		key = types.NamespacedName{Name: "agentinstalladmission", Namespace: testNamespace}
+		Expect(reconciler.Client.Get(ctx, key, &webhookDeploy)).To(Succeed())
+		Expect(webhookDeploy.Spec.Template.Spec.ImagePullSecrets).To(BeNil())
 	})
 })
 
