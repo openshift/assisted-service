@@ -85,6 +85,10 @@ func (a *AgentValidatingAdmissionHook) Validate(admissionSpec *admissionv1.Admis
 
 	contextLogger.Info("Validating request")
 
+	if admissionSpec.Operation == admissionv1.Create {
+		return a.validateCreate(admissionSpec)
+	}
+
 	if admissionSpec.Operation == admissionv1.Update {
 		return a.validateUpdate(admissionSpec)
 	}
@@ -127,6 +131,50 @@ func (a *AgentValidatingAdmissionHook) shouldValidate(admissionSpec *admissionv1
 	return true
 }
 
+// validateCreate specifically validates create operations for Agent objects.
+func (a *AgentValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
+	contextLogger := log.WithFields(log.Fields{
+		"operation": admissionSpec.Operation,
+		"group":     admissionSpec.Resource.Group,
+		"version":   admissionSpec.Resource.Version,
+		"resource":  admissionSpec.Resource.Resource,
+		"method":    "validateCreate",
+	})
+
+	newObject := &v1beta1.Agent{}
+	if err := a.decoder.DecodeRaw(admissionSpec.Object, newObject); err != nil {
+		contextLogger.Errorf("Failed unmarshaling Object: %v", err.Error())
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: err.Error(),
+			},
+		}
+	}
+
+	contextLogger.Data["object.Name"] = newObject.Name
+
+	// Ensure that InstallationDiskID and InstallationDiskPath are not both set
+	if newObject.Spec.InstallationDiskID != "" && newObject.Spec.InstallationDiskPath != "" {
+		message := "Either InstallationDiskID or InstallationDiskPath can be set, not both."
+		contextLogger.Infof("Failed validation: %v", message)
+		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
+	contextLogger.Info("Successful validation")
+	return &admissionv1.AdmissionResponse{
+		Allowed: true,
+	}
+}
+
 // validateUpdate specifically validates update operations for Agent objects.
 func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	contextLogger := log.WithFields(log.Fields{
@@ -160,6 +208,20 @@ func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1
 			Result: &metav1.Status{
 				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
 				Message: err.Error(),
+			},
+		}
+	}
+
+	// Ensure that InstallationDiskID and InstallationDiskPath are not both set
+	if newObject.Spec.InstallationDiskID != "" && newObject.Spec.InstallationDiskPath != "" {
+		message := "Either InstallationDiskID or InstallationDiskPath can be set, not both."
+		contextLogger.Infof("Failed validation: %v", message)
+		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
 			},
 		}
 	}
