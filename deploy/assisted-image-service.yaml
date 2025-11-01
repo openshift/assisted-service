@@ -28,6 +28,8 @@ items:
                 cpu: 100m
                 memory: 400Mi
             image: REPLACE_IMAGE_SERVICE_IMAGE
+            securityContext:
+              readOnlyRootFilesystem: true
             ports:
               - containerPort: 8080
             readinessProbe:
@@ -56,10 +58,16 @@ items:
                 value: REPLACE_IMAGE_SERVICE_BASE_URL
               - name: ALLOWED_DOMAINS
                 value: "*"
+              - name: DATA_TEMP_DIR
+                value: "/data_temp"
             volumeMounts:
               - mountPath: /data
                 name: image-service-data
+              - mountPath: /data_temp
+                name: data-temp-volume
         serviceAccountName: assisted-service
         volumes:
          - emptyDir: {}
            name: image-service-data
+         - emptyDir: {}
+           name: data-temp-volume

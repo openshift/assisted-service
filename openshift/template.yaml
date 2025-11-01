@@ -254,6 +254,8 @@ objects:
           - name: envoy-sidecar
             image: ${ENVOY_IMAGE}:${ENVOY_TAG}
             imagePullPolicy: IfNotPresent
+            securityContext:
+              readOnlyRootFilesystem: true
             command:
             - envoy
             - --config-path
@@ -288,6 +290,8 @@ objects:
           - name: assisted-service
             image: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
+            securityContext:
+              readOnlyRootFilesystem: true
             resources:
               limits:
                 cpu: ${{CPU_LIMIT}}
@@ -518,8 +522,12 @@ objects:
                 readOnly: true
               - name: workdir-volume
                 mountPath: ${WORK_DIR}
+              - name: tmp-volume
+                mountPath: /tmp
         volumes:
           - name: workdir-volume
+            emptyDir: {}
+          - name: tmp-volume
             emptyDir: {}
           - name: route53-creds
             secret:
