@@ -24,6 +24,8 @@ spec:
               memory: 400Mi
           image: REPLACE_IMAGE
           imagePullPolicy: Always
+          securityContext:
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 8090
           livenessProbe:
