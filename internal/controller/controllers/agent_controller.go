@@ -109,6 +109,7 @@ type AgentReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get
 
 func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -248,6 +249,21 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			log.Infof("ClusterDeploymentName is changed in Agent %s. unbind first", agent.Name)
 			return r.unbindHost(ctx, log, agent, origAgent, h)
 		}
+	}
+
+	// check and apply auto-approval if configured
+	autoApproved, err := r.applyAutoApprovalIfNeeded(ctx, log, agent, h)
+	if err != nil {
+		log.WithError(err).Warn("Failed to apply auto-approval")
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
+	}
+
+	if autoApproved {
+		if updateErr := r.Update(ctx, agent); updateErr != nil {
+			log.WithError(updateErr).Error("Failed to persist auto-approval to Agent")
+			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, updateErr
+		}
+		log.Infof("Persisted auto-approval to Agent %s/%s", agent.Namespace, agent.Name)
 	}
 
 	// check for updates from user, compare spec and update if needed
@@ -1920,6 +1936,40 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 		return r.updateAndReplaceAgent(ctx, agent)
 	}
 	return nil
+}
+
+func (r *AgentReconciler) applyAutoApprovalIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *common.Host) (bool, error) {
+	if agent.Spec.Approved {
+		return false, nil
+	}
+
+	infraEnvName, exist := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !exist {
+		log.Debugf("Agent %s/%s has no InfraEnv label, skipping auto-approval check", agent.Namespace, agent.Name)
+		return false, nil
+	}
+
+	infraEnvKey := types.NamespacedName{
+		Name:      infraEnvName,
+		Namespace: agent.Namespace,
+	}
+
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Get(ctx, infraEnvKey, infraEnv); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Debugf("InfraEnv %s/%s not found, skipping auto-approval check", infraEnvKey.Namespace, infraEnvKey.Name)
+			return false, nil
+		}
+		return false, errors.Wrapf(err, "failed to get InfraEnv %s/%s", infraEnvKey.Namespace, infraEnvKey.Name)
+	}
+
+	if infraEnv.Spec.AgentApproval != nil && infraEnv.Spec.AgentApproval.AutoApprove {
+		log.Infof("Auto-approving agent %s/%s based on InfraEnv %s configuration", agent.Namespace, agent.Name, infraEnvKey.Name)
+		agent.Spec.Approved = true
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {

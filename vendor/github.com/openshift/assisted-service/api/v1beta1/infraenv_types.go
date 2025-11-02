@@ -136,6 +136,23 @@ type InfraEnvSpec struct {
 	// - minimal-iso: A lightweight ISO that retrieves the remainder of the RHCOS root file system (rootfs) dynamically from the Internet
 	// +optional
 	ImageType models.ImageType `json:"imageType,omitempty"`
+
+	// AgentApproval defines configuration for automatic approval of Agents
+	// discovered by this InfraEnv.
+	// +optional
+	AgentApproval *AgentApproval `json:"agentApproval,omitempty"`
+}
+
+// AgentApproval defines configuration for automatic approval of Agents
+// discovered by this InfraEnv.
+type AgentApproval struct {
+	// AutoApprove indicates whether Agents discovered using this InfraEnv
+	// should be automatically approved by the system.
+	// If true, any Agent referencing this InfraEnv may be approved without manual intervention.
+	// Use only in trusted environments.
+	// +optional
+	// +kubebuilder:default=false
+	AutoApprove bool `json:"autoApprove,omitempty"`
 }
 
 type KernelArgument struct {
