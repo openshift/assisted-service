@@ -226,6 +226,7 @@ var _ = Describe("GetHostInstallationDisk", func() {
 	var (
 		hostId    strfmt.UUID
 		diskId    = "/dev/disk/by-id/test-disk"
+		diskPath  = "/dev/disk/by-path/test-disk"
 		diskName  = "test-disk"
 		validHost *models.Host
 	)
@@ -256,6 +257,27 @@ var _ = Describe("GetHostInstallationDisk", func() {
 	})
 
 	It("should return installation disk when found by disk path", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName, ByPath: diskPath},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "",
+			InstallationDiskPath: diskPath,
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(disk).NotTo(BeNil())
+		Expect(disk.ID).To(Equal(diskId))
+		Expect(disk.Name).To(Equal(diskName))
+	})
+
+	It("should return installation disk when found by device name", func() {
 		expectedFullName := fmt.Sprintf("/dev/%s", diskName)
 		inventory := &models.Inventory{
 			Disks: []*models.Disk{
@@ -317,7 +339,7 @@ var _ = Describe("GetHostInstallationDisk", func() {
 		Expect(disk).To(BeNil())
 	})
 
-	It("should return error when installation disk is not found - non-matching disk path", func() {
+	It("should return error when installation disk is not found - non-matching device name", func() {
 		inventory := &models.Inventory{
 			Disks: []*models.Disk{
 				{ID: diskId, Name: diskName, Path: "/dev/sda"},
@@ -329,6 +351,26 @@ var _ = Describe("GetHostInstallationDisk", func() {
 			Inventory:            string(inventoryBytes),
 			InstallationDiskID:   "",
 			InstallationDiskPath: "/dev/non-existent-disk",
+		}
+
+		disk, err := GetHostInstallationDisk(validHost)
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(MatchError(ContainSubstring(fmt.Sprintf("installation disk not found for host %s", hostId))))
+		Expect(disk).To(BeNil())
+	})
+
+	It("should return error when installation disk is not found - non-matching disk path", func() {
+		inventory := &models.Inventory{
+			Disks: []*models.Disk{
+				{ID: diskId, Name: diskName, Path: "/dev/sda", ByPath: "/dev/disk/by-path/existing-disk"},
+			},
+		}
+		inventoryBytes, _ := json.Marshal(inventory)
+		validHost = &models.Host{
+			ID:                   &hostId,
+			Inventory:            string(inventoryBytes),
+			InstallationDiskID:   "",
+			InstallationDiskPath: "/dev/disk/by-path/non-existent-disk",
 		}
 
 		disk, err := GetHostInstallationDisk(validHost)
