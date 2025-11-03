@@ -3,12 +3,12 @@ package common
 import (
 	"bytes"
 	"fmt"
-	"io/fs"
-	"path"
-	"text/template"
-
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"io/fs"
+	"path"
+	"slices"
+	"text/template"
 )
 
 // Returns count for disks that are not installion disk and fulfill size requirements (eligible disks) and
@@ -16,9 +16,9 @@ import (
 func NonInstallationDiskCount(disks []*models.Disk, installationDiskID string, minSizeGB int64) (int64, int64) {
 	var eligibleDisks int64
 	var availableDisks int64
-
+	validDiskTypes := []models.DriveType{models.DriveTypeSSD, models.DriveTypeHDD, models.DriveTypeFC}
 	for _, disk := range disks {
-		if (disk.DriveType == models.DriveTypeSSD || disk.DriveType == models.DriveTypeHDD) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
+		if (slices.Contains(validDiskTypes, disk.DriveType)) && installationDiskID != disk.ID && disk.SizeBytes != 0 {
 			if disk.SizeBytes >= conversions.GbToBytes(minSizeGB) {
 				eligibleDisks++
 			} else {
