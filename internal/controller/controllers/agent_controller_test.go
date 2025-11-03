@@ -4566,6 +4566,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
+		// Mock that no existing host is found
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
 		Expect(err).To(BeNil())
@@ -4606,6 +4609,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		}
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Mock that no existing host is found
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, nil, infraEnvId)
@@ -4650,6 +4656,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		clusterId := *backEndCluster.ID
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Mock that no existing host is found
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -4717,6 +4726,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		clusterId := *backEndCluster.ID
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Mock that no existing host is found
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -4847,6 +4859,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
+			// Mock that no existing host is found
+			mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+
 			// Create Host
 			host, err := createNewHost(agent, &clusterId, infraEnvId)
 			Expect(err).To(BeNil())
@@ -4903,6 +4918,9 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
+			// Mock that no existing host is found
+			mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+
 			// Create Host
 			host, err := createNewHost(agent, &clusterId, infraEnvId)
 			Expect(err).To(BeNil())
@@ -4932,6 +4950,78 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			Expect(c.Get(ctx, key, agent)).To(BeNil())
 			Expect(agent.Status.Progress.CurrentStage).To(BeEmpty())
 		})
+	})
+
+	It("should report error when Agent is recreated in different namespace", func() {
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: "infraEnvName",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		hostId := strfmt.UUID(agent.Name)
+		existingHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+			KubeKeyNamespace: "other-namespace",
+		}
+
+		// Host not found in namespace
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Check for host by ID only - conflict detected
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(existingHost, nil).Times(1)
+
+		// Reconcile Agent - should handle conflict via status condition, not error
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{})) // User error, no requeue
+
+		// Verify Agent status condition is set
+		agent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, agent)).To(BeNil())
+		specSyncedCond := conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition)
+		Expect(specSyncedCond).ToNot(BeNil())
+		Expect(specSyncedCond.Status).To(Equal(corev1.ConditionFalse))
+		Expect(specSyncedCond.Message).To(ContainSubstring("already exists in namespace other-namespace"))
+	})
+
+	It("should create new host if no existing host found", func() {
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: "infraEnvName",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Host not found in namespace
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Check for host by ID only - not found
+		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Create new host
+		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, gomock.Any()).Return(nil).Times(1)
+
+		// Reconcile Agent
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
 	})
 })
 

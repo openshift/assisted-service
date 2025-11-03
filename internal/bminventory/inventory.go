@@ -180,6 +180,7 @@ type InstallerInternals interface {
 	GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error)
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
+	GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error)
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -6573,4 +6574,8 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 		return errors.Errorf("host %s infra-env %s: empty cluster id", host.ID.String(), host.InfraEnvID.String())
 	}
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
+}
+
+func (b *bareMetalInventory) GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error) {
+	return common.GetHostFromDBbyHostId(b.db, strfmt.UUID(hostId))
 }
