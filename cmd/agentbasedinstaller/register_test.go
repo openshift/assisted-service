@@ -1,10 +1,14 @@
 package agentbasedinstaller
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"testing/fstest"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
@@ -12,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	installerclient "github.com/openshift/assisted-service/client/installer"
+	manifestsclient "github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus/hooks/test"
 )
@@ -19,7 +24,6 @@ import (
 var _ = Describe("ApplyInstallConfigOverrides", func() {
 	var (
 		ctx            context.Context
-		logger         *test.Hook
 		fakeTransport  *mockInstallConfigTransport
 		bmInventory    *client.AssistedInstall
 		cluster        *models.Cluster
@@ -103,8 +107,6 @@ spec:
     controlPlaneAgents: 1
   sshPublicKey: ssh-rsa test-key
 `
-		logger = logger // Use logger
-		_ = fakeLogger  // Use fakeLogger
 	})
 
 	AfterEach(func() {
@@ -380,3 +382,286 @@ var _ = Describe("normalizeJSON", func() {
 		Expect(normalized1).To(Equal(`{"fips":true}`))
 	})
 })
+
+var _ = Describe("RegisterExtraManifests", func() {
+	var (
+		ctx                context.Context
+		fakeManifestClient *mockManifestTransport
+		manifestClient     *manifestsclient.Client
+		cluster            *models.Cluster
+		clusterID          strfmt.UUID
+		manifestContent1   string
+		manifestContent2   string
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+
+		clusterID = strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
+		cluster = &models.Cluster{
+			ID: &clusterID,
+		}
+
+		manifestContent1 = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: test1\n"
+		manifestContent2 = "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: test2\n"
+
+		fakeManifestClient = NewMockManifestTransport()
+		manifestClient = manifestsclient.New(fakeManifestClient, nil, nil)
+	})
+
+	Context("when no manifests exist", func() {
+		It("should create all manifests", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fsys := fstest.MapFS{
+				"manifest1.yml":  {Data: []byte(manifestContent1)},
+				"manifest2.yaml": {Data: []byte(manifestContent2)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeManifestClient.createdManifests).To(HaveLen(2))
+			Expect(fakeManifestClient.createdManifests).To(HaveKey("manifest1.yml"))
+			Expect(fakeManifestClient.createdManifests).To(HaveKey("manifest2.yaml"))
+		})
+
+		It("should handle no manifests in directory", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fsys := fstest.MapFS{}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeManifestClient.createdManifests).To(HaveLen(0))
+		})
+	})
+
+	Context("when manifests already exist", func() {
+		It("should skip manifests with same content", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			// Pre-populate existing manifests
+			fakeManifestClient.existingManifests = map[string]string{
+				"manifest1.yml": manifestContent1,
+			}
+
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+				"manifest2.yml": {Data: []byte(manifestContent2)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+			// Should only create manifest2, skipping manifest1
+			Expect(fakeManifestClient.createdManifests).To(HaveLen(1))
+			Expect(fakeManifestClient.createdManifests).To(HaveKey("manifest2.yml"))
+			Expect(fakeManifestClient.createdManifests).NotTo(HaveKey("manifest1.yml"))
+		})
+
+		It("should return error if manifest exists with different content", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			// Pre-populate existing manifest with different content
+			fakeManifestClient.existingManifests = map[string]string{
+				"manifest1.yml": "different content",
+			}
+
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("already exists with different content"))
+		})
+
+		It("should be fully idempotent when called multiple times", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+			}
+
+			// First call - creates manifest
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(fakeManifestClient.createdManifests).To(HaveLen(1))
+
+			// Simulate that the manifest now exists
+			fakeManifestClient.existingManifests["manifest1.yml"] = manifestContent1
+
+			// Second call - should skip creation
+			err = RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			// Still only one manifest created (not duplicated)
+			Expect(fakeManifestClient.createdManifests).To(HaveLen(1))
+		})
+	})
+
+	Context("when API errors occur", func() {
+		It("should return error if list manifests fails", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fakeManifestClient.SetListError("API error")
+
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("API error"))
+		})
+
+		It("should return error if download manifest fails", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fakeManifestClient.existingManifests = map[string]string{
+				"manifest1.yml": manifestContent1,
+			}
+			fakeManifestClient.SetDownloadError("Download failed")
+
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Download failed"))
+		})
+
+		It("should return error if create manifest fails", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fakeManifestClient.SetCreateError("Create failed")
+
+			fsys := fstest.MapFS{
+				"manifest1.yml": {Data: []byte(manifestContent1)},
+			}
+
+			err := RegisterExtraManifests(fsys, ctx, fakeLogger, manifestClient, cluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("Create failed"))
+		})
+	})
+})
+
+// mockManifestTransport is a mock transport for testing RegisterExtraManifests
+type mockManifestTransport struct {
+	existingManifests map[string]string // filename -> content
+	createdManifests  map[string]string // filename -> content
+	listError         error
+	downloadError     error
+	createError       error
+}
+
+func NewMockManifestTransport() *mockManifestTransport {
+	return &mockManifestTransport{
+		existingManifests: make(map[string]string),
+		createdManifests:  make(map[string]string),
+	}
+}
+
+// mockClientResponse implements runtime.ClientResponse for testing
+type mockClientResponse struct {
+	body io.ReadCloser
+	code int
+}
+
+func (m *mockClientResponse) Code() int {
+	return m.code
+}
+
+func (m *mockClientResponse) Message() string {
+	return ""
+}
+
+func (m *mockClientResponse) GetHeader(string) string {
+	return ""
+}
+
+func (m *mockClientResponse) GetHeaders(string) []string {
+	return nil
+}
+
+func (m *mockClientResponse) Body() io.ReadCloser {
+	return m.body
+}
+
+func (m *mockManifestTransport) Submit(op *runtime.ClientOperation) (interface{}, error) {
+	switch v := op.Params.(type) {
+	case *manifestsclient.V2ListClusterManifestsParams:
+		if m.listError != nil {
+			return nil, m.listError
+		}
+
+		var manifestList []*models.Manifest
+		for filename := range m.existingManifests {
+			folder := "openshift"
+			manifestList = append(manifestList, &models.Manifest{
+				FileName: filename,
+				Folder:   folder,
+			})
+		}
+
+		return &manifestsclient.V2ListClusterManifestsOK{
+			Payload: manifestList,
+		}, nil
+
+	case *manifestsclient.V2DownloadClusterManifestParams:
+		if m.downloadError != nil {
+			return nil, m.downloadError
+		}
+
+		filename := v.FileName
+		content, exists := m.existingManifests[filename]
+		if !exists {
+			return nil, fmt.Errorf("manifest not found: %s", filename)
+		}
+
+		// Create a mock response that the Reader can process
+		mockResponse := &mockClientResponse{
+			body: io.NopCloser(bytes.NewBufferString(content)),
+			code: 200,
+		}
+
+		// Call the Reader's ReadResponse method to write to the buffer
+		// Use ByteStreamConsumer for plain text/YAML content (not JSON)
+		return op.Reader.ReadResponse(mockResponse, runtime.ByteStreamConsumer())
+
+	case *manifestsclient.V2CreateClusterManifestParams:
+		if m.createError != nil {
+			return nil, m.createError
+		}
+
+		filename := *v.CreateManifestParams.FileName
+		encodedContent := *v.CreateManifestParams.Content
+		decodedContent, err := base64.StdEncoding.DecodeString(encodedContent)
+		if err != nil {
+			return nil, err
+		}
+
+		m.createdManifests[filename] = string(decodedContent)
+
+		return &manifestsclient.V2CreateClusterManifestCreated{
+			Payload: &models.Manifest{
+				FileName: filename,
+				Folder:   *v.CreateManifestParams.Folder,
+			},
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("[mockManifestTransport] unmanaged type: %T", v)
+	}
+}
+
+func (m *mockManifestTransport) SetListError(errMsg string) {
+	m.listError = fmt.Errorf("%s", errMsg)
+}
+
+func (m *mockManifestTransport) SetDownloadError(errMsg string) {
+	m.downloadError = fmt.Errorf("%s", errMsg)
+}
+
+func (m *mockManifestTransport) SetCreateError(errMsg string) {
+	m.createError = fmt.Errorf("%s", errMsg)
+}
