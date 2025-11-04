@@ -2,6 +2,7 @@ package subsystem
 
 import (
 	"context"
+	"os"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -71,5 +72,62 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
 		Expect(registerClusterErr).To(HaveOccurred())
 		Expect(modelCluster).To(BeNil())
+	})
+
+	It("retry installConfig overrides on restart scenario", func() {
+		// First registration with overrides
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+			"../docs/hive-integration/crds/clusterDeployment.yaml",
+			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
+		Expect(registerClusterErr).NotTo(HaveOccurred())
+		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
+
+		// Simulate restart: Apply overrides again to existing cluster
+		// This should be idempotent and not fail
+		updatedCluster, err := agentbasedinstaller.ApplyInstallConfigOverrides(ctx, log, utils_test.TestContext.UserBMClient,
+			modelCluster, "../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml")
+
+		Expect(err).NotTo(HaveOccurred())
+		// Should return nil because overrides are already correctly applied
+		Expect(updatedCluster).To(BeNil())
+	})
+
+	It("apply overrides when missing on existing cluster", func() {
+		// Register cluster without overrides first
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+			"../docs/hive-integration/crds/clusterDeployment.yaml",
+			"../docs/hive-integration/crds/agentClusterInstall.yaml",
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
+		Expect(registerClusterErr).NotTo(HaveOccurred())
+		Expect(modelCluster.InstallConfigOverrides).To(BeEmpty())
+
+		// Now apply overrides (simulating a restart where overrides should be applied)
+		updatedCluster, err := agentbasedinstaller.ApplyInstallConfigOverrides(ctx, log, utils_test.TestContext.UserBMClient,
+			modelCluster, "../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml")
+
+		Expect(err).NotTo(HaveOccurred())
+		Expect(updatedCluster).NotTo(BeNil())
+		Expect(updatedCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
+	})
+
+	It("retry extra manifests registration on restart", func() {
+		// Register cluster first
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+			"../docs/hive-integration/crds/clusterDeployment.yaml",
+			"../docs/hive-integration/crds/agentClusterInstall.yaml",
+			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
+		Expect(registerClusterErr).NotTo(HaveOccurred())
+
+		// Register extra manifests - this should be idempotent
+		// First registration
+		err := agentbasedinstaller.RegisterExtraManifests(os.DirFS("../docs/hive-integration/crds/extra-manifests"),
+			ctx, log, utils_test.TestContext.UserBMClient.Manifests, modelCluster)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Retry registration (simulating restart) - should not fail
+		err = agentbasedinstaller.RegisterExtraManifests(os.DirFS("../docs/hive-integration/crds/extra-manifests"),
+			ctx, log, utils_test.TestContext.UserBMClient.Manifests, modelCluster)
+		Expect(err).NotTo(HaveOccurred())
 	})
 })
