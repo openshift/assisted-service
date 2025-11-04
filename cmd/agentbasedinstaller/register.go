@@ -1,6 +1,7 @@
 package agentbasedinstaller
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -240,6 +241,34 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 
 	extraManifestsFolder := "openshift"
 
+	// Get list of existing manifests to make this function idempotent
+	listParams := manifests.NewV2ListClusterManifestsParams().
+		WithClusterID(*cluster.ID)
+	existingManifests, err := client.V2ListClusterManifests(ctx, listParams)
+	if err != nil {
+		return errorutil.GetAssistedError(err)
+	}
+
+	// Build map of existing manifests for quick lookup
+	existingMap := make(map[string]string) // filename -> content
+	if existingManifests != nil && existingManifests.Payload != nil {
+		for _, manifest := range existingManifests.Payload {
+			if manifest != nil && manifest.Folder == extraManifestsFolder {
+				// Download the content to compare
+				var buf bytes.Buffer
+				downloadParams := manifests.NewV2DownloadClusterManifestParams().
+					WithClusterID(*cluster.ID).
+					WithFolder(&manifest.Folder).
+					WithFileName(manifest.FileName)
+				_, err := client.V2DownloadClusterManifest(ctx, downloadParams, &buf)
+				if err != nil {
+					return errorutil.GetAssistedError(err)
+				}
+				existingMap[manifest.FileName] = buf.String()
+			}
+		}
+	}
+
 	for _, f := range extras {
 		extraManifestFileName := f
 		bytes, err := fs.ReadFile(fsys, extraManifestFileName)
@@ -247,6 +276,18 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 			return err
 		}
 
+		// Check if manifest already exists
+		if existingContent, exists := existingMap[extraManifestFileName]; exists {
+			// Manifest exists - verify content matches
+			if existingContent == string(bytes) {
+				log.Infof("Manifest %s already exists with same content, skipping", extraManifestFileName)
+				continue
+			} else {
+				return errors.Errorf("manifest %s already exists with different content", extraManifestFileName)
+			}
+		}
+
+		// Manifest doesn't exist - create it
 		extraManifestContent := base64.StdEncoding.EncodeToString(bytes)
 		params := manifests.NewV2CreateClusterManifestParams().
 			WithClusterID(*cluster.ID).
@@ -260,6 +301,7 @@ func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, cl
 		if err != nil {
 			return errorutil.GetAssistedError(err)
 		}
+		log.Infof("Registered manifest %s", extraManifestFileName)
 	}
 
 	return nil
