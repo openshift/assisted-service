@@ -99,7 +99,7 @@ LOCAL_IMAGE_ARCHIVE=build/assisted_service_image.tar
 HUB_CLUSTER_NAME := $(or ${HUB_CLUSTER_NAME}, assisted-hub-cluster)
 NVIDIA_REQUIRE_GPU := $(or ${NVIDIA_REQUIRE_GPU}, true)
 AMD_REQUIRE_GPU := $(or ${AMD_REQUIRE_GPU}, true)
-TNA_CLUSTERS_SUPPORT := $(or ${TNA_CLUSTERS_SUPPORT}, false)
+TNA_CLUSTERS_SUPPORT := $(or ${TNA_CLUSTERS_SUPPORT}, true)
 
 
 ifeq ($(DISABLE_TLS),true)

@@ -10460,7 +10460,6 @@ var _ = Describe("infraEnvs host", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
-		Expect(cfg.TNAClustersSupport).Should(BeFalse())
 		Expect(cfg.TNFClustersSupport).Should(BeFalse())
 		bm = createInventory(db, cfg)
 
@@ -10560,7 +10559,6 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			bm.TNAClustersSupport = true
 			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
 			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 			db.Save(&cluster)
@@ -10598,6 +10596,7 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			bm.TNAClustersSupport = false
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -10615,7 +10614,6 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			bm.TNAClustersSupport = true
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -10633,7 +10631,6 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			bm.TNAClustersSupport = true
 			cluster.OpenshiftVersion = common.MinimumVersionForNonStandardHAOCPControlPlane
 			db.Save(&cluster)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
@@ -10653,7 +10650,6 @@ var _ = Describe("infraEnvs host", func() {
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			bm.TNAClustersSupport = true
 			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
 			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)}
 			db.Save(&cluster)
@@ -14196,7 +14192,6 @@ var _ = Describe("RegisterCluster with image service disabled", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
-		Expect(cfg.TNAClustersSupport).Should(BeFalse())
 		bm = createInventoryWithImageService(db, cfg, false)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false, nil)
@@ -14253,7 +14248,6 @@ var _ = Describe("RegisterCluster", func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db, dbName = common.PrepareTestDB()
 		Expect(cfg.DiskEncryptionSupport).Should(BeTrue())
-		Expect(cfg.TNAClustersSupport).Should(BeFalse())
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, mockOperatorManager, nil, nil, nil, nil, nil, false, nil)
@@ -16697,7 +16691,6 @@ var _ = Describe("RegisterCluster", func() {
 			It(fmt.Sprintf("setting 2 control planes, multi-node with OCP version >= %s", common.MinimumVersionForArbiterClusters), func() {
 				mockClusterRegisterSuccessWithVersion(common.X86CPUArchitecture, common.MinimumVersionForArbiterClusters)
 
-				bm.TNAClustersSupport = true
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:  swag.String(common.MinimumVersionForArbiterClusters),
@@ -16770,7 +16763,6 @@ var _ = Describe("RegisterCluster", func() {
 			})
 
 			It("setting 6 control planes, multi-node, Arbiter Clusters supported", func() {
-				bm.TNAClustersSupport = true
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:     swag.String(common.MinimumVersionForArbiterClusters),
@@ -16835,6 +16827,7 @@ var _ = Describe("RegisterCluster", func() {
 			})
 
 			It("setting 2 control planes, multi-node, Arbiter Clusters not supported", func() {
+				bm.TNAClustersSupport = false
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),

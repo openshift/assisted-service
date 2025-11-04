@@ -123,7 +123,7 @@ type Config struct {
 	ISOImageType                        string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                         bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 	DiskEncryptionSupport               bool              `envconfig:"DISK_ENCRYPTION_SUPPORT" default:"true"`
-	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"false"`
+	TNAClustersSupport                  bool              `envconfig:"TNA_CLUSTERS_SUPPORT" default:"true"`
 	TNFClustersSupport                  bool              `envconfig:"TNF_CLUSTERS_SUPPORT" default:"false"`
 	ForceInsecurePolicyJson             bool              `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	EnableImageService                  bool              `envconfig:"ENABLE_IMAGE_SERVICE" default:"true"`
