@@ -3,6 +3,7 @@ package agentbasedinstaller
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
@@ -120,34 +121,79 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	log.Infof("Registered cluster with id: %s", clusterResult.Payload.ID)
 
-	annotations := aci.GetAnnotations()
-	if installConfigOverrides, ok := annotations[controllers.InstallConfigOverrides]; ok {
-		var reJsonField = regexp.MustCompile(`(?i)"([^"]*(password)[^"]*)":\s*"(\\{2}|\\"|[^"])*"`)
-		updateInstallConfigParams := &installer.V2UpdateClusterInstallConfigParams{
-			ClusterID:           *clusterResult.Payload.ID,
-			InstallConfigParams: installConfigOverrides,
-		}
-		_, updateClusterErr := bmInventory.Installer.V2UpdateClusterInstallConfig(ctx, updateInstallConfigParams)
-		if updateClusterErr != nil {
-			return nil, errorutil.GetAssistedError(updateClusterErr)
-		}
-
-		filteredICOverrides := reJsonField.ReplaceAllString(installConfigOverrides, fmt.Sprintf(`"$1":"%s"`, "[redacted]"))
-		log.Infof("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, filteredICOverrides)
-
-		// Need to GET cluster again so we can give a proper return value
-		getClusterResult, err := bmInventory.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{
-			ClusterID: *clusterResult.Payload.ID,
-		})
-
-		if err != nil {
-			log.Warnf("Updated cluster %s with installConfigOverrides %s", clusterResult.Payload.ID, filteredICOverrides)
-		} else {
-			result = getClusterResult.GetPayload()
-		}
+	// Apply installConfig overrides if present
+	updatedCluster, err := ApplyInstallConfigOverrides(ctx, log, bmInventory, result, agentClusterInstallPath)
+	if err != nil {
+		return nil, err
+	}
+	if updatedCluster != nil {
+		result = updatedCluster
 	}
 
 	return result, nil
+}
+
+// ApplyInstallConfigOverrides applies installConfig overrides to an existing cluster
+// if the AgentClusterInstall manifest contains override annotations.
+// Returns the updated cluster if overrides were applied, nil if no overrides present, or error on failure.
+func ApplyInstallConfigOverrides(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, cluster *models.Cluster, agentClusterInstallPath string) (*models.Cluster, error) {
+	var aci hiveext.AgentClusterInstall
+	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
+		return nil, aciErr
+	}
+
+	annotations := aci.GetAnnotations()
+	installConfigOverrides, ok := annotations[controllers.InstallConfigOverrides]
+	if !ok {
+		// No overrides to apply
+		return nil, nil
+	}
+
+	// Check if overrides are already correctly applied by normalizing JSON before comparing
+	// This prevents unnecessary API calls when JSON is semantically identical but formatted differently
+	// If the existing overrides are invalid JSON, treat as different (will be fixed by the update)
+	existingNormalized, existingErr := normalizeJSON(cluster.InstallConfigOverrides)
+	newNormalized, newErr := normalizeJSON(installConfigOverrides)
+
+	// If new overrides are invalid, that's an error we should propagate
+	if newErr != nil {
+		return nil, errors.Wrap(newErr, "failed to normalize new installConfig overrides")
+	}
+
+	// If existing is invalid JSON or differs from new, proceed with update
+	// (existingErr != nil means invalid JSON in cluster, which we'll fix)
+	if existingErr == nil && existingNormalized == newNormalized {
+		log.Infof("InstallConfig overrides already correctly applied for cluster %s", *cluster.ID)
+		return nil, nil
+	}
+
+	if existingErr != nil {
+		log.Infof("Existing installConfig overrides contain invalid JSON for cluster %s, will update", *cluster.ID)
+	}
+
+	var reJsonField = regexp.MustCompile(`(?i)"([^"]*(password)[^"]*)":\s*"(\\{2}|\\"|[^"])*"`)
+	updateInstallConfigParams := &installer.V2UpdateClusterInstallConfigParams{
+		ClusterID:           *cluster.ID,
+		InstallConfigParams: installConfigOverrides,
+	}
+	_, updateClusterErr := bmInventory.Installer.V2UpdateClusterInstallConfig(ctx, updateInstallConfigParams)
+	if updateClusterErr != nil {
+		return nil, errorutil.GetAssistedError(updateClusterErr)
+	}
+
+	filteredICOverrides := reJsonField.ReplaceAllString(installConfigOverrides, fmt.Sprintf(`"$1":"%s"`, "[redacted]"))
+	log.Infof("Applied installConfig overrides to cluster %s: %s", *cluster.ID, filteredICOverrides)
+
+	// Need to GET cluster again so we can give a proper return value
+	getClusterResult, err := bmInventory.Installer.V2GetCluster(ctx, &installer.V2GetClusterParams{
+		ClusterID: *cluster.ID,
+	})
+
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to get cluster after applying installConfig overrides")
+	}
+
+	return getClusterResult.GetPayload(), nil
 }
 
 func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
@@ -361,4 +407,25 @@ func operatorsToArray(entries []models.OperatorCreateParams) []*models.OperatorC
 	return funk.Map(entries, func(entry models.OperatorCreateParams) *models.OperatorCreateParams {
 		return &models.OperatorCreateParams{Name: entry.Name, Properties: entry.Properties}
 	}).([]*models.OperatorCreateParams)
+}
+
+// normalizeJSON normalizes a JSON string by parsing and re-marshaling it.
+// This ensures consistent formatting and key ordering for comparison.
+// Returns empty string if input is empty to handle unset overrides.
+func normalizeJSON(jsonStr string) (string, error) {
+	if jsonStr == "" {
+		return "", nil
+	}
+
+	var data interface{}
+	if err := json.Unmarshal([]byte(jsonStr), &data); err != nil {
+		return "", err
+	}
+
+	normalized, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	return string(normalized), nil
 }
