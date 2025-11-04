@@ -35,6 +35,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	log "github.com/sirupsen/logrus"
 )
@@ -161,22 +162,37 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	if err != nil {
 		log.Fatal(err.Error())
 	}
+
+	var modelsCluster *models.Cluster
 	if existingCluster != nil {
-		log.Infof("Skipping cluster registration. Found existing cluster with id: %s", existingCluster.ID.String())
-		return existingCluster.ID.String()
+		log.Infof("Found existing cluster with id: %s", existingCluster.ID.String())
+		modelsCluster = existingCluster
+	} else {
+		pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+		if err != nil {
+			log.Fatal("Failed to get pull secret: ", err.Error())
+		}
+
+		modelsCluster, err = agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
+			RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
+			RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile)
+		if err != nil {
+			log.Fatal("Failed to register cluster with assisted-service: ", err)
+		}
 	}
 
-	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	// Apply installConfig overrides if present (idempotent)
+	log.Info("Applying installConfig overrides...")
+	updatedCluster, err := agentbasedinstaller.ApplyInstallConfigOverrides(ctx, log, bmInventory, modelsCluster, RegisterOptions.AgentClusterInstallFile)
 	if err != nil {
-		log.Fatal("Failed to get pull secret: ", err.Error())
+		log.Fatal("Failed to apply installConfig overrides: ", err)
+	}
+	if updatedCluster != nil {
+		modelsCluster = updatedCluster
 	}
 
-	modelsCluster, err := agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
-		RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile, RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile)
-	if err != nil {
-		log.Fatal("Failed to register cluster with assisted-service: ", err)
-	}
-
+	// Register extra manifests (idempotent)
+	log.Info("Registering extra manifests...")
 	err = agentbasedinstaller.RegisterExtraManifests(os.DirFS(RegisterOptions.ExtraManifests), ctx, log, bmInventory.Manifests, modelsCluster)
 	if err != nil {
 		log.Fatal("Failed to register extra manifests with assisted-service: ", err)
