@@ -53,7 +53,7 @@ IGNORED_OPENSHIFT_VERSIONS = os.environ.get("IGNORED_OPENSHIFT_VERSIONS", "")
 JWKS_URL = os.environ.get("JWKS_URL", "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/certs")
 NVIDIA_REQUIRE_GPU = os.environ.get("NVIDIA_REQUIRE_GPU", "true")
 AMD_REQUIRE_GPU = os.environ.get("AMD_REQUIRE_GPU", "true")
-TNA_CLUSTERS_SUPPORT = os.environ.get("TNA_CLUSTERS_SUPPORT", "false")
+TNA_CLUSTERS_SUPPORT = os.environ.get("TNA_CLUSTERS_SUPPORT", "true")
 
 def get_deployment_tag(args):
     if args.deploy_manifest_tag:

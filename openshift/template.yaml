@@ -229,7 +229,7 @@ parameters:
 - name: AMD_SUPPORTED_GPUS
   value: "1002"
 - name: TNA_CLUSTERS_SUPPORT
-  value: "false"
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
