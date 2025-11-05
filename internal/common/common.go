@@ -1,6 +1,7 @@
 package common
 
 import (
+	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
@@ -437,9 +438,10 @@ func RemoveDuplicatesFromCaBundle(caBundle string) (string, int, error) {
 		return "", 0, errors.New("failed to remove duplicate certificate")
 	}
 
-	// Remove duplicates by serial number
+	// Remove duplicates by SHA-256 fingerprint of the certificate's raw bytes
 	uniqueCerts := funk.UniqBy(certs, func(cert x509.Certificate) string {
-		return fmt.Sprintf("%x", cert.SerialNumber)
+		fingerprint := sha256.Sum256(cert.Raw)
+		return fmt.Sprintf("%x", fingerprint)
 	})
 
 	// Convert certs back to a string

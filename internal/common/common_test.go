@@ -1,12 +1,18 @@
 package common
 
 import (
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -582,6 +588,35 @@ var _ = Describe("ShouldMastersBeSchedulable", func() {
 	})
 })
 
+func generateSelfSignedCert(serialNumber int64, commonName string, organization string) (string, error) {
+	privateKey, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", err
+	}
+	template := x509.Certificate{
+		SerialNumber: big.NewInt(serialNumber),
+		Subject: pkix.Name{
+			CommonName:   commonName,
+			Organization: []string{organization},
+		},
+		NotBefore:             time.Now(),
+		NotAfter:              time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageDigitalSignature,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	certDER, err := x509.CreateCertificate(rand.Reader, &template, &template, &privateKey.PublicKey, privateKey)
+	if err != nil {
+		return "", err
+	}
+	certPEM := pem.EncodeToMemory(&pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certDER,
+	})
+
+	return string(certPEM), nil
+}
+
 var _ = Describe("RemoveDuplicatesFromCaBundle", func() {
 	It("should remove duplicate certificates", func() {
 		caBundle := singleCAcert1 + singleCAcert1
@@ -618,6 +653,38 @@ var _ = Describe("RemoveDuplicatesFromCaBundle", func() {
 		result, _, err := RemoveDuplicatesFromCaBundle(caBundle)
 		Expect(err).To(HaveOccurred())
 		Expect(result).To(Equal(""))
+	})
+	It("should NOT remove different certs with same serial number", func() {
+		cert1, _ := generateSelfSignedCert(1, "Cluster1 CA", "Org1")
+		cert2, _ := generateSelfSignedCert(1, "Cluster2 CA", "Org2")
+
+		result, numOfDuplicates, err := RemoveDuplicatesFromCaBundle(cert1 + cert2)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(numOfDuplicates).To(Equal(0))
+		resultCerts, _ := ParsePemCerts([]byte(result))
+		Expect(resultCerts).To(HaveLen(2))
+	})
+	It("should remove truly identical certificates", func() {
+		cert1, _ := generateSelfSignedCert(1, "Test CA", "Test Org")
+
+		result, numOfDuplicates, err := RemoveDuplicatesFromCaBundle(cert1 + cert1)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(numOfDuplicates).To(Equal(1))
+		resultCerts, _ := ParsePemCerts([]byte(result))
+		Expect(resultCerts).To(HaveLen(1))
+	})
+	It("should handle multiple different certs and duplicates with same serial", func() {
+		cert1, _ := generateSelfSignedCert(1, "CA1", "Org1")
+		cert2, _ := generateSelfSignedCert(1, "CA2", "Org2")
+
+		result, numOfDuplicates, err := RemoveDuplicatesFromCaBundle(cert1 + cert1 + cert2)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(numOfDuplicates).To(Equal(1))
+		resultCerts, _ := ParsePemCerts([]byte(result))
+		Expect(resultCerts).To(HaveLen(2))
 	})
 })
 
