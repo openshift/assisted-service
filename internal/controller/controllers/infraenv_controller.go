@@ -111,8 +111,8 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
-		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
-		return r.deregisterInfraEnvIfNeeded(ctx, log, req.NamespacedName)
+		log.WithError(err).Errorf("Failed to get InfraEnv %s", req.NamespacedName)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if !infraEnv.ObjectMeta.DeletionTimestamp.IsZero() {
@@ -120,7 +120,7 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	}
 
 	if err := r.ensureFinalizer(ctx, log, infraEnv); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	return r.reconcileInfraEnv(ctx, log, infraEnv)
@@ -148,14 +148,16 @@ func (r *InfraEnvReconciler) handleInfraEnvDeletion(ctx context.Context, log log
 	cleanUpErr := r.deregisterInfraEnvWithHosts(ctx, log, client.ObjectKeyFromObject(infraEnv))
 	if cleanUpErr != nil {
 		reply := ctrl.Result{RequeueAfter: longerRequeueAfterOnError}
-		log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace)
+		log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s",
+			InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace,
+		)
 		return reply, cleanUpErr
 	}
 	// remove our finalizer from the list and update it.
 	controllerutil.RemoveFinalizer(infraEnv, InfraEnvFinalizerName)
 	if err := r.Update(ctx, infraEnv); err != nil {
 		log.WithError(err).Errorf("failed to remove finalizer %s from infraEnv %s %s", InfraEnvFinalizerName, infraEnv.Name, infraEnv.Namespace)
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 	return ctrl.Result{}, nil
 }
@@ -534,44 +536,10 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	return r.Installer.RegisterInfraEnvInternal(ctx, key, mirrorRegistryConfiguration, createParams)
 }
 
-func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
-
-	buildReply := func(err error) (ctrl.Result, error) {
-		reply := ctrl.Result{}
-		if err == nil {
-			return reply, nil
-		}
-		reply.RequeueAfter = defaultRequeueAfterOnError
-		err = errors.Wrapf(err, "failed to deregister infraenv: %s", key.Name)
-		log.Error(err)
-		return reply, err
-	}
-
-	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// return if from any reason infraEnv is already deleted from db (or never existed)
-		return buildReply(nil)
-	}
-
-	if err != nil {
-		return buildReply(err)
-	}
-
-	if err = r.Installer.DeregisterInfraEnvInternal(ctx, installer.DeregisterInfraEnvParams{
-		InfraEnvID: *infraEnv.ID,
-	}); err != nil {
-		return buildReply(err)
-	}
-	log.Infof("InfraEnv resource deleted : %s", infraEnv.ID)
-
-	return buildReply(nil)
-}
-
 func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) error {
 	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// return if from any reason infraEnv is already deleted from db (or never existed)
+		// return if the InfraEnv is already deleted from db (or never existed)
 		return nil
 	}
 
@@ -616,7 +584,7 @@ func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, lo
 	}
 
 	if remainingHost {
-		return errors.New("Failed to delete infraEnv, existing hosts bound and not installed")
+		return errors.New("Failed to delete infraEnv, existing hosts are bound to a cluster and not installed")
 	}
 	if err = r.Installer.DeregisterInfraEnvInternal(ctx, installer.DeregisterInfraEnvParams{
 		InfraEnvID: *infraEnv.ID,
