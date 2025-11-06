@@ -559,7 +559,7 @@ func (feature *DualStackPrimaryIPv6Feature) getFeatureActiveLevel(cluster *commo
 	v6 := common.PrimaryIPStackV6
 
 	if clusterUpdateParams != nil {
-		primaryStack, _ := network.GetPrimaryIPStack(
+		primaryStack, _ := network.ComputePrimaryIPStack(
 			clusterUpdateParams.MachineNetworks,
 			clusterUpdateParams.APIVips,
 			clusterUpdateParams.IngressVips,
