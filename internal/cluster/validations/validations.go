@@ -195,7 +195,7 @@ func HandleIngressVipBackwardsCompatibility(clusterId *strfmt.UUID, ingressVip s
 	return ingressVips, nil
 }
 
-func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID, params *models.ClusterCreateParams) error {
+func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID, params *models.ClusterCreateParams, primaryIPStack *common.PrimaryIPStack) error {
 	targetConfiguration := common.Cluster{}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
@@ -225,6 +225,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.MachineNetworks = params.MachineNetworks
 	targetConfiguration.LoadBalancer = params.LoadBalancer
 	targetConfiguration.OpenshiftVersion = swag.StringValue(params.OpenshiftVersion)
+	targetConfiguration.PrimaryIPStack = primaryIPStack
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
@@ -255,7 +256,7 @@ func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdate
 	)
 }
 
-func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams) error {
+func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams, primaryIPStack *common.PrimaryIPStack) error {
 	var (
 		err                 error
 		targetConfiguration common.Cluster
@@ -326,7 +327,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 		targetConfiguration.LoadBalancer = params.LoadBalancer
 	}
 
-	targetConfiguration.PrimaryIPStack = cluster.PrimaryIPStack
+	targetConfiguration.PrimaryIPStack = primaryIPStack
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
@@ -408,19 +409,19 @@ func validateNetworksIPAddressFamily(ipV6Supported bool, targetConfiguration com
 	for i := range machineNetworks {
 		networks = append(networks, swag.String(string(machineNetworks[i].Cidr)))
 	}
-	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+	if err = ValidateIPAddressFamily(ipV6Supported, "machine networks", targetConfiguration.PrimaryIPStack, networks...); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 	for i := range serviceNetworks {
 		networks = append(networks, swag.String(string(serviceNetworks[i].Cidr)))
 	}
-	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+	if err = ValidateIPAddressFamily(ipV6Supported, "service networks", targetConfiguration.PrimaryIPStack, networks...); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 	for i := range clusterNetworks {
 		networks = append(networks, swag.String(string(clusterNetworks[i].Cidr)))
 	}
-	if err = ValidateIPAddressFamily(ipV6Supported, networks...); err != nil {
+	if err = ValidateIPAddressFamily(ipV6Supported, "cluster networks", targetConfiguration.PrimaryIPStack, networks...); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 
@@ -435,8 +436,8 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 	var err error
 
 	if len(targetConfiguration.APIVips) == 1 {
-		if network.IsIPv6Addr(network.GetApiVipById(&targetConfiguration, 0)) && !ipV6Supported {
-			err = errors.New("IPv6 is not supported in this setup")
+		if network.IsIPv6Addr(network.GetApiVipById(&targetConfiguration, 0)) && !ipV6Supported && targetConfiguration.PrimaryIPStack == nil {
+			err = errors.New("Single stack IPv6 is not supported in this setup. Please verify your API Vips configuration")
 			return nil, err
 		}
 		allAddresses = append(allAddresses, swag.String(network.GetApiVipById(&targetConfiguration, 0)))
@@ -459,8 +460,8 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 	}
 
 	if len(targetConfiguration.IngressVips) == 1 {
-		if network.IsIPv6Addr(network.GetIngressVipById(&targetConfiguration, 0)) && !ipV6Supported {
-			err = errors.New("IPv6 is not supported in this setup")
+		if network.IsIPv6Addr(network.GetIngressVipById(&targetConfiguration, 0)) && !ipV6Supported && targetConfiguration.PrimaryIPStack == nil {
+			err = errors.New("Single stack IPv6 is not supported in this setup. Please verify your Ingress Vips configuration")
 			return nil, err
 		}
 		allAddresses = append(allAddresses, swag.String(network.GetIngressVipById(&targetConfiguration, 0)))
@@ -508,7 +509,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	}
 
 	allAddresses = append(allAddresses, common.GetNetworksCidrs(targetConfiguration)...)
-	err = ValidateIPAddressFamily(ipV6Supported, allAddresses...)
+	err = ValidateIPAddressFamily(ipV6Supported, "VIPs and networks", targetConfiguration.PrimaryIPStack, allAddresses...)
 	if err != nil {
 		return err
 	}
@@ -682,7 +683,9 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 
 // ValidateIPAddressFamily returns an error if the argument contains only IPv6 networks and IPv6
 // support is turned off. Dual-stack setup is supported even if IPv6 support is turned off.
-func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
+// context is used in the error message to indicate which configuration section has the issue
+// (e.g., "machine networks", "service networks", "cluster networks", "VIPs and networks").
+func ValidateIPAddressFamily(ipV6Supported bool, context string, primaryIPStack *common.PrimaryIPStack, elements ...*string) error {
 	if ipV6Supported {
 		return nil
 	}
@@ -696,8 +699,8 @@ func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
 		ipv4 = ipv4 || !currRecordIPv6Stack
 		ipv6 = ipv6 || currRecordIPv6Stack
 	}
-	if ipv6 && !ipv4 {
-		return errors.Errorf("IPv6 is not supported in this setup")
+	if ipv6 && !ipv4 && primaryIPStack == nil {
+		return errors.Errorf("Single stack IPv6 is not supported in this setup. Please verify your %s configuration", context)
 	}
 	return nil
 }
