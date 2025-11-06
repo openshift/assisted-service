@@ -4461,7 +4461,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6-primary dual-stack requires OpenShift 4.12+")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is ipv4. All networks must have the same IP family first")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -15838,7 +15838,7 @@ var _ = Describe("RegisterCluster", func() {
 						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is 1.2.3.0/24 but api_vips first IP is 1001:db8::64. All networks must have the same IP family first")
 			})
 
 			It("Ingress VIP from IPv6 Machine Network", func() {
@@ -15856,7 +15856,7 @@ var _ = Describe("RegisterCluster", func() {
 						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <1001:db8::65> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is 1.2.3.0/24 but ingress_vips first IP is 1001:db8::65. All networks must have the same IP family first")
 			})
 		})
 
@@ -19536,11 +19536,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 
 			It("RegisterClusterInternal should reject inconsistent IP family order", func() {
-				// Need minimal mocks for the validation path up to setPrimaryIPStack
-				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
-
 				params.NewClusterParams.Name = swag.String("test-inconsistent")
 				params.NewClusterParams.PullSecret = swag.String(fakePullSecret)
 				params.NewClusterParams.BaseDNSDomain = "example.com"
@@ -19685,9 +19680,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 
 			It("v2UpdateClusterInternal should reject inconsistent IP family order", func() {
-				// Need VerifyClusterUpdatability mock since it's called before setPrimaryIPStack
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-
 				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
 					{Cidr: "2001:db8::/53", HostPrefix: 64}, // IPv6 first
 					{Cidr: "10.128.0.0/14", HostPrefix: 23},
@@ -19762,7 +19754,7 @@ var _ = Describe("Dual-stack cluster", func() {
 
 			It("v2UpdateClusterInternal should reject partial updates with inconsistent IP family order", func() {
 				// First, create a cluster with IPv4-first dual-stack
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Times(2)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Times(1)
 				mockClusterUpdateSuccess(1, 0)
 
 				// Full update to create IPv4-first cluster
