@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -175,7 +176,7 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), MatchControllerManifest(odf.Operator.Name, "(?s).*AgentServiceConfig.*storageClassName: ocs-storagecluster-cephfs.*"), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(7)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -188,7 +189,7 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), MatchControllerManifest(lvm.Operator.Name, "(?s).*AgentServiceConfig.*storageClassName: lvms-vg1.*"), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(7)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -201,7 +202,7 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(8)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(9)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -215,7 +216,7 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(8)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(9)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -225,19 +226,66 @@ var _ = Describe("Operators manager", func() {
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(5)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 10 manifests (CNV + LSO) using the manifest API", func() {
+		It("should create 11 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
 				&lso.Operator,
 			}
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(10)
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(11)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("should create a configmap with the manifests", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&cnv.Operator,
+				&lso.Operator,
+			}
+			m := models.Manifest{}
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(10)
+
+			var capturedBase64Body string
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Do(
+				func(_ context.Context, params operations.V2CreateClusterManifestParams, _ bool) {
+					capturedBase64Body = *params.CreateManifestParams.Content
+				},
+			).Return(&models.Manifest{
+				FileName: "olm_operator_manifests.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil).Times(1)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			Expect(capturedBase64Body).ShouldNot(BeEmpty(), "Expected Base64 manifest body to be captured.")
+
+			rawYAML, err := base64.StdEncoding.DecodeString(capturedBase64Body)
+			Expect(err).ShouldNot(HaveOccurred(), "Expected Base64 content to be successfully decoded.")
+
+			var cm corev1.ConfigMap
+			Expect(yaml.Unmarshal(rawYAML, &cm)).ShouldNot(HaveOccurred(), "Expected decoded content to be valid YAML for ConfigMap.")
+
+			Expect(cm.Kind).Should(Equal("ConfigMap"), "Expected Kind to be ConfigMap")
+			Expect(cm.ObjectMeta.Name).Should(Equal("olm-operator-manifests"), "Expected metadata.name to be olm-operator-manifests")
+
+			Expect(cm.Data).ShouldNot(BeEmpty(), "Expected data field not to be empty")
+
+			Expect(cm.Data).Should(HaveKey("cnv-01.yaml"), "Expected 'cnv-01.yaml' entry for CNV")
+			Expect(cm.Data).Should(HaveKey("cnv.metadata.yaml"), "Expected 'cnv.metadata.yaml' entry for CNV")
+			manifestContent, exists := cm.Data["cnv-01.yaml"]
+			Expect(exists).Should(BeTrue(), "Expected cnv-01.yaml in ConfigMap data")
+			Expect(manifestContent).ShouldNot(BeEmpty())
+			_, err = base64.StdEncoding.DecodeString(manifestContent)
+			Expect(err).ShouldNot(HaveOccurred(), "Expected manifest value to be valid base64")
+
+			Expect(cm.Data).Should(HaveKey("lso-01.yaml"), "Expected 'lso-01.yaml' entry for LSO")
+			Expect(cm.Data).Should(HaveKey("lso.metadata.yaml"), "Expected 'lso.metadata.yaml' entry for LSO")
+
 		})
 	})
 

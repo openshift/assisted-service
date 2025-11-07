@@ -1,12 +1,14 @@
 package common
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/json"
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
 	"reflect"
 	"strings"
 
@@ -18,6 +20,7 @@ import (
 	"github.com/thoas/go-funk"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -805,4 +808,39 @@ func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
 		}
 	}
 	return true
+}
+
+// GetMultipleYamls decodes multiple YAML documents from contents into values of type T.
+// Useful when a byte stream contains several YAML docs separated by '---'.
+func GetMultipleYamls[T any](contents []byte) ([]T, error) {
+
+	r := bytes.NewReader(contents)
+	dec := yaml.NewYAMLToJSONDecoder(r)
+
+	var outputList []T
+	for {
+		var decodedData T
+		err := dec.Decode(&decodedData)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, fmt.Errorf("error reading multiple YAML documents: %w", err)
+		}
+
+		// Skip empty or null documents
+		v := reflect.ValueOf(decodedData)
+		if v.IsZero() {
+			continue
+		}
+		switch v.Kind() {
+		case reflect.Map, reflect.Slice, reflect.Array:
+			if v.Len() == 0 {
+				continue
+			}
+		}
+		outputList = append(outputList, decodedData)
+	}
+
+	return outputList, nil
 }
