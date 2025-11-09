@@ -507,6 +507,7 @@ func (feature *UserManagedLoadBalancerFeature) getIncompatibleFeatures(string) [
 		models.FeatureSupportLevelIDDUALSTACK,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
 		models.FeatureSupportLevelIDSNO,
+		models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6,
 	}
 }
 
@@ -524,4 +525,77 @@ func (feature *UserManagedLoadBalancerFeature) getFeatureActiveLevel(cluster *co
 	}
 
 	return activeLevelNotActive
+}
+
+// DualStackPrimaryIPv6Feature
+type DualStackPrimaryIPv6Feature struct{}
+
+func (feature *DualStackPrimaryIPv6Feature) New() SupportLevelFeature {
+	return &DualStackPrimaryIPv6Feature{}
+}
+
+func (feature *DualStackPrimaryIPv6Feature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6
+}
+
+func (feature *DualStackPrimaryIPv6Feature) GetName() string {
+	return "Dual-Stack Primary IPv6"
+}
+
+func (feature *DualStackPrimaryIPv6Feature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	// Primary IPv6 is not supported on Nutanix, vSphere or External platforms
+	if filters.PlatformType != nil && (*filters.PlatformType == models.PlatformTypeNutanix || *filters.PlatformType == models.PlatformTypeVsphere || *filters.PlatformType == models.PlatformTypeExternal) {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+	}
+
+	if isNotSupported, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+
+	return models.SupportLevelTechPreview, ""
+}
+
+func (feature *DualStackPrimaryIPv6Feature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	v6 := common.PrimaryIPStackV6
+
+	if clusterUpdateParams != nil {
+		primaryStack, _ := network.GetPrimaryIPStack(
+			clusterUpdateParams.MachineNetworks,
+			clusterUpdateParams.APIVips,
+			clusterUpdateParams.IngressVips,
+			clusterUpdateParams.ServiceNetworks,
+			clusterUpdateParams.ClusterNetworks,
+		)
+
+		if network.CheckIfNetworksAreDualStack(clusterUpdateParams.MachineNetworks, clusterUpdateParams.ServiceNetworks, clusterUpdateParams.ClusterNetworks) && (primaryStack != nil && *primaryStack == v6) {
+			return activeLevelActive
+		}
+	}
+
+	if network.CheckIfClusterIsDualStack(cluster) && (cluster.PrimaryIPStack != nil && *cluster.PrimaryIPStack == v6) {
+		return activeLevelActive
+	}
+
+	return activeLevelNotActive
+}
+
+func (feature *DualStackPrimaryIPv6Feature) getIncompatibleFeatures(openshiftVersion string) []models.FeatureSupportLevelID {
+	unsupportedFeatures := []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+	}
+
+	// Primary IPv6 isn't supported for SNO versions < 4.19
+	if isNotSupported, err := common.BaseVersionLessThan("4.19", openshiftVersion); isNotSupported || err != nil {
+		unsupportedFeatures = append(unsupportedFeatures, models.FeatureSupportLevelIDSNO)
+	}
+
+	return unsupportedFeatures
+}
+
+func (feature *DualStackPrimaryIPv6Feature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return nil
 }
