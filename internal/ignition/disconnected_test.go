@@ -37,6 +37,7 @@ var _ = Describe("Disconnected Ignition", func() {
 		log                  logrus.FieldLogger
 		workDir              string
 		infraEnv             *common.InfraEnv
+		cluster              *common.Cluster
 		mockRelease          *installercache.Release
 		tempInstallerFile    *os.File
 		generator            *DisconnectedIgnitionGenerator
@@ -73,15 +74,32 @@ var _ = Describe("Disconnected Ignition", func() {
 		}
 
 		id := strfmt.UUID("test-infra-env-id")
+		clusterID := strfmt.UUID("test-cluster-id")
 		infraEnv = &common.InfraEnv{
 			PullSecret: `{"auths":{"test.registry.com":{"auth":"dGVzdDp0ZXN0"}}}`,
 			InfraEnv: models.InfraEnv{
 				ID:               &id,
+				ClusterID:        clusterID,
 				Name:             swag.String("test-infra-env"),
 				OpenshiftVersion: "4.16.0",
 				CPUArchitecture:  common.DefaultCPUArchitecture,
 				SSHAuthorizedKey: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQC...",
-				ClusterID:        strfmt.UUID("test-cluster-id"),
+			},
+		}
+
+		hostID := strfmt.UUID("test-host-id")
+		cluster = &common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				Name:             "test-cluster",
+				OpenshiftVersion: "4.16.0",
+				Hosts: []*models.Host{
+					{
+						ID:        &hostID,
+						Bootstrap: true,
+						Inventory: `{"interfaces":[{"ipv4_addresses":["192.168.1.10/24"],"ipv6_addresses":["fe80::1/64"],"mac_address":"52:54:00:aa:bb:cc"}]}`,
+					},
+				},
 			},
 		}
 
@@ -125,7 +143,7 @@ var _ = Describe("Disconnected Ignition", func() {
 				return "success", "", 0
 			})
 
-			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal(expectedIgnition))
 		})
@@ -177,24 +195,30 @@ var _ = Describe("Disconnected Ignition", func() {
 				return "success", "", 0
 			})
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should fail when ClusterID is empty", func() {
 			infraEnv.ClusterID = ""
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("InfraEnv test-infra-env-id is not bound to a cluster, which is required for disconnected ignition generation"))
 		})
 
 		It("should fail when cluster version is empty", func() {
-			emptyVersion := ""
+			emptyCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               cluster.ID,
+					Name:             "test-cluster",
+					OpenshiftVersion: "",
+				},
+			}
 
-			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, emptyVersion, common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(nil, errors.New("invalid openshiftVersion"))
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(nil, errors.New("invalid openshiftVersion"))
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, emptyVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, emptyCluster.OpenshiftVersion, emptyCluster.Name)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to get release image"))
 		})
@@ -202,7 +226,7 @@ var _ = Describe("Disconnected Ignition", func() {
 		It("should fail when release image is not found", func() {
 			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(nil, errors.New("release image not found"))
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to get release image"))
 		})
@@ -218,7 +242,7 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, clusterVersion, common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(nil, errors.New("cache error"))
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to get installer from cache"))
 		})
@@ -238,7 +262,7 @@ var _ = Describe("Disconnected Ignition", func() {
 
 			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", "error generating ignition", 1)
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to generate unconfigured-ignition"))
 		})
@@ -307,9 +331,280 @@ var _ = Describe("Disconnected Ignition", func() {
 				return "success", "", 0
 			})
 
-			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, clusterVersion)
+			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(Equal("mock-ignition-content"))
+		})
+
+		It("should include proxy and NTP configuration in InfraEnv manifest", func() {
+			infraEnv.Proxy = &models.Proxy{
+				HTTPProxy:  swag.String("http://proxy.example.com:8080"),
+				HTTPSProxy: swag.String("https://proxy.example.com:8443"),
+				NoProxy:    swag.String("localhost,127.0.0.1"),
+			}
+			infraEnv.AdditionalNtpSources = "ntp1.example.com,ntp2.example.com"
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying InfraEnv manifest includes proxy and NTP")
+				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var infraEnvManifest v1beta1.InfraEnv
+				err = yaml.Unmarshal(infraEnvContent, &infraEnvManifest)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(infraEnvManifest.TypeMeta.APIVersion).To(Equal(v1beta1.GroupVersion.String()))
+				Expect(infraEnvManifest.TypeMeta.Kind).To(Equal("InfraEnv"))
+
+				Expect(infraEnvManifest.Spec.Proxy).NotTo(BeNil())
+				Expect(infraEnvManifest.Spec.Proxy.HTTPProxy).To(Equal("http://proxy.example.com:8080"))
+				Expect(infraEnvManifest.Spec.Proxy.HTTPSProxy).To(Equal("https://proxy.example.com:8443"))
+				Expect(infraEnvManifest.Spec.Proxy.NoProxy).To(Equal("localhost,127.0.0.1"))
+
+				Expect(infraEnvManifest.Spec.AdditionalNTPSources).To(Equal([]string{"ntp1.example.com", "ntp2.example.com"}))
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should trim whitespace from NTP sources", func() {
+			infraEnv.AdditionalNtpSources = "ntp1.example.com, ntp2.example.com , ntp3.example.com,  , ntp4.example.com"
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying NTP sources are trimmed and empty entries removed")
+				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var infraEnvManifest v1beta1.InfraEnv
+				err = yaml.Unmarshal(infraEnvContent, &infraEnvManifest)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(infraEnvManifest.Spec.AdditionalNTPSources).To(Equal([]string{
+					"ntp1.example.com",
+					"ntp2.example.com",
+					"ntp3.example.com",
+					"ntp4.example.com",
+				}))
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should create NMStateConfig manifests from static network config", func() {
+			infraEnv.StaticNetworkConfig = `[
+				{
+					"mac_interface_map": [
+						{"mac_address": "52:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
+					],
+					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n  ipv4:\n    enabled: true\n    address:\n    - ip: 192.168.1.10\n      prefix-length: 24\n    dhcp: false\n"
+				}
+			]`
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying NMStateConfig manifest was created")
+				nmstateConfigContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var nmstateConfig v1beta1.NMStateConfig
+				err = yaml.Unmarshal(nmstateConfigContent, &nmstateConfig)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(nmstateConfig.APIVersion).To(Equal("agent-install.openshift.io/v1beta1"))
+				Expect(nmstateConfig.Kind).To(Equal("NMStateConfig"))
+				Expect(nmstateConfig.ObjectMeta.Name).To(Equal("nmstate-config-0"))
+				Expect(nmstateConfig.ObjectMeta.Labels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
+				Expect(nmstateConfig.Spec.Interfaces).To(HaveLen(1))
+				Expect(nmstateConfig.Spec.Interfaces[0].Name).To(Equal("eth0"))
+				Expect(nmstateConfig.Spec.Interfaces[0].MacAddress).To(Equal("52:54:00:aa:bb:cc"))
+
+				By("Verifying InfraEnv manifest selector references NMStateConfig labels")
+				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var infraEnvManifest v1beta1.InfraEnv
+				err = yaml.Unmarshal(infraEnvContent, &infraEnvManifest)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(infraEnvManifest.Spec.NMStateConfigLabelSelector.MatchLabels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should skip NMStateConfig manifests when static network config is whitespace", func() {
+			infraEnv.StaticNetworkConfig = "   "
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying no NMStateConfig manifest was created")
+				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
+				Expect(os.IsNotExist(err)).To(BeTrue())
+
+				By("Verifying InfraEnv manifest does not set NMStateConfig selector")
+				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var infraEnvManifest v1beta1.InfraEnv
+				err = yaml.Unmarshal(infraEnvContent, &infraEnvManifest)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(infraEnvManifest.Spec.NMStateConfigLabelSelector.MatchLabels).To(BeEmpty())
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should create agent-config.yaml when rendezvous IP is provided", func() {
+			infraEnv.RendezvousIP = swag.String("192.168.1.100")
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying agent-config.yaml was created")
+				agentConfigPath := filepath.Join(oveDir, "agent-config.yaml")
+				agentConfigContent, err := os.ReadFile(agentConfigPath)
+				Expect(err).NotTo(HaveOccurred())
+
+				var agentConfig AgentConfig
+				err = yaml.Unmarshal(agentConfigContent, &agentConfig)
+				Expect(err).NotTo(HaveOccurred())
+
+				Expect(agentConfig.APIVersion).To(Equal("v1beta1"))
+				Expect(agentConfig.Kind).To(Equal("AgentConfig"))
+				Expect(agentConfig.Metadata.Name).To(Equal("test-cluster"))
+				Expect(agentConfig.RendezvousIP).To(Equal("192.168.1.100"))
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should not create agent-config.yaml when rendezvous IP is not provided", func() {
+			infraEnv.RendezvousIP = nil
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[5]
+
+				By("Verifying agent-config.yaml was NOT created")
+				agentConfigPath := filepath.Join(oveDir, "agent-config.yaml")
+				_, err := os.Stat(agentConfigPath)
+				Expect(os.IsNotExist(err)).To(BeTrue(), "agent-config.yaml should not exist when rendezvous IP is not provided")
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 	})

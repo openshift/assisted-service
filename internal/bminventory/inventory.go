@@ -5065,6 +5065,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				RendezvousIP:           params.InfraenvCreateParams.RendezvousIP,
 				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 				KernelArguments:        kernelArguments,
 				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
@@ -5202,6 +5203,13 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 		if err = validations.ValidatePEMCertificateBundle(params.InfraenvCreateParams.AdditionalTrustBundle); err != nil {
 			return err
 		}
+	}
+
+	if params.InfraenvCreateParams.RendezvousIP != nil && swag.StringValue(params.InfraenvCreateParams.RendezvousIP) == "" {
+		params.InfraenvCreateParams.RendezvousIP = nil
+	}
+	if err = validateRendezvousIP(params.InfraenvCreateParams.ImageType, params.InfraenvCreateParams.RendezvousIP); err != nil {
+		return err
 	}
 
 	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride, nil); err != nil {
@@ -5406,6 +5414,15 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			}
 		}
 
+		currentImageType := common.ImageTypeValue(infraEnv.Type)
+		targetImageType := currentImageType
+		if requestedType := params.InfraEnvUpdateParams.ImageType; requestedType != "" {
+			targetImageType = requestedType
+		}
+		if err = b.validateRendezvousIPUpdate(params.InfraEnvUpdateParams.RendezvousIP, targetImageType); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -5430,7 +5447,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log)
+		err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log, currentImageType, targetImageType, params.InfraEnvUpdateParams.RendezvousIP)
 		if err != nil {
 			log.WithError(err).Error("updateInfraEnvData")
 			return err
@@ -5486,7 +5503,7 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 	return nil
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger, currentImageType, targetImageType models.ImageType, rendezvousIP *string) error {
 	updates := map[string]interface{}{}
 	if err := b.updateInfraEnvProxy(params, infraEnv, updates); err != nil {
 		return err
@@ -5519,8 +5536,8 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 		}
 	}
 
-	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != common.ImageTypeValue(infraEnv.Type) {
-		updates["type"] = params.InfraEnvUpdateParams.ImageType
+	if targetImageType != currentImageType {
+		updates["type"] = targetImageType
 	}
 
 	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil && *params.InfraEnvUpdateParams.AdditionalTrustBundle != infraEnv.AdditionalTrustBundle {
@@ -5540,6 +5557,8 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 			}
 		}
 	}
+
+	b.applyRendezvousIPUpdates(infraEnv, rendezvousIP, targetImageType, updates)
 
 	if params.InfraEnvUpdateParams.PullSecret != "" && params.InfraEnvUpdateParams.PullSecret != infraEnv.PullSecret {
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
@@ -5622,6 +5641,14 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	return nil
 }
 
+func (b *bareMetalInventory) validateRendezvousIPUpdate(ip *string, targetImageType models.ImageType) error {
+	if swag.StringValue(ip) == "" {
+		return nil
+	}
+
+	return validateRendezvousIP(targetImageType, ip)
+}
+
 // TODO: modify (or remove) this validation when replace and delete operations are supported
 func (b *bareMetalInventory) validateKernelArguments(ctx context.Context, kernelArguments models.KernelArguments) error {
 	log := logutil.FromContext(ctx, b.log)
@@ -5633,6 +5660,48 @@ func (b *bareMetalInventory) validateKernelArguments(ctx context.Context, kernel
 		}
 	}
 	return nil
+}
+
+func validateRendezvousIP(imageType models.ImageType, ip *string) error {
+	if ip == nil {
+		return nil
+	}
+
+	if imageType != models.ImageTypeDisconnectedIso {
+		return errors.Errorf("RendezvousIP is only supported for disconnected ISO infra-envs")
+	}
+
+	if net.ParseIP(swag.StringValue(ip)) == nil {
+		return errors.Errorf("Invalid rendezvous IP: %s (must be a valid IPv4 or IPv6 address)", swag.StringValue(ip))
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) applyRendezvousIPUpdates(infraEnv *common.InfraEnv, rendezvousIP *string, targetImageType models.ImageType, updates map[string]interface{}) {
+	// If moving away from disconnected-iso, clear any existing value.
+	if targetImageType != models.ImageTypeDisconnectedIso && swag.StringValue(infraEnv.RendezvousIP) != "" {
+		updates["rendezvous_ip"] = gorm.Expr("NULL")
+		return
+	}
+
+	// No update requested; preserve existing value.
+	if rendezvousIP == nil {
+		return
+	}
+
+	// Explicit clear requested.
+	if *rendezvousIP == "" {
+		if swag.StringValue(infraEnv.RendezvousIP) != "" {
+			updates["rendezvous_ip"] = gorm.Expr("NULL")
+		}
+		return
+	}
+
+	// Update to a new non-empty value.
+	if *rendezvousIP != swag.StringValue(infraEnv.RendezvousIP) {
+		updates["rendezvous_ip"] = *rendezvousIP
+	}
 }
 
 func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger) error {
@@ -6360,7 +6429,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 				b.log.WithError(clusterErr).Errorf("Failed to get cluster for disconnected ignition generation, infraEnv %s", infraEnv.ID)
 				return common.GenerateErrorResponder(clusterErr)
 			}
-			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			if err != nil {
 				b.log.WithError(err).Error("Failed to generate disconnected ignition")
 				return common.GenerateErrorResponder(err)
