@@ -1916,7 +1916,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 104857600,
+            "maxLength": 262144000,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The log file to be uploaded.",
@@ -13242,7 +13242,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 104857600,
+            "maxLength": 262144000,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The log file to be uploaded.",
