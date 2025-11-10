@@ -8243,7 +8243,8 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP",
-        "METALLB"
+        "METALLB",
+        "DUAL_STACK_PRIMARY_IPV6"
       ],
       "x-nullable": false
     },
@@ -19739,7 +19740,8 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP",
-        "METALLB"
+        "METALLB",
+        "DUAL_STACK_PRIMARY_IPV6"
       ],
       "x-nullable": false
     },

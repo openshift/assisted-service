@@ -4428,6 +4428,7 @@ definitions:
       - 'NUMA_RESOURCES'
       - 'OADP'
       - 'METALLB'
+      - 'DUAL_STACK_PRIMARY_IPV6'
 
   architecture-support-level-id:
     type: string
