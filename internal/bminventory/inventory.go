@@ -301,27 +301,43 @@ func NewBareMetalInventory(
 	}
 }
 
-func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
+// computePrimaryIPStackFromParams calculates the primary IP stack from network parameters
+// without requiring a cluster object. Returns nil for single-stack clusters.
+func computePrimaryIPStackFromParams(
+	machineNetworks []*models.MachineNetwork,
+	serviceNetworks []*models.ServiceNetwork,
+	clusterNetworks []*models.ClusterNetwork,
+	apiVips []*models.APIVip,
+	ingressVips []*models.IngressVip,
+) (*common.PrimaryIPStack, error) {
 	// Only for dual-stack clusters
-	if !network.CheckIfClusterIsDualStack(cluster) {
-		cluster.PrimaryIPStack = nil
-		return nil
+	if !network.CheckIfNetworksAreDualStack(machineNetworks, serviceNetworks, clusterNetworks) {
+		return nil, nil
 	}
 
-	// get primary IP stack based on current network configuration
-	primaryStack, err := network.GetPrimaryIPStack(
+	// Get primary IP stack based on network configuration
+	return network.GetPrimaryIPStack(
+		machineNetworks,
+		apiVips,
+		ingressVips,
+		serviceNetworks,
+		clusterNetworks,
+	)
+}
+
+func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
+	primaryStack, err := computePrimaryIPStackFromParams(
 		cluster.MachineNetworks,
-		cluster.APIVips,
-		cluster.IngressVips,
 		cluster.ServiceNetworks,
 		cluster.ClusterNetworks,
+		cluster.APIVips,
+		cluster.IngressVips,
 	)
 	if err != nil {
 		return err
 	}
 
 	cluster.PrimaryIPStack = primaryStack
-
 	return nil
 }
 
@@ -345,21 +361,18 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 		params.ClusterUpdateParams.APIVips != nil &&
 		params.ClusterUpdateParams.IngressVips != nil) || cluster.PrimaryIPStack == nil {
 		// Recalculate from scratch for full updates or new clusters
-
-		tmpCluster := &common.Cluster{}
-		tmpCluster.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
-		tmpCluster.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
-		tmpCluster.APIVips = params.ClusterUpdateParams.APIVips
-		tmpCluster.IngressVips = params.ClusterUpdateParams.IngressVips
-		tmpCluster.ServiceNetworks = params.ClusterUpdateParams.ServiceNetworks
-
-		err := b.setPrimaryIPStack(tmpCluster)
+		primaryStack, err := computePrimaryIPStackFromParams(
+			params.ClusterUpdateParams.MachineNetworks,
+			params.ClusterUpdateParams.ServiceNetworks,
+			params.ClusterUpdateParams.ClusterNetworks,
+			params.ClusterUpdateParams.APIVips,
+			params.ClusterUpdateParams.IngressVips,
+		)
 		if err != nil {
-			b.log.WithError(err).Errorf("cluster update failed: unable to set primary IP stack")
+			b.log.WithError(err).Errorf("cluster update failed: unable to compute primary IP stack")
 			return false, common.NewApiError(http.StatusBadRequest, err)
 		}
-		cluster.PrimaryIPStack = tmpCluster.PrimaryIPStack
-
+		cluster.PrimaryIPStack = primaryStack
 		return true, nil // PrimaryIPStack was updated
 	}
 
@@ -660,26 +673,20 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		}
 	}()
 
-	// temporary cluster used to compute PrimaryIPStack
-	cluster = &common.Cluster{
-		Cluster: models.Cluster{
-			ID:              &id,
-			APIVips:         params.NewClusterParams.APIVips,
-			IngressVips:     params.NewClusterParams.IngressVips,
-			ClusterNetworks: params.NewClusterParams.ClusterNetworks,
-			ServiceNetworks: params.NewClusterParams.ServiceNetworks,
-			MachineNetworks: params.NewClusterParams.MachineNetworks,
-		},
-	}
-
-	// compute PrimaryIPStack before applying default cluster values.
-	err = b.setPrimaryIPStack(cluster)
+	// Compute PrimaryIPStack before applying default cluster values (for validation)
+	primaryIPStack, err := computePrimaryIPStackFromParams(
+		params.NewClusterParams.MachineNetworks,
+		params.NewClusterParams.ServiceNetworks,
+		params.NewClusterParams.ClusterNetworks,
+		params.NewClusterParams.APIVips,
+		params.NewClusterParams.IngressVips,
+	)
 	if err != nil {
-		b.log.Debugf("cluster registration failed: unable to set primary IP stack: %v", err)
+		b.log.Debugf("cluster registration failed: unable to compute primary IP stack: %v", err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx, cluster.PrimaryIPStack); err != nil {
+	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx, primaryIPStack); err != nil {
 		return nil, err
 	}
 
