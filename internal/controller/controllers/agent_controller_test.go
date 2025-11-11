@@ -366,6 +366,13 @@ var _ = Describe("agent reconcile", func() {
 			host.ObjectMeta.Labels = make(map[string]string)
 		}
 		host.ObjectMeta.Labels[v1beta1.InfraEnvNameLabel] = "infraEnvName"
+		infraEnv := &v1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "infraEnvName",
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(BeNil())
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		getHostBeforeUpdate := mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(beforeUpdateHost, nil).Times(1)
@@ -388,6 +395,11 @@ var _ = Describe("agent reconcile", func() {
 		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
 			func(ctx context.Context, name types.NamespacedName, cd *hivev1.ClusterDeployment, opts ...client.GetOption) error {
 				return c.Get(ctx, name, cd, opts...)
+			},
+		).AnyTimes()
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, infraEnv *v1beta1.InfraEnv, opts ...client.GetOption) error {
+				return c.Get(ctx, name, infraEnv, opts...)
 			},
 		).AnyTimes()
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
@@ -1113,6 +1125,123 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	It("Agent auto-approval enabled", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "test-infra-env"
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &sId,
+				Inventory:  common.GenerateTestDefaultInventory(),
+				Status:     swag.String(models.HostStatusKnown),
+				StatusInfo: swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+
+		infraEnv := &v1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      infraEnvName,
+				Namespace: testNamespace,
+			},
+			Spec: v1beta1.InfraEnvSpec{
+				AgentApproval: &v1beta1.AgentApproval{
+					AutoApprove: true,
+				},
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		})
+		host.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: infraEnvName,
+		}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.Spec.Approved).To(BeTrue())
+	})
+
+	It("Agent auto-approval disabled", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "test-infra-env"
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &sId,
+				Inventory:  common.GenerateTestDefaultInventory(),
+				Status:     swag.String(models.HostStatusKnown),
+				StatusInfo: swag.String("Some status info"),
+			},
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				&commonHost.Host,
+			}}}
+
+		infraEnv := &v1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      infraEnvName,
+				Namespace: testNamespace,
+			},
+			Spec: v1beta1.InfraEnvSpec{
+				AgentApproval: &v1beta1.AgentApproval{
+					AutoApprove: false,
+				},
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		})
+		host.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: infraEnvName,
+		}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.Spec.Approved).To(BeFalse())
 	})
 
 	Context("host reclaim", func() {
