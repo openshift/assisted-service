@@ -2,6 +2,7 @@
 
 aliases:
   approvers:
+    - cve-automation
     - openshift-edge-bot
     - romfreiman
     - oourfali
