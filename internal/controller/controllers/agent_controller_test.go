@@ -2273,7 +2273,22 @@ var _ = Describe("agent reconcile", func() {
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
 
 		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
+		agent.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+				Kind:       "InfraEnv",
+				Name:       infraEnvName,
+				UID:        types.UID(infraEnvId),
+			},
+		}
 		Expect(c.Create(ctx, agent)).To(Succeed())
+		infraEnv := &v1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "infraEnvName",
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
 
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
@@ -2301,6 +2316,74 @@ var _ = Describe("agent reconcile", func() {
 		newAgent = &v1beta1.Agent{}
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.GetLabels()[v1beta1.InfraEnvNameLabel]).To(Equal(infraEnvName))
+	})
+
+	It("sets the infraEnv as an owner on an agent", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "infraEnvName"
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvId,
+			},
+		}
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
+
+		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
+		Expect(c.Create(ctx, agent)).To(Succeed())
+		infraEnv := &v1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "infraEnvName",
+				Namespace: testNamespace,
+				UID:       types.UID(infraEnvId),
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		newAgent := &v1beta1.Agent{}
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostID.String(),
+		}
+		By("sets the infraEnv as an owner when it isn't set")
+		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
+		Expect(newAgent.OwnerReferences).To(HaveLen(1))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal(infraEnv.Kind))
+		Expect(newAgent.OwnerReferences[0].Name).To(Equal(infraEnvName))
+		Expect(newAgent.OwnerReferences[0].UID).To(Equal(infraEnv.GetUID()))
+
+		By("adds the infraenv as an owner even if it's owned")
+		newAgent.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+				Kind:       "NotAnInfraEnv",
+				Name:       "notAnInfraEnvName",
+			},
+		}
+		Expect(c.Update(ctx, newAgent)).To(Succeed())
+
+		result, err = hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		newAgent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
+		Expect(newAgent.OwnerReferences).To(HaveLen(2))
+		Expect(newAgent.OwnerReferences[1].Kind).To(Equal("InfraEnv"))
+		Expect(newAgent.OwnerReferences[1].Name).To(Equal(infraEnvName))
+		Expect(newAgent.OwnerReferences[1].UID).To(Equal(infraEnv.GetUID()))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal("NotAnInfraEnv"))
+		Expect(newAgent.OwnerReferences[0].Name).To(Equal("notAnInfraEnvName"))
 	})
 
 	It("sets 'state' annotation in the agent", func() {
