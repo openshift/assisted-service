@@ -22,6 +22,7 @@ aliases:
     - danmanor
     - eifrach
     - pastequo
+    - cve-automation
   emeritus_approvers:
     - empovit
     - yevgeny-shnaidman
