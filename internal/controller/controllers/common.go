@@ -507,3 +507,15 @@ func spokeKubeconfigSecret(ctx context.Context, log logrus.FieldLogger, c client
 
 	return secret, nil
 }
+
+func isAgentOwnedByInfraEnv(agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) bool {
+	if agent.OwnerReferences == nil {
+		return false
+	}
+	for _, ownerRef := range agent.OwnerReferences {
+		if ownerRef.Kind == infraEnv.Kind && ownerRef.Name == infraEnv.Name && ownerRef.UID == infraEnv.UID {
+			return true
+		}
+	}
+	return false
+}
