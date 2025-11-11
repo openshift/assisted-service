@@ -24,6 +24,7 @@ aliases:
     - linoyaslan
     - giladravid16
     - yoavsc0302
+    - cve-automation
   emeritus_approvers:
     - empovit
     - yevgeny-shnaidman
