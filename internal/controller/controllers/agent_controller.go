@@ -181,8 +181,8 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if err = r.setInfraEnvNameLabel(ctx, log, h, agent); err != nil {
-		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
+	if err = r.setOwnerAndLabel(ctx, log, h, agent); err != nil {
+		log.WithError(err).Warnf("failed to set infraEnv as the owner and the name label on agent %s/%s", agent.Namespace, agent.Name)
 	}
 
 	// Add/Update Agent annotations
@@ -1924,7 +1924,7 @@ func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpoint
 	return string(token), nil
 }
 
-func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.FieldLogger, h *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) setOwnerAndLabel(ctx context.Context, log logrus.FieldLogger, h *common.Host, agent *aiv1beta1.Agent) error {
 	infraEnv, err := r.Installer.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: h.InfraEnvID})
 	if err != nil {
 		return err
@@ -1932,7 +1932,26 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 	if infraEnv.Name == nil {
 		return errors.Errorf("infraEnv %s name is nil", h.InfraEnvID)
 	}
+	err = r.addInfraEnvAsOwner(ctx, agent, *infraEnv.Name)
+	if err != nil {
+		log.WithError(err).Errorf("failed to add infraenv %s owner reference to agent %s/%s", *infraEnv.Name, agent.Namespace, agent.Name)
+		return err
+	}
 	if setAgentLabel(log, agent, aiv1beta1.InfraEnvNameLabel, *infraEnv.Name) {
+		return r.updateAndReplaceAgent(ctx, agent)
+	}
+	return nil
+}
+
+func (r *AgentReconciler) addInfraEnvAsOwner(ctx context.Context, agent *aiv1beta1.Agent, infraEnvName string) error {
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Get(ctx, types.NamespacedName{Name: infraEnvName, Namespace: agent.Namespace}, infraEnv); err != nil {
+		return err
+	}
+	if !isAgentOwnedByInfraEnv(agent, infraEnv) {
+		if err := controllerutil.SetOwnerReference(infraEnv, agent, r.Scheme); err != nil {
+			return err
+		}
 		return r.updateAndReplaceAgent(ctx, agent)
 	}
 	return nil
@@ -2139,4 +2158,16 @@ func resetCSRStatus(agent *aiv1beta1.Agent) {
 		ApprovedCSRs:        []aiv1beta1.CSRInfo{},
 		LastApprovalAttempt: metav1.Time{},
 	}
+}
+
+func isAgentOwnedByInfraEnv(agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) bool {
+	if agent.OwnerReferences == nil {
+		return false
+	}
+	for _, ownerRef := range agent.OwnerReferences {
+		if ownerRef.Kind == infraEnv.Kind && ownerRef.Name == infraEnv.Name && ownerRef.UID == infraEnv.UID {
+			return true
+		}
+	}
+	return false
 }
