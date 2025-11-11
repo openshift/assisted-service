@@ -26,6 +26,7 @@ aliases:
     - yoavsc0302
     - cve-automation
     - maorfr
+    - cve-automation
   emeritus_approvers:
     - empovit
     - yevgeny-shnaidman
