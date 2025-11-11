@@ -24,6 +24,7 @@ aliases:
     - pastequo
     - mlorenzofr
     - linoyaslan
+    - cve-automation
   emeritus_approvers:
     - empovit
     - yevgeny-shnaidman
