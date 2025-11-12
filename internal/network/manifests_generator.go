@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/tang"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -39,12 +40,14 @@ type ManifestsGeneratorAPI interface {
 type Config struct {
 	ServiceBaseURL          string `envconfig:"SERVICE_BASE_URL"`
 	EnableSingleNodeDnsmasq bool   `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
+	DiskEncryptionCipher    string `envconfig:"DISK_ENCRYPTION_CIPHER" default:""`
 }
 
 type ManifestsGenerator struct {
 	manifestsApi manifestsapi.ManifestsAPI
 	Config       Config
 	DB           *gorm.DB
+	systemInfo   system.SystemInfo
 }
 
 func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config, db *gorm.DB) *ManifestsGenerator {
@@ -52,8 +55,14 @@ func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config
 		manifestsApi: manifestsApi,
 		Config:       config,
 		DB:           db,
+		systemInfo:   system.NewLocalSystemInfo(),
 	}
 }
+
+const (
+	cipherAesXtsPlain64     = "aes-xts-plain64"
+	cipherAesCbcEssivSha256 = "aes-cbc-essiv:sha256"
+)
 
 const defaultChronyConf = `
 pool 0.rhel.pool.ntp.org iburst
@@ -293,7 +302,7 @@ spec:
                 thumbprint: {{ .Thumbprint }}
             {{- end }}
 		  {{- end }}
-          options: [--cipher, aes-cbc-essiv:sha256]
+          options: [--cipher, {{ .CIPHER }}]
           wipeVolume: true
       filesystems:
         - device: /dev/mapper/root
@@ -331,7 +340,9 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		return nil
 	}
 
-	manifestParams := map[string]interface{}{}
+	manifestParams := map[string]interface{}{
+		"CIPHER": m.GetDiskEncryptionCipher(log),
+	}
 
 	switch *c.DiskEncryption.Mode {
 
@@ -470,6 +481,27 @@ func fillTemplate(manifestParams map[string]interface{}, templateData string, lo
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (m *ManifestsGenerator) GetDiskEncryptionCipher(log logrus.FieldLogger) string {
+	if m.Config.DiskEncryptionCipher != "" {
+		log.Infof("Using explicitly configured disk encryption cipher: %s", m.Config.DiskEncryptionCipher)
+		return m.Config.DiskEncryptionCipher
+	}
+
+	fipsEnabled, err := m.systemInfo.FIPSEnabled()
+	if err != nil {
+		log.WithError(err).Warn("Failed to check FIPS status, using aes-cbc-essiv:sha256 cipher")
+		return cipherAesCbcEssivSha256
+	}
+
+	if fipsEnabled {
+		log.Info("FIPS is enabled, using aes-xts-plain64 cipher")
+		return cipherAesXtsPlain64
+	}
+
+	log.Info("FIPS is not enabled, using aes-cbc-essiv:sha256 cipher")
+	return cipherAesCbcEssivSha256
 }
 
 const (
