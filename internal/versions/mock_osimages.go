@@ -7,8 +7,8 @@ package versions
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockOSImages is a mock of OSImages interface.

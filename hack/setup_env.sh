@@ -61,7 +61,7 @@ function envtest() {
 
 function test_tools() {
   go install github.com/onsi/ginkgo/ginkgo@v1.16.4
-  go install github.com/golang/mock/mockgen@v1.6.0
+  go install go.uber.org/mock/mockgen@v0.1.0
   go install github.com/vektra/mockery/v2@v2.12.3
   go install gotest.tools/gotestsum@v1.6.3
   go install github.com/axw/gocov/gocov@v1.1.0

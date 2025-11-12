@@ -8,8 +8,8 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockInstructionApi is a mock of InstructionApi interface.

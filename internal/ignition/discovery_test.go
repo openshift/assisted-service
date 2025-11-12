@@ -14,7 +14,6 @@ import (
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -30,6 +29,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("proxySettingsForIgnition", func() {

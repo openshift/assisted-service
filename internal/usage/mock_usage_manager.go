@@ -8,7 +8,7 @@ import (
 	reflect "reflect"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	gorm "gorm.io/gorm"
 )
 

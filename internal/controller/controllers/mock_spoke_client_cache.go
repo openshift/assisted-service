@@ -7,9 +7,9 @@ package controllers
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	spoke_k8s_client "github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	v1 "github.com/openshift/hive/apis/hive/v1"
+	gomock "go.uber.org/mock/gomock"
 	v10 "k8s.io/api/core/v1"
 )
 

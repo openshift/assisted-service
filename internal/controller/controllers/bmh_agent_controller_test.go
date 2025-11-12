@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -26,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"

@@ -10,10 +10,10 @@ import (
 	reflect "reflect"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	gomock "go.uber.org/mock/gomock"
 	types "k8s.io/apimachinery/pkg/types"
 )
 

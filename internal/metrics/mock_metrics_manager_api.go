@@ -10,8 +10,8 @@ import (
 	time "time"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockAPI is a mock of API interface.
