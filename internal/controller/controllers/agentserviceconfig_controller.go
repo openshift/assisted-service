@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/kubernetes"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -134,7 +135,8 @@ type AgentServiceConfigReconcileContext struct {
 	NodeSelector map[string]string
 	Tolerations  []corev1.Toleration
 
-	Recorder record.EventRecorder
+	Recorder        record.EventRecorder
+	PodIntrospector kubernetes.PodIntrospector
 
 	// flag to indicate if the operator is running on an OpenShift cluster or some other flavor of Kubernetes
 	IsOpenShift bool
@@ -1582,6 +1584,8 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			}
 		}
 
+		injectImagePullSecretsWhenNonOCP(ctx, &statefulSet.Spec.Template, asc)
+
 		volumes := statefulSet.Spec.Template.Spec.Volumes
 		if asc.rec.IsOpenShift {
 			volumes = ensureVolume(volumes, corev1.Volume{
@@ -2202,6 +2206,8 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			}
 		}
 
+		injectImagePullSecretsWhenNonOCP(ctx, &deployment.Spec.Template, asc)
+
 		if asc.rec.NodeSelector != nil {
 			deployment.Spec.Template.Spec.NodeSelector = asc.rec.NodeSelector
 		} else {
@@ -2231,6 +2237,19 @@ func getPVCName(annotations map[string]string, pvcID string) string {
 		return prefix + pvcID
 	}
 	return pvcID
+}
+
+// injectImagePullSecretsWhenNonOCP injects imagePullSecrets from the current pod into the pod template spec
+// This is only done for non-OpenShift environments (Kubernetes mode)
+func injectImagePullSecretsWhenNonOCP(ctx context.Context, podTemplateSpec *corev1.PodTemplateSpec, asc ASC) {
+	if !asc.rec.IsOpenShift {
+		if asc.rec.PodIntrospector == nil {
+			return
+		}
+		if imagePullSecrets := asc.rec.PodIntrospector.GetImagePullSecrets(ctx); len(imagePullSecrets) > 0 {
+			podTemplateSpec.Spec.ImagePullSecrets = imagePullSecrets
+		}
+	}
 }
 
 func copyEnv(config map[string]string, key string) {
@@ -2865,6 +2884,8 @@ func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
+
+		injectImagePullSecretsWhenNonOCP(ctx, &deployment.Spec.Template, asc)
 
 		return nil
 	}
