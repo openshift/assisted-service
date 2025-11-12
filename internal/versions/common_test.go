@@ -8,7 +8,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+<<<<<<< HEAD
 	"github.com/openshift/assisted-service/models"
+=======
+	"github.com/openshift/assisted-service/internal/oc"
+	models "github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	gomock "go.uber.org/mock/gomock"
+>>>>>>> 8fed8a5f6 (mockgen deprecated: use uber-go/mock instead)
 )
 
 var _ = Describe("NewHandler", func() {

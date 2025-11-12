@@ -25,7 +25,7 @@ import (
 type Call struct {
 	t TestHelper // for triggering test failures on invalid call setup
 
-	receiver   any          // the receiver of the method call
+	receiver   interface{}  // the receiver of the method call
 	method     string       // the name of the method
 	methodType reflect.Type // the type of the method
 	args       []Matcher    // the args
@@ -41,12 +41,12 @@ type Call struct {
 	// actions are called when this Call is called. Each action gets the args and
 	// can set the return values by returning a non-nil slice. Actions run in the
 	// order they are created.
-	actions []func([]any) []any
+	actions []func([]interface{}) []interface{}
 }
 
 // newCall creates a *Call. It requires the method type in order to support
 // unexported methods.
-func newCall(t TestHelper, receiver any, method string, methodType reflect.Type, args ...any) *Call {
+func newCall(t TestHelper, receiver interface{}, method string, methodType reflect.Type, args ...interface{}) *Call {
 	t.Helper()
 
 	// TODO: check arity, types.
@@ -67,18 +67,16 @@ func newCall(t TestHelper, receiver any, method string, methodType reflect.Type,
 	// and this line changes, i.e. this code is wrapped in another anonymous function.
 	// 0 is us, 1 is RecordCallWithMethodType(), 2 is the generated recorder, and 3 is the user's test.
 	origin := callerInfo(3)
-	actions := []func([]any) []any{func([]any) []any {
+	actions := []func([]interface{}) []interface{}{func([]interface{}) []interface{} {
 		// Synthesize the zero value for each of the return args' types.
-		rets := make([]any, methodType.NumOut())
+		rets := make([]interface{}, methodType.NumOut())
 		for i := 0; i < methodType.NumOut(); i++ {
 			rets[i] = reflect.Zero(methodType.Out(i)).Interface()
 		}
 		return rets
 	}}
-	return &Call{
-		t: t, receiver: receiver, method: method, methodType: methodType,
-		args: mArgs, origin: origin, minCalls: 1, maxCalls: 1, actions: actions,
-	}
+	return &Call{t: t, receiver: receiver, method: method, methodType: methodType,
+		args: mArgs, origin: origin, minCalls: 1, maxCalls: 1, actions: actions}
 }
 
 // AnyTimes allows the expectation to be called 0 or more times
@@ -109,13 +107,13 @@ func (c *Call) MaxTimes(n int) *Call {
 
 // DoAndReturn declares the action to run when the call is matched.
 // The return values from this function are returned by the mocked function.
-// It takes an any argument to support n-arity functions.
+// It takes an interface{} argument to support n-arity functions.
 // The anonymous function must match the function signature mocked method.
-func (c *Call) DoAndReturn(f any) *Call {
+func (c *Call) DoAndReturn(f interface{}) *Call {
 	// TODO: Check arity and types here, rather than dying badly elsewhere.
 	v := reflect.ValueOf(f)
 
-	c.addAction(func(args []any) []any {
+	c.addAction(func(args []interface{}) []interface{} {
 		c.t.Helper()
 		ft := v.Type()
 		if c.methodType.NumIn() != ft.NumIn() {
@@ -138,7 +136,7 @@ func (c *Call) DoAndReturn(f any) *Call {
 			}
 		}
 		vRets := v.Call(vArgs)
-		rets := make([]any, len(vRets))
+		rets := make([]interface{}, len(vRets))
 		for i, ret := range vRets {
 			rets[i] = ret.Interface()
 		}
@@ -150,13 +148,13 @@ func (c *Call) DoAndReturn(f any) *Call {
 // Do declares the action to run when the call is matched. The function's
 // return values are ignored to retain backward compatibility. To use the
 // return values call DoAndReturn.
-// It takes an any argument to support n-arity functions.
+// It takes an interface{} argument to support n-arity functions.
 // The anonymous function must match the function signature mocked method.
-func (c *Call) Do(f any) *Call {
+func (c *Call) Do(f interface{}) *Call {
 	// TODO: Check arity and types here, rather than dying badly elsewhere.
 	v := reflect.ValueOf(f)
 
-	c.addAction(func(args []any) []any {
+	c.addAction(func(args []interface{}) []interface{} {
 		c.t.Helper()
 		ft := v.Type()
 		if c.methodType.NumIn() != ft.NumIn() {
@@ -185,7 +183,7 @@ func (c *Call) Do(f any) *Call {
 }
 
 // Return declares the values to be returned by the mocked function call.
-func (c *Call) Return(rets ...any) *Call {
+func (c *Call) Return(rets ...interface{}) *Call {
 	c.t.Helper()
 
 	mt := c.methodType
@@ -217,7 +215,7 @@ func (c *Call) Return(rets ...any) *Call {
 		}
 	}
 
-	c.addAction(func([]any) []any {
+	c.addAction(func([]interface{}) []interface{} {
 		return rets
 	})
 
@@ -233,7 +231,7 @@ func (c *Call) Times(n int) *Call {
 // SetArg declares an action that will set the nth argument's value,
 // indirected through a pointer. Or, in the case of a slice and map, SetArg
 // will copy value's elements/key-value pairs into the nth argument.
-func (c *Call) SetArg(n int, value any) *Call {
+func (c *Call) SetArg(n int, value interface{}) *Call {
 	c.t.Helper()
 
 	mt := c.methodType
@@ -253,14 +251,18 @@ func (c *Call) SetArg(n int, value any) *Call {
 			c.t.Fatalf("SetArg(%d, ...) argument is a %v, not assignable to %v [%s]",
 				n, vt, dt, c.origin)
 		}
-	case reflect.Interface, reflect.Slice, reflect.Map:
+	case reflect.Interface:
+		// nothing to do
+	case reflect.Slice:
+		// nothing to do
+	case reflect.Map:
 		// nothing to do
 	default:
 		c.t.Fatalf("SetArg(%d, ...) referring to argument of non-pointer non-interface non-slice non-map type %v [%s]",
 			n, at, c.origin)
 	}
 
-	c.addAction(func(args []any) []any {
+	c.addAction(func(args []interface{}) []interface{} {
 		v := reflect.ValueOf(value)
 		switch reflect.TypeOf(args[n]).Kind() {
 		case reflect.Slice:
@@ -321,7 +323,7 @@ func (c *Call) String() string {
 
 // Tests if the given call matches the expected call.
 // If yes, returns nil. If no, returns error with message explaining why it does not match.
-func (c *Call) matches(args []any) error {
+func (c *Call) matches(args []interface{}) error {
 	if !c.methodType.IsVariadic() {
 		if len(args) != len(c.args) {
 			return fmt.Errorf("expected call at %s has the wrong number of arguments. Got: %d, want: %d",
@@ -427,63 +429,26 @@ func (c *Call) dropPrereqs() (preReqs []*Call) {
 	return
 }
 
-func (c *Call) call() []func([]any) []any {
+func (c *Call) call() []func([]interface{}) []interface{} {
 	c.numCalls++
 	return c.actions
 }
 
 // InOrder declares that the given calls should occur in order.
-// It panics if the type of any of the arguments isn't *Call or a generated
-// mock with an embedded *Call.
-func InOrder(args ...any) {
-	calls := make([]*Call, 0, len(args))
-	for i := 0; i < len(args); i++ {
-		if call := getCall(args[i]); call != nil {
-			calls = append(calls, call)
-			continue
-		}
-		panic(fmt.Sprintf(
-			"invalid argument at position %d of type %T, InOrder expects *gomock.Call or generated mock types with an embedded *gomock.Call",
-			i,
-			args[i],
-		))
-	}
+func InOrder(calls ...*Call) {
 	for i := 1; i < len(calls); i++ {
 		calls[i].After(calls[i-1])
 	}
 }
 
-// getCall checks if the parameter is a *Call or a generated struct
-// that wraps a *Call and returns the *Call pointer - if neither, it returns nil.
-func getCall(arg any) *Call {
-	if call, ok := arg.(*Call); ok {
-		return call
-	}
-	t := reflect.ValueOf(arg)
-	if t.Kind() != reflect.Ptr && t.Kind() != reflect.Interface {
-		return nil
-	}
-	t = t.Elem()
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if !f.CanInterface() {
-			continue
-		}
-		if call, ok := f.Interface().(*Call); ok {
-			return call
-		}
-	}
-	return nil
-}
-
-func setSlice(arg any, v reflect.Value) {
+func setSlice(arg interface{}, v reflect.Value) {
 	va := reflect.ValueOf(arg)
 	for i := 0; i < v.Len(); i++ {
 		va.Index(i).Set(v.Index(i))
 	}
 }
 
-func setMap(arg any, v reflect.Value) {
+func setMap(arg interface{}, v reflect.Value) {
 	va := reflect.ValueOf(arg)
 	for _, e := range va.MapKeys() {
 		va.SetMapIndex(e, reflect.Value{})
@@ -493,11 +458,11 @@ func setMap(arg any, v reflect.Value) {
 	}
 }
 
-func (c *Call) addAction(action func([]any) []any) {
+func (c *Call) addAction(action func([]interface{}) []interface{}) {
 	c.actions = append(c.actions, action)
 }
 
-func formatGottenArg(m Matcher, arg any) string {
+func formatGottenArg(m Matcher, arg interface{}) string {
 	got := fmt.Sprintf("%v (%T)", arg, arg)
 	if gs, ok := m.(GotFormatter); ok {
 		got = gs.Got(arg)

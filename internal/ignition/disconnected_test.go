@@ -22,6 +22,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/mock/gomock"
+<<<<<<< HEAD
+=======
+	"gopkg.in/yaml.v2"
+>>>>>>> 8fed8a5f6 (mockgen deprecated: use uber-go/mock instead)
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )

@@ -1,12 +1,16 @@
 package operators
 
 import (
+<<<<<<< HEAD
 	"go.uber.org/mock/gomock"
+=======
+>>>>>>> 8fed8a5f6 (mockgen deprecated: use uber-go/mock instead)
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Operators manager builder", func() {

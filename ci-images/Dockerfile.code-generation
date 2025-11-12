@@ -21,9 +21,15 @@ COPY --from=registry.k8s.io/kustomize/kustomize:v5.7.1 /app/kustomize /usr/bin/
 
 RUN cd / && /assisted-service/hack/setup_env.sh spectral && \
     /assisted-service/hack/setup_env.sh jq && \
+<<<<<<< HEAD
     go install go.uber.org/mock/mockgen@v0.6.0 && \
     go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.17.0 && \
     go install golang.org/x/tools/cmd/goimports@v0.34.0 && \
+=======
+    go install go.uber.org/mock/mockgen@v0.1.0 && \
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
+    go install golang.org/x/tools/cmd/goimports@v0.1.5 && \
+>>>>>>> 8fed8a5f6 (mockgen deprecated: use uber-go/mock instead)
     chmod 775 -R $GOPATH
 
 RUN curl --retry 5 -L https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1/operator-sdk_linux_amd64 --output /tmp/operator-sdk_linux_amd64 && \
