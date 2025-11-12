@@ -29,6 +29,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDSDNNETWORKTYPE:            (&SDNNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDOVNNETWORKTYPE:            (&OVNNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER:   (&UserManagedLoadBalancerFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6:      (&DualStackPrimaryIPv6Feature{}).New(),
 
 	// Olm Operators features
 	models.FeatureSupportLevelIDLVM:                    (&LvmFeature{}).New(),
