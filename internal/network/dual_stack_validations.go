@@ -33,9 +33,9 @@ func extractFirstIPAndType(networks interface{}) (string, string) {
 	return "", ""
 }
 
-// GetPrimaryIPStack analyzes the provided networks and VIPs to determine
+// ComputePrimaryIPStack analyzes the provided networks and VIPs to determine
 // the primary IP stack based on which IP family appears first in the lists
-func GetPrimaryIPStack(
+func ComputePrimaryIPStack(
 	machineNetworks []*models.MachineNetwork,
 	apiVips []*models.APIVip,
 	ingressVips []*models.IngressVip,
