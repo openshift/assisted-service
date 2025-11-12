@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	s3manager "github.com/aws/aws-sdk-go/service/s3/s3manager"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockUploaderAPI is a mock of UploaderAPI interface.
