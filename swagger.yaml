@@ -3373,7 +3373,7 @@ paths:
           description: The log file to be uploaded.
           type: file
           required: false
-          maxLength: 104857600  #100MB
+          maxLength: 262144000  #250MB
           x-mimetype: application/zip
         - in: query
           name: logs_type
