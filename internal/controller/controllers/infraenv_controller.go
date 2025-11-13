@@ -110,8 +110,8 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
-		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
-		return r.deregisterInfraEnvIfNeeded(ctx, log, req.NamespacedName)
+		log.WithError(err).Errorf("Failed to get InfraEnv %s", req.NamespacedName)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	if infraEnv.ObjectMeta.DeletionTimestamp.IsZero() { // infraEnv not being deleted
@@ -516,44 +516,10 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	return r.Installer.RegisterInfraEnvInternal(ctx, key, mirrorRegistryConfiguration, createParams)
 }
 
-func (r *InfraEnvReconciler) deregisterInfraEnvIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
-
-	buildReply := func(err error) (ctrl.Result, error) {
-		reply := ctrl.Result{}
-		if err == nil {
-			return reply, nil
-		}
-		reply.RequeueAfter = defaultRequeueAfterOnError
-		err = errors.Wrapf(err, "failed to deregister infraenv: %s", key.Name)
-		log.Error(err)
-		return reply, err
-	}
-
-	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// return if from any reason infraEnv is already deleted from db (or never existed)
-		return buildReply(nil)
-	}
-
-	if err != nil {
-		return buildReply(err)
-	}
-
-	if err = r.Installer.DeregisterInfraEnvInternal(ctx, installer.DeregisterInfraEnvParams{
-		InfraEnvID: *infraEnv.ID,
-	}); err != nil {
-		return buildReply(err)
-	}
-	log.Infof("InfraEnv resource deleted : %s", infraEnv.ID)
-
-	return buildReply(nil)
-}
-
 func (r *InfraEnvReconciler) deregisterInfraEnvWithHosts(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) error {
 	infraEnv, err := r.Installer.GetInfraEnvByKubeKey(key)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		// return if from any reason infraEnv is already deleted from db (or never existed)
+		// return if the InfraEnv is already deleted from db (or never existed)
 		return nil
 	}
 
