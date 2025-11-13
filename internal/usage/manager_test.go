@@ -17,10 +17,13 @@ import (
 
 func TestUsageEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "Usage test Suite")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+	DeferCleanup(common.TerminateDBTest)
+})
 
 var _ = Describe("Feature Usage", func() {
 	var (
@@ -31,7 +34,7 @@ var _ = Describe("Feature Usage", func() {
 		ctrl      *gomock.Controller
 	)
 
-	var _ = BeforeSuite(func() {
+	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		db, dbName = common.PrepareTestDB()
 		manager = NewManager(logrus.WithField("pkg", "usage"), commontesting.GetDummyNotificationStream(ctrl))
@@ -43,7 +46,7 @@ var _ = Describe("Feature Usage", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
-	var _ = AfterSuite(func() {
+	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
