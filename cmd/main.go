@@ -450,8 +450,6 @@ func main() {
 	log.Println(fmt.Sprintf("Started service with OS Images %v, Release Images %v, Release Sources %v, Ignored OpenShift Versions %v",
 		Options.OsImages, Options.ReleaseImages, Options.ReleaseSourcesConfig.ReleaseSources, Options.IgnoredOpenshiftVersions))
 
-	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
-
 	// Connect to db
 	db := setupDB(log)
 	defer common.CloseDB(db)
