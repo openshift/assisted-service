@@ -63,7 +63,8 @@ spec:
         value: main
       - name: pathInRepo
         value: "pipelines/standard-pipeline.yaml"
-  taskRunTemplate: {}
+  taskRunTemplate: 
+    serviceAccountName: build-pipeline-assisted-service-rhel9-acm-ds-2-12
   workspaces:
     - name: git-auth
       secret:
