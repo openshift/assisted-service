@@ -1315,7 +1315,6 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"DEPLOY_TARGET":          "k8s",
 			"STORAGE":                "filesystem",
 			"ISO_WORKSPACE_BASE_DIR": "/data",
-			"ISO_CACHE_DIR":          "/data/cache",
 
 			// from configmap
 			"AUTH_TYPE":                   "local",

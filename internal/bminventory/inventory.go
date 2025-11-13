@@ -113,7 +113,6 @@ type Config struct {
 	RhQaRegCred                         string            `envconfig:"REGISTRY_CREDS" default:""`
 	AgentTimeoutStart                   time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	DefaultNTPSource                    string            `envconfig:"NTP_DEFAULT_SERVER"`
-	ISOCacheDir                         string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 	DefaultClusterNetworkCidr           string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
 	DefaultClusterNetworkHostPrefix     int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultClusterNetworkCidrIPv6       string            `envconfig:"CLUSTER_NETWORK_CIDR_IPV6" default:"fd01::/48"`
