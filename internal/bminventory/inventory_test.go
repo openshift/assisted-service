@@ -9280,6 +9280,45 @@ var _ = Describe("infraEnvs", func() {
 				Expect(db.First(&updated, "id = ?", clusterID.String()).Error).To(Succeed())
 				Expect(swag.StringValue(updated.Status)).To(Equal(models.ClusterStatusInsufficient))
 			})
+
+			It("should fail when setting RendezvousIP on non-disconnected-iso infraenv", func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("RendezvousIP is only supported for disconnected ISO infra-envs"))).Times(1)
+
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("infra-env-with-rendezvous"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeFullIso,
+						ClusterID:        &clusterID,
+						RendezvousIP:     swag.String("192.168.1.100"),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "RendezvousIP is only supported for disconnected ISO infra-envs")
+			})
+
+			It("should fail when setting invalid IP for RendezvousIP on disconnected-iso infraenv", func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Invalid rendezvous IP"))).Times(1)
+
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("infra-env-invalid-rendezvous"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeDisconnectedIso,
+						ClusterID:        &clusterID,
+						RendezvousIP:     swag.String("not-a-valid-ip"),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "Invalid rendezvous IP")
+			})
+
 		})
 	})
 
@@ -9549,6 +9588,112 @@ var _ = Describe("infraEnvs", func() {
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 					})
 				})
+			})
+			Context("RendezvousIP validation", func() {
+				setInfraEnvType := func(imageType models.ImageType) {
+					err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", imageType).Error
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				It("should fail when setting RendezvousIP on non-disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeFullIso)
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("192.168.1.100"),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "RendezvousIP is only supported for disconnected ISO infra-envs")
+				})
+
+				It("should fail when setting invalid RendezvousIP on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("not-a-valid-ip"),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "Invalid rendezvous IP")
+				})
+
+				It("should succeed when setting valid RendezvousIP on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("192.168.1.200"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(swag.StringValue(i.RendezvousIP)).To(Equal("192.168.1.200"))
+				})
+
+				It("should clear RendezvousIP when empty string is provided", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.100").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String(""),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(i.RendezvousIP).To(BeNil())
+				})
+
+				It("should clear RendezvousIP when image type changes away from disconnected-iso", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.101").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeFullIso,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
+					Expect(i.RendezvousIP).To(BeNil())
+				})
+
+				It("should preserve RendezvousIP when field is omitted in unrelated update", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.100").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							AdditionalNtpSources: swag.String("1.1.1.1"),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(swag.StringValue(i.RendezvousIP)).To(Equal("192.168.1.100"))
+				})
+
 			})
 			It("Update AdditionalNtpSources", func() {
 				mockInfraEnvUpdateSuccess()
