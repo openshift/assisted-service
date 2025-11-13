@@ -38,6 +38,51 @@ func (o *V2UploadLogsNoContent) WriteResponse(rw http.ResponseWriter, producer r
 	rw.WriteHeader(204)
 }
 
+// V2UploadLogsBadRequestCode is the HTTP code returned for type V2UploadLogsBadRequest
+const V2UploadLogsBadRequestCode int = 400
+
+/*
+V2UploadLogsBadRequest Bad Request
+
+swagger:response v2UploadLogsBadRequest
+*/
+type V2UploadLogsBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewV2UploadLogsBadRequest creates V2UploadLogsBadRequest with default headers values
+func NewV2UploadLogsBadRequest() *V2UploadLogsBadRequest {
+
+	return &V2UploadLogsBadRequest{}
+}
+
+// WithPayload adds the payload to the v2 upload logs bad request response
+func (o *V2UploadLogsBadRequest) WithPayload(payload *models.Error) *V2UploadLogsBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the v2 upload logs bad request response
+func (o *V2UploadLogsBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *V2UploadLogsBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // V2UploadLogsUnauthorizedCode is the HTTP code returned for type V2UploadLogsUnauthorized
 const V2UploadLogsUnauthorizedCode int = 401
 
