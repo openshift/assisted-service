@@ -10,7 +10,6 @@ import (
 	configv31 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -22,6 +21,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	"sigs.k8s.io/yaml"
 )

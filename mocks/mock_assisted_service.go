@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	middleware "github.com/go-openapi/runtime/middleware"
-	gomock "github.com/golang/mock/gomock"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockInstallerAPI is a mock of InstallerAPI interface.

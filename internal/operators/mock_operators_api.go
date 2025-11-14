@@ -8,11 +8,11 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	featuresupport "github.com/openshift/assisted-service/internal/featuresupport"
 	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockAPI is a mock of API interface.

@@ -10,9 +10,9 @@ import (
 
 	middleware "github.com/go-openapi/runtime/middleware"
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	manifests "github.com/openshift/assisted-service/restapi/operations/manifests"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockManifestsAPI is a mock of ManifestsAPI interface.
