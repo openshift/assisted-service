@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	baseDomainRegex          = `^[a-z\d][\-]*[a-z\d]+$`
-	dnsNameRegex             = `^([a-z\d]([\-]*[a-z\d]+)*\.)+[a-z\d]+[\-]*[a-z\d]+$`
+	baseDomainRegex          = `^[a-z\d]([\-]*[a-z\d]+)+$`
+	dnsNameRegex             = `^([a-z\d]([\-]*[a-z\d]+)*\.)+[a-z\d]+([\-]*[a-z\d]+)+$`
+	wildCardDomainRegex      = `^(validateNoWildcardDNS\.).+\.?$`
 	hostnameRegex            = `^[a-z0-9][a-z0-9\-\.]{0,61}[a-z0-9]$`
 	installerArgsValuesRegex = `^[A-Za-z0-9@!#$%*()_+-=//.,";':{}\[\]]+$`
 )
@@ -45,19 +46,28 @@ func ValidateInstallerArgs(args []string) error {
 }
 
 func ValidateDomainNameFormat(dnsDomainName string) (int32, error) {
-	matched, err := regexp.MatchString(baseDomainRegex, dnsDomainName)
+	domainName := dnsDomainName
+	wildCardMatched, wildCardMatchErr := regexp.MatchString(wildCardDomainRegex, dnsDomainName)
+	if wildCardMatchErr == nil && wildCardMatched {
+		trimmedDomain := strings.TrimPrefix(dnsDomainName, "validateNoWildcardDNS.")
+		domainName = strings.TrimSuffix(trimmedDomain, ".")
+	}
+	matched, err := regexp.MatchString(baseDomainRegex, domainName)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "Single DNS base domain validation for %s", dnsDomainName)
 	}
-	if matched && len(dnsDomainName) > 1 {
+	if matched && len(domainName) > 1 && len(domainName) < 63 {
 		return 0, nil
 	}
-	matched, err = regexp.MatchString(dnsNameRegex, dnsDomainName)
+	matched, err = regexp.MatchString(dnsNameRegex, domainName)
 	if err != nil {
 		return http.StatusInternalServerError, errors.Wrapf(err, "DNS name validation for %s", dnsDomainName)
 	}
-	if !matched {
-		return http.StatusBadRequest, errors.Errorf("DNS format mismatch: %s domain name is not valid", dnsDomainName)
+
+	if !matched || isDottedDecimalDomain(domainName) || len(domainName) > 255 {
+		return http.StatusBadRequest, errors.Errorf(
+			"DNS format mismatch: %s domain name is not valid. Must match regex [%s], be no more than 255 characters, and not be in dotted decimal format (##.##.##.##)",
+			dnsDomainName, dnsNameRegex)
 	}
 	return 0, nil
 }
@@ -131,6 +141,23 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 	return nil
 }
 
+func validateNoProxyEntry(entry string) error {
+	s := strings.TrimPrefix(entry, ".")
+	if govalidator.IsIP(s) {
+		return nil
+	}
+
+	if govalidator.IsCIDR(s) {
+		return nil
+	}
+
+	if govalidator.IsDNSName(s) {
+		return nil
+	}
+
+	return errors.Errorf("%s is not a valid no_proxy entry", entry)
+}
+
 // ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
 // of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
 // prefaced with '.' to include all subdomains of that domain.
@@ -139,22 +166,19 @@ func ValidateNoProxyFormat(noProxy string) error {
 		return nil
 	}
 	domains := strings.Split(noProxy, ",")
+	dupTracker := map[string]string{}
 	for _, s := range domains {
-		s = strings.TrimPrefix(s, ".")
-		if govalidator.IsIP(s) {
-			continue
+		if _, present := dupTracker[s]; present {
+			return errors.Errorf("duplicate no_proxy entry defined: %s", s)
 		}
 
-		if govalidator.IsCIDR(s) {
-			continue
+		if err := validateNoProxyEntry(s); err != nil {
+			return errors.Wrap(err,
+				"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
+					"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.")
 		}
 
-		if govalidator.IsDNSName(s) {
-			continue
-		}
-		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
-			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.", noProxy)
+		dupTracker[s] = ""
 	}
 	return nil
 }
@@ -189,4 +213,11 @@ func ValidateCaCertificate(certificate string) error {
 	}
 
 	return nil
+}
+
+// RFC 1123 (https://datatracker.ietf.org/doc/html/rfc1123#page-13)
+// states that domains cannot resemble the format ##.##.##.##
+func isDottedDecimalDomain(domain string) bool {
+	regex := `([\d]+\.){3}[\d]+`
+	return regexp.MustCompile(regex).MatchString(domain)
 }
