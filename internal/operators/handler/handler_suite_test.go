@@ -10,7 +10,10 @@ import (
 
 func TestHandler(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "Operators handler Suite")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+	DeferCleanup(common.TerminateDBTest)
+})
