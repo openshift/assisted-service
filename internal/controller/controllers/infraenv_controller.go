@@ -144,6 +144,18 @@ func (r *InfraEnvReconciler) handleInfraEnvDeletion(ctx context.Context, log log
 		// Stop reconciliation as the item is being deleted
 		return ctrl.Result{}, nil
 	}
+	// delete all agents owned by this infraenv
+	agentsRemoved, err := r.deleteAgents(ctx, log, infraEnv)
+	if err != nil {
+		log.WithError(err).Errorf("failed to delete agents owned by infraenv %s", infraEnv.Name)
+		return ctrl.Result{}, err
+	}
+
+	if agentsRemoved {
+		log.Debugf("agents owned by infraenv %s have been deleted, requeueing", infraEnv.Name)
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	// deletion finalizer found, deregister the backend hosts and the infraenv
 	cleanUpErr := r.deregisterInfraEnvWithHosts(ctx, log, client.ObjectKeyFromObject(infraEnv))
 	if cleanUpErr != nil {
@@ -792,6 +804,71 @@ func (r *InfraEnvReconciler) updateInfraEnvStatus(
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{Requeue: false}, nil
+}
+
+// deleteAgents attempts to delete all agents owned by the given InfraEnv.
+// Returns true if any agents were deleted to indicate a requeue is needed
+func (r *InfraEnvReconciler) deleteAgents(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (bool, error) {
+	agents := &aiv1beta1.AgentList{}
+	err := r.List(ctx, agents, &client.ListOptions{Namespace: infraEnv.Namespace}, client.MatchingLabels{aiv1beta1.InfraEnvNameLabel: infraEnv.Name})
+	if err != nil {
+		log.WithError(err).Errorf("failed to list agents owned by infraenv %s", infraEnv.Name)
+		return false, errors.Wrapf(err, "failed to list agents owned by infraenv %s", infraEnv.Name)
+	}
+
+	agentsRemoved := false
+	ownedAgentsNotRemoved := false
+	for i, agent := range agents.Items {
+		// Only delete agents owned by this InfraEnv
+		if !isAgentOwnedByInfraEnv(&agent, infraEnv) {
+			log.Debugf("agent %s is not owned by infraenv %s, skipping deletion", agent.Name, infraEnv.Name)
+			continue
+		}
+		// Skip agents that are bound to an existing cluster
+		clusterExists, err := r.clusterExistsForAgent(ctx, log, &agent)
+		if err != nil {
+			return false, err
+		}
+		if clusterExists {
+			log.Debugf("cluster %s/%s is not being deleted, skipping deletion of agent %s owned by infraenv %s",
+				agent.Spec.ClusterDeploymentName.Namespace, agent.Spec.ClusterDeploymentName.Name, agent.Name, infraEnv.Name)
+			ownedAgentsNotRemoved = true
+			continue
+		}
+
+		log.Debugf("deleting agent %s owned by infraenv %s", agent.Name, infraEnv.Name)
+		if deleteErr := r.Delete(ctx, &agents.Items[i]); deleteErr != nil {
+			return false, errors.Wrapf(deleteErr, "failed to delete agent %s", agent.Name)
+		}
+		agentsRemoved = true
+	}
+	if ownedAgentsNotRemoved {
+		return false, errors.Errorf("some agents owned by infraenv %s have not been deleted", infraEnv.Name)
+	}
+	return agentsRemoved, nil
+}
+
+func (r *InfraEnvReconciler) clusterExistsForAgent(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (bool, error) {
+	if agent.Spec.ClusterDeploymentName == nil {
+		return false, nil
+	}
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	clusterKey := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	if err := r.Get(ctx, clusterKey, clusterDeployment); err != nil {
+		if k8serrors.IsNotFound(err) {
+			log.Debugf("cluster %s/%s is not found, allow agent %s to be deleted",
+				clusterKey.Namespace, clusterKey.Name, agent.Name)
+			return false, nil
+		}
+		msg := fmt.Sprintf("failed to check if cluster %s/%s exists for agent %s, skipping deletion",
+			clusterKey.Namespace, clusterKey.Name, agent.Name)
+		log.WithError(err).Warn(msg)
+		return false, errors.Wrap(err, msg)
+	}
+	return clusterDeployment.DeletionTimestamp.IsZero(), nil
 }
 
 // Add conditions on ISO generation if relevant. Ignore errors if they mean it's just an image generation in progress.

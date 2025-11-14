@@ -1045,7 +1045,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(infraEnvImage.Finalizers).ToNot(BeNil())
 			Expect(infraEnvImage.Finalizers[0]).To(Equal(InfraEnvFinalizerName))
 
-			//Delete InfraEnv, finalizer still exists
+			// Delete InfraEnv, finalizer still exists
 			Expect(c.Delete(ctx, infraEnvImage)).To(BeNil())
 			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 			Expect(infraEnvImage.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
@@ -1062,7 +1062,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(apierrors.IsNotFound(c.Get(ctx, key, infraEnvImage))).To(BeTrue())
 		})
 
-		It("with unbound hosts should delete hosts and return success", func() {
+		It("with unbound hosts should delete hosts and agents and return success", func() {
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -1088,28 +1088,53 @@ var _ = Describe("infraEnv reconcile", func() {
 				Namespace: testNamespace,
 				Name:      "infraEnvImage",
 			}
-			//Delete InfraEnv, finalizer still exists
+			// Delete InfraEnv, finalizer still exists
 			Expect(c.Delete(ctx, infraEnvImage)).To(BeNil())
 			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 			Expect(infraEnvImage.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 			Expect(infraEnvImage.Finalizers).ToNot(BeNil())
 
-			// Reconcile and verify only Bound Host is deleted
+			// Create host and agent
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			hostId := strfmt.UUID(uuid.New().String())
 			host := &common.Host{Host: models.Host{ID: &hostId, Status: swag.String(models.HostStatusKnownUnbound)}}
 			mockInstallerInternal.EXPECT().GetInfraEnvHostsInternal(gomock.Any(), gomock.Any()).Return([]*common.Host{host}, nil)
 			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			mockInstallerInternal.EXPECT().DeregisterInfraEnvInternal(gomock.Any(), gomock.Any()).Return(nil)
+			newAgent := newAgent(hostId.String(), testNamespace, aiv1beta1.AgentSpec{Approved: true})
+			newAgent.Finalizers = []string{}
+			newAgent.Labels = map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnvImage.Name}
+			newAgent.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: infraEnvImage.APIVersion,
+					Kind:       infraEnvImage.Kind,
+					Name:       infraEnvImage.Name,
+					UID:        infraEnvImage.UID,
+				},
+			}
+			Expect(c.Create(ctx, newAgent)).To(BeNil())
+			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+			// Verify that the agent CR will be deleted
+			Expect(apierrors.IsNotFound(c.Get(ctx, types.NamespacedName{Name: newAgent.Name, Namespace: testNamespace}, newAgent))).To(BeTrue())
+
+			// Verify the InfraEnv CR is still there and has the finalizer
+			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+			Expect(infraEnvImage.Finalizers).ToNot(BeNil())
+			Expect(infraEnvImage.Finalizers[0]).To(Equal(InfraEnvFinalizerName))
+
+			// Reconcile to remove the finalizer and allow deletion
 			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 			Expect(err).To(BeNil())
 			Expect(res).To(Equal(ctrl.Result{}))
 
-			// Verify that InfraEnv CR is deleted
+			// Verify that the InfraEnv CR is deleted
 			Expect(apierrors.IsNotFound(c.Get(ctx, key, infraEnvImage))).To(BeTrue())
 		})
 
-		It("with bound and unbound hosts should delete unbound hosts and return error", func() {
+		It("with bound and unbound hosts should delete only unbound hosts and agents and return error", func() {
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -1135,31 +1160,85 @@ var _ = Describe("infraEnv reconcile", func() {
 				Namespace: testNamespace,
 				Name:      "infraEnvImage",
 			}
-			//Delete InfraEnv, finalizer still exists
+			// Delete InfraEnv, finalizer still exists
 			Expect(c.Delete(ctx, infraEnvImage)).To(BeNil())
 			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 			Expect(infraEnvImage.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 			Expect(infraEnvImage.Finalizers).ToNot(BeNil())
 
-			// Reconcile and verify Host are deleted
+			// Create hosts and agents
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 			hostUnboundId := strfmt.UUID(uuid.New().String())
 			hostBoundId := strfmt.UUID(uuid.New().String())
 			hostUnbound := &common.Host{Host: models.Host{ID: &hostUnboundId, InfraEnvID: *backendInfraEnv.ID, Status: swag.String(models.HostStatusKnownUnbound)}}
-			hostBound := &common.Host{Host: models.Host{ID: &hostBoundId, InfraEnvID: *backendInfraEnv.ID, Status: swag.String(models.HostStatusKnown)}}
+			hostBound := &common.Host{Host: models.Host{ID: &hostBoundId, InfraEnvID: *backendInfraEnv.ID, Status: swag.String(models.HostStatusAddedToExistingCluster)}}
 			mockInstallerInternal.EXPECT().GetInfraEnvHostsInternal(gomock.Any(), gomock.Any()).Return([]*common.Host{hostUnbound, hostBound}, nil)
 			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), installer.V2DeregisterHostParams{
 				InfraEnvID: *backendInfraEnv.ID,
 				HostID:     hostUnboundId,
 			}, bminventory.NonInteractive).Return(nil)
-			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
-			Expect(err).To(Not(BeNil()))
-			Expect(res).To(Equal(ctrl.Result{RequeueAfter: longerRequeueAfterOnError}))
+			mockInstallerInternal.EXPECT().V2DeregisterHostInternal(gomock.Any(), installer.V2DeregisterHostParams{
+				InfraEnvID: *backendInfraEnv.ID,
+				HostID:     hostBoundId,
+			}, bminventory.NonInteractive).Return(nil)
+			mockInstallerInternal.EXPECT().DeregisterInfraEnvInternal(gomock.Any(), gomock.Any()).Return(nil)
 
-			//Verify that InfraEnv CR still exists with finalizer
+			boundAgent := newAgent(hostBoundId.String(), testNamespace, aiv1beta1.AgentSpec{Approved: true, ClusterDeploymentName: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+			boundAgent.Finalizers = []string{}
+			boundAgent.Labels = map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnvImage.Name}
+			boundAgent.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: infraEnvImage.APIVersion,
+					Kind:       infraEnvImage.Kind,
+					Name:       infraEnvImage.Name,
+					UID:        infraEnvImage.UID,
+				},
+			}
+			Expect(c.Create(ctx, boundAgent)).To(BeNil())
+			unboundAgent := newAgent(hostUnboundId.String(), testNamespace, aiv1beta1.AgentSpec{Approved: true})
+			unboundAgent.Finalizers = []string{}
+			unboundAgent.Labels = map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnvImage.Name}
+			unboundAgent.OwnerReferences = []metav1.OwnerReference{
+				{
+					APIVersion: infraEnvImage.APIVersion,
+					Kind:       infraEnvImage.Kind,
+					Name:       infraEnvImage.Name,
+					UID:        infraEnvImage.UID,
+				},
+			}
+			Expect(c.Create(ctx, unboundAgent)).To(BeNil())
+			_, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("some agents owned by infraenv infraEnvImage have not been deleted"))
+
+			// Verify that InfraEnv CR still exists with finalizer
 			Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 			Expect(infraEnvImage.ObjectMeta.DeletionTimestamp.IsZero()).To(BeFalse())
 			Expect(infraEnvImage.Finalizers).ToNot(BeNil())
+
+			// Verify the unbound agent will be deleted and the bound agent is still there
+			Expect(apierrors.IsNotFound(c.Get(ctx, types.NamespacedName{Name: unboundAgent.Name, Namespace: testNamespace}, unboundAgent))).To(BeTrue())
+			Expect(c.Get(ctx, types.NamespacedName{Name: boundAgent.Name, Namespace: testNamespace}, boundAgent)).To(BeNil())
+			Expect(boundAgent.ObjectMeta.DeletionTimestamp.IsZero()).To(BeTrue())
+
+			// Delete the cluster
+			Expect(c.Delete(ctx, clusterDeployment)).To(BeNil())
+
+			// Reconcile to remove the bound agent
+			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+			// Verify that the bound agent will be deleted
+			Expect(apierrors.IsNotFound(c.Get(ctx, types.NamespacedName{Name: boundAgent.Name, Namespace: testNamespace}, boundAgent))).To(BeTrue())
+
+			// Reconcile to remove the finalizer and allow deletion
+			res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			// Verify that the InfraEnv CR is deleted
+			Expect(apierrors.IsNotFound(c.Get(ctx, key, infraEnvImage))).To(BeTrue())
 		})
 	})
 

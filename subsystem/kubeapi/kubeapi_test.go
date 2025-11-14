@@ -4225,6 +4225,13 @@ location = "%s"
 		By("Delete ClusterDeployment")
 		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
 
+		By("Verify Agent deleted")
+		Eventually(func() bool {
+			agent := &v1beta1.Agent{}
+			err := kubeClient.Get(ctx, hostKey, agent)
+			return apierrors.IsNotFound(err)
+		}, "1m", "10s").Should(BeTrue())
+
 		By("Verify InfraEnv deleted")
 		Eventually(func() bool {
 			infraEnv := &v1beta1.InfraEnv{}
