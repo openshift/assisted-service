@@ -4680,10 +4680,21 @@ var _ = Describe("handleAgentFinalizer", func() {
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
 		}
+
 		agent = &v1beta1.Agent{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host",
 				Namespace: testNamespace,
+				Labels: map[string]string{
+					v1beta1.InfraEnvNameLabel: "infraenvName",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "aiv1beta1.agent.openshift.io",
+						Kind:       "InfraEnv",
+						Name:       "infraenvName",
+					},
+				},
 			},
 			Spec: v1beta1.AgentSpec{
 				Hostname: agentHostname,
@@ -4778,6 +4789,8 @@ var _ = Describe("handleAgentFinalizer", func() {
 					return nil
 				},
 			).AnyTimes()
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4788,6 +4801,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 			notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "hive.openshift.io", Resource: "ClusterDeployment"}, cdKey.Name)
 			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).Return(notFoundError).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4813,6 +4829,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 			aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 			notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: hiveext.Group, Resource: "AgentClusterInstall"}, aciKey.Name)
 			mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(notFoundError).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4840,6 +4859,41 @@ var _ = Describe("handleAgentFinalizer", func() {
 				func(_ context.Context, key client.ObjectKey, aci *hiveext.AgentClusterInstall, _ ...client.GetOption) error {
 					now := metav1.Now()
 					aci.ObjectMeta.DeletionTimestamp = &now
+					return nil
+				},
+			).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
+		It("doesn't remove the node when the infraenv is being deleted", func() {
+			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+					cd.ObjectMeta.Name = agent.Spec.ClusterDeploymentName.Name
+					cd.ObjectMeta.Namespace = testNamespace
+					cd.Spec.ClusterInstallRef = &hivev1.ClusterInstallLocalReference{
+						Group:   hiveext.Group,
+						Kind:    "AgentClusterInstall",
+						Name:    cd.Name,
+						Version: hiveext.Version,
+					}
+					return nil
+				},
+			).AnyTimes()
+
+			aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(nil).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, infraEnv *v1beta1.InfraEnv, _ ...client.GetOption) error {
+					now := metav1.Now()
+					infraEnv.ObjectMeta.DeletionTimestamp = &now
 					return nil
 				},
 			).AnyTimes()
@@ -4875,6 +4929,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 
 				aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 				mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(nil).AnyTimes()
+
+				infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 				secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
 				mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(

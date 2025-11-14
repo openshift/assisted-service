@@ -4216,12 +4216,6 @@ location = "%s"
 		By("Delete InfraEnv")
 		Expect(kubeClient.Delete(ctx, getInfraEnvCRD(ctx, kubeClient, infraEnvKey))).ShouldNot(HaveOccurred())
 
-		By("Verify InfraEnv not deleted")
-		Consistently(func() error {
-			infraEnv := &v1beta1.InfraEnv{}
-			return kubeClient.Get(ctx, infraEnvKey, infraEnv)
-		}, "30s", "2s").Should(BeNil())
-
 		By("Delete ClusterDeployment")
 		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
 
