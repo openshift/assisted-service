@@ -4141,6 +4141,12 @@ location = "%s"
 			return apierrors.IsNotFound(err)
 		}, "1m", "10s").Should(BeTrue())
 
+		By("Verify Agent deleted")
+		Eventually(func() bool {
+			agent := &v1beta1.Agent{}
+			err := kubeClient.Get(ctx, hostKey, agent)
+			return apierrors.IsNotFound(err)
+		}, "1m", "10s").Should(BeTrue())
 	})
 
 	It("Bind Agent from Infraenv and install SNO", func() {
