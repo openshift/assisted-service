@@ -494,7 +494,13 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 					log.WithError(err).Errorf("failed to check cluster deployment presence")
 					return &ctrl.Result{}, err
 				}
-				if clusterExists {
+				infraEnvExists, err := r.infraEnvExists(ctx, agent)
+				if err != nil {
+					log.WithError(err).Errorf("failed to check infraenv presence")
+					return &ctrl.Result{}, err
+				}
+				// If the cluster exists and the infraenv exists, remove the spoke resources
+				if clusterExists && infraEnvExists {
 					spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 					if err != nil {
 						log.WithError(err).Error("failed to create spoke client")
@@ -661,6 +667,22 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.Na
 	}
 
 	return aci.DeletionTimestamp.IsZero(), nil
+}
+
+// Check if the infraenv exists for the agent
+// Returns true if the infraenv exists, false if it does not exist or is being deleted
+func (r *AgentReconciler) infraEnvExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	infraEnvName, ok := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !ok {
+		return false, fmt.Errorf("failed to find infraenv name for agent %s in namespace %s", agent.Name, agent.Namespace)
+	}
+	key := types.NamespacedName{Namespace: agent.Namespace, Name: infraEnvName}
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Client.Get(ctx, key, infraEnv); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return infraEnv.DeletionTimestamp.IsZero(), nil
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
