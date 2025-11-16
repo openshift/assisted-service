@@ -111,11 +111,12 @@ func (s *StaticNetworkConfigGenerator) injectNMPolicyCaptures(hostConfig *models
 
 		// Replace logical names with capture values.
 		var modifiedInterfaceConfig string
-		re := regexp.MustCompile(fmt.Sprintf(`(?m)(^[^:]*: )(%s)$`, interfaceName))
+		escapedInterfaceName := regexp.QuoteMeta(interfaceName)
+		re := regexp.MustCompile(fmt.Sprintf(`(?m)(^[^:]*: )(%s)(\.\d+)?$`, escapedInterfaceName))
 
-		modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf("${1}\"{{ capture.iface%d.interfaces.0.name }}\"", j))
+		modifiedInterfaceConfig = re.ReplaceAllString(interfacesWithCaptures, fmt.Sprintf("${1}\"{{ capture.iface%d.interfaces.0.name }}${3}\"", j))
 
-		re = regexp.MustCompile(fmt.Sprintf(`(?m)(^[\s]*- )(%s)$`, interfaceName))
+		re = regexp.MustCompile(fmt.Sprintf(`(?m)(^[\s]*- )(%s)(\.\d+)?$`, escapedInterfaceName))
 
 		modifiedInterfaceConfig = re.ReplaceAllString(modifiedInterfaceConfig, fmt.Sprintf("${1}\"{{ capture.iface%d.interfaces.0.name }}\"", j))
 
