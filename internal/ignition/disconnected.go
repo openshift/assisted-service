@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
+	commonignition "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/oc"
@@ -310,9 +311,9 @@ func getInstallerRelease(
 }
 
 func generateUnconfiguredIgnition(executer executer.Executer, releasePath string, disconnectedDir string, log logrus.FieldLogger) (string, error) {
-	stdout, stderr, exitCode := executer.Execute(releasePath, "agent", "create", "unconfigured-ignition", "--interactive", "--dir", disconnectedDir)
+	stdout, stderr, exitCode := executer.Execute(releasePath, "agent", "create", "unconfigured-ignition", "--dir", disconnectedDir)
 	if exitCode != 0 {
-		log.Errorf("error running %s agent create unconfigured-ignition --interactive, stdout: %s, stderr: %s, exit code: %d", releasePath, stdout, stderr, exitCode)
+		log.Errorf("error running %s agent create unconfigured-ignition, stdout: %s, stderr: %s, exit code: %d", releasePath, stdout, stderr, exitCode)
 		return "", errors.Errorf("failed to generate unconfigured-ignition: %s", stderr)
 	}
 
@@ -322,7 +323,28 @@ func generateUnconfiguredIgnition(executer executer.Executer, releasePath string
 		return "", errors.Wrap(err, "failed to read generated unconfigured-ignition")
 	}
 
-	return string(ignitionContent), nil
+	modifiedIgnition, err := addInteractiveSentinelFile(ignitionContent)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to add interactive sentinel file to ignition")
+	}
+
+	return modifiedIgnition, nil
+}
+
+func addInteractiveSentinelFile(ignitionContent []byte) (string, error) {
+	config, err := commonignition.ParseToLatest(ignitionContent)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse ignition config")
+	}
+
+	// data:, is a data URI representing an empty file
+	commonignition.SetFileInIgnition(config, "/etc/assisted/interactive-ui", "data:,", false, 0644, true)
+	modifiedContent, err := json.Marshal(config)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal modified ignition config")
+	}
+
+	return string(modifiedContent), nil
 }
 
 func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string, log logrus.FieldLogger) error {
