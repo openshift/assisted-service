@@ -367,10 +367,16 @@ func mockNoChangeInOperatorDependencies(mock *operators.MockAPI) {
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "inventory_test")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})
 
 var _ = Describe("RegisterDisconnectedCluster", func() {
 	var (

@@ -25,10 +25,16 @@ import (
 
 func TestHandler_Versions(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "versions")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})
 
 var defaultOsImages = models.OsImages{
 	&models.OsImage{
