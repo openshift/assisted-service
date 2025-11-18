@@ -568,6 +568,12 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			Owns(&routev1.Route{}).
 			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
 
+		mirrorRegistryCMPredicates := builder.WithPredicates(predicate.Funcs{
+			CreateFunc:  func(e event.CreateEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+			UpdateFunc:  func(e event.UpdateEvent) bool { return e.ObjectNew.GetNamespace() == r.Namespace },
+			DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+			GenericFunc: func(e event.GenericEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+		})
 		mirrorRegistryCMHandler := handler.EnqueueRequestsFromMapFunc(
 			func(ctx context.Context, ps client.Object) []reconcile.Request {
 				log := logutil.FromContext(ctx, r.Log).WithFields(
@@ -590,7 +596,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 				return reply
 			},
 		)
-		b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler)
+		b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler, mirrorRegistryCMPredicates)
 	} else {
 		b = b.Owns(&netv1.Ingress{}).
 			Owns(&certtypes.Certificate{}).
