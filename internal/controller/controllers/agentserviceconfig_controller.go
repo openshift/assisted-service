@@ -563,20 +563,15 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 				logrus.Fields{
 					"mirror_registry": cm.GetName(),
 				})
-			agentServiceConfigs := &aiv1beta1.AgentServiceConfigList{}
-			if err := r.List(ctx, agentServiceConfigs); err != nil {
-				log.Debugf("failed to list AgentServiceConfigs")
+			instance := &aiv1beta1.AgentServiceConfig{}
+			if err := r.Get(ctx, types.NamespacedName{Name: AgentServiceConfigName}, instance); err != nil {
+				log.Debugf("failed to get AgentServiceConfig")
 				return []reconcile.Request{}
 			}
-			reply := make([]reconcile.Request, 0, len(agentServiceConfigs.Items))
-			for _, agentServiceConfig := range agentServiceConfigs.Items {
-				if agentServiceConfig.Spec.MirrorRegistryRef != nil && agentServiceConfig.Spec.MirrorRegistryRef.Name == cm.GetName() {
-					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
-						Name: agentServiceConfig.Name,
-					}})
-				}
+			if instance.Spec.MirrorRegistryRef != nil && instance.Spec.MirrorRegistryRef.Name == cm.GetName() {
+				return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
 			}
-			return reply
+			return nil
 		},
 	)
 	b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler, mirrorRegistryCMPredicates)
