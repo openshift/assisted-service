@@ -692,7 +692,6 @@ var _ = Describe("RegisterHost", func() {
 			{ctrlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, expectedRole: models.HostRoleAutoAssign},
 			{ctrlPlaneCount: 1, expectedRole: models.HostRoleMaster},
 		} {
-			test := test
 
 			It(fmt.Sprintf("cluster availability mode %d expected default host role %s",
 				test.ctrlPlaneCount, test.expectedRole), func() {
@@ -11046,7 +11045,6 @@ var _ = Describe("infraEnvs host", func() {
 					expectedNumOfUpdateCalls: 1,
 				},
 			} {
-				test := test
 				It(test.name, func() {
 					mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)

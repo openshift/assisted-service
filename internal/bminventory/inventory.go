@@ -646,7 +646,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			if err != nil {
 				errWrapperLog = log.WithError(err)
 			}
-			errWrapperLog.Errorf(errStr)
+			errWrapperLog.Error(errStr)
 		}
 	}()
 
@@ -1910,8 +1910,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
-		log.WithError(err).Errorf(msg)
-		return errors.Wrapf(err, msg)
+		log.WithError(err).Error(msg)
+		return errors.Wrap(err, msg)
 	}
 
 	installerReleaseImageOverride := ""
@@ -1920,8 +1920,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
 				"for cluster %s with openshift version %s and %s arch", cluster.ID, cluster.OpenshiftVersion, cluster.CPUArchitecture)
-			log.WithError(err).Errorf(msg)
-			return errors.Wrapf(err, msg)
+			log.WithError(err).Error(msg)
+			return errors.Wrap(err, msg)
 		}
 		log.Infof("Overriding %s baremetal installer image image: %s with %s: %s", cluster.CPUArchitecture,
 			*releaseImage.URL, common.DefaultCPUArchitecture, *defaultArchImage.URL)
@@ -2628,7 +2628,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		} else {
 			msg := fmt.Sprintf("Can't update api vip to %s for day1 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
 			log.Error(msg)
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 	}
 
@@ -2644,7 +2644,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		if swag.BoolValue(cluster.Imported) {
 			msg := fmt.Sprintf("cannot update cluster %s, it is not permitted to change disk encryption settings for an imported cluster", cluster.ID)
 			log.Error(msg)
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
 			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
@@ -3805,7 +3805,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
-			log.Warnf(msg)
+			log.Warn(msg)
 			eventgen.SendDiskSpeedSlowerThanSupportedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 		}
@@ -4793,7 +4793,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 				errString = err.Error()
 				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
 			}
-			log.Errorf(errMsg)
+			log.Error(errMsg)
 			eventgen.SendInfraEnvDeregisterFailedEvent(ctx, b.eventsHandler, params.InfraEnvID, errString)
 		}
 	}()
@@ -5120,7 +5120,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
 			swag.StringValue(params.InfraenvCreateParams.Name), id)
 		errMsg = fmt.Sprintf("%s. Error: %s", errMsg, err.Error())
-		log.Errorf(errMsg)
+		log.Error(errMsg)
 		eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, err.Error())
 		return nil, err
 	}
