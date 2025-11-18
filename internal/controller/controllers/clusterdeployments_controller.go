@@ -223,7 +223,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		log.Infof("Found MirrorRegistry referenace on AgentClusterInstall %s %s", clusterInstall.Name, clusterInstall.Namespace)
 		mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, clusterInstall)
 		if err != nil {
-			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, newInputError(err.Error()))
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, newInputError("%s", err.Error()))
 		}
 	}
 

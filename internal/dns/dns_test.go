@@ -95,7 +95,6 @@ var _ = Describe("DNS tests", func() {
 			},
 		}
 		for _, t := range tests {
-			t := t
 			It(fmt.Sprintf("Base domain: %s, cluster name: %s", t.baseDomain, t.clusterName), func() {
 				err := dnsApi.ValidateDNSName(t.clusterName, t.baseDomain)
 				if t.valid {

@@ -364,7 +364,7 @@ func (r *InfraEnvReconciler) getClusterDeploymentFromKube(ctx context.Context, l
 		requeue = true
 		clientError = false
 	}
-	clusterDeploymentRefErr := newKubeAPIError(errors.Wrapf(err, errMsg), clientError)
+	clusterDeploymentRefErr := newKubeAPIError(errors.Wrap(err, errMsg), clientError)
 	return clusterDeployment, requeue, clusterDeploymentRefErr
 }
 
@@ -387,8 +387,8 @@ func (r *InfraEnvReconciler) getClusterFromDB(ctx context.Context, log logrus.Fi
 				clusterDeployment.Spec.ClusterInstallRef.Name, clusterDeployment.Namespace)
 		}
 		msg := fmt.Sprintf("cluster does not exist: %s, %s", clusterDeployment.Name, reason)
-		log.Errorf(msg)
-		err = errors.Errorf(msg)
+		log.Error(msg)
+		err = errors.New(msg)
 		return cluster, requeue, common.NewApiError(http.StatusNotFound, err)
 	}
 	return cluster, requeue, common.NewApiError(http.StatusInternalServerError, err)
