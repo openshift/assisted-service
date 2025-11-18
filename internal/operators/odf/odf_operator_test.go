@@ -69,7 +69,7 @@ var _ = Describe("Odf Operator", func() {
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: models.DriveTypeHDD, ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeSSD, ID: diskID2},
+					{SizeBytes: 40 * conversions.GB, DriveType: models.DriveTypeFC, ID: diskID2},
 				}})}
 		workerWithThreeDisk = &models.Host{ID: getHostID(), Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
@@ -628,7 +628,7 @@ var _ = Describe("Odf Operator", func() {
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in compact mode."},
+					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD or FC disk on each host in compact mode."},
 				},
 			),
 
@@ -640,7 +640,7 @@ var _ = Describe("Odf Operator", func() {
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in compact mode."},
+					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD or FC disk on each host in compact mode."},
 				},
 			),
 
@@ -715,7 +715,7 @@ var _ = Describe("Odf Operator", func() {
 				api.ValidationResult{
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
-					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in compact mode."},
+					Reasons:      []string{"Insufficient disks, ODF requires at least one non-installation SSD or HDD or FC disk on each host in compact mode."},
 				},
 			),
 		)
@@ -827,7 +827,7 @@ var _ = Describe("Odf Operator", func() {
 					Status:       api.Failure,
 					ValidationId: operator.GetHostValidationID(),
 					Reasons: []string{fmt.Sprintf(
-						"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in %s mode.",
+						"Insufficient disks, ODF requires at least one non-installation SSD or HDD or FC disk on each host in %s mode.",
 						strings.ToLower(string(standardMode)),
 					)},
 				},
