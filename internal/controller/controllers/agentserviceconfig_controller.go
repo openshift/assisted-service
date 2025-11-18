@@ -558,10 +558,10 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		GenericFunc: func(e event.GenericEvent) bool { return e.Object.GetNamespace() == r.Namespace },
 	})
 	mirrorRegistryCMHandler := handler.EnqueueRequestsFromMapFunc(
-		func(ctx context.Context, ps client.Object) []reconcile.Request {
+		func(ctx context.Context, cm client.Object) []reconcile.Request {
 			log := logutil.FromContext(ctx, r.Log).WithFields(
 				logrus.Fields{
-					"mirror_registry": ps.GetName(),
+					"mirror_registry": cm.GetName(),
 				})
 			agentServiceConfigs := &aiv1beta1.AgentServiceConfigList{}
 			if err := r.List(ctx, agentServiceConfigs); err != nil {
@@ -570,7 +570,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			}
 			reply := make([]reconcile.Request, 0, len(agentServiceConfigs.Items))
 			for _, agentServiceConfig := range agentServiceConfigs.Items {
-				if agentServiceConfig.Spec.MirrorRegistryRef != nil && agentServiceConfig.Spec.MirrorRegistryRef.Name == ps.GetName() {
+				if agentServiceConfig.Spec.MirrorRegistryRef != nil && agentServiceConfig.Spec.MirrorRegistryRef.Name == cm.GetName() {
 					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
 						Name: agentServiceConfig.Name,
 					}})
