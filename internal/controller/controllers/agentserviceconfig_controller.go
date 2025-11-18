@@ -551,6 +551,36 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&apiregv1.APIService{})
 
+	mirrorRegistryCMPredicates := builder.WithPredicates(predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return e.ObjectNew.GetNamespace() == r.Namespace },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+		GenericFunc: func(e event.GenericEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+	})
+	mirrorRegistryCMHandler := handler.EnqueueRequestsFromMapFunc(
+		func(ctx context.Context, ps client.Object) []reconcile.Request {
+			log := logutil.FromContext(ctx, r.Log).WithFields(
+				logrus.Fields{
+					"mirror_registry": ps.GetName(),
+				})
+			agentServiceConfigs := &aiv1beta1.AgentServiceConfigList{}
+			if err := r.List(ctx, agentServiceConfigs); err != nil {
+				log.Debugf("failed to list AgentServiceConfigs")
+				return []reconcile.Request{}
+			}
+			reply := make([]reconcile.Request, 0, len(agentServiceConfigs.Items))
+			for _, agentServiceConfig := range agentServiceConfigs.Items {
+				if agentServiceConfig.Spec.MirrorRegistryRef != nil && agentServiceConfig.Spec.MirrorRegistryRef.Name == ps.GetName() {
+					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+						Name: agentServiceConfig.Name,
+					}})
+				}
+			}
+			return reply
+		},
+	)
+	b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler, mirrorRegistryCMPredicates)
+
 	if r.IsOpenShift {
 		ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
 			CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
@@ -567,36 +597,6 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		b = b.Owns(&monitoringv1.ServiceMonitor{}).
 			Owns(&routev1.Route{}).
 			Watches(&corev1.ConfigMap{}, ingressCMHandler, ingressCMPredicates)
-
-		mirrorRegistryCMPredicates := builder.WithPredicates(predicate.Funcs{
-			CreateFunc:  func(e event.CreateEvent) bool { return e.Object.GetNamespace() == r.Namespace },
-			UpdateFunc:  func(e event.UpdateEvent) bool { return e.ObjectNew.GetNamespace() == r.Namespace },
-			DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetNamespace() == r.Namespace },
-			GenericFunc: func(e event.GenericEvent) bool { return e.Object.GetNamespace() == r.Namespace },
-		})
-		mirrorRegistryCMHandler := handler.EnqueueRequestsFromMapFunc(
-			func(ctx context.Context, ps client.Object) []reconcile.Request {
-				log := logutil.FromContext(ctx, r.Log).WithFields(
-					logrus.Fields{
-						"mirror_registry": ps.GetName(),
-					})
-				agentServiceConfigs := &aiv1beta1.AgentServiceConfigList{}
-				if err := r.List(ctx, agentServiceConfigs); err != nil {
-					log.Debugf("failed to list AgentServiceConfigs")
-					return []reconcile.Request{}
-				}
-				reply := make([]reconcile.Request, 0, len(agentServiceConfigs.Items))
-				for _, agentServiceConfig := range agentServiceConfigs.Items {
-					if agentServiceConfig.Spec.MirrorRegistryRef != nil && agentServiceConfig.Spec.MirrorRegistryRef.Name == ps.GetName() {
-						reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
-							Name: agentServiceConfig.Name,
-						}})
-					}
-				}
-				return reply
-			},
-		)
-		b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler, mirrorRegistryCMPredicates)
 	} else {
 		b = b.Owns(&netv1.Ingress{}).
 			Owns(&certtypes.Certificate{}).
