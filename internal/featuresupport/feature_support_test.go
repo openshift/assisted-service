@@ -556,7 +556,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	Context("GetSupportList", func() {
 
 		for _, filters := range getPlatformFilters() {
-			filters := filters
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
@@ -969,7 +968,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					&ExternalPlatformFeature{},
 				} {
 					filters := filters
-					feature := feature
 					When("Empty support level - platforms", func() {
 						It(fmt.Sprintf("Feature %s Platform %s ExternalPlatformName %s", feature.GetName(), *filters.PlatformType, swag.StringValue(filters.ExternalPlatformName)), func() {
 							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil}
@@ -984,7 +982,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}
 
 			for _, filters := range getPlatformFilters() {
-				filters := filters
 				When("Empty support level - PlatformManagedNetworkingFeature", func() {
 					It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 						feature := &PlatformManagedNetworkingFeature{}
@@ -1073,9 +1070,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			It("incompatibleFeatures - all features - no openshift version", func() {
 				for featureId, feature := range featuresList {
-					featureId := featureId
-					feature := feature
-
 					incompatibleFeatures := feature.getIncompatibleFeatures("")
 					for _, incompatibleFeatureId := range incompatibleFeatures {
 						incompatibleFeature := featuresList[incompatibleFeatureId]
