@@ -336,7 +336,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 				Requeue = true
 				clientError = false
 			}
-			clusterDeploymentRefErr := newKubeAPIError(errors.Wrapf(err, errMsg), clientError)
+			clusterDeploymentRefErr := newKubeAPIError(errors.Wrap(err, errMsg), clientError)
 
 			// Update that we failed to retrieve the clusterDeployment
 			conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
@@ -366,8 +366,8 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 					msg += fmt.Sprintf("check AgentClusterInstall conditions: name %s in namespace %s",
 						clusterDeployment.Spec.ClusterInstallRef.Name, clusterDeployment.Namespace)
 				}
-				log.Errorf(msg)
-				err = errors.Errorf(msg)
+				log.Error(msg)
+				err = errors.New(msg)
 
 				inventoryErr = common.NewApiError(http.StatusNotFound, err)
 			} else {

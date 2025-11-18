@@ -550,8 +550,6 @@ var _ = Describe("Validations test", func() {
 					expectedMessage:          successMessageDay2,
 				},
 			} {
-				dnsWildcardTestCase := dnsWildcardTestCase
-
 				createTestCluster := func() {
 					var testCluster *common.Cluster
 					if dnsWildcardTestCase.isDay2 {
@@ -905,10 +903,9 @@ var _ = Describe("Validations test", func() {
 							"DNS validation for the %s domain cannot be completed at the moment. This could be due to other validations",
 							domainType.destination)
 					}
-
 					domainType := domainType
 					dnsTestCase := dnsTestCase
-					withBaseDomain := withBaseDomain
+
 					It(fmt.Sprintf("%s - %s - %s", domainType.destination, dnsTestCase.testCaseName, withBaseDomainTestName), func() {
 						resolutions := lo.Ternary(dnsTestCase.testHostResolvedDNSWithCname, common.TestDomainNameResolutionsSuccessWithCname,
 							common.TestDomainNameResolutionsSuccess)
@@ -1819,7 +1816,6 @@ var _ = Describe("Validations test", func() {
 				expectedValidationMessage: successMessage,
 			},
 		} {
-			test := test
 			It(test.name, func() {
 				// Apply test inputs
 				host.InstallationDiskID = test.installationDisk
@@ -1974,7 +1970,6 @@ var _ = Describe("Validations test", func() {
 				expectedValidationMessage: successMessage,
 			},
 		} {
-			test := test
 			It(test.name, func() {
 				// Apply test inputs
 				host.SkipFormattingDisks = test.skipFormattingDisks

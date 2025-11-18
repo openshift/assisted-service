@@ -65,13 +65,13 @@ func getSecret(ctx context.Context, c client.Client, r client.Reader, key types.
 	errorMessage := fmt.Sprintf("failed to get secret %s/%s from cache", key.Namespace, key.Name)
 	if err := c.Get(ctx, key, secret); err != nil {
 		if !k8serrors.IsNotFound(err) {
-			return nil, errors.Wrapf(err, errorMessage)
+			return nil, errors.Wrap(err, errorMessage)
 		}
 		// Secret not in cache; check API directly for unlabelled Secret
 		err = r.Get(ctx, key, secret)
 		if err != nil {
 			errorMessage = fmt.Sprintf("failed to get secret %s/%s from API", key.Namespace, key.Name)
-			return nil, errors.Wrapf(err, errorMessage)
+			return nil, errors.Wrap(err, errorMessage)
 		}
 	}
 	return secret, nil
@@ -90,7 +90,7 @@ func ensureSecretIsLabelled(ctx context.Context, c client.Client, secret *corev1
 		err := c.Update(ctx, secret)
 		if err != nil {
 			errorMessage := fmt.Sprintf("failed to set label %s:%s for secret %s/%s", BackupLabel, BackupLabelValue, key.Namespace, key.Name)
-			return errors.Wrapf(err, errorMessage)
+			return errors.Wrap(err, errorMessage)
 		}
 	}
 
@@ -100,7 +100,7 @@ func ensureSecretIsLabelled(ctx context.Context, c client.Client, secret *corev1
 		err := c.Update(ctx, secret)
 		if err != nil {
 			errorMessage := fmt.Sprintf("failed to set label %s:%s for secret %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
-			return errors.Wrapf(err, errorMessage)
+			return errors.Wrap(err, errorMessage)
 		}
 	}
 	return nil
@@ -126,7 +126,7 @@ func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.
 		err := c.Update(ctx, cm)
 		if err != nil {
 			errorMessage := fmt.Sprintf("failed to set label %s:%s for configmap %s/%s", BackupLabel, BackupLabelValue, key.Namespace, key.Name)
-			return errors.Wrapf(err, errorMessage)
+			return errors.Wrap(err, errorMessage)
 		}
 	}
 
@@ -136,7 +136,7 @@ func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.
 		err := c.Update(ctx, cm)
 		if err != nil {
 			errorMessage := fmt.Sprintf("failed to set label %s:%s for configmap %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
-			return errors.Wrapf(err, errorMessage)
+			return errors.Wrap(err, errorMessage)
 		}
 	}
 	return nil
@@ -399,7 +399,7 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 		Name:      cd.Spec.ClusterInstallRef.Name,
 	}
 	if err = client.Get(ctx, namespacedName, &clusterInstall); err != nil {
-		return false, !k8serrors.IsNotFound(err), errors.Wrapf(err, "Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name)
+		return false, !k8serrors.IsNotFound(err), errors.Wrap(err, fmt.Sprintf("Could not get AgentClusterInstall %s for ClusterDeployment %s", cd.Spec.ClusterInstallRef.Name, cd.Name))
 	}
 	return isUserManagedNetwork(&clusterInstall), false, nil
 }
@@ -415,7 +415,7 @@ func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, age
 		Name:      agent.Spec.ClusterDeploymentName.Name,
 	}
 	if err = client.Get(ctx, namespacedName, &cd); err != nil {
-		return false, errors.Wrapf(err, "Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name)
+		return false, errors.Wrap(err, fmt.Sprintf("Failed to get cluster deployment %s/%s", namespacedName.Namespace, namespacedName.Name))
 	}
 	isNone, _, err = isNonePlatformCluster(ctx, client, &cd)
 	return

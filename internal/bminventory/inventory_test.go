@@ -567,8 +567,6 @@ var _ = Describe("RegisterHost", func() {
 			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign},
 			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster},
 		} {
-			test := test
-
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
@@ -10278,7 +10276,6 @@ var _ = Describe("infraEnvs host", func() {
 					expectedNumOfUpdateCalls: 1,
 				},
 			} {
-				test := test
 				It(test.name, func() {
 					mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
