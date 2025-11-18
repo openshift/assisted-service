@@ -452,7 +452,6 @@ var _ = Describe("Cancel cluster installation", func() {
 	}
 
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("cancel from state %s", t.state), func() {
 			clusterId := strfmt.UUID(uuid.New().String())
 			cluster := common.Cluster{
@@ -522,7 +521,6 @@ var _ = Describe("Reset cluster", func() {
 	}
 
 	for _, t := range tests {
-		t := t
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
