@@ -128,7 +128,6 @@ var _ = Describe("auth handler test", func() {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		It(tt.name, func() {
 			ocmAuth := ocm.NewMockOCMAuthentication(ctrl)
 			if tt.mockOcmAuth != nil {

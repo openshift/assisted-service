@@ -469,7 +469,6 @@ var _ = Describe("agent_upgrade", func() {
 			models.HostStatusPendingForInput,
 			models.HostStatusKnownUnbound}
 		for _, hostStatus := range upgradeAllowdStatuses {
-			hostStatus := hostStatus
 			It(fmt.Sprintf("Creates a single upgrade agent step, hosts stauts: %s", hostStatus), func() {
 				Expect(db.Model(&host).Update("Status", hostStatus).Error).ShouldNot(HaveOccurred())
 				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -497,7 +496,6 @@ var _ = Describe("agent_upgrade", func() {
 			models.HostStatusResetting,
 			models.HostStatusReclaiming}
 		for _, hostStatus := range upgradeAllowdStatuses {
-			hostStatus := hostStatus
 			It(fmt.Sprintf("Don't creates upgrade agent step, hosts stauts: %s", hostStatus), func() {
 				Expect(db.Model(&host).Update("Status", hostStatus).Error).ShouldNot(HaveOccurred())
 				stepsReply, stepsErr = instMng.GetNextSteps(ctx, &host)

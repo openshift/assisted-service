@@ -721,7 +721,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 			if isSaaS {
 				msg = msg + " Try to add new hosts by using the Discovery ISO that can be found in console.redhat.com under your cluster “Add hosts“ tab."
 			}
-			err = errors.Errorf(msg)
+			err = errors.New(msg)
 		} else {
 			err = errors.Errorf("Host can register only in one of the following states: %s", allowedStatuses)
 		}
@@ -1445,10 +1445,10 @@ func (m *Manager) getClusterFilesForFolder(ctx context.Context, c *common.Cluste
 	files, err := objectHandler.ListObjectsByPrefixWithMetadata(ctx, path)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to list files in %s", path)
-		m.log.WithError(err).Errorf(msg)
+		m.log.WithError(err).Error(msg)
 		return nil, common.NewApiError(
 			http.StatusInternalServerError,
-			errors.Errorf(msg))
+			errors.New(msg))
 	}
 	return files, err
 }

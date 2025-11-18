@@ -265,17 +265,17 @@ func validateReleaseImage(releaseImage *models.ReleaseImage) error {
 	// validating fields for those specified in list.
 	missingValueTemplate := "Missing value in ReleaseImage for '%s' field"
 	if swag.StringValue(releaseImage.CPUArchitecture) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "cpu_architecture"))
 	}
 
 	if swag.StringValue(releaseImage.OpenshiftVersion) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "openshift_version"))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "openshift_version"))
 	}
 	if swag.StringValue(releaseImage.URL) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url"))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "url"))
 	}
 	if swag.StringValue(releaseImage.Version) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version"))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "version"))
 	}
 
 	// To validate CPU architecture enum
