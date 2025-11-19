@@ -13017,11 +13017,12 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		mockInstallerCache.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(installercache.NewMockRelease("/tmp/test", mockEvents), nil)
 		mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any(), gomock.Any()).
+		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any()).
 			DoAndReturn(func(command string, args ...string) (string, string, int) {
 				tempDir := args[len(args)-1]
+				mockIgnition := `{"ignition": {"version": "3.2.0"},"storage":{"files":[]}}`
 				err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"),
-					[]byte(`{"ignition": {"version": "3.2.0"}}`), 0600)
+					[]byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 				return "", "", 0
 			})

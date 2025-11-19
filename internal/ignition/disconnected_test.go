@@ -126,26 +126,27 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), clusterVersion, infraEnv.ClusterID).Return(mockRelease, nil)
 
-			expectedIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[{"path":"/etc/hostname","contents":{"source":"data:,test-node"}}]}}`
+			baseIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[{"path":"/etc/hostname","contents":{"source":"data:,test-node"}}]}}`
+			// expectedIgnition includes all default empty fields added by the ignition library when parsing and re-marshaling
+			expectedIgnition := `{"ignition":{"config":{"replace":{"verification":{}}},"proxy":{},"security":{"tls":{}},"timeouts":{},"version":"3.2.0"},"passwd":{},"storage":{"files":[{"group":{},"path":"/etc/hostname","user":{},"contents":{"source":"data:,test-node","verification":{}}},{"group":{},"overwrite":true,"path":"/etc/assisted/interactive-ui","user":{"name":"root"},"contents":{"source":"data:,","verification":{}},"mode":420}]},"systemd":{}}`
 
 			mockExecuter.EXPECT().Execute(
 				mockRelease.Path,
 				"agent",
 				"create",
 				"unconfigured-ignition",
-				"--interactive",
 				"--dir",
 				gomock.Any(),
 			).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
-				err := os.WriteFile(filepath.Join(oveDir, "unconfigured-agent.ign"), []byte(expectedIgnition), 0600)
+				oveDir := args[4]
+				err := os.WriteFile(filepath.Join(oveDir, "unconfigured-agent.ign"), []byte(baseIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 				return "success", "", 0
 			})
 
 			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal(expectedIgnition))
+			Expect(result).To(MatchJSON(expectedIgnition))
 		})
 
 		It("should create correct directory structure", func() {
@@ -166,11 +167,10 @@ var _ = Describe("Disconnected Ignition", func() {
 				"agent",
 				"create",
 				"unconfigured-ignition",
-				"--interactive",
 				"--dir",
 				gomock.Any(),
 			).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+				oveDir := args[4]
 
 				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests"))
 				Expect(err).NotTo(HaveOccurred())
@@ -260,7 +260,7 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), clusterVersion, infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", "error generating ignition", 1)
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", "error generating ignition", 1)
 
 			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).To(HaveOccurred())
@@ -285,11 +285,10 @@ var _ = Describe("Disconnected Ignition", func() {
 				"agent",
 				"create",
 				"unconfigured-ignition",
-				"--interactive",
 				"--dir",
 				gomock.Any(),
 			).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+				oveDir := args[4]
 
 				By("Verifying infraenv.yaml was created with correct content")
 				infraEnvYAML, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
@@ -325,7 +324,8 @@ var _ = Describe("Disconnected Ignition", func() {
 
 				// Create a mock unconfigured-agent.ign file so the generator can read it
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -333,7 +333,8 @@ var _ = Describe("Disconnected Ignition", func() {
 
 			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(Equal("mock-ignition-content"))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/interactive-ui"`))
+			Expect(result).To(ContainSubstring(`"version":"3.2.0"`))
 		})
 
 		It("should include proxy and NTP configuration in InfraEnv manifest", func() {
@@ -355,8 +356,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying InfraEnv manifest includes proxy and NTP")
 				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
@@ -377,7 +378,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				Expect(infraEnvManifest.Spec.AdditionalNTPSources).To(Equal([]string{"ntp1.example.com", "ntp2.example.com"}))
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -401,8 +403,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying NTP sources are trimmed and empty entries removed")
 				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
@@ -420,7 +422,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				}))
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -451,8 +454,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying NMStateConfig manifest was created")
 				nmstateConfigContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
@@ -480,7 +483,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				Expect(infraEnvManifest.Spec.NMStateConfigLabelSelector.MatchLabels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -504,8 +508,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying no NMStateConfig manifest was created")
 				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
@@ -522,7 +526,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				Expect(infraEnvManifest.Spec.NMStateConfigLabelSelector.MatchLabels).To(BeEmpty())
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -546,8 +551,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying agent-config.yaml was created")
 				agentConfigPath := filepath.Join(oveDir, "agent-config.yaml")
@@ -564,7 +569,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				Expect(agentConfig.RendezvousIP).To(Equal("192.168.1.100"))
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0
@@ -588,8 +594,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
 
-			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
-				oveDir := args[5]
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
 
 				By("Verifying agent-config.yaml was NOT created")
 				agentConfigPath := filepath.Join(oveDir, "agent-config.yaml")
@@ -597,7 +603,8 @@ var _ = Describe("Disconnected Ignition", func() {
 				Expect(os.IsNotExist(err)).To(BeTrue(), "agent-config.yaml should not exist when rendezvous IP is not provided")
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
-				err = os.WriteFile(ignitionPath, []byte("mock-ignition-content"), 0600)
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err = os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 
 				return "success", "", 0

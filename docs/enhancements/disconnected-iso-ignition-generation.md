@@ -79,7 +79,7 @@ When `discovery.ign` is requested for an InfraEnv with `disconnected-iso` image 
    - `cluster-manifests/pull-secret.yaml` - User's pull secret for registry access
    - `mirror/registries.conf` - OVE-specific registry mirror configuration
 4. Fetch the appropriate openshift-install binary matching the cluster version
-5. Execute `openshift-install agent create unconfigured-ignition --interactive`
+5. Execute `openshift-install agent create unconfigured-ignition`
 6. Return the ignition content
 
 **Key Constraints:**
