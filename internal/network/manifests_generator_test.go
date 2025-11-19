@@ -579,7 +579,6 @@ var _ = Describe("telemeter manifest", func() {
 			envName: "Other envs",
 		},
 	} {
-		test := test
 		Context(test.envName, func() {
 
 			BeforeEach(func() {
@@ -764,8 +763,6 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 0,
 		},
 	} {
-		t := t
-
 		It(t.name, func() {
 			c.DiskEncryption = t.diskEncryption
 			Expect(db.Create(&c).Error).NotTo(HaveOccurred())

@@ -208,7 +208,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			log.WithError(err).Error(errMsg)
 			// Update that we failed to retrieve the clusterDeployment
 			//TODO MGMT-7844 add mapping CD-ACI to rnot requeue always
-			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, errors.Wrapf(err, errMsg), true)
+			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, errors.Wrap(err, errMsg), true)
 		}
 
 		// Retrieve cluster by ClusterDeploymentName from the database
@@ -1121,8 +1121,8 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.Fi
 		err := json.Unmarshal([]byte(agent.Spec.InstallerArgs), &agentSpecInstallerArgs.Args)
 		if err != nil {
 			msg := fmt.Sprintf("Fail to unmarshal installer args for host %s in infraEnv %s", agent.Name, host.InfraEnvID)
-			log.WithError(err).Errorf(msg)
-			return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, msg))
+			log.WithError(err).Error(msg)
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, msg))
 		}
 	}
 

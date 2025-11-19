@@ -228,7 +228,7 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 	cluster, err := common.GetClusterFromDB(m.db, params.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		err = fmt.Errorf("Object Not Found")
-		m.log.Infof(err.Error())
+		m.log.Info(err.Error())
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
@@ -393,11 +393,11 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 	path := filepath.Join(folderName, fileName)
 	respBody, _, err := m.objectHandler.Download(ctx, GetManifestObjectName(clusterID, path))
 	if err != nil {
-		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed to fetch content from %s for cluster %s", path, clusterID))
+		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrap(err, fmt.Sprintf("Failed to fetch content from %s for cluster %s", path, clusterID)))
 	}
 	content, err := io.ReadAll(respBody)
 	if err != nil {
-		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed fetch response body from %s for cluster %s", path, clusterID))
+		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrap(err, fmt.Sprintf("Failed fetch response body from %s for cluster %s", path, clusterID)))
 	}
 	return content, nil
 }
@@ -547,7 +547,7 @@ func (m *Manifests) uploadManifest(ctx context.Context, content []byte, clusterI
 	objectName := GetManifestObjectName(clusterID, path)
 	metadata := map[string]string{constants.ManifestSourceAttribute: manifestSource}
 	if err := m.objectHandler.UploadWithMetadata(ctx, content, objectName, metadata); err != nil {
-		return m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrapf(err, "Failed to upload mainfest object %s for cluster %s", objectName, clusterID))
+		return m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrap(err, fmt.Sprintf("Failed to upload mainfest object %s for cluster %s", objectName, clusterID)))
 	}
 	return nil
 }
