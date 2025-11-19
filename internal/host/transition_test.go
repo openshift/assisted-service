@@ -725,7 +725,6 @@ var _ = Describe("Cancel host installation", func() {
 	}
 
 	for _, t := range tests {
-		t := t
 		It(fmt.Sprintf("cancel from state %s", t.state), func() {
 			hostId = strfmt.UUID(uuid.New().String())
 			clusterId = strfmt.UUID(uuid.New().String())
@@ -1490,7 +1489,6 @@ var _ = Describe("Refresh Host", func() {
 		passedTime := 90 * time.Minute
 
 		for _, t := range tests {
-			t := t
 			It(fmt.Sprintf("checking timeout from stage %s", t.stage), func() {
 				pr.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
 				hostCheckInAt := strfmt.DateTime(time.Now())
@@ -1824,8 +1822,6 @@ var _ = Describe("Refresh Host", func() {
 
 		for passedTimeKey, passedTimeValue := range timePassedTypes {
 			name := fmt.Sprintf("installing %s", passedTimeKey)
-			passedTimeKey := passedTimeKey
-			passedTimeValue := passedTimeValue
 			It(name, func() {
 				passedTimeKind := passedTimeKey
 				passedTime := passedTimeValue
@@ -5363,7 +5359,6 @@ var _ = Describe("Refresh Host", func() {
 				models.HostStageDone,
 				models.HostStageFailed,
 			} {
-				installationStage := installationStage
 				srcState := srcState
 
 				It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {

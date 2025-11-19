@@ -329,7 +329,6 @@ var _ = Describe("update_role", func() {
 		}
 
 		for _, t := range tests {
-			t := t
 			It(t.name, func() {
 				// Setup
 				if t.day2 {
@@ -1174,7 +1173,6 @@ var _ = Describe("UpdateInventory", func() {
 				expectedId: path,
 			},
 		} {
-			test := test
 			It(test.testName, func() {
 				host = hostutil.GenerateTestHost(hostId, infraEnvId, clusterId, models.HostStatusDiscovering)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
@@ -1238,7 +1236,6 @@ var _ = Describe("UpdateInventory", func() {
 				serviceReasons:   []string{},
 				expectedDecision: false, expectedReasons: []string{"Agent reason"}},
 		} {
-			test := test
 			It(test.testName, func() {
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(append(test.agentReasons, test.serviceReasons...), nil)
 
@@ -1288,7 +1285,6 @@ var _ = Describe("UpdateInventory", func() {
 				hostMAC:     "",
 			},
 		} {
-			test := test
 			It(test.testName, func() {
 
 				hapi.(*Manager).Config.BootstrapHostMAC = test.hostMAC

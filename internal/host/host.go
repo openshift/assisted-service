@@ -1190,7 +1190,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 						hostutil.GetHostnameForMsg(h), v.ID.String())
 				} else if v.Status != previousStatus {
 					msg := fmt.Sprintf("Host %s: validation '%s' status changed from %s to %s", hostutil.GetHostnameForMsg(h), v.ID, previousStatus, v.Status)
-					log.Infof(msg)
+					log.Info(msg)
 					m.eventsHandler.NotifyInternalEvent(ctx, h.ClusterID, h.ID, &h.InfraEnvID, msg)
 				}
 			}
