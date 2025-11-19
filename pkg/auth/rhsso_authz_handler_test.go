@@ -85,7 +85,6 @@ var _ = Describe("Authz email domain", func() {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		It(fmt.Sprintf("test %s", tt.name), func() {
 			payload := &ocm.AuthPayload{}
 			payload.Email = tt.email
@@ -1012,7 +1011,6 @@ var _ = Describe("authz", func() {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		It(fmt.Sprintf("test %s", tt.name), func() {
 			userAuthSupport := len(tt.allowedRoles) > 0
 			By(fmt.Sprintf("%s: with user scope", tt.name), func() {

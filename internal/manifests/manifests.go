@@ -228,7 +228,7 @@ func (m *Manifests) UpdateClusterManifestInternal(ctx context.Context, params op
 	cluster, err := common.GetClusterFromDB(m.db, params.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		err = fmt.Errorf("Object Not Found")
-		m.log.Infof(err.Error())
+		m.log.Info(err.Error())
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
