@@ -839,7 +839,6 @@ var _ = Describe("lease timeout event", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                &id,
@@ -1383,7 +1382,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                    &id,
@@ -1480,7 +1478,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		cluster = getClusterFromDB(id, db)
 		err := clusterApi.AcceptRegistration(&cluster)
 		if expectErr {
-			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate).Error()))
+			Expect(err.Error()).Should(Equal(errors.New(errTemplate).Error()))
 		} else {
 			Expect(err).Should(BeNil())
 		}
