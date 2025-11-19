@@ -86,7 +86,7 @@ func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
 
 func ValidateSSHPublicKey(sshPublicKeys string) error {
 	if regexpSshPublicKey == nil {
-		return fmt.Errorf("Can't parse SSH keys.")
+		return errors.New("Can't parse SSH keys.")
 	}
 
 	for _, sshPublicKey := range strings.Split(sshPublicKeys, "\n") {
@@ -98,7 +98,7 @@ func ValidateSSHPublicKey(sshPublicKeys string) error {
 				"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
 				sshPublicKey)
 		} else if _, _, _, _, err := ssh.ParseAuthorizedKey(keyBytes); err != nil {
-			return errors.Wrapf(err, fmt.Sprintf("Malformed SSH key: %s", sshPublicKey))
+			return errors.Wrapf(err, "Malformed SSH key: %s", sshPublicKey)
 		}
 	}
 
