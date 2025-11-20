@@ -1715,12 +1715,18 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(ctx, newHostRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
+
+		// Reconcile twice here to get all the updates
+		// The first does not update inventory in status because it requeries the agent after updating labels
+		// The second reconcile will update status including inventory because no labels will need to be added
+		for i := 0; i < 2; i++ {
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		}
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -1741,7 +1747,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-productname"]).To(Equal(""))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
 
-		result, err = hr.Reconcile(ctx, newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
