@@ -3,6 +3,11 @@ package vsphere
 // MachinePool stores the configuration for a machine pool installed
 // on vSphere.
 type MachinePool struct {
+	// ResourcePool is the name of the resource pool that will be used for virtual machines.
+	// If it is not present, a default value will be used.
+	// +optional
+	ResourcePool string `json:"resourcePool,omitempty"`
+
 	// NumCPUs is the total number of virtual processor cores to assign a vm.
 	NumCPUs int32 `json:"cpus"`
 
@@ -15,6 +20,10 @@ type MachinePool struct {
 
 	// OSDisk defines the storage for instance.
 	OSDisk `json:"osDisk"`
+
+	// TagIDs is a list of up to 10 tags to add to the VMs that this machine set provisions in vSphere.
+	// +kubebuilder:validation:MaxItems:=10
+	TagIDs []string `json:"tagIDs,omitempty"`
 }
 
 // OSDisk defines the disk for a virtual machine.
