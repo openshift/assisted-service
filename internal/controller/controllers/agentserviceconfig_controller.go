@@ -551,6 +551,31 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&apiregv1.APIService{})
 
+	mirrorRegistryCMPredicates := builder.WithPredicates(predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return e.ObjectNew.GetNamespace() == r.Namespace },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+		GenericFunc: func(e event.GenericEvent) bool { return e.Object.GetNamespace() == r.Namespace },
+	})
+	mirrorRegistryCMHandler := handler.EnqueueRequestsFromMapFunc(
+		func(ctx context.Context, cm client.Object) []reconcile.Request {
+			log := logutil.FromContext(ctx, r.Log).WithFields(
+				logrus.Fields{
+					"mirror_registry": cm.GetName(),
+				})
+			instance := &aiv1beta1.AgentServiceConfig{}
+			if err := r.Get(ctx, types.NamespacedName{Name: AgentServiceConfigName}, instance); err != nil {
+				log.Debugf("failed to get AgentServiceConfig")
+				return []reconcile.Request{}
+			}
+			if instance.Spec.MirrorRegistryRef != nil && instance.Spec.MirrorRegistryRef.Name == cm.GetName() {
+				return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: AgentServiceConfigName}}}
+			}
+			return []reconcile.Request{}
+		},
+	)
+	b = b.Watches(&corev1.ConfigMap{}, mirrorRegistryCMHandler, mirrorRegistryCMPredicates)
+
 	if r.IsOpenShift {
 		ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
 			CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
