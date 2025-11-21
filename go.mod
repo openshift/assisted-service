@@ -75,7 +75,7 @@ require (
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
-	go.uber.org/mock v0.1.0
+	go.uber.org/mock v0.6.0
 	golang.org/x/crypto v0.44.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/sync v0.18.0
