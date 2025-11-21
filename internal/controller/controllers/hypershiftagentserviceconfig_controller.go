@@ -250,7 +250,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileHubComponents(ctx con
 			component.fn = newHypershiftAssistedServiceDeployment
 		}
 
-		log.Infof(fmt.Sprintf("Reconcile hub component: %s", component.name))
+		log.Infof("Reconcile hub component: %s", component.name)
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			log.WithError(err).Errorf("Failed to reconcile hub component %s", component.name)
 			return result, err
@@ -308,7 +308,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) reconcileSpokeComponents(ctx c
 
 	// Reconcile spoke components
 	for _, component := range spokeComponents {
-		log.Infof(fmt.Sprintf("Reconcile spoke component: %s", component.name))
+		log.Infof("Reconcile spoke component: %s", component.name)
 		if result, err := reconcileComponent(ctx, log, asc, component); err != nil {
 			log.WithError(err).Errorf("Failed to reconcile spoke component %s", component.name)
 			return result, err
@@ -350,7 +350,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) updateReconcileCondition(ctx c
 		Message: msg,
 	})
 	if err := asc.Client.Status().Update(ctx, asc.Object); err != nil {
-		return pkgerror.Wrapf(err, "Failed to update status")
+		return pkgerror.Wrap(err, "Failed to update status")
 	}
 	return nil
 }
@@ -362,7 +362,7 @@ func (hr *HypershiftAgentServiceConfigReconciler) getKubeconfigSecret(ctx contex
 	if err != nil {
 		msg := fmt.Sprintf("Failed to get '%s' secret in '%s' namespace (check `kubeconfigSecretRef` property)", secretRef.Name, secretRef.Namespace)
 		log.WithError(err).Error(msg)
-		return nil, pkgerror.Errorf(msg)
+		return nil, pkgerror.New(msg)
 	}
 	_, ok := secret.Data["kubeconfig"]
 	if !ok {

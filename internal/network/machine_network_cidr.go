@@ -398,9 +398,9 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	if hostIp == "" || err != nil {
 		msg := "failed to get ip for single node installation"
 		if err != nil {
-			msg = errors.Wrapf(err, msg).Error()
+			msg = errors.Wrap(err, msg).Error()
 		}
-		return "", errors.Errorf(msg)
+		return "", errors.New(msg)
 	}
 
 	return hostIp, nil

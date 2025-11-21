@@ -1778,7 +1778,7 @@ func (v *validator) noIPCollisionsInNetwork(c *validationContext) (ValidationSta
 	err := json.Unmarshal([]byte(c.cluster.IPCollisions), &ipCollisions)
 	if err != nil {
 		message := "Unable to unmarshall ip collision report for cluster"
-		v.log.Errorf(message)
+		v.log.Error(message)
 		return ValidationError, message
 	}
 
@@ -1788,13 +1788,13 @@ func (v *validator) noIPCollisionsInNetwork(c *validationContext) (ValidationSta
 		hasIP, err := v.inventoryHasIP(c.inventory, ip)
 		if err != nil {
 			message := fmt.Sprintf("inventory of host %s contains bad CIDR: %s", c.host.ID, err.Error())
-			v.log.Errorf(message)
+			v.log.Error(message)
 			return ValidationError, message
 		}
 		if hasIP {
 			hasCollisions = true
 			message := fmt.Sprintf("Collisions detected for host ID %s, IP address: %s Mac addresses: %s", c.host.ID, ip, strings.Join(macs[:], ","))
-			v.log.Errorf(message)
+			v.log.Error(message)
 			collisionValidationText += fmt.Sprintf("%s\n", message)
 		}
 	}

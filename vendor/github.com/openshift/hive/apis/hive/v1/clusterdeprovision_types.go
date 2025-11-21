@@ -3,6 +3,7 @@ package v1
 import (
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/openshift/hive/apis/hive/v1/azure"
+	"github.com/openshift/hive/apis/hive/v1/nutanix"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -14,6 +15,14 @@ type ClusterDeprovisionSpec struct {
 
 	// ClusterID is a globally unique identifier for the cluster to deprovision. It will be used if specified.
 	ClusterID string `json:"clusterID,omitempty"`
+
+	// ClusterName is the friendly name of the cluster. It is used for subdomains,
+	// some resource tagging, and other instances where a friendly name for the
+	// cluster is useful.
+	ClusterName string `json:"clusterName,omitempty"`
+
+	// BaseDomain is the DNS base domain.
+	BaseDomain string `json:"baseDomain,omitempty"`
 
 	// Platform contains platform-specific configuration for a ClusterDeprovision
 	Platform ClusterDeprovisionPlatform `json:"platform,omitempty"`
@@ -42,10 +51,10 @@ type ClusterDeprovisionPlatform struct {
 	OpenStack *OpenStackClusterDeprovision `json:"openstack,omitempty"`
 	// VSphere contains VMWare vSphere-specific deprovision settings
 	VSphere *VSphereClusterDeprovision `json:"vsphere,omitempty"`
-	// Ovirt contains oVirt-specific deprovision settings
-	Ovirt *OvirtClusterDeprovision `json:"ovirt,omitempty"`
 	// IBMCloud contains IBM Cloud specific deprovision settings
 	IBMCloud *IBMClusterDeprovision `json:"ibmcloud,omitempty"`
+	// Nutanix contains Nutanix-specific deprovision settings
+	Nutanix *NutanixClusterDeprovision `json:"nutanix,omitempty"`
 }
 
 // AWSClusterDeprovision contains AWS-specific configuration for a ClusterDeprovision
@@ -61,6 +70,11 @@ type AWSClusterDeprovision struct {
 	// AWS account access for deprovisioning the cluster.
 	// +optional
 	CredentialsAssumeRole *aws.AssumeRole `json:"credentialsAssumeRole,omitempty"`
+
+	// HostedZoneRole is the role to assume when performing operations
+	// on a hosted zone owned by another account.
+	// +optional
+	HostedZoneRole *string `json:"hostedZoneRole,omitempty"`
 }
 
 // AzureClusterDeprovision contains Azure-specific configuration for a ClusterDeprovision
@@ -72,6 +86,14 @@ type AzureClusterDeprovision struct {
 	// If empty, the value is equal to "AzurePublicCloud".
 	// +optional
 	CloudName *azure.CloudEnvironment `json:"cloudName,omitempty"`
+	// ResourceGroupName is the name of the resource group where the cluster was installed.
+	// Required for new deprovisions (schema notwithstanding).
+	// +optional
+	ResourceGroupName *string `json:"resourceGroupName,omitempty"`
+	// BaseDomainResourceGroupName is the name of the resource group where the cluster's DNS records
+	// were created, if different from the default or the custom ResourceGroupName.
+	// +optional
+	BaseDomainResourceGroupName *string `json:"baseDomainResourceGroupName,omitempty"`
 }
 
 // GCPClusterDeprovision contains GCP-specific configuration for a ClusterDeprovision
@@ -80,6 +102,10 @@ type GCPClusterDeprovision struct {
 	Region string `json:"region"`
 	// CredentialsSecretRef is the GCP account credentials to use for deprovisioning the cluster
 	CredentialsSecretRef *corev1.LocalObjectReference `json:"credentialsSecretRef,omitempty"`
+
+	// NetworkProjectID is used for shared VPC setups
+	// +optional
+	NetworkProjectID *string `json:"networkProjectID,omitempty"`
 }
 
 // OpenStackClusterDeprovision contains OpenStack-specific configuration for a ClusterDeprovision
@@ -106,30 +132,31 @@ type VSphereClusterDeprovision struct {
 	VCenter string `json:"vCenter"`
 }
 
-// OvirtClusterDeprovision contains oVirt-specific configuration for a ClusterDeprovision
-type OvirtClusterDeprovision struct {
-	// The oVirt cluster ID
-	ClusterID string `json:"clusterID"`
-	// CredentialsSecretRef is the oVirt account credentials to use for deprovisioning the cluster
-	// secret fields: ovirt_url, ovirt_username, ovirt_password, ovirt_ca_bundle
-	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
-	// CertificatesSecretRef refers to a secret that contains the oVirt CA certificates
-	// necessary for communicating with the oVirt.
-	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
-}
-
 // IBMClusterDeprovision contains IBM Cloud specific configuration for a ClusterDeprovision
 type IBMClusterDeprovision struct {
 	// CredentialsSecretRef is the IBM Cloud credentials to use for deprovisioning the cluster
 	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
-	// AccountID is the IBM Cloud Account ID
-	AccountID string `json:"accountID"`
-	// CISInstanceCRN is the IBM Cloud Internet Services Instance CRN
-	CISInstanceCRN string `json:"cisInstanceCRN"`
 	// Region specifies the IBM Cloud region
 	Region string `json:"region"`
-	// BaseDomain is the DNS base domain
+	// BaseDomain is the DNS base domain.
+	// TODO: Use the non-platform-specific BaseDomain field.
 	BaseDomain string `json:"baseDomain"`
+}
+
+// NutanixClusterDeprovision contains Nutanix-specific configuration for a ClusterDeprovision
+type NutanixClusterDeprovision struct {
+	// PrismCentral is the endpoint (address and port) to connect to the Prism Central.
+	// This serves as the default Prism-Central.
+	PrismCentral nutanix.PrismEndpoint `json:"prismCentral"`
+
+	// CredentialsSecretRef refers to a secret that contains the Nutanix account access
+	// credentials.
+	CredentialsSecretRef corev1.LocalObjectReference `json:"credentialsSecretRef"`
+
+	// CertificatesSecretRef refers to a secret that contains the Nutanix CA certificates
+	// necessary for communicating with the Prism Central.
+	// +optional
+	CertificatesSecretRef corev1.LocalObjectReference `json:"certificatesSecretRef"`
 }
 
 // +genclient
@@ -173,6 +200,16 @@ type ClusterDeprovisionCondition struct {
 
 // ClusterDeprovisionConditionType is a valid value for ClusterDeprovisionCondition.Type
 type ClusterDeprovisionConditionType string
+
+// ConditionType satisfies the conditions.Condition interface
+func (c ClusterDeprovisionCondition) ConditionType() ConditionType {
+	return c.Type
+}
+
+// String satisfies the conditions.ConditionType interface
+func (t ClusterDeprovisionConditionType) String() string {
+	return string(t)
+}
 
 const (
 	// AuthenticationFailureClusterDeprovisionCondition is true when credentials cannot be used because of authentication failure

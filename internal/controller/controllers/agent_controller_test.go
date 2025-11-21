@@ -1516,7 +1516,7 @@ var _ = Describe("agent reconcile", func() {
 		By("Reconcile with ignition config, UpdateHostIgnitionInternal returns error")
 		ignitionConfigOverrides := `{"ignition": "version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().V2UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, errors.New(errString)).Times(1)
 		host.Spec.IgnitionConfigOverrides = ignitionConfigOverrides
 		Expect(c.Create(ctx, host)).To(BeNil())
 
@@ -1651,7 +1651,7 @@ var _ = Describe("agent reconcile", func() {
 		By("Reconcile with installer args, UpdateHostInstallerArgsInternal returns error")
 		installerArgs = `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().V2UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
+		mockInstallerInternal.EXPECT().V2UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.New(errString)).Times(1)
 		host.Spec.InstallerArgs = installerArgs
 		Expect(c.Update(ctx, host)).To(BeNil())
 		result, err = hr.Reconcile(ctx, newHostRequest(host))
@@ -1715,12 +1715,18 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).AnyTimes()
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(ctx, newHostRequest(host))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
+
+		// Reconcile twice here to get all the updates
+		// The first does not update inventory in status because it requeries the agent after updating labels
+		// The second reconcile will update status including inventory because no labels will need to be added
+		for i := 0; i < 2; i++ {
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		}
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -1741,7 +1747,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-productname"]).To(Equal(""))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"host-isvirtual"]).To(Equal("true"))
 
-		result, err = hr.Reconcile(ctx, newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})

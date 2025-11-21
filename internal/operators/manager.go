@@ -495,7 +495,7 @@ func EnsureLVMAndCNVDoNotClash(cluster *common.Cluster, openshiftVersion string,
 	// before 4.15 multi node LVM not supported
 	if !common.IsSingleNodeCluster(cluster) {
 		message := fmt.Sprintf("Logical Volume Manager is only supported for highly available openshift with version %s or above", lvm.LvmMinMultiNodeSupportVersion)
-		return errors.Errorf(message)
+		return errors.New(message)
 	}
 
 	return nil

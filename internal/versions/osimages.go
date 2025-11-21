@@ -42,20 +42,20 @@ func NewOSImages(images models.OsImages) (OSImages, error) {
 func validateOSImage(osImage *models.OsImage) error {
 	missingValueTemplate := "Missing value in OSImage for '%s' field (openshift_version: %s)"
 	if swag.StringValue(osImage.OpenshiftVersion) == "" {
-		return errors.Errorf("Missing openshift_version in OsImage: %v", osImage)
+		return errors.New(fmt.Sprintf("Missing openshift_version in OsImage: %v", osImage))
 	}
 
 	if swag.StringValue(osImage.URL) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "url", *osImage.OpenshiftVersion))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "url", *osImage.OpenshiftVersion))
 	}
 	if swag.StringValue(osImage.Version) == "" {
-		return errors.Errorf(fmt.Sprintf(missingValueTemplate, "version", *osImage.OpenshiftVersion))
+		return errors.New(fmt.Sprintf(missingValueTemplate, "version", *osImage.OpenshiftVersion))
 	}
 	if osImage.CPUArchitecture == nil {
 		return errors.Errorf("osImage version '%s' CPU architecture is missing", *osImage.OpenshiftVersion)
 	}
 	if err := osImage.Validate(strfmt.Default); err != nil {
-		return errors.Wrapf(err, "osImage version '%s' CPU architecture is not valid", *osImage.OpenshiftVersion)
+		return errors.Wrap(err, fmt.Sprintf("osImage version '%s' CPU architecture is not valid", *osImage.OpenshiftVersion))
 	}
 
 	return nil
