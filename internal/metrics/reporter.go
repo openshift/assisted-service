@@ -13,11 +13,31 @@ import (
 	goMiddleware "github.com/slok/go-http-metrics/middleware"
 )
 
+// sanitizeRequest creates a copy of the request with sensitive headers removed
+func sanitizeRequest(r *http.Request) *http.Request {
+	// List of sensitive headers to remove
+	sensitiveHeaders := []string{
+		"Authorization",
+		"X-Secret-Key",
+		"Image-Token",
+		"Watcher-Authorization",
+		"Cookie",
+	}
+
+	rCopy := r.Clone(r.Context())
+	// Remove sensitive headers
+	for _, header := range sensitiveHeaders {
+		rCopy.Header.Del(header)
+	}
+
+	return rCopy
+}
+
 // Handler returns an measuring standard http.Handler. it should be added as an innerMiddleware because
 // it relies on the MatchedRoute to provide more information about the route
 func Handler(log logrus.FieldLogger, m goMiddleware.Middleware, h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Debugf("Request: %v", *r)
+		log.Debugf("Request: %v", *sanitizeRequest(r))
 		wi := &responseWriterInterceptor{
 			statusCode:     http.StatusOK,
 			ResponseWriter: w,
