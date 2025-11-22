@@ -27,44 +27,47 @@ const (
 	statusInfoPreparationTimeoutDiskSpeed         = "the installation disk speed check did not complete within the timeout."
 	statusInfoPreparationTimeoutImageAvailability = "container availability was not determined within the timeout."
 
-	statusInfoKnown                                                = "Host is ready to be installed"
-	statusInfoInstalling                                           = "Installation is in progress"
-	statusInfoResettingPendingUserAction                           = "Host requires booting into the discovery image to complete resetting the installation"
-	statusInfoPreparingForInstallation                             = "Host is preparing for installation"
-	statusInfoHostPreparationSuccessful                            = "Host finished successfully to prepare for installation"
-	statusInfoHostPreparationFailure                               = "Host failed to prepare for installation due to following failing validation(s): $FAILING_VALIDATIONS"
-	statusInfoAbortingDueClusterErrors                             = "Host is part of a cluster that failed to install"
-	statusInfoInstallationTimedOut                                 = "Host failed to install due to timeout while starting installation"
-	statusInfoConnectionTimedOutInstalling                         = "Host failed to install due to timeout while connecting to host during the installation phase."
-	statusInfoConnectionSoftTimedOutInstalling                     = "Host is failing to perform periodic health check during the installation phase."
-	statusInfoConnectionSoftTimedOutInstallingReconnected          = "Host recovered from failure to perform periodic health check during the installation phase."
-	statusInfoConnectionTimedOutPreparing                          = "Host failed to install due to timeout while connecting to host during the preparation phase."
-	statusInfoInstallationInProgressTimedOut                       = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
-	statusInfoInstallationInProgressSoftTimedOut                   = "Host installation stage $STAGE is taking longer than expected $MAX_TIME"
-	statusInfoInstallationInProgressWritingImageToDiskTimedOut     = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
-	statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut = "Host installation stage $STAGE is not progressing sufficiently in the last $MAX_TIME. To troubleshoot use kubeconfig or connect to the node using ssh"
-	statusInfoHostReadyToBeBound                                   = "Host is ready to be bound to a cluster"
-	statusInfoBinding                                              = "Host is waiting to be bound to the cluster"
-	statusRebootTimeout                                            = "Host timed out when pulling the configuration files. Verify in the host console that the host boots from the OpenShift installation disk $INSTALLATION_DISK and has network access to the cluster API. The installation will resume after the host successfully boots and can access the cluster API"
-	statusInfoUnbinding                                            = "Host is waiting to be unbound from the cluster"
-	statusInfoRebootingDay2                                        = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
-	statusInfoRebootingForReclaim                                  = "Host is rebooting into the discovery image"
+	statusInfoKnown                                                       = "Host is ready to be installed"
+	statusInfoInstalling                                                  = "Installation is in progress"
+	statusInfoResettingPendingUserAction                                  = "Host requires booting into the discovery image to complete resetting the installation"
+	statusInfoPreparingForInstallation                                    = "Host is preparing for installation"
+	statusInfoHostPreparationSuccessful                                   = "Host finished successfully to prepare for installation"
+	statusInfoHostPreparationFailure                                      = "Host failed to prepare for installation due to following failing validation(s): $FAILING_VALIDATIONS"
+	statusInfoAbortingDueClusterErrors                                    = "Host is part of a cluster that failed to install"
+	statusInfoInstallationTimedOut                                        = "Host failed to install due to timeout while starting installation"
+	statusInfoConnectionTimedOutInstalling                                = "Host failed to install due to timeout while connecting to host during the installation phase."
+	statusInfoConnectionSoftTimedOutInstalling                            = "Host is failing to perform periodic health check during the installation phase."
+	statusInfoConnectionSoftTimedOutInstallingReconnected                 = "Host recovered from failure to perform periodic health check during the installation phase."
+	statusInfoConnectionTimedOutPreparing                                 = "Host failed to install due to timeout while connecting to host during the preparation phase."
+	statusInfoInstallationInProgressTimedOut                              = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
+	statusInfoInstallationInProgressSoftTimedOut                          = "Host installation stage $STAGE is taking longer than expected $MAX_TIME"
+	statusInfoInstallationInProgressWritingImageToDiskTimedOut            = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
+	statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut        = "Host installation stage $STAGE is not progressing sufficiently in the last $MAX_TIME. To troubleshoot use kubeconfig or connect to the node using ssh"
+	statusInfoInstallationInProgressCopyingRegistryDataToDiskTimedOut     = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
+	statusInfoInstallationInProgressCopyingRegistryDataToDiskSoftTimedOut = "Host installation stage $STAGE is not progressing sufficiently in the last $MAX_TIME. To troubleshoot use kubeconfig or connect to the node using ssh"
+	statusInfoHostReadyToBeBound                                          = "Host is ready to be bound to a cluster"
+	statusInfoBinding                                                     = "Host is waiting to be bound to the cluster"
+	statusRebootTimeout                                                   = "Host timed out when pulling the configuration files. Verify in the host console that the host boots from the OpenShift installation disk $INSTALLATION_DISK and has network access to the cluster API. The installation will resume after the host successfully boots and can access the cluster API"
+	statusInfoUnbinding                                                   = "Host is waiting to be unbound from the cluster"
+	statusInfoRebootingDay2                                               = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
+	statusInfoRebootingForReclaim                                         = "Host is rebooting into the discovery image"
 )
 
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
-	models.HostStageWaitingForBootkube, models.HostStageWaitingForController,
-	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
-	models.HostStageDone,
+	models.HostStageWritingImageToDisk, models.HostStageCopyingRegistryDataToDisk,
+	models.HostStageWaitingForControlPlane, models.HostStageWaitingForBootkube,
+	models.HostStageWaitingForController, models.HostStageRebooting,
+	models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone,
 }
 
 // MasterStages is used for both standard control plane nodes (master nodes) and arbiter nodes.
 // Arbiter nodes are used to achieve quorum for the etcd, so they follow the same installation flow as master nodes.
 var MasterStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
-	models.HostStageWritingImageToDisk, models.HostStageRebooting,
-	models.HostStageConfiguring, models.HostStageJoined, models.HostStageDone,
+	models.HostStageWritingImageToDisk, models.HostStageCopyingRegistryDataToDisk,
+	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
+	models.HostStageDone,
 }
 var WorkerStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
@@ -75,7 +78,8 @@ var WorkerStages = [...]models.HostStage{
 var SnoStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-	models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
+	models.HostStageCopyingRegistryDataToDisk, models.HostStageRebooting,
+	models.HostStageJoined, models.HostStageDone,
 }
 
 var HostInstallingStatuses = []string{
@@ -108,6 +112,7 @@ var allStages = []models.HostStage{
 	models.HostStageWaitingForController,
 	models.HostStageWaitingForIgnition,
 	models.HostStageWritingImageToDisk,
+	models.HostStageCopyingRegistryDataToDisk,
 }
 
 var hostStatusesBeforeInstallation = [...]string{
