@@ -789,6 +789,9 @@ func IsClusterTopologyHighlyAvailableArbiter(cluster *Cluster) bool {
 }
 
 func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
+	if cluster == nil {
+		return false
+	}
 	if cluster.ControlPlaneCount != AllowedNumberOfMasterHostsInTwoNodesWithFencing {
 		return false
 	}
@@ -828,6 +831,32 @@ func ValidateClusterSupportsArbiterHosts(cluster *Cluster) error {
 	platform := cluster.Platform
 	if platform == nil || platform.Type == nil || *platform.Type != models.PlatformTypeBaremetal {
 		return errors.New("cluster's platform must be baremetal")
+	}
+
+	return nil
+}
+
+// ValidateClusterSupportsFencingCredentials checks if the given cluster is allowed to have hosts with fencing credentials.
+// A day1 cluster can have hosts with fencing credentials if:
+// 1. Its OCP version is at least MinimumVersionForTwoNodesWithFencing
+// 2. Its platform is baremetal or none
+// Fencing credentials have no effect in day2 clusters, but we don't want to throw an error on it.
+func ValidateClusterSupportsFencingCredentials(cluster *Cluster) error {
+	if cluster == nil || IsDay2Cluster(cluster) {
+		return nil
+	}
+
+	fencingClustersSupported, err := BaseVersionGreaterOrEqual(MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
+	if err != nil {
+		return err
+	}
+	if !fencingClustersSupported {
+		return fmt.Errorf("cluster's openshift version must be at least %s", MinimumVersionForTwoNodesWithFencing)
+	}
+
+	platform := cluster.Platform
+	if platform == nil || platform.Type == nil || (*platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone) {
+		return errors.New("cluster's platform must be baremetal or none")
 	}
 
 	return nil

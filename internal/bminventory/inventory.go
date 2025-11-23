@@ -6089,13 +6089,10 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		}
 	}
 
-	if !common.IsDay2Cluster(cluster) {
-		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if fencingErr != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, fencingErr)
-		}
-		if host.FencingCredentials != "" && !fencingClustersSupported {
-			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
+	if host.FencingCredentials != "" {
+		err = common.ValidateClusterSupportsFencingCredentials(cluster)
+		if err != nil {
+			err = errors.Wrapf(err, "Host %s has fencing credentials", host.ID)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -6855,16 +6852,11 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 		log.Error(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if cluster != nil {
-		fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if err != nil {
-			return err
-		}
-		if !fencingClustersSupported {
-			err = errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+	err := common.ValidateClusterSupportsFencingCredentials(cluster)
+	if err != nil {
+		err = errors.Wrapf(err, "Cannot set fencing credentials to host %s in infra-env %s", host.ID, host.InfraEnvID)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	fencingCredentials, err := json.Marshal(fencingCredentialsParams)
