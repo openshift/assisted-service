@@ -24,22 +24,22 @@ function install_lso() {
 
 
     OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
-    if [[ ${OC_VERSION_MAJOR_MINOR} == "4.20" && "${DISCONNECTED}" != true ]]; then
-        # LSO has not been published to the 4.20 redhat-operators catalog, so
-        # it cannot be installed on OpenShift 4.20. Until this is resolved,
-        # we explicitly install the 4.19 catalog as redhat-operators-v4-19
-        # and then subscribe to the LSO version from the 4.19 rather than the 4.20 catalog.
-        # TODO: Bump the versions once LSO is published to the 4.20 catalog.
-        catalog_source_name="redhat-operators-v4-19"
+    if [[ ${OC_VERSION_MAJOR_MINOR} == "4.21" && "${DISCONNECTED}" != true ]]; then
+        # LSO has not been published to the 4.21 redhat-operators catalog, so
+        # it cannot be installed on OpenShift 4.21. Until this is resolved,
+        # we explicitly install the 4.20 catalog as redhat-operators-v4-20
+        # and then subscribe to the LSO version from the 4.20 rather than the 4.21 catalog.
+        # TODO: Bump the versions once LSO is published to the 4.21 catalog.
+        catalog_source_name="redhat-operators-v4-20"
         oc create -f - <<EOCR
         kind: CatalogSource
         apiVersion: operators.coreos.com/v1alpha1
         metadata:
-          name: redhat-operators-v4-19
+          name: redhat-operators-v4-20
           namespace: openshift-marketplace
         spec:
-          displayName: Red Hat Operators v4.19
-          image: registry.redhat.io/redhat/redhat-operator-index:v4.19
+          displayName: Red Hat Operators v4.20
+          image: registry.redhat.io/redhat/redhat-operator-index:v4.20
           priority: -100
           publisher: Red Hat
           sourceType: grpc
