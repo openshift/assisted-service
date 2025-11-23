@@ -853,24 +853,41 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 			Count:          int(inventory.CPU.Count),
 		},
 		Hostname: host.RequestedHostname,
-		NIC:      make([]bmh_v1alpha1.NIC, len(inventory.Interfaces)),
+		NIC:      []bmh_v1alpha1.NIC{},
 		Storage:  make([]bmh_v1alpha1.Storage, len(inventory.Disks)),
 	}
 	if inventory.Memory != nil {
 		hw.RAMMebibytes = int(inventory.Memory.PhysicalBytes / 1024 / 1024)
 	}
-	for i, iface := range inventory.Interfaces {
-		hw.NIC[i] = bmh_v1alpha1.NIC{
+
+	for _, iface := range inventory.Interfaces {
+		baseNIC := bmh_v1alpha1.NIC{
 			Name:      iface.Name,
 			Model:     iface.Product,
 			MAC:       iface.MacAddress,
 			SpeedGbps: int(iface.SpeedMbps / 1024),
 		}
+
+		// Helper function to create and append NIC for addresses
+		addNICForAddresses := func(addresses []string) {
+			if len(addresses) > 0 {
+				nic := baseNIC
+				nic.IP = g.selectInterfaceIPInsideMachineCIDR(addresses)
+				hw.NIC = append(hw.NIC, nic)
+			}
+		}
 		switch {
+		case g.cluster.PrimaryIPStack != nil:
+			// For dual-stack, we need to create NICs for each IP family
+			// Reference: https://github.com/metal3-io/baremetal-operator/pull/758
+			addNICForAddresses(iface.IPV4Addresses)
+			addNICForAddresses(iface.IPV6Addresses)
 		case len(iface.IPV4Addresses) > 0:
-			hw.NIC[i].IP = g.selectInterfaceIPInsideMachineCIDR(iface.IPV4Addresses)
+			// Single stack ipv4
+			addNICForAddresses(iface.IPV4Addresses)
 		case len(iface.IPV6Addresses) > 0:
-			hw.NIC[i].IP = g.selectInterfaceIPInsideMachineCIDR(iface.IPV6Addresses)
+			// Single stack ipv6
+			addNICForAddresses(iface.IPV6Addresses)
 		}
 	}
 	for i, disk := range inventory.Disks {

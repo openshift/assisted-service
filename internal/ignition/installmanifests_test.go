@@ -2055,6 +2055,252 @@ var _ = Describe("Bare metal host generation", func() {
 			"192.168.126.11/24",
 		),
 	)
+
+	DescribeTable("Dual-stack BMH NIC creation",
+		func(primaryIPStack common.PrimaryIPStack, interfaces []struct {
+			name          string
+			mac           string
+			ipv4Addresses []string
+			ipv6Addresses []string
+		}, machineNetworks []*models.MachineNetwork, expectedNICMap map[string]string) {
+			// Create the generator:
+			cluster := testCluster()
+			cluster.PrimaryIPStack = &primaryIPStack
+			cluster.MachineNetworks = machineNetworks
+			generator := NewGenerator(
+				workDir,
+				cluster,
+				"",
+				"",
+				"",
+				"",
+				nil,
+				logrus.New(),
+				nil,
+				"",
+				"",
+				manifestsAPI,
+				eventsHandler,
+				installerCache,
+			).(*installerGenerator)
+
+			// Create inventory with interfaces
+			var inventoryObject models.Inventory
+			err := json.Unmarshal([]byte(hostInventory), &inventoryObject)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Build interfaces from test data
+			testInterfaces := make([]*models.Interface, len(interfaces))
+			for i, iface := range interfaces {
+				testInterfaces[i] = &models.Interface{
+					Name:          iface.name,
+					MacAddress:    iface.mac,
+					IPV4Addresses: iface.ipv4Addresses,
+					IPV6Addresses: iface.ipv6Addresses,
+					Product:       "0x0001",
+					SpeedMbps:     -1,
+				}
+			}
+			inventoryObject.Interfaces = testInterfaces
+			inventoryJSON, err := json.Marshal(inventoryObject)
+			Expect(err).ToNot(HaveOccurred())
+			host := &models.Host{
+				Inventory: string(inventoryJSON),
+			}
+
+			// Generate the bare metal hosts:
+			inputObject := &bmh_v1alpha1.BareMetalHost{}
+			outputFile := &config_32_types.File{}
+			err = generator.modifyBMHFile(outputFile, inputObject, host)
+			Expect(err).ToNot(HaveOccurred())
+			outputObject, err := fileToBMH(outputFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Extract the content of the status annotation:
+			Expect(outputObject.Annotations).To(HaveKey(bmh_v1alpha1.StatusAnnotation))
+			statusAnnotation := outputObject.Annotations[bmh_v1alpha1.StatusAnnotation]
+			var outputStatus bmh_v1alpha1.BareMetalHostStatus
+			err = json.Unmarshal([]byte(statusAnnotation), &outputStatus)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Check that the NICs are created correctly (order doesn't matter, so we just verify all expected NICs are present)
+			Expect(outputStatus.HardwareDetails).ToNot(BeNil())
+			Expect(outputStatus.HardwareDetails.NIC).To(HaveLen(len(expectedNICMap)))
+
+			// Verify all expected NICs are present
+			for _, actualNIC := range outputStatus.HardwareDetails.NIC {
+				expectedName, exists := expectedNICMap[actualNIC.IP]
+				Expect(exists).To(BeTrue(), "Unexpected NIC IP: %s", actualNIC.IP)
+				Expect(actualNIC.Name).To(Equal(expectedName), "NIC IP %s has incorrect name", actualNIC.IP)
+			}
+		},
+		Entry(
+			"Dual-stack IPv6 primary - single interface with both IPs in machine networks",
+			common.PrimaryIPStackV6,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.126.11/24"},
+					ipv6Addresses: []string{"2001:db8::1/64"},
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "2001:db8::/64"},
+				{Cidr: "192.168.126.0/24"},
+			},
+			map[string]string{
+				"2001:db8::1":    "eth0",
+				"192.168.126.11": "eth0",
+			},
+		),
+		Entry(
+			"Dual-stack IPv4 primary - single interface with both IPs in machine networks",
+			common.PrimaryIPStackV4,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.126.11/24"},
+					ipv6Addresses: []string{"2001:db8::1/64"},
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "192.168.126.0/24"},
+				{Cidr: "2001:db8::/64"},
+			},
+			map[string]string{
+				"192.168.126.11": "eth0",
+				"2001:db8::1":    "eth0",
+			},
+		),
+		Entry(
+			"Dual-stack IPv6 primary - multiple interfaces, some in machine networks",
+			common.PrimaryIPStackV6,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.126.11/24"},
+					ipv6Addresses: []string{"2001:db8::1/64"},
+				},
+				{
+					name:          "eth1",
+					mac:           "52:54:00:ca:7b:16",
+					ipv4Addresses: []string{"10.0.0.1/24"},    // Not in machine network
+					ipv6Addresses: []string{"2001:db9::1/64"}, // Not in machine network
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "2001:db8::/64"},
+				{Cidr: "192.168.126.0/24"},
+			},
+			map[string]string{
+				"2001:db8::1":    "eth0", // IPv6 from eth0 (in machine network)
+				"192.168.126.11": "eth0", // IPv4 from eth0 (in machine network)
+				"2001:db9::1":    "eth1", // IPv6 from eth1 (not in machine network, fallback)
+				"10.0.0.1":       "eth1", // IPv4 from eth1 (not in machine network, fallback)
+			},
+		),
+		Entry(
+			"Dual-stack IPv4 primary - multiple interfaces, some in machine networks",
+			common.PrimaryIPStackV4,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.126.11/24"},
+					ipv6Addresses: []string{"2001:db8::1/64"},
+				},
+				{
+					name:          "eth1",
+					mac:           "52:54:00:ca:7b:16",
+					ipv4Addresses: []string{"10.0.0.1/24"},    // Not in machine network
+					ipv6Addresses: []string{"2001:db9::1/64"}, // Not in machine network
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "192.168.126.0/24"},
+				{Cidr: "2001:db8::/64"},
+			},
+			map[string]string{
+				"192.168.126.11": "eth0", // IPv4 from eth0 (in machine network)
+				"2001:db8::1":    "eth0", // IPv6 from eth0 (in machine network)
+				"10.0.0.1":       "eth1", // IPv4 from eth1 (not in machine network, fallback)
+				"2001:db9::1":    "eth1", // IPv6 from eth1 (not in machine network, fallback)
+			},
+		),
+		Entry(
+			"Dual-stack IPv4 primary - IPv6 first address doesn't match, second does",
+			common.PrimaryIPStackV4,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.126.11/24"},
+					ipv6Addresses: []string{"2001:db9::1/64", "2001:db8::1/64"}, // First doesn't match, second does
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "192.168.126.0/24"},
+				{Cidr: "2001:db8::/64"},
+			},
+			map[string]string{
+				"192.168.126.11": "eth0", // IPv4 (found second address)
+				"2001:db8::1":    "eth0", // IPv6 (found second address)
+			},
+		),
+		Entry(
+			"Dual-stack IPv4 primary - IPv4 first address doesn't match, second does",
+			common.PrimaryIPStackV4,
+			[]struct {
+				name          string
+				mac           string
+				ipv4Addresses []string
+				ipv6Addresses []string
+			}{
+				{
+					name:          "eth0",
+					mac:           "52:54:00:42:1e:8d",
+					ipv4Addresses: []string{"192.168.140.133/24", "192.168.126.11/24"}, // First doesn't match, second does
+					ipv6Addresses: []string{"2001:db8::1/64"},
+				},
+			},
+			[]*models.MachineNetwork{
+				{Cidr: "192.168.126.0/24"},
+				{Cidr: "2001:db8::/64"},
+			},
+			map[string]string{
+				"192.168.126.11": "eth0", // IPv4 (found second address)
+				"2001:db8::1":    "eth0", // IPv6
+			},
+		),
+	)
 })
 
 var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
