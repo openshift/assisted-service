@@ -792,6 +792,9 @@ func IsClusterTopologyHighlyAvailableArbiter(cluster *Cluster) bool {
 }
 
 func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
+	if cluster == nil {
+		return false
+	}
 	if cluster.ControlPlaneCount != AllowedNumberOfMasterHostsInTwoNodesWithFencing {
 		return false
 	}
