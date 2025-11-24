@@ -6233,6 +6233,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	fileName := params.FileName
 	respBody, contentLength, err := b.V2DownloadClusterCredentialsInternal(ctx, params)
 
@@ -6253,6 +6254,15 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 				b.log.WithError(agentErr).Errorf("failed to generate agent installer kubeconfig")
 				return common.GenerateErrorResponder(agentErr)
 			}
+
+			// Wait for S3 eventual consistency before attempting download
+			// After generation, the file might not be immediately visible due to S3 consistency delays
+			objectName := fmt.Sprintf("%s/%s", params.ClusterID, fileName)
+			if waitErr := b.objectHandler.WaitForObject(ctx, objectName); waitErr != nil {
+				log.WithError(waitErr).Errorf("file %s not available after generation for cluster %s", fileName, params.ClusterID)
+				return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, waitErr))
+			}
+
 			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 		}
 	}
@@ -6874,7 +6884,6 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfigWithLock(ctx contex
 		if err != nil {
 			return err
 		}
-		b.orderClusterNetworks(cluster)
 
 		// Double-check: File might have been created by another request while we were waiting for the lock
 		objectName := fmt.Sprintf("%s/%s", cluster.ID, fileName)
