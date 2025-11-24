@@ -58,6 +58,8 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDNUMARESOURCES:          (&NumaResourcesFeature{}).New(),
 	models.FeatureSupportLevelIDOADP:                   (&OadpFeature{}).New(),
 	models.FeatureSupportLevelIDMETALLB:                (&MetalLBFeature{}).New(),
+	models.FeatureSupportLevelIDLOKI:                   (&LokiFeature{}).New(),
+	models.FeatureSupportLevelIDOPENSHIFTLOGGING:       (&OpenShiftLoggingFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),

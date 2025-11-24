@@ -6665,6 +6665,8 @@ var allValidationIDs = []validationID{
 	AreNUMAResourcesRequirementsSatisfied,
 	AreOADPRequirementsSatisfied,
 	AreMetalLBRequirementsSatisfied,
+	AreLokiRequirementsSatisfied,
+	AreOpenShiftLoggingRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{
