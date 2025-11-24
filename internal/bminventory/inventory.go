@@ -6519,7 +6519,8 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 
 		if err != nil && common.IsNotFoundError(err) && b.installerInvoker == "agent-installer" {
 			// For ABI, kubeconfig must be generated here for retrieval prior to cluster installation, only if file not found.
-			if agentErr := b.generateAgentInstallerKubeconfig(ctx, params); agentErr != nil {
+			// Use a transaction with row-level locking to prevent concurrent generation attempts
+			if agentErr := b.generateAgentInstallerKubeconfigWithLock(ctx, params, fileName); agentErr != nil {
 				b.log.WithError(agentErr).Errorf("failed to generate agent installer kubeconfig")
 				return common.GenerateErrorResponder(agentErr)
 			}
@@ -7159,26 +7160,49 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
 }
 
-func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) error {
-	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
-	if err != nil {
-		return err
-	}
-	b.orderClusterNetworks(cluster)
+// generateAgentInstallerKubeconfigWithLock generates kubeconfig with database locking to prevent race conditions
+func (b *bareMetalInventory) generateAgentInstallerKubeconfigWithLock(ctx context.Context, params installer.V2DownloadClusterCredentialsParams, fileName string) error {
+	log := logutil.FromContext(ctx, b.log)
 
-	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
-	if err != nil {
-		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
-		return err
-	}
+	// Use a database transaction with SELECT FOR UPDATE to ensure only one request generates credentials
+	err := b.db.Transaction(func(tx *gorm.DB) error {
+		// Lock the cluster row to prevent concurrent generation attempts
+		cluster, err := common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading)
+		if err != nil {
+			return err
+		}
+		b.orderClusterNetworks(cluster)
 
-	if err = b.generateClusterInstallConfig(ctx, *cluster, clusterInfraenvs); err != nil {
-		b.log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
-		return err
-	}
-	b.log.Infof("ignition generated for cluster for agent installer kubeconfig %s", cluster.ID.String())
+		// Double-check: File might have been created by another request while we were waiting for the lock
+		objectName := fmt.Sprintf("%s/%s", cluster.ID, fileName)
+		exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to check if object %s exists, will attempt generation", objectName)
+			// Continue with generation on error - better to regenerate than fail
+		} else if exists {
+			log.Infof("File %s was created by another request, skipping generation", objectName)
+			return nil
+		}
 
-	return nil
+		// File still doesn't exist after acquiring lock, proceed with generation
+		log.Infof("Generating kubeconfig for cluster %s (locked)", cluster.ID.String())
+
+		clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+			return err
+		}
+
+		if err = b.generateClusterInstallConfig(ctx, *cluster, clusterInfraenvs); err != nil {
+			log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
+			return err
+		}
+
+		log.Infof("Successfully generated credentials for cluster %s", cluster.ID.String())
+		return nil
+	})
+
+	return err
 }
 
 // orderClusterNetworks orders cluster networks according to PrimaryIPStack
