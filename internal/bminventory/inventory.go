@@ -6074,6 +6074,14 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	if host.Role == models.HostRoleArbiter {
+		err = common.ValidateClusterSupportsArbiterHosts(cluster)
+		if err != nil {
+			err = errors.Wrapf(err, "Host %s is assigned the arbiter role", host.ID)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	if !common.IsDay2Cluster(cluster) {
 		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
 		if fencingErr != nil {
@@ -6610,22 +6618,9 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		if cluster == nil || cluster.OpenshiftVersion == "" {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, cluster.OpenshiftVersion)
+		err := common.ValidateClusterSupportsArbiterHosts(cluster)
 		if err != nil {
-			return err
-		}
-		if !arbiterClustersSupported {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if getPlatformType(cluster.Platform) != string(models.PlatformTypeBaremetal) {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with baremetal platform", host.ID, host.InfraEnvID)
+			err = errors.Wrapf(err, "Cannot set role arbiter to host %s in infra-env %s", host.ID, host.InfraEnvID)
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
