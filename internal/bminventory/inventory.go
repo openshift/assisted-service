@@ -1453,6 +1453,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
+
+		b.orderClusterNetworks(cluster)
 	}
 	// Verify cluster is ready to install
 	if ok, reason := b.clusterApi.IsReadyForInstallation(cluster); !ok {
@@ -1478,6 +1480,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return nil, err
 	}
+
+	b.orderClusterNetworks(cluster)
 
 	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
 		b.log.WithError(err).Errorf("Failed to generate additional cluster manifest")
@@ -1814,6 +1818,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 			return err
 		}
+		b.orderClusterNetworks(cluster)
 
 		clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
 		if err != nil {
@@ -4637,6 +4642,8 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 		return nil, err
 	}
 
+	b.orderClusterNetworks(cluster)
+
 	return cluster, nil
 }
 
@@ -7072,6 +7079,7 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Contex
 	if err != nil {
 		return err
 	}
+	b.orderClusterNetworks(cluster)
 
 	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {
