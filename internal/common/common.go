@@ -806,3 +806,29 @@ func IsClusterTopologyTwoNodesWithFencing(cluster *Cluster) bool {
 	}
 	return true
 }
+
+// ValidateClusterSupportsArbiterHosts checks if the given cluster is allowed to have arbiter hosts.
+// A day1 cluster can have arbiter hosts if:
+// 1. Its OCP version is at least MinimumVersionForArbiterClusters
+// 2. Its platform is baremetal
+// Day2 clusters can also have arbiter hosts added to them if they were installed as TNA clusters, but we can't check that.
+func ValidateClusterSupportsArbiterHosts(cluster *Cluster) error {
+	if cluster == nil || IsDay2Cluster(cluster) {
+		return nil
+	}
+
+	arbiterClustersSupported, err := BaseVersionGreaterOrEqual(MinimumVersionForArbiterClusters, cluster.OpenshiftVersion)
+	if err != nil {
+		return err
+	}
+	if !arbiterClustersSupported {
+		return fmt.Errorf("cluster's openshift version must be at least %s", MinimumVersionForArbiterClusters)
+	}
+
+	platform := cluster.Platform
+	if platform == nil || platform.Type == nil || *platform.Type != models.PlatformTypeBaremetal {
+		return errors.New("cluster's platform must be baremetal")
+	}
+
+	return nil
+}
