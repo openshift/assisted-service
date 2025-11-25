@@ -6179,13 +6179,18 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		}
 	}
 
-	if !common.IsDay2Cluster(cluster) {
+	if !common.IsDay2Cluster(cluster) && host.FencingCredentials != "" {
 		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
 		if fencingErr != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, fencingErr)
 		}
-		if host.FencingCredentials != "" && !fencingClustersSupported {
+		if !fencingClustersSupported {
 			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+		platform := getPlatformType(cluster.Platform)
+		if platform != string(models.PlatformTypeBaremetal) && platform != string(models.PlatformTypeNone) {
+			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster whose platform is baremetal or none", host.ID)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -6952,6 +6957,12 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 		}
 		if !fencingClustersSupported {
 			err = errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
+			log.Error(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		platform := getPlatformType(cluster.Platform)
+		if platform != string(models.PlatformTypeBaremetal) && platform != string(models.PlatformTypeNone) {
+			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster whose platform is baremetal or none", host.ID)
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
