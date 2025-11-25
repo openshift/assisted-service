@@ -1044,8 +1044,8 @@ github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b2
 github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f/go.mod h1:/CLsleDcQ6AFTGKJe9VL3Y4rB9DqX3fQwQv47q2/ZJc=
 github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581 h1:YWomd7tA7icznvjpDrSJ8Ksfd0xPWG4E0nEBhvABjSA=
 github.com/openshift/golang-crypto v0.33.1-0.20250310193910-9003f682e581/go.mod h1:bVdXmD7IV/4GdElGPozy6U7lWdRXA4qyRVGJV57uQ5M=
-github.com/openshift/hive/apis v0.0.0-20251031193107-899e2c99e938 h1:vM0rJqzfIfNJCcNe8pz0ErVT5nQNyUBv6DHWv/oEaUU=
-github.com/openshift/hive/apis v0.0.0-20251031193107-899e2c99e938/go.mod h1:B8r0x5pxVdoVmZNIiiTIonvarlstfasBleqXqpw2nP8=
+github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379 h1:XBazcnuEEhbjtmQbk4R1FU9zi2BXTi/aVq54qlbvcBY=
+github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379/go.mod h1:B8r0x5pxVdoVmZNIiiTIonvarlstfasBleqXqpw2nP8=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b h1:SDdbzE3oW2qs7AJj4DT5gk8HDkZYR8DTT1ZfyBhECZ8=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b/go.mod h1:G9yHOogitMOA0R5UWFmFup00E6nik8Sns/tCYYBU7jE=
 github.com/openshift/library-go v0.0.0-20191003152030-97c62d8a2901/go.mod h1:NBttNjZpWwup/nthuLbPAPSYC8Qyo+BBK5bCtFoyYjo=
