@@ -20,6 +20,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	toml "github.com/pelletier/go-toml"
 	"github.com/openshift/assisted-service/internal/common"
 	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -332,8 +333,14 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	// parse ignition and update BareMetalHosts
 	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
+	// Update registries.conf to set insecure=true (only for agent-installer)
+	err = g.addInsecureRegistriesConf(ctx, bootstrapPath)
+	if err != nil {
+		return err
+	}
+
+	// parse ignition and update BareMetalHosts
 	err = g.updateBootstrap(ctx, bootstrapPath)
 	if err != nil {
 		return err
@@ -796,6 +803,114 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 		return err
 	}
 	log.Infof("Updated file %s", bootstrapPath)
+
+	return nil
+}
+
+// addInsecureRegistriesConf modifies registries.conf in the bootstrap ignition
+// to set insecure=true for all mirror registries (only if the file already exists)
+func (g *installerGenerator) addInsecureRegistriesConf(ctx context.Context, bootstrapPath string) error {
+	// Only run for agent-installer
+	if g.installInvoker != "agent-installer" {
+		return nil
+	}
+
+	log := logutil.FromContext(ctx, g.log)
+
+	config, err := ignitioncommon.ParseIgnitionFile(bootstrapPath)
+	if err != nil {
+		return err
+	}
+
+	// Check if registries.conf already exists in the ignition
+	var existingFileIndex = -1
+	for i, file := range config.Storage.Files {
+		if file.Node.Path == "/etc/containers/registries.conf" {
+			existingFileIndex = i
+			break
+		}
+	}
+
+	if existingFileIndex < 0 {
+		log.Info("No existing registries.conf found in bootstrap ignition, skipping insecure registry update")
+		return nil
+	}
+
+	// File exists - modify it to add insecure=true to all mirrors
+	log.Info("Found existing registries.conf in bootstrap ignition, updating to add insecure=true")
+	err = g.updateRegistriesConfWithInsecure(&config.Storage.Files[existingFileIndex])
+	if err != nil {
+		return errors.Wrap(err, "failed to update existing registries.conf")
+	}
+
+	err = ignitioncommon.WriteIgnitionFile(bootstrapPath, config)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Successfully updated bootstrap ignition with insecure registries.conf")
+	return nil
+}
+
+// registriesConf represents the minimal structure of a registries.conf file
+// needed to update mirror insecure settings
+type registriesConf struct {
+	Registries []registryEntry `toml:"registry"`
+}
+
+type registryEntry struct {
+	Location           string        `toml:"location,omitempty"`
+	Insecure           bool          `toml:"insecure,omitempty"`
+	Blocked            bool          `toml:"blocked,omitempty"`
+	MirrorByDigestOnly bool          `toml:"mirror-by-digest-only,omitempty"`
+	Mirrors            []mirrorEntry `toml:"mirror,omitempty"`
+}
+
+type mirrorEntry struct {
+	Location string `toml:"location"`
+	Insecure bool   `toml:"insecure,omitempty"`
+}
+
+// updateRegistriesConfWithInsecure decodes the existing registries.conf content,
+// adds insecure=true to all mirror entries, and re-encodes it
+func (g *installerGenerator) updateRegistriesConfWithInsecure(file *config_latest_types.File) error {
+	if file.Contents.Source == nil {
+		return errors.New("registries.conf file has no content source")
+	}
+
+	// Decode the existing content
+	dataURL, err := dataurl.DecodeString(*file.Contents.Source)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode registries.conf data URL")
+	}
+
+	existingContent := dataURL.Data
+	g.log.Debugf("Existing registries.conf content:\n%s", string(existingContent))
+
+	// Parse TOML into our structure
+	var registries registriesConf
+	if err := toml.Unmarshal(existingContent, &registries); err != nil {
+		return errors.Wrap(err, "failed to unmarshal registries.conf TOML")
+	}
+
+	// Set insecure=true for all mirrors in all registries
+	for i := range registries.Registries {
+		for j := range registries.Registries[i].Mirrors {
+			registries.Registries[i].Mirrors[j].Insecure = true
+		}
+	}
+
+	// Marshal back to TOML
+	modifiedContent, err := toml.Marshal(registries)
+	if err != nil {
+		return errors.Wrap(err, "failed to marshal updated registries.conf")
+	}
+
+	g.log.Debugf("Updated registries.conf content:\n%s", string(modifiedContent))
+
+	// Re-encode and update the file
+	encodedContent := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(modifiedContent)
+	file.Contents.Source = &encodedContent
 
 	return nil
 }

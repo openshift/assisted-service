@@ -2,6 +2,7 @@ package ignition
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -34,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )
@@ -2374,3 +2376,177 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		}
 	})
 })
+
+var _ = Describe("addInsecureRegistriesConf", func() {
+	var (
+		workDir        string
+		cluster        *common.Cluster
+		ctrl           *gomock.Controller
+		manifestsAPI   *manifestsapi.MockManifestsAPI
+		eventsHandler  *eventsapi.MockHandler
+		installerCache *installercache.Installers
+		metricsAPI     *metrics.MockAPI
+		err            error
+	)
+
+	BeforeEach(func() {
+		workDir, err = os.MkdirTemp("", "insecure-registries-test-")
+		Expect(err).NotTo(HaveOccurred())
+
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
+		eventsHandler = eventsapi.NewMockHandler(ctrl)
+		metricsAPI = metrics.NewMockAPI(ctrl)
+
+		installerCacheConfig := installercache.Config{
+			CacheDir:       filepath.Join(workDir, "installercache"),
+			MaxCapacity:    installercache.Size(5),
+			MaxReleaseSize: installercache.Size(5),
+		}
+		installerCache, err = installercache.New(installerCacheConfig, eventsHandler, metricsAPI, metrics.NewOSDiskStatsHelper(logrus.New()), logrus.New())
+		Expect(err).NotTo(HaveOccurred())
+
+		cluster = testCluster()
+	})
+
+	AfterEach(func() {
+		os.RemoveAll(workDir)
+		ctrl.Finish()
+	})
+
+	Context("when registries.conf exists in bootstrap.ign", func() {
+		It("should add insecure=true to all mirror registries", func() {
+			// Create a bootstrap.ign with registries.conf
+			registriesConf := `[[registry]]
+  location = "quay.io/openshift-release-dev/ocp-release"
+  prefix = ""
+
+  [[registry.mirror]]
+    location = "registry.example.com:5000/openshift/release-images"
+
+[[registry]]
+  location = "quay.io/openshift-release-dev/ocp-v4.0-art-dev"
+  prefix = ""
+
+  [[registry.mirror]]
+    location = "registry.example.com:5000/openshift/release"
+`
+			bootstrapIgn := fmt.Sprintf(`{
+  "ignition": {
+    "version": "3.2.0"
+  },
+  "storage": {
+    "files": [
+      {
+        "path": "/etc/containers/registries.conf",
+        "mode": 420,
+        "overwrite": true,
+        "contents": {
+          "source": "data:text/plain;charset=utf-8;base64,%s"
+        }
+      }
+    ]
+  }
+}`, base64Encoding(registriesConf))
+
+			bootstrapPath := filepath.Join(workDir, "bootstrap.ign")
+			err = os.WriteFile(bootstrapPath, []byte(bootstrapIgn), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create generator with agent-installer
+			g := NewGenerator(workDir, cluster, "", "", "", "agent-installer", nil, logrus.New(), nil, "", "", manifestsAPI, eventsHandler, installerCache).(*installerGenerator)
+
+			// Call the function
+			err = g.addInsecureRegistriesConf(context.Background(), bootstrapPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Read and parse the updated ignition
+			var updatedBytes []byte
+			updatedBytes, err = os.ReadFile(bootstrapPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			var config *config_32_types.Config
+			config, err = ignition.ParseToLatest(updatedBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Find the registries.conf file
+			var registriesFile *config_32_types.File
+			for i := range config.Storage.Files {
+				if config.Storage.Files[i].Node.Path == "/etc/containers/registries.conf" {
+					registriesFile = &config.Storage.Files[i]
+					break
+				}
+			}
+
+			Expect(registriesFile).NotTo(BeNil())
+			Expect(registriesFile.Contents.Source).NotTo(BeNil())
+
+			// Decode and check the content
+			var dataURL *dataurl.DataURL
+			dataURL, err = dataurl.DecodeString(*registriesFile.Contents.Source)
+			Expect(err).NotTo(HaveOccurred())
+
+			content := string(dataURL.Data)
+
+			// Verify insecure=true was added to both mirrors
+			Expect(content).To(ContainSubstring("insecure = true"))
+			Expect(strings.Count(content, "insecure = true")).To(Equal(2))
+		})
+	})
+
+	Context("when registries.conf does not exist in bootstrap.ign", func() {
+		It("should not fail and should not add registries.conf", func() {
+			// Create a bootstrap.ign without registries.conf
+			bootstrapIgn := `{
+  "ignition": {
+    "version": "3.2.0"
+  },
+  "storage": {
+    "files": [
+      {
+        "path": "/some/other/file",
+        "mode": 420,
+        "contents": {
+          "source": "data:,test"
+        }
+      }
+    ]
+  }
+}`
+			bootstrapPath := filepath.Join(workDir, "bootstrap.ign")
+			err = os.WriteFile(bootstrapPath, []byte(bootstrapIgn), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Create generator with agent-installer
+			g := NewGenerator(workDir, cluster, "", "", "", "agent-installer", nil, logrus.New(), nil, "", "", manifestsAPI, eventsHandler, installerCache).(*installerGenerator)
+
+			// Call the function
+			err = g.addInsecureRegistriesConf(context.Background(), bootstrapPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Read and parse the updated ignition
+			var updatedBytes []byte
+			updatedBytes, err = os.ReadFile(bootstrapPath)
+			Expect(err).NotTo(HaveOccurred())
+
+			var config *config_32_types.Config
+			config, err = ignition.ParseToLatest(updatedBytes)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Verify registries.conf was not added
+			var registriesFile *config_32_types.File
+			for i := range config.Storage.Files {
+				if config.Storage.Files[i].Node.Path == "/etc/containers/registries.conf" {
+					registriesFile = &config.Storage.Files[i]
+					break
+				}
+			}
+
+			Expect(registriesFile).To(BeNil())
+		})
+	})
+})
+
+func base64Encoding(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
+}
