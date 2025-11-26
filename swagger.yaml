@@ -2730,6 +2730,8 @@ paths:
               - 'numa-resources'
               - 'oadp'
               - 'metallb'
+              - 'loki'
+              - 'openshift-logging'
         "401":
           description: Unauthorized.
           schema:
@@ -4433,6 +4435,8 @@ definitions:
       - 'OADP'
       - 'METALLB'
       - 'DUAL_STACK_PRIMARY_IPV6'
+      - 'LOKI'
+      - 'OPENSHIFT_LOGGING'
 
   architecture-support-level-id:
     type: string
@@ -6960,6 +6964,8 @@ definitions:
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
       - 'metallb-requirements-satisfied'
+      - 'loki-requirements-satisfied'
+      - 'openshift-logging-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7346,6 +7352,8 @@ definitions:
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
       - 'metallb-requirements-satisfied'
+      - 'loki-requirements-satisfied'
+      - 'openshift-logging-requirements-satisfied'
 
   logs_type:
     type: string

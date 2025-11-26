@@ -6271,7 +6271,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -7335,7 +7337,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -8250,7 +8254,9 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
-        "DUAL_STACK_PRIMARY_IPV6"
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -8933,7 +8939,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17707,7 +17715,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -18889,7 +18899,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -19771,7 +19783,9 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
-        "DUAL_STACK_PRIMARY_IPV6"
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -20454,7 +20468,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {

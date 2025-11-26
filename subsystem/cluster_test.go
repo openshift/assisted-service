@@ -38,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
+	"github.com/openshift/assisted-service/internal/operators/loki"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -52,6 +53,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/openshiftlogging"
 	"github.com/openshift/assisted-service/internal/operators/osc"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
@@ -3659,7 +3661,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(26))
+		Expect(requirements.Operators).To(HaveLen(28))
 
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
@@ -3722,6 +3724,10 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			case oadp.Operator.Name:
 				continue
 			case metallb.Operator.Name:
+				continue
+			case loki.Operator.Name:
+				continue
+			case openshiftlogging.Operator.Name:
 				continue
 			default:
 				Fail("Unexpected operator")
