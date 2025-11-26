@@ -223,8 +223,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 
 	//cleanup resources at the end
 	defer func() {
-		e := release.Cleanup(ctx)
-		if e != nil {
+		if e := release.Cleanup(ctx); e != nil {
 			log.WithError(e).Warnf("Failed to clean up installer release %s", release.Path)
 		}
 	}()
@@ -237,11 +236,9 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	g.encodedDhcpFileContents, err = network.GetEncodedDhcpParamFileContents(g.cluster)
-	if err != nil {
-		wrapped := errors.Wrapf(err, "Could not create DHCP encoded file")
-		log.WithError(wrapped).Errorf("GenerateInstallConfig")
-		return wrapped
+	if g.encodedDhcpFileContents, err = network.GetEncodedDhcpParamFileContents(g.cluster); err != nil {
+		log.WithError(err).Errorf("GenerateInstallConfig: Could not create DHCP encoded file")
+		return errors.Wrapf(err, "Could not create DHCP encoded file")
 	}
 
 	g.allocateNodeIpsIfNeeded(log)
@@ -259,8 +256,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
-	err = os.WriteFile(installConfigPath, installConfig, 0600)
-	if err != nil {
+	if err = os.WriteFile(installConfigPath, installConfig, 0600); err != nil {
 		log.Errorf("failed to write file %s", installConfigPath)
 		return err
 	}
@@ -271,25 +267,20 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir)
-
-	if err != nil {
+	if err = g.providerRegistry.PreCreateManifestsHook(g.cluster, &envVars, g.workDir); err != nil {
 		log.WithError(err).Errorf("failed to run pre manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
 		return err
 	}
 
-	err = g.importClusterTLSCerts(ctx)
-	if err != nil {
+	if err = g.importClusterTLSCerts(ctx); err != nil {
 		log.WithError(err).Error("Failed to import cluster TLS certs")
 		return err
 	}
 
-	err = g.runCreateCommand(ctx, installerPath, "manifests", envVars)
-	if err != nil {
+	if err = g.runCreateCommand(ctx, installerPath, "manifests", envVars); err != nil {
 		return err
 	}
-	err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir)
-	if err != nil {
+	if err = g.providerRegistry.PostCreateManifestsHook(g.cluster, &envVars, g.workDir); err != nil {
 		log.WithError(err).Errorf("failed to run post manifests creation hook '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
 		return err
 	}
@@ -297,27 +288,23 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	// download manifests files to working directory
 	for _, manifest := range manifestFiles {
 		log.Infof("adding manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
-		err = g.downloadManifest(ctx, manifest.Path)
-		if err != nil {
+		if err = g.downloadManifest(ctx, manifest.Path); err != nil {
 			log.WithError(err).Errorf("Failed to download manifest %s to working dir for cluster %s", manifest.Path, g.cluster.ID)
 			return err
 		}
 	}
 
-	err = g.expandUserMultiDocYamls(ctx)
-	if err != nil {
+	if err = g.expandUserMultiDocYamls(ctx); err != nil {
 		log.WithError(err).Errorf("failed expand multi-document yaml for cluster '%s'", g.cluster.ID)
 		return err
 	}
 
-	err = g.applyManifestPatches(ctx)
-	if err != nil {
+	if err = g.applyManifestPatches(ctx); err != nil {
 		log.WithError(err).Errorf("failed to apply manifests' patches for cluster '%s'", g.cluster.ID)
 		return err
 	}
 
-	err = g.applyInfrastructureCRPatch(ctx)
-	if err != nil {
+	if err = g.applyInfrastructureCRPatch(ctx); err != nil {
 		log.WithError(err).Errorf("failed to patch the infrastructure CR manifest '%s'", common.PlatformTypeValue(g.cluster.Platform.Type))
 		return err
 	}
@@ -332,46 +319,44 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 		return err
 	}
 
-	// parse ignition and update BareMetalHosts
 	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
-	err = g.updateBootstrap(ctx, bootstrapPath)
-	if err != nil {
+	// Update registries.conf to set insecure=true (only for agent-installer)
+	if err = g.addInsecureRegistriesConf(ctx, bootstrapPath); err != nil {
 		return err
 	}
 
-	err = g.updateIgnitions()
-	if err != nil {
+	// parse ignition and update BareMetalHosts
+	if err = g.updateBootstrap(ctx, bootstrapPath); err != nil {
+		return err
+	}
+
+	if err = g.updateIgnitions(); err != nil {
 		log.Error(err)
 		return err
 	}
 
-	err = g.createHostIgnitions()
-	if err != nil {
+	if err = g.createHostIgnitions(); err != nil {
 		log.Error(err)
 		return err
 	}
 
 	// move all files into the working directory
-	err = os.Rename(filepath.Join(g.workDir, "auth/kubeadmin-password"), filepath.Join(g.workDir, "kubeadmin-password"))
-	if err != nil {
+	if err = os.Rename(filepath.Join(g.workDir, "auth/kubeadmin-password"), filepath.Join(g.workDir, "kubeadmin-password")); err != nil {
 		return err
 	}
 	// after installation completes, a new kubeconfig will be created and made
 	// available that includes ingress details, so we rename this one
-	err = os.Rename(filepath.Join(g.workDir, "auth/kubeconfig"), filepath.Join(g.workDir, "kubeconfig-noingress"))
-	if err != nil {
+	if err = os.Rename(filepath.Join(g.workDir, "auth/kubeconfig"), filepath.Join(g.workDir, "kubeconfig-noingress")); err != nil {
 		return err
 	}
 	// We want to save install-config.yaml
 	// Installer deletes it so we need to write it one more time
-	err = os.WriteFile(installConfigPath, installConfig, 0600)
-	if err != nil {
+	if err = os.WriteFile(installConfigPath, installConfig, 0600); err != nil {
 		log.Errorf("Failed to write file %s", installConfigPath)
 		return err
 	}
 
-	err = os.Remove(filepath.Join(g.workDir, "auth"))
-	if err != nil {
+	if err = os.Remove(filepath.Join(g.workDir, "auth")); err != nil {
 		return err
 	}
 	return nil
@@ -798,6 +783,121 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 	log.Infof("Updated file %s", bootstrapPath)
 
 	return nil
+}
+
+// addInsecureRegistriesConf modifies registries.conf in the bootstrap ignition
+// to set insecure=true for all mirror registries (only if the file already exists)
+func (g *installerGenerator) addInsecureRegistriesConf(ctx context.Context, bootstrapPath string) error {
+	// Only run for agent-installer
+	if g.installInvoker != "agent-installer" {
+		return nil
+	}
+
+	log := logutil.FromContext(ctx, g.log)
+
+	config, err := ignitioncommon.ParseIgnitionFile(bootstrapPath)
+	if err != nil {
+		return err
+	}
+
+	// Check if registries.conf already exists in the ignition
+	var existingFileIndex = -1
+	for i, file := range config.Storage.Files {
+		if file.Node.Path == "/etc/containers/registries.conf" {
+			existingFileIndex = i
+			break
+		}
+	}
+
+	if existingFileIndex < 0 {
+		log.Info("No existing registries.conf found in bootstrap ignition, skipping insecure registry update")
+		return nil
+	}
+
+	// File exists - modify it to add insecure=true to all mirrors
+	log.Info("Found existing registries.conf in bootstrap ignition, updating to add insecure=true")
+	err = g.updateRegistriesConfWithInsecure(&config.Storage.Files[existingFileIndex])
+	if err != nil {
+		return errors.Wrap(err, "failed to update existing registries.conf")
+	}
+
+	err = ignitioncommon.WriteIgnitionFile(bootstrapPath, config)
+	if err != nil {
+		return err
+	}
+
+	log.Infof("Successfully updated bootstrap ignition with insecure registries.conf")
+	return nil
+}
+
+// updateRegistriesConfWithInsecure decodes the existing registries.conf content,
+// adds insecure=true to all mirror entries, and re-encodes it
+func (g *installerGenerator) updateRegistriesConfWithInsecure(file *config_latest_types.File) error {
+	if file.Contents.Source == nil {
+		return errors.New("registries.conf file has no content source")
+	}
+
+	// Decode the existing content
+	dataURL, err := dataurl.DecodeString(*file.Contents.Source)
+	if err != nil {
+		return errors.Wrap(err, "failed to decode registries.conf data URL")
+	}
+
+	existingContent := string(dataURL.Data)
+	g.log.Debugf("Existing registries.conf content:\n%s", existingContent)
+
+	// Add insecure=true to all [[registry.mirror]] sections
+	modifiedContent := g.addInsecureToRegistriesConfString(existingContent)
+
+	// Re-encode and update the file
+	encodedContent := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte(modifiedContent))
+	file.Contents.Source = &encodedContent
+
+	g.log.Debugf("Updated registries.conf content:\n%s", modifiedContent)
+	return nil
+}
+
+// addInsecureToRegistriesConfString adds "insecure = true" to all [[registry.mirror]] sections
+// using string manipulation
+func (g *installerGenerator) addInsecureToRegistriesConfString(content string) string {
+	lines := strings.Split(content, "\n")
+	var result []string
+	inMirrorSection := false
+
+	for i, line := range lines {
+		result = append(result, line)
+
+		// Check if this line starts a [[registry.mirror]] section
+		trimmed := strings.TrimSpace(line)
+		if trimmed == "[[registry.mirror]]" {
+			inMirrorSection = true
+			continue
+		}
+
+		// If we're in a mirror section and see the location line, add insecure after it
+		if inMirrorSection && strings.Contains(trimmed, "location") && strings.Contains(trimmed, "=") {
+			// Check if insecure is already set in the next few lines
+			hasInsecure := false
+			for j := i + 1; j < len(lines) && j < i+5; j++ {
+				if strings.Contains(strings.TrimSpace(lines[j]), "insecure") {
+					hasInsecure = true
+					break
+				}
+				// Stop checking if we hit another section
+				if strings.HasPrefix(strings.TrimSpace(lines[j]), "[[") {
+					break
+				}
+			}
+
+			if !hasInsecure {
+				// Add insecure = true after the location line
+				result = append(result, "    insecure = true")
+			}
+			inMirrorSection = false
+		}
+	}
+
+	return strings.Join(result, "\n")
 }
 
 func removeHostFromSlice(bmhName string, hosts []*models.Host) (*models.Host, []*models.Host) {
