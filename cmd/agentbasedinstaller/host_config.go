@@ -31,6 +31,77 @@ const (
 	AgentWorkflowTypeAddNodes AgentWorkflowType = "addnodes"
 )
 
+// getHostConfigDir returns the host configuration directory path.
+// It reads from the HOST_CONFIG_DIR environment variable, falling back
+// to the default path if not set.
+func getHostConfigDir() string {
+	if dir := os.Getenv("HOST_CONFIG_DIR"); dir != "" {
+		return dir
+	}
+	return "/etc/assisted/hostconfig"
+}
+
+// loadFencingCredentials reads the single fencing-credentials.yaml file from the hostconfig
+// directory and returns a map of hostname→credentials for easy lookup during host application.
+// Returns nil map (not error) if file doesn't exist, since fencing is optional.
+func loadFencingCredentials(hostConfigDir string) (map[string]*models.FencingCredentialsParams, error) {
+	fencingFilePath := filepath.Join(hostConfigDir, "fencing-credentials.yaml")
+
+	fileData, err := os.ReadFile(fencingFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("No fencing credentials file found, skipping fencing configuration")
+			return nil, nil // Not an error - fencing is optional
+		}
+		return nil, fmt.Errorf("failed to read fencing credentials file: %w", err)
+	}
+
+	// Intermediate structure matching installer's YAML output
+	type fencingCredentialsFile struct {
+		Credentials []struct {
+			Hostname                string  `yaml:"hostname"`
+			Address                 *string `yaml:"address"`
+			Username                *string `yaml:"username"`
+			Password                *string `yaml:"password"`
+			CertificateVerification *string `yaml:"certificateVerification,omitempty"`
+		} `yaml:"credentials"`
+	}
+
+	fcFile := &fencingCredentialsFile{}
+	if err := yaml.UnmarshalStrict(fileData, fcFile); err != nil {
+		return nil, fmt.Errorf("failed to parse fencing credentials file: %w", err)
+	}
+
+	credentialsMap := make(map[string]*models.FencingCredentialsParams)
+
+	for i, cred := range fcFile.Credentials {
+		if cred.Hostname == "" {
+			return nil, fmt.Errorf("fencing credential at index %d has empty hostname", i)
+		}
+
+		if cred.Address == nil {
+			return nil, fmt.Errorf("fencing credential for hostname %s is missing required field: address", cred.Hostname)
+		}
+		if cred.Username == nil {
+			return nil, fmt.Errorf("fencing credential for hostname %s is missing required field: username", cred.Hostname)
+		}
+		if cred.Password == nil {
+			return nil, fmt.Errorf("fencing credential for hostname %s is missing required field: password", cred.Hostname)
+		}
+
+		credentialsMap[cred.Hostname] = &models.FencingCredentialsParams{
+			Address:                 cred.Address,
+			Username:                cred.Username,
+			Password:                cred.Password,
+			CertificateVerification: cred.CertificateVerification,
+		}
+		log.Infof("Loaded fencing credential for hostname: %s", cred.Hostname)
+	}
+
+	log.Infof("Loaded %d fencing credentials from file", len(credentialsMap))
+	return credentialsMap, nil
+}
+
 func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) ([]Failure, error) {
 	hostList, err := bmInventory.Installer.V2ListHosts(ctx, installer.NewV2ListHostsParams().WithInfraEnvID(infraEnvID))
 	if err != nil {
