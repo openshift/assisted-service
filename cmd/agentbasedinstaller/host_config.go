@@ -108,10 +108,27 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 		return nil, fmt.Errorf("Failed to list hosts: %w", errorutil.GetAssistedError(err))
 	}
 
+	// Load fencing credentials from single file ONCE before processing hosts
+	fencingCreds, err := loadFencingCredentials(getHostConfigDir())
+	if err != nil {
+		return nil, fmt.Errorf("Failed to load fencing credentials: %w", err)
+	}
+
 	failures := []Failure{}
 
 	for _, host := range hostList.Payload {
+		// Apply MAC-based configuration first (role, disk hints)
 		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs); err != nil {
+			if fail, ok := err.(Failure); ok {
+				failures = append(failures, fail)
+				log.Error(err.Error())
+			} else {
+				return failures, err
+			}
+		}
+
+		// Apply hostname-based configuration (fencing credentials)
+		if err := applyHostConfigByHostname(ctx, log, bmInventory, host, fencingCreds); err != nil {
 			if fail, ok := err.(Failure); ok {
 				failures = append(failures, fail)
 				log.Error(err.Error())
@@ -177,6 +194,70 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	}
 
 	log.Info("Updating host")
+	params := installer.NewV2UpdateHostParams().
+		WithHostID(*host.ID).
+		WithInfraEnvID(host.InfraEnvID).
+		WithHostUpdateParams(updateParams)
+	_, err = bmInventory.Installer.V2UpdateHost(ctx, params)
+	if err != nil {
+		if errorResponse, ok := err.(errorutil.AssistedServiceErrorAPI); ok {
+			return &UpdateFailure{
+				response:  errorResponse,
+				params:    updateParams,
+				host:      host,
+				inventory: inventory,
+			}
+		}
+		return fmt.Errorf("failed to update Host: %w", err)
+	}
+	return nil
+}
+
+// applyHostConfigByHostname applies configuration to a host by matching on hostname
+// instead of MAC address. This is used for configurations where hostname is the key,
+// such as fencing credentials.
+//
+// This function is called AFTER applyHostConfig() to ensure MAC-based configurations
+// (role, disk hints) are applied first.
+func applyHostConfigByHostname(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, host *models.Host, fencingCreds map[string]*models.FencingCredentialsParams) error {
+	log.Infof("Checking hostname-based configuration for host %s", *host.ID)
+
+	// If no fencing credentials loaded, skip
+	if fencingCreds == nil {
+		log.Info("No fencing credentials available")
+		return nil
+	}
+
+	if len(host.Inventory) == 0 {
+		log.Info("Inventory information not yet available")
+		return nil
+	}
+
+	inventory := &models.Inventory{}
+	err := inventory.UnmarshalBinary([]byte(host.Inventory))
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal host inventory: %w", err)
+	}
+
+	if inventory.Hostname == "" {
+		log.Info("Host has no hostname, skipping hostname-based configuration")
+		return nil
+	}
+
+	// Lookup fencing credentials by hostname in the map
+	fc, exists := fencingCreds[inventory.Hostname]
+	if !exists {
+		log.Infof("No fencing credentials found for hostname %s", inventory.Hostname)
+		return nil
+	}
+
+	log.Infof("Found fencing credentials for hostname %s", inventory.Hostname)
+
+	updateParams := &models.HostUpdateParams{
+		FencingCredentials: fc,
+	}
+
+	log.Info("Updating host with fencing credentials")
 	params := installer.NewV2UpdateHostParams().
 		WithHostID(*host.ID).
 		WithInfraEnvID(host.InfraEnvID).
