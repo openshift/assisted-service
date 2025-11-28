@@ -79,6 +79,14 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				Name:      hostId,
 				Namespace: infraEnvCR.Namespace,
 				Labels:    labels,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: infraEnvCR.APIVersion,
+						Kind:       infraEnvCR.Kind,
+						Name:       infraEnvCR.Name,
+						UID:        infraEnvCR.UID,
+					},
+				},
 			},
 		}
 
@@ -144,6 +152,14 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				Namespace:       infraEnvCR.Namespace,
 				Labels:          labels,
 				ResourceVersion: host.ResourceVersion,
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: infraEnvCR.APIVersion,
+						Kind:       infraEnvCR.Kind,
+						Name:       infraEnvCR.Name,
+						UID:        infraEnvCR.UID,
+					},
+				},
 			},
 		}
 

@@ -89,7 +89,9 @@ var _ = Describe("create agent CR", func() {
 				Namespace: infraEnvNamespace,
 				Name:      hostId,
 			}
-			Expect(c.Get(ctx, namespacedName, &v1beta1.Agent{})).ShouldNot(HaveOccurred())
+			agent := &v1beta1.Agent{}
+			Expect(c.Get(ctx, namespacedName, agent)).ShouldNot(HaveOccurred())
+			checkAgentOwnerReferences(agent, infraEnvImage)
 		})
 
 		It("create agent with labels", func() {
@@ -118,6 +120,7 @@ var _ = Describe("create agent CR", func() {
 			Expect(c.Get(ctx, namespacedName, agent)).ShouldNot(HaveOccurred())
 			labels[v1beta1.InfraEnvNameLabel] = infraEnvName
 			Expect(agent.ObjectMeta.Labels).Should(Equal(labels))
+			checkAgentOwnerReferences(agent, infraEnvImage)
 		})
 
 		It("Empty infraenv name space- no cluster", func() {
@@ -249,6 +252,7 @@ var _ = Describe("create agent CR", func() {
 			agent := &v1beta1.Agent{}
 			Expect(c.Get(ctx, namespacedName, agent)).ShouldNot(HaveOccurred())
 			Expect(agent.Spec.ClusterDeploymentName).To(BeNil())
+			checkAgentOwnerReferences(agent, infraEnvImage)
 		})
 
 		It("Already existing agent - no cluster, same infraenv", func() {
@@ -273,3 +277,10 @@ var _ = Describe("create agent CR", func() {
 		})
 	})
 })
+
+func checkAgentOwnerReferences(agent *v1beta1.Agent, infraEnv *v1beta1.InfraEnv) {
+	Expect(agent.OwnerReferences).To(HaveLen(1))
+	Expect(agent.OwnerReferences[0].Kind).To(Equal(infraEnv.Kind))
+	Expect(agent.OwnerReferences[0].Name).To(Equal(infraEnv.Name))
+	Expect(agent.OwnerReferences[0].UID).To(Equal(infraEnv.GetUID()))
+}
