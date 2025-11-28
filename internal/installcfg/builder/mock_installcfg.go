@@ -7,8 +7,8 @@ package builder
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockInstallConfigBuilder is a mock of InstallConfigBuilder interface.

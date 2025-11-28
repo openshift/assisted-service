@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockOCMAccountsMgmt is a mock of OCMAccountsMgmt interface.

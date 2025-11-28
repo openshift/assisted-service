@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,6 +14,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
+	gomock "go.uber.org/mock/gomock"
 	"golang.org/x/sync/semaphore"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

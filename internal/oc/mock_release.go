@@ -7,8 +7,8 @@ package oc
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	logrus "github.com/sirupsen/logrus"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRelease is a mock of Release interface.

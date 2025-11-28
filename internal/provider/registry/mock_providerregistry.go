@@ -7,12 +7,12 @@ package registry
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg"
 	provider "github.com/openshift/assisted-service/internal/provider"
 	usage "github.com/openshift/assisted-service/internal/usage"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockProviderRegistry is a mock of ProviderRegistry interface.

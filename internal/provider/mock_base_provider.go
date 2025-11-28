@@ -7,11 +7,11 @@ package provider
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	installcfg "github.com/openshift/assisted-service/internal/installcfg"
 	usage "github.com/openshift/assisted-service/internal/usage"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockProvider is a mock of Provider interface.

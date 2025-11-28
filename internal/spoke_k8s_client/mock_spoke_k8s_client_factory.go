@@ -7,8 +7,8 @@ package spoke_k8s_client
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/openshift/hive/apis/hive/v1"
+	gomock "go.uber.org/mock/gomock"
 	v10 "k8s.io/api/core/v1"
 	kubernetes "k8s.io/client-go/kubernetes"
 )

@@ -9,9 +9,9 @@ import (
 	reflect "reflect"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
 	manifests "github.com/openshift/assisted-service/restapi/operations/manifests"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockClusterManifestsInternals is a mock of ClusterManifestsInternals interface.

@@ -7,7 +7,7 @@ package system
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockSystemInfo is a mock of SystemInfo interface.

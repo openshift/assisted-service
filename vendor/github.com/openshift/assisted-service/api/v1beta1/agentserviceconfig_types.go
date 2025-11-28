@@ -255,8 +255,8 @@ const (
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
 type AgentServiceConfigStatus struct {
-	Conditions []conditionsv1.Condition `json:"conditions,omitempty"`
-	ImmutableAnnotations map[string]string `json:"immutableAnnotations,omitempty"`
+	Conditions           []conditionsv1.Condition `json:"conditions,omitempty"`
+	ImmutableAnnotations map[string]string        `json:"immutableAnnotations,omitempty"`
 }
 
 // +kubebuilder:object:root=true
