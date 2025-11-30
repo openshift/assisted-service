@@ -795,20 +795,20 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 	// Host stage timeout transitions.  They handle all stages when cluster is in 'installing-in-progress' status besides
 	// rebooting stage which is handled differently - it moves to installing-pending-user-action
 
-	// Timeout while host installationInProgress and soft timeouts is not enabled for stages other than [writing-image-to-disk, rebooting]
+	// Timeout while host installationInProgress and soft timeouts is not enabled for stages other than [writing-image-to-disk, copying-registry-data-to-disk, rebooting]
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingInProgress)},
 		Condition: stateswitch.And(
 			stateswitch.Not(If(SoftTimeoutsEnabled)),
-			stateswitch.Not(IsInStages(models.HostStageWritingImageToDisk, models.HostStageRebooting)),
+			stateswitch.Not(IsInStages(models.HostStageWritingImageToDisk, models.HostStageCopyingRegistryDataToDisk, models.HostStageRebooting)),
 			th.HasInstallationInProgressTimedOut,
 			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationInProgressTimedOut),
 		Documentation: stateswitch.TransitionRuleDoc{
-			Name:        "Move to error on timeout if host is in particular installation in progress stages other than [writing-image-to-disk, rebooting]",
+			Name:        "Move to error on timeout if host is in particular installation in progress stages other than [writing-image-to-disk, copying-registry-data-to-disk, rebooting]",
 			Description: "The transition is triggered when soft timeouts is not enabled which means that timeout expiration causes a host to move to error",
 		},
 	})
@@ -831,7 +831,25 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		},
 	})
 
-	// Timeout while host installationInProgress and soft timeouts is enabled for stages other than [writing-image-to-disk, rebooting]
+	// Timeout while host installationInProgress and soft timeouts is not enabled for stage copying-registry-data-to-disk.
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress)},
+		Condition: stateswitch.And(
+			stateswitch.Not(If(SoftTimeoutsEnabled)),
+			IsInStages(models.HostStageCopyingRegistryDataToDisk),
+			th.HasInstallationInProgressTimedOut,
+			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
+		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostRefreshHost(statusInfoInstallationInProgressCopyingRegistryDataToDiskTimedOut),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Move to error on timeout if host is in particular installation in progress stage copying-registry-data-to-disk",
+			Description: "The transition is triggered when soft timeouts is not enabled which means that timeout expiration causes a host to move to error",
+		},
+	})
+
+	// Timeout while host installationInProgress and soft timeouts is enabled for stages other than [writing-image-to-disk, copying-registry-data-to-disk, rebooting]
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
@@ -839,13 +857,13 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		Condition: stateswitch.And(
 			If(SoftTimeoutsEnabled),
 			stateswitch.Not(If(HostStageTimedOut)),
-			stateswitch.Not(IsInStages(models.HostStageWritingImageToDisk, models.HostStageRebooting)),
+			stateswitch.Not(IsInStages(models.HostStageWritingImageToDisk, models.HostStageCopyingRegistryDataToDisk, models.HostStageRebooting)),
 			th.HasInstallationInProgressTimedOut,
 			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
 		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
 		PostTransition:   th.PostHostStageTimeout(statusInfoInstallationInProgressSoftTimedOut),
 		Documentation: stateswitch.TransitionRuleDoc{
-			Name:        "Indicate that timeout occurred and continue installation in particular installation in progress stages other than [writing-image-to-disk, rebooting]",
+			Name:        "Indicate that timeout occurred and continue installation in particular installation in progress stages other than [writing-image-to-disk, copying-registry-data-to-disk, rebooting]",
 			Description: "The transition is triggered when soft timeouts is enabled which means that timeout expiration causes event generation only",
 		},
 	})
@@ -865,6 +883,25 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		PostTransition:   th.PostHostStageTimeout(statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut),
 		Documentation: stateswitch.TransitionRuleDoc{
 			Name:        "Indicate that timeout occurred and continue installation in particular installation in progress stage writing-image-to-disk",
+			Description: "The transition is triggered when soft timeouts is enabled which means that timeout expiration causes event generation only",
+		},
+	})
+
+	// Timeout while host installationInProgress and soft timeouts is enabled for stage copying-registry-data-to-disk.
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingInProgress)},
+		Condition: stateswitch.And(
+			If(SoftTimeoutsEnabled),
+			stateswitch.Not(If(HostStageTimedOut)),
+			IsInStages(models.HostStageCopyingRegistryDataToDisk),
+			th.HasInstallationInProgressTimedOut,
+			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
+		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
+		PostTransition:   th.PostHostStageTimeout(statusInfoInstallationInProgressCopyingRegistryDataToDiskSoftTimedOut),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Indicate that timeout occurred and continue installation in particular installation in progress stage copying-registry-data-to-disk",
 			Description: "The transition is triggered when soft timeouts is enabled which means that timeout expiration causes event generation only",
 		},
 	})
