@@ -6155,6 +6155,7 @@ definitions:
       - Waiting for controller
       - Installing
       - Writing image to disk
+      - Copying registry data to disk
       - Rebooting
       - Waiting for ignition
       - Configuring

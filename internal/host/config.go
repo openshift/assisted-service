@@ -61,16 +61,17 @@ func (c *Config) Complete() error {
 
 // hostStageTimeoutDefaults contains the built-in default values for the host stage timeouts.
 var hostStageTimeoutDefaults = map[models.HostStage]time.Duration{
-	models.HostStageStartingInstallation:   30 * time.Minute,
-	models.HostStageWaitingForControlPlane: 60 * time.Minute,
-	models.HostStageWaitingForController:   60 * time.Minute,
-	models.HostStageWaitingForBootkube:     60 * time.Minute,
-	models.HostStageInstalling:             60 * time.Minute,
-	models.HostStageJoined:                 60 * time.Minute,
-	models.HostStageWritingImageToDisk:     30 * time.Minute,
-	models.HostStageRebooting:              40 * time.Minute,
-	models.HostStageConfiguring:            60 * time.Minute,
-	models.HostStageWaitingForIgnition:     24 * time.Hour,
+	models.HostStageStartingInstallation:      30 * time.Minute,
+	models.HostStageWaitingForControlPlane:    60 * time.Minute,
+	models.HostStageWaitingForController:      60 * time.Minute,
+	models.HostStageWaitingForBootkube:        60 * time.Minute,
+	models.HostStageInstalling:                60 * time.Minute,
+	models.HostStageJoined:                    60 * time.Minute,
+	models.HostStageWritingImageToDisk:        30 * time.Minute,
+	models.HostStageCopyingRegistryDataToDisk: 90 * time.Minute,
+	models.HostStageRebooting:                 40 * time.Minute,
+	models.HostStageConfiguring:               60 * time.Minute,
+	models.HostStageWaitingForIgnition:        24 * time.Hour,
 }
 
 // hostStageTimeoutDefault is the default timeout for stages that aren't explicitly enumerated in
