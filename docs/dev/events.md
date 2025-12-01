@@ -42,3 +42,63 @@ mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 	eventstest.WithMessageMatcher(message),
 	eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
 ```
+
+### Event Rate Limiting
+
+Event rate limiting is implemented to prevent event flooding by throttling high-frequency events.
+
+#### Implementation
+
+Rate limiting is implemented in [internal/events/event.go](https://github.com/openshift/assisted-service/blob/master/internal/events/event.go):
+
+1. **eventLimits map**: Package-level variable containing event name → duration mappings
+2. **exceedsLimits()**: Checks if an event exceeds its rate limit by querying recent events
+3. **InitializeEventLimits()**: Parses `EVENT_RATE_LIMITS` JSON and merges with hardcoded defaults
+
+#### Configuration
+
+Operators configure rate limits via the `EVENT_RATE_LIMITS` environment variable (see [docs/events.md](https://github.com/openshift/assisted-service/blob/master/docs/events.md#event-rate-limiting)).
+
+Format: `{"event_name": "duration"}` where duration follows Go's `time.ParseDuration` format.
+
+#### Adding Default Rate Limits
+
+To add a hardcoded default rate limit for an event:
+
+```go
+// In internal/events/event.go
+var eventLimits = map[string]time.Duration{
+	commonevents.UpgradeAgentFailedEventName:   time.Hour,
+	commonevents.UpgradeAgentFinishedEventName: time.Hour,
+	commonevents.YourNewEventName:              30 * time.Minute,  // Add here
+}
+```
+
+#### How It Works
+
+1. **Initialization** (cmd/main.go):
+   - `events.InitializeEventLimits(Options.EventRateLimits, log)` is called before DB setup
+   - Custom limits from ENV var are merged into the `eventLimits` map
+   - Invalid configuration causes startup failure
+
+2. **Event Creation** (internal/events/event.go):
+   - `v2SaveEvent()` calls `exceedsLimits()` before persisting
+   - `exceedsLimits()` queries the database for recent events with the same name
+   - If count > 0 within the limit window, the event is discarded
+
+3. **Rate Limit Scope**:
+   - Rate limits are enforced **per entity** (cluster/host/infraenv), not globally
+   - The `exceedsLimits()` function conditionally filters by `cluster_id`, `host_id`, and `infra_env_id` (lines 126-134)
+   - Example: `upgrade_agent_failed` limited to 1h means each host can trigger it once per hour
+   - Different hosts/clusters can trigger the same event independently within their own limit windows
+
+#### Error Handling
+
+- **Invalid JSON**: Service fails at startup with `"Failed to parse EVENT_RATE_LIMITS json"`
+- **Invalid duration**: Service fails at startup with `"Invalid duration for event 'X'"`
+- **Unknown event names**: Accepted (allows rate limiting events not in hardcoded defaults)
+
+#### Logging
+
+- **Startup**: Logs all configured limits at INFO level via `logCurrentLimits()`
+- **Runtime**: Discarded events logged at WARN level via `reportDiscarded()`
