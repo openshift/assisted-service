@@ -392,6 +392,29 @@ var _ = Describe("applyHostConfigByHostname", func() {
 			Expect(err.Error()).To(ContainSubstring("failed to update Host"))
 		})
 	})
+
+	Context("when host has malformed inventory JSON", func() {
+		It("should return error", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{
+				ID:         &testHostID,
+				InfraEnvID: testInfraEnvID,
+				Inventory:  `{invalid json`,
+			}
+
+			fencingCreds := map[string]*models.FencingCredentialsParams{
+				"master-0": {
+					Address:  strPtr("redfish+https://example.com"),
+					Username: strPtr("admin"),
+					Password: strPtr("password"),
+				},
+			}
+
+			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to unmarshal"))
+		})
+	})
 })
 
 // Helper function to create string pointers
