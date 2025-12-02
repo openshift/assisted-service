@@ -79,6 +79,10 @@ func loadFencingCredentials(hostConfigDir string) (map[string]*models.FencingCre
 			return nil, fmt.Errorf("fencing credential at index %d has empty hostname", i)
 		}
 
+		if _, exists := credentialsMap[cred.Hostname]; exists {
+			return nil, fmt.Errorf("duplicate fencing credential for hostname: %s", cred.Hostname)
+		}
+
 		if cred.Address == nil {
 			return nil, fmt.Errorf("fencing credential for hostname %s is missing required field: address", cred.Hostname)
 		}
