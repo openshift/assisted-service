@@ -209,6 +209,9 @@ parameters:
 - name: ENABLE_EVENT_STREAMING
   required: false
   value: "true"
+- name: EVENT_RATE_LIMITS
+  required: false
+  value: ""
 - name: ENABLE_REJECT_UNKNOWN_FIELDS
   required: false
   value: "true"
@@ -400,6 +403,8 @@ objects:
                     name: ${KAFKA_PASSWORD_SECRET_NAME}
               - name: ENABLE_EVENT_STREAMING
                 value: ${ENABLE_EVENT_STREAMING}
+              - name: EVENT_RATE_LIMITS
+                value: ${EVENT_RATE_LIMITS}
               - name: KAFKA_EVENT_STREAM_TOPIC
                 value: ${KAFKA_EVENT_STREAM_TOPIC}
               - name: KAFKA_SASL_MECHANISM
