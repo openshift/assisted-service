@@ -194,6 +194,10 @@ func (m *mockTransport) Submit(op *runtime.ClientOperation) (interface{}, error)
 	case *manifests.V2CreateClusterManifestParams:
 		m.filesReceived[*v.CreateManifestParams.FileName] = *v.CreateManifestParams.Content
 		result = &manifests.V2CreateClusterManifestCreated{}
+	case *manifests.V2ListClusterManifestsParams:
+		result = &manifests.V2ListClusterManifestsOK{
+			Payload: []*models.Manifest{},
+		}
 	case *installerclient.V2ImportClusterParams:
 		m.lastImportParamsReceived = v.NewImportClusterParams
 		result = &installerclient.V2ImportClusterCreated{
