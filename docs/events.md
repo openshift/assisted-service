@@ -107,6 +107,29 @@ Configure rate limits using the `EVENT_RATE_LIMITS` environment variable with JS
 export EVENT_RATE_LIMITS='{"upgrade_agent_failed":"2h","infra_env_deregister_failed":"30m"}'
 ```
 
+**For ACM/Infrastructure Operator deployments:**
+
+Override via custom ConfigMap using the annotation pattern:
+
+```bash
+# Create ConfigMap with EVENT_RATE_LIMITS
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-assisted-service-config
+  namespace: assisted-installer
+data:
+  EVENT_RATE_LIMITS: '{"upgrade_agent_failed":"2h","infra_env_deregister_failed":"30m"}'
+EOF
+
+# Apply annotation to AgentServiceConfig
+oc annotate --overwrite AgentServiceConfig agent \
+  unsupported.agent-install.openshift.io/assisted-service-configmap=my-assisted-service-config
+```
+
+See [Operator documentation](operator.md#specifying-environmental-variables-via-configmap) for more details on custom ConfigMap overrides.
+
 Duration format follows Go's `time.Duration` syntax:
 - `30s` - 30 seconds
 - `5m` - 5 minutes
