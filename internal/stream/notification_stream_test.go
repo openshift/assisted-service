@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -15,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Close", func() {

@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	stateswitch "github.com/filanov/stateswitch"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockTransitionHandler is a mock of TransitionHandler interface.
