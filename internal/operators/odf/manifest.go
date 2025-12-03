@@ -72,7 +72,16 @@ func Manifests(mode odfDeploymentMode, numberOfDisks int64, openshiftVersion str
 	}
 	openshiftManifests["50_openshift-odf_subscription.yaml"] = []byte(odfSubscription)
 	openshiftManifests["50_openshift-odf_operator_group.yaml"] = []byte(odfOperatorGroup)
-	odfSC = append([]byte(odfStorageSystem+"\n---\n"), odfSC...)
+
+	// StorageSystem manifest is only needed for OCP versions up to 4.18
+	constraints418, er := version.NewConstraint("<= 4.18")
+	if er != nil {
+		return nil, nil, er
+	}
+	if constraints418.Check(v1) {
+		odfSC = append([]byte(odfStorageSystem+"\n---\n"), odfSC...)
+	}
+
 	return openshiftManifests, odfSC, nil
 }
 
@@ -143,6 +152,7 @@ metadata:
   name: openshift-storage
 spec: {}`
 
+// TODO: Remove this section when versions under 4.19 are no longer supported
 const odfStorageSystem = `apiVersion: odf.openshift.io/v1alpha1
 kind: StorageSystem
 metadata:
