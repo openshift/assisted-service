@@ -4569,7 +4569,6 @@ location = "%s"
 			agent := getAgentCRD(ctx, kubeClient, key)
 			return agent.Status.DebugInfo.EventsURL
 		}, "30s", "10s").Should(MatchRegexp(fmt.Sprintf("/v2/events.*host_id=%s", host.ID.String())))
-		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
 
 		agent := getAgentCRD(ctx, kubeClient, key)
 		_, err := testEventUrl(agent.Status.DebugInfo.EventsURL)
@@ -4583,6 +4582,8 @@ location = "%s"
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec2)
 		deployInfraEnvCRD(ctx, kubeClient, "infraenv2", infraEnvSpec2)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec2, clusterDeploymentSpec2.ClusterInstallRef.Name)
+
+		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
 
 		By("Register Agent to new Infraenv")
 		infraEnv2Key := types.NamespacedName{
