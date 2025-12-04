@@ -119,10 +119,10 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		})
 
 	defer func() {
-		log.Info("Agent Reconcile ended")
+		log.Debug("Agent Reconcile ended")
 	}()
 
-	log.Info("Agent Reconcile started")
+	log.Debug("Agent Reconcile started")
 
 	agent := &aiv1beta1.Agent{}
 
