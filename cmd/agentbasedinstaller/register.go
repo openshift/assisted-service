@@ -212,25 +212,33 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		clusterID = modelsCluster.ID
 	}
 	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
-
-	var nmStateConfig aiv1beta1.NMStateConfig
-
-	fileInfo, _ := os.Stat(nmStateConfigPath)
-	if fileInfo != nil {
-		if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
-			return nil, nmStateErr
-		}
-
-		staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
-		if processErr != nil {
-			return nil, processErr
-		}
-
-		if len(staticNetworkConfig) > 0 {
-			log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
-			infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
-		}
+	// In ABI, the --copy-network flag should always be included in the installer args.
+	// The flag is added if the infraenv is found to have static networking configured.
+	// See https://github.com/openshift/assisted-service/blob/f026180842bb99cc97d5597fd1bfaa483a55828b/internal/host/hostcommands/install_cmd.go#L368
+	// Here we add a dummy static network config to force the --copy-network flag
+	// to be added. The dummy network config is not applied to the hosts.
+	netYaml := `interfaces:
+- ipv4:
+    address:
+    - ip: 192.0.2.1
+      prefix-length: 24
+    dhcp: false
+    enabled: true
+  name: dummy
+  state: up
+  type: ethernet`
+	dummyStaticNetworkConfig := []*models.HostStaticNetworkConfig{
+		{
+			NetworkYaml: netYaml,
+			MacInterfaceMap: []*models.MacInterfaceMapItems0{
+				{
+					LogicalNicName: "dummy",
+					MacAddress:     "52:54:00:09:de:93",
+				},
+			},
+		},
 	}
+	infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = dummyStaticNetworkConfig
 
 	clientInfraEnvParams := &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: infraEnvParams.InfraenvCreateParams,
