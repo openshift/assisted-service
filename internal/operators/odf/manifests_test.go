@@ -245,4 +245,50 @@ var _ = Describe("OCS manifest generation", func() {
 		})
 
 	})
+
+	Context("StorageSystem manifest version compatibility", func() {
+		createCluster := func(version string) *common.Cluster {
+			return &common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: version,
+				Hosts: []*models.Host{
+					{Role: models.HostRoleMaster, InstallationDiskID: diskID1, Inventory: Inventory(&InventoryResources{Disks: []*models.Disk{
+						{ID: diskID1, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+						{ID: diskID2, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+					}})},
+					{Role: models.HostRoleMaster, InstallationDiskID: diskID1, Inventory: Inventory(&InventoryResources{Disks: []*models.Disk{
+						{ID: diskID1, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+						{ID: diskID2, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+					}})},
+					{Role: models.HostRoleMaster, InstallationDiskID: diskID1, Inventory: Inventory(&InventoryResources{Disks: []*models.Disk{
+						{ID: diskID1, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+						{ID: diskID2, SizeBytes: conversions.GbToBytes(30), DriveType: models.DriveTypeHDD},
+					}})},
+				},
+			}}
+		}
+
+		It("Should include StorageSystem for version 4.18.0", func() {
+			_, manifest, err := operator.GenerateManifests(createCluster("4.18.0"))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(string(manifest)).To(ContainSubstring("kind: StorageSystem"))
+		})
+
+		It("Should include StorageSystem for version 4.18.1", func() {
+			_, manifest, err := operator.GenerateManifests(createCluster("4.18.1"))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(string(manifest)).To(ContainSubstring("kind: StorageSystem"))
+		})
+
+		It("Should include StorageSystem for version 4.18.5", func() {
+			_, manifest, err := operator.GenerateManifests(createCluster("4.18.5"))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(string(manifest)).To(ContainSubstring("kind: StorageSystem"))
+		})
+
+		It("Should NOT include StorageSystem for version 4.19.0", func() {
+			_, manifest, err := operator.GenerateManifests(createCluster("4.19.0"))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(string(manifest)).NotTo(ContainSubstring("kind: StorageSystem"))
+		})
+	})
 })
