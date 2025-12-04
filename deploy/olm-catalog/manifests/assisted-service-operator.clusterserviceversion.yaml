@@ -1186,6 +1186,7 @@ spec:
                     memory: 200Mi
                 securityContext:
                   allowPrivilegeEscalation: false
+                  readOnlyRootFilesystem: true
               serviceAccountName: assisted-service
               terminationGracePeriodSeconds: 10
       permissions:

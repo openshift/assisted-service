@@ -254,6 +254,8 @@ objects:
           - name: envoy-sidecar
             image: ${ENVOY_IMAGE}:${ENVOY_TAG}
             imagePullPolicy: IfNotPresent
+            securityContext:
+              readOnlyRootFilesystem: true
             command:
             - envoy
             - --config-path
@@ -288,6 +290,8 @@ objects:
           - name: assisted-service
             image: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
+            securityContext:
+              readOnlyRootFilesystem: true
             resources:
               limits:
                 cpu: ${{CPU_LIMIT}}
@@ -512,6 +516,8 @@ objects:
                 value: ${AMD_SUPPORTED_GPUS}
               - name: TNA_CLUSTERS_SUPPORT
                 value: ${TNA_CLUSTERS_SUPPORT}
+              - name: TMPDIR
+                value: /data
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
