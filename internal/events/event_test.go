@@ -2006,15 +2006,20 @@ var _ = Describe("InitializeEventLimits", func() {
 		eventLimits = originalLimits
 	})
 
+	// verifyEventLimitDefaults verifies that all three default event limits are present with their default values
+	verifyEventLimitDefaults := func() {
+		Expect(eventLimits[eventgen.UpgradeAgentFailedEventName]).To(Equal(time.Hour))
+		Expect(eventLimits[eventgen.UpgradeAgentFinishedEventName]).To(Equal(time.Hour))
+		Expect(eventLimits[eventgen.UpgradeAgentStartedEventName]).To(Equal(time.Hour))
+	}
+
 	Context("with empty or default configuration", func() {
 		It("should succeed and preserve hardcoded defaults", func() {
 			err := InitializeEventLimits("", log)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(eventLimits).To(HaveLen(3))
-			Expect(eventLimits[eventgen.UpgradeAgentFailedEventName]).To(Equal(time.Hour))
-			Expect(eventLimits[eventgen.UpgradeAgentFinishedEventName]).To(Equal(time.Hour))
-			Expect(eventLimits[eventgen.UpgradeAgentStartedEventName]).To(Equal(time.Hour))
+			verifyEventLimitDefaults()
 		})
 	})
 
@@ -2026,7 +2031,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			Expect(eventLimits).To(HaveLen(4)) // 3 defaults + 1 new
 			Expect(eventLimits["new_event"]).To(Equal(5 * time.Minute))
 			// Verify defaults are still there
-			Expect(eventLimits[eventgen.UpgradeAgentFailedEventName]).To(Equal(time.Hour))
+			verifyEventLimitDefaults()
 		})
 
 		It("should override existing defaults", func() {
@@ -2037,6 +2042,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			Expect(eventLimits[eventgen.UpgradeAgentFailedEventName]).To(Equal(2 * time.Hour))
 			// Verify other defaults unchanged
 			Expect(eventLimits[eventgen.UpgradeAgentFinishedEventName]).To(Equal(time.Hour))
+			Expect(eventLimits[eventgen.UpgradeAgentStartedEventName]).To(Equal(time.Hour))
 		})
 
 		It("should handle multiple events", func() {
@@ -2065,7 +2071,9 @@ var _ = Describe("InitializeEventLimits", func() {
 			Expect(eventLimits).To(HaveLen(4)) // 3 defaults (1 overridden) + 1 new
 			Expect(eventLimits[eventgen.UpgradeAgentFailedEventName]).To(Equal(2 * time.Hour))
 			Expect(eventLimits["new_event"]).To(Equal(30 * time.Minute))
+			// Verify other defaults unchanged
 			Expect(eventLimits[eventgen.UpgradeAgentFinishedEventName]).To(Equal(time.Hour))
+			Expect(eventLimits[eventgen.UpgradeAgentStartedEventName]).To(Equal(time.Hour))
 		})
 	})
 
