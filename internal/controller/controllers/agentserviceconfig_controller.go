@@ -235,10 +235,10 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		})
 
 	defer func() {
-		log.Info("AgentServiceConfig Reconcile ended")
+		log.Debug("AgentServiceConfig Reconcile ended")
 	}()
 
-	log.Info("AgentServiceConfig Reconcile started")
+	log.Debug("AgentServiceConfig Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
 	asc = initASC(r, instance)
