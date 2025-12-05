@@ -255,6 +255,24 @@ func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool
 	return true, nil
 }
 
+// WaitForObject waits for a filesystem object to become visible with retry.
+// For filesystem storage, files are immediately visible after write, but this
+// method is provided for API compatibility with S3Client.
+func (f *FSClient) WaitForObject(ctx context.Context, objectName string) error {
+	log := logutil.FromContext(ctx, f.log)
+	// Filesystem has no eventual consistency - if the file exists, it's immediately visible
+	// However, we do a quick check to maintain the same API contract
+	exists, err := f.DoesObjectExist(ctx, objectName)
+	if err != nil {
+		return fmt.Errorf("error checking if object %s exists: %w", objectName, err)
+	}
+	if !exists {
+		return fmt.Errorf("object %s not found in filesystem storage", objectName)
+	}
+	log.Debugf("Object %s is available in filesystem storage", objectName)
+	return nil
+}
+
 func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, error) {
 	log := logutil.FromContext(ctx, f.log)
 	filePath := filepath.Join(f.basedir, objectName)
@@ -519,6 +537,10 @@ func (d *FSClientDecorator) Download(ctx context.Context, objectName string) (io
 
 func (d *FSClientDecorator) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	return d.fsClient.DoesObjectExist(ctx, objectName)
+}
+
+func (d *FSClientDecorator) WaitForObject(ctx context.Context, objectName string) error {
+	return d.fsClient.WaitForObject(ctx, objectName)
 }
 
 func (d *FSClientDecorator) DeleteObject(ctx context.Context, objectName string) (bool, error) {
