@@ -195,7 +195,6 @@ var eventLimits = map[string]time.Duration{
 // InitializeEventLimits parses the EVENT_RATE_LIMITS JSON and merges custom limits with hardcoded defaults.
 // Custom limits override defaults. Returns an error if JSON is invalid or duration format is incorrect.
 // Format: {"event_name": "duration"}, e.g., {"upgrade_agent_failed": "2h", "infra_env_deregister_failed": "30m"}
-// (MGMT-22103)
 func InitializeEventLimits(eventRateLimitsJSON string, log logrus.FieldLogger) error {
 	if eventRateLimitsJSON == "" {
 		logCurrentLimits(log)
@@ -204,14 +203,14 @@ func InitializeEventLimits(eventRateLimitsJSON string, log logrus.FieldLogger) e
 
 	var customLimits map[string]string
 	if err := json.Unmarshal([]byte(eventRateLimitsJSON), &customLimits); err != nil {
-		return fmt.Errorf("Failed to parse EVENT_RATE_LIMITS json %s: %w", eventRateLimitsJSON, err)
+		return fmt.Errorf("failed to parse EVENT_RATE_LIMITS json %s: %w", eventRateLimitsJSON, err)
 	}
 
 	// Merge custom limits into existing eventLimits (overriding defaults)
 	for eventName, durationStr := range customLimits {
 		duration, err := time.ParseDuration(durationStr)
 		if err != nil {
-			return fmt.Errorf("Invalid duration for event '%s' in EVENT_RATE_LIMITS: %s: %w", eventName, durationStr, err)
+			return fmt.Errorf("invalid duration for event '%s' in EVENT_RATE_LIMITS: %s: %w", eventName, durationStr, err)
 		}
 		eventLimits[eventName] = duration
 	}
@@ -220,10 +219,10 @@ func InitializeEventLimits(eventRateLimitsJSON string, log logrus.FieldLogger) e
 	return nil
 }
 
-// logCurrentLimits logs all configured event rate limits at Info level
+// logCurrentLimits logs all configured event rate limits at Debug level
 func logCurrentLimits(log logrus.FieldLogger) {
 	if len(eventLimits) == 0 {
-		log.Info("No event rate limits configured")
+		log.Debug("No event rate limits configured")
 		return
 	}
 
@@ -231,7 +230,7 @@ func logCurrentLimits(log logrus.FieldLogger) {
 	for eventName, duration := range eventLimits {
 		fields[eventName] = duration.String()
 	}
-	log.WithFields(fields).Info("Event rate limits configured")
+	log.WithFields(fields).Debug("Event rate limits configured")
 }
 
 func (e *Events) SendClusterEvent(ctx context.Context, event eventsapi.ClusterEvent) {

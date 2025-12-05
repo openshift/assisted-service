@@ -2082,7 +2082,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			err := InitializeEventLimits(`{bad json}`, log)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Failed to parse EVENT_RATE_LIMITS json"))
+			Expect(err.Error()).To(ContainSubstring("failed to parse EVENT_RATE_LIMITS json"))
 			Expect(err.Error()).To(ContainSubstring("{bad json}"))
 		})
 
@@ -2090,7 +2090,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			err := InitializeEventLimits(`{"event":"5m"`, log)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Failed to parse EVENT_RATE_LIMITS json"))
+			Expect(err.Error()).To(ContainSubstring("failed to parse EVENT_RATE_LIMITS json"))
 		})
 
 		It("should succeed with empty JSON object", func() {
@@ -2107,7 +2107,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			err := InitializeEventLimits(`{"event":"5"}`, log)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Invalid duration for event 'event'"))
+			Expect(err.Error()).To(ContainSubstring("invalid duration for event 'event'"))
 			Expect(err.Error()).To(ContainSubstring("5"))
 		})
 
@@ -2115,7 +2115,7 @@ var _ = Describe("InitializeEventLimits", func() {
 			err := InitializeEventLimits(`{"event":"5minutes"}`, log)
 
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("Invalid duration for event 'event'"))
+			Expect(err.Error()).To(ContainSubstring("invalid duration for event 'event'"))
 			Expect(err.Error()).To(ContainSubstring("5minutes"))
 		})
 	})
@@ -2131,6 +2131,8 @@ var _ = Describe("logCurrentLimits", func() {
 	BeforeEach(func() {
 		// Create logger with test hook to capture output
 		log, hook = test.NewNullLogger()
+		// Set log level to Debug to capture Debug level logs
+		log.SetLevel(logrus.DebugLevel)
 
 		// Save original eventLimits to restore after test
 		originalLimits = make(map[string]time.Duration)
@@ -2146,7 +2148,7 @@ var _ = Describe("logCurrentLimits", func() {
 	})
 
 	Context("with configured limits", func() {
-		It("should log at Info level with all event limits", func() {
+		It("should log at Debug level with all event limits", func() {
 			// Setup some event limits
 			eventLimits = map[string]time.Duration{
 				"event1": time.Hour,
@@ -2155,7 +2157,7 @@ var _ = Describe("logCurrentLimits", func() {
 
 			logCurrentLimits(log)
 
-			Expect(hook.LastEntry().Level).To(Equal(logrus.InfoLevel))
+			Expect(hook.LastEntry().Level).To(Equal(logrus.DebugLevel))
 			Expect(hook.LastEntry().Message).To(Equal("Event rate limits configured"))
 			Expect(hook.LastEntry().Data).To(HaveKeyWithValue("event1", "1h0m0s"))
 			Expect(hook.LastEntry().Data).To(HaveKeyWithValue("event2", "30m0s"))
@@ -2171,7 +2173,7 @@ var _ = Describe("logCurrentLimits", func() {
 
 			logCurrentLimits(log)
 
-			Expect(hook.LastEntry().Level).To(Equal(logrus.InfoLevel))
+			Expect(hook.LastEntry().Level).To(Equal(logrus.DebugLevel))
 			Expect(hook.LastEntry().Message).To(Equal("Event rate limits configured"))
 			Expect(hook.LastEntry().Data).To(HaveLen(3))
 			Expect(hook.LastEntry().Data).To(HaveKeyWithValue(eventgen.UpgradeAgentFailedEventName, "1h0m0s"))
@@ -2195,12 +2197,12 @@ var _ = Describe("logCurrentLimits", func() {
 	})
 
 	Context("with no limits configured", func() {
-		It("should log info message when eventLimits is empty", func() {
+		It("should log debug message when eventLimits is empty", func() {
 			eventLimits = map[string]time.Duration{}
 
 			logCurrentLimits(log)
 
-			Expect(hook.LastEntry().Level).To(Equal(logrus.InfoLevel))
+			Expect(hook.LastEntry().Level).To(Equal(logrus.DebugLevel))
 			Expect(hook.LastEntry().Message).To(Equal("No event rate limits configured"))
 			Expect(hook.LastEntry().Data).To(BeEmpty())
 		})

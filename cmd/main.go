@@ -125,7 +125,7 @@ var Options struct {
 	IgnoredOpenshiftVersions             string        `envconfig:"IGNORED_OPENSHIFT_VERSIONS" default:""`
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
-	EventRateLimits                      string        `envconfig:"EVENT_RATE_LIMITS" default:""` // MGMT-22103
+	EventRateLimits                      string        `envconfig:"EVENT_RATE_LIMITS" default:""`
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                             versions.Versions
