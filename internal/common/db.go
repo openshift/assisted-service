@@ -420,7 +420,18 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 
 	if eagerLoading {
 		for _, tableName := range ClusterSubTables {
-			db = LoadTableFromDB(db, tableName, conditions...)
+			nc := conditions
+			switch tableName {
+			case MachineNetworksTable, ClusterNetworksTable, ServiceNetworksTable:
+				nc = append(nc, func(db *gorm.DB) *gorm.DB {
+					return db.Order("family(cidr::inet) ASC")
+				})
+			case APIVIPsTable, IngressVIPsTable:
+				nc = append(nc, func(db *gorm.DB) *gorm.DB {
+					return db.Order("family(ip::inet) ASC")
+				})
+			}
+			db = LoadTableFromDB(db, tableName, nc...)
 		}
 	}
 
@@ -435,6 +446,7 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 	if err != nil {
 		return nil, err
 	}
+	OrderClusterNetworks(&cluster)
 	return &cluster, nil
 }
 
@@ -450,6 +462,7 @@ func GetClusterFromDBWhereForUpdate(db *gorm.DB, eagerLoading EagerLoadingState,
 	if err != nil {
 		return nil, err
 	}
+	OrderClusterNetworks(&cluster)
 	return &cluster, nil
 }
 
@@ -460,6 +473,9 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 	err := db.Find(&clusters, where...).Error
 	if err != nil {
 		return nil, err
+	}
+	for _, cluster := range clusters {
+		OrderClusterNetworks(cluster)
 	}
 	return clusters, nil
 }
