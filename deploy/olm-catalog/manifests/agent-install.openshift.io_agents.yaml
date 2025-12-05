@@ -336,6 +336,21 @@ spec:
                       - id
                       type: object
                     type: array
+                  gpus:
+                    items:
+                      properties:
+                        address:
+                          type: string
+                        deviceID:
+                          type: string
+                        name:
+                          type: string
+                        vendor:
+                          type: string
+                        vendorID:
+                          type: string
+                      type: object
+                    type: array
                   hostname:
                     type: string
                   interfaces:
