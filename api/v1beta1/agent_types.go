@@ -108,6 +108,14 @@ type HostCPU struct {
 	Architecture   string   `json:"architecture,omitempty"`
 }
 
+type HostGPU struct {
+	Vendor   string `json:"vendor,omitempty"`
+	VendorID string `json:"vendorID,omitempty"`
+	DeviceID string `json:"deviceID,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Address  string `json:"address,omitempty"`
+}
+
 type HostInterface struct {
 	IPV6Addresses []string `json:"ipV6Addresses"`
 	Vendor        string   `json:"vendor,omitempty"`
@@ -173,6 +181,7 @@ type HostInventory struct {
 	BmcV6address string           `json:"bmcV6Address,omitempty"`
 	Memory       HostMemory       `json:"memory,omitempty"`
 	Cpu          HostCPU          `json:"cpu,omitempty"`
+	Gpus         []HostGPU        `json:"gpus,omitempty"`
 	Interfaces   []HostInterface  `json:"interfaces,omitempty"`
 	Disks        []HostDisk       `json:"disks,omitempty"`
 	Boot         HostBoot         `json:"boot,omitempty"`
