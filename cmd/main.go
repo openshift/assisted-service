@@ -587,7 +587,9 @@ func main() {
 			lead = leader.NewElector(k8sClient, Options.LeaderConfig, "assisted-service-leader-election-helper",
 				log.WithField("pkg", "monitor-runner"))
 			failOnError(lead.StartLeaderElection(context.Background()), "Failed to start leader")
+			startupLeader = &leader.DummyElector{}
 		} else {
+			lead = &leader.DummyElector{}
 			startupLeader = leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-migration-helper",
