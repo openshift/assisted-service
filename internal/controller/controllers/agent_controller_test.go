@@ -2274,6 +2274,15 @@ var _ = Describe("agent reconcile", func() {
 				{Path: "/dev/sda", Bootable: true, DriveType: models.DriveTypeHDD},
 				{Path: "/dev/sdb", Bootable: false, DriveType: models.DriveTypeHDD},
 			},
+			Gpus: []*models.Gpu{
+				{
+					Address:  "0000:03:00.0",
+					DeviceID: "1db6",
+					Name:     "NVIDIA Tesla V100",
+					Vendor:   "NVIDIA Corporation",
+					VendorID: "10de",
+				},
+			},
 		}
 		inv, _ := json.Marshal(&inventory)
 		commonHost := &common.Host{
@@ -2319,6 +2328,12 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(agent.Status.Inventory.Interfaces).NotTo(BeEmpty())
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
+		Expect(agent.Status.Inventory.Gpus).NotTo(BeEmpty())
+		Expect(agent.Status.Inventory.Gpus[0].Address).To(Equal("0000:03:00.0"))
+		Expect(agent.Status.Inventory.Gpus[0].DeviceID).To(Equal("1db6"))
+		Expect(agent.Status.Inventory.Gpus[0].Name).To(Equal("NVIDIA Tesla V100"))
+		Expect(agent.Status.Inventory.Gpus[0].Vendor).To(Equal("NVIDIA Corporation"))
+		Expect(agent.Status.Inventory.Gpus[0].VendorID).To(Equal("10de"))
 		Expect(agent.GetAnnotations()[InventoryLabelPrefix+"version"]).To(Equal("0.1"))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"storage-hasnonrotationaldisk"]).To(Equal("false"))
 		Expect(agent.GetLabels()[InventoryLabelPrefix+"cpu-architecture"]).To(Equal(common.DefaultCPUArchitecture))

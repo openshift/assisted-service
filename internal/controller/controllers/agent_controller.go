@@ -1560,6 +1560,17 @@ func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx c
 			}
 		}
 	}
+	if inventory.Gpus != nil {
+		gpus := make([]aiv1beta1.HostGpu, len(inventory.Gpus))
+		agent.Status.Inventory.Gpus = gpus
+		for i, g := range inventory.Gpus {
+			gpus[i].Address = g.Address
+			gpus[i].DeviceID = g.DeviceID
+			gpus[i].Name = g.Name
+			gpus[i].Vendor = g.Vendor
+			gpus[i].VendorID = g.VendorID
+		}
+	}
 
 	return r.updateLabels(log, ctx, agent)
 }

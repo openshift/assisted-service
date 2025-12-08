@@ -330,6 +330,28 @@ spec:
                       - id
                       type: object
                     type: array
+                  gpus:
+                    items:
+                      properties:
+                        address:
+                          description: Device address (for example "0000:00:02.0")
+                          type: string
+                        deviceID:
+                          description: ID of the device (for example "3ea0")
+                          type: string
+                        name:
+                          description: Product name of the device (for example "UHD
+                            Graphics 620 (Whiskey Lake)")
+                          type: string
+                        vendor:
+                          description: The name of the device vendor (for example
+                            "Intel Corporation")
+                          type: string
+                        vendorID:
+                          description: ID of the vendor (for example "8086")
+                          type: string
+                      type: object
+                    type: array
                   hostname:
                     type: string
                   interfaces:
