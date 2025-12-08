@@ -180,6 +180,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) []mode
 	return []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDTNA,
+		models.FeatureSupportLevelIDTNF,
 		models.FeatureSupportLevelIDUSERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDMCE,
@@ -240,6 +241,7 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSNO,
 		models.FeatureSupportLevelIDTNA,
+		models.FeatureSupportLevelIDTNF,
 		models.FeatureSupportLevelIDLVM,
 		models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDCNV,
@@ -296,6 +298,7 @@ func (feature *OciIntegrationFeature) getSupportLevel(filters SupportLevelFilter
 func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDTNA,
+		models.FeatureSupportLevelIDTNF,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDDUALSTACKVIPS,
@@ -353,6 +356,7 @@ func (feature *ExternalPlatformFeature) getSupportLevel(filters SupportLevelFilt
 func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDTNA,
+		models.FeatureSupportLevelIDTNF,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,

@@ -11165,6 +11165,7 @@ var _ = Describe("infraEnvs host", func() {
 					Password: swag.String("password123"),
 				}
 				cluster.OpenshiftVersion = common.MinimumVersionForTwoNodesWithFencing
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 				db.Save(&cluster)
 			})
 
@@ -11227,7 +11228,23 @@ var _ = Describe("infraEnvs host", func() {
 				})
 				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+			})
+
+			It("should return BadRequest error when platform is not allowed for fencing", func() {
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeVsphere)}
+				db.Save(&cluster)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
 			})
 
 			It("should successfully update fencing credentials when all validations pass", func() {
@@ -18437,6 +18454,7 @@ var _ = Describe("BindHost", func() {
 		var clusterObj models.Cluster
 		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
 
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
@@ -18461,6 +18479,37 @@ var _ = Describe("BindHost", func() {
 	})
 
 	It("failed bind because openshift version doesn't support fencing credentials", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", "4.19").Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "has fencing credentials")
+	})
+
+	It("failed bind because host has fencing credentials and cluster's platform is not allowed", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeVsphere).Error).ShouldNot(HaveOccurred())
+
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
