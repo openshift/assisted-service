@@ -65,9 +65,9 @@ type OperatorFeatureSupportID struct {
 
 // operatorMetadata is a struct to marshal the metadata content into YAML for the OLM Operator ConfigMap.
 type operatorMetadata struct {
-	Namespace        string   `yaml:"namespace"`
-	SubscriptionName string   `yaml:"subscriptionName"`
-	Manifests        []string `yaml:"manifests"`
+	Namespace        string   `json:"namespace" yaml:"namespace"`
+	SubscriptionName string   `json:"subscriptionName" yaml:"subscriptionName"`
+	Manifests        []string `json:"manifests" yaml:"manifests"`
 }
 
 // API defines Operator management operation

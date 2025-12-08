@@ -288,6 +288,26 @@ var _ = Describe("Operators manager", func() {
 			Expect(cm.Data).Should(HaveKey("lso-01.yaml"), "Expected 'lso-01.yaml' entry for LSO")
 			Expect(cm.Data).Should(HaveKey("lso.metadata.yaml"), "Expected 'lso.metadata.yaml' entry for LSO")
 
+			// Validate metadata content has correct field names (lowercase/camelCase, not capitalized)
+			metadataContent, exists := cm.Data["cnv.metadata.yaml"]
+			Expect(exists).Should(BeTrue(), "Expected cnv.metadata.yaml in ConfigMap data")
+			Expect(metadataContent).ShouldNot(BeEmpty())
+
+			// Unmarshal into a map to check field names
+			var metadata map[string]interface{}
+			err = yaml.Unmarshal([]byte(metadataContent), &metadata)
+			Expect(err).ShouldNot(HaveOccurred(), "Expected metadata to be valid YAML")
+
+			// Verify fields are lowercase/camelCase (not capitalized)
+			Expect(metadata).Should(HaveKey("namespace"), "Expected 'namespace' field (lowercase)")
+			Expect(metadata).Should(HaveKey("subscriptionName"), "Expected 'subscriptionName' field (camelCase)")
+			Expect(metadata).Should(HaveKey("manifests"), "Expected 'manifests' field (lowercase)")
+
+			// Validate the actual values
+			Expect(metadata["namespace"]).Should(Equal("kubevirt-hyperconverged"), "Expected correct namespace value")
+			Expect(metadata["subscriptionName"]).Should(Equal("hco-operatorhub"), "Expected correct subscriptionName value")
+			Expect(metadata["manifests"]).Should(ContainElement("cnv-01.yaml"), "Expected manifests to contain cnv-01.yaml")
+
 		})
 	})
 
