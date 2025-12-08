@@ -2346,6 +2346,188 @@ var _ = Describe("Validations test", func() {
 			Expect(ValidationError).To(Equal(status))
 		})
 	})
+	Context("Has Min Memory", func() {
+		var (
+			host    models.Host
+			cluster common.Cluster
+		)
+
+		const (
+			minRAMMibRequirement int64 = 8192 // 8 GiB minimum
+		)
+
+		BeforeEach(func() {
+			// Create a test cluster
+			cluster = hostutil.GenerateTestCluster(clusterID)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			// Create a test host
+			hostId, infraEnvId := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+			mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()
+			host = hostutil.GenerateTestHostByKind(hostId, infraEnvId, &clusterID, models.HostStatusDiscovering, models.HostKindHost, models.HostRoleMaster)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		})
+
+		updateMemoryInventory := func(h *models.Host, physicalBytes int64, method models.MemoryMethod) {
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(h.Inventory), &inventory)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			inventory.Memory = &models.Memory{
+				PhysicalBytes:       physicalBytes,
+				UsableBytes:         physicalBytes,
+				PhysicalBytesMethod: method,
+			}
+
+			inventoryByte, _ := json.Marshal(inventory)
+			h.Inventory = string(inventoryByte)
+
+			Expect(db.Save(h).Error).ShouldNot(HaveOccurred())
+		}
+
+		It("Sufficient memory with dmidecode method", func() {
+			// Memory meets requirement with standard tolerance
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodDmidecode)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Insufficient memory with dmidecode method - below standard tolerance", func() {
+			// Memory is slightly below requirement minus standard tolerance (100 MiB)
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - 150)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodDmidecode)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(ContainSubstring("minimum required RAM"))
+		})
+
+		It("Memory within standard tolerance with dmidecode method", func() {
+			// Memory is within standard tolerance (100 MiB below requirement)
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - 50)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodDmidecode)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Sufficient memory with meminfo method", func() {
+			// Memory meets requirement with extended tolerance
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodMeminfo)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Memory within extended tolerance with meminfo method", func() {
+			// When using meminfo, tolerance = 100 MiB + (8192 / 50) = 100 + 163.84 = ~263.84 MiB
+			// Set memory to be within this extended tolerance but outside standard tolerance
+			// Memory = requirement - 200 MiB (within extended tolerance of ~264 MiB, but outside standard 100 MiB)
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - 200)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodMeminfo)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Insufficient memory with meminfo method - below extended tolerance", func() {
+			// When using meminfo, tolerance = 100 MiB + (8192 / 50) = 100 + 163.84 = ~263.84 MiB
+			// Set memory to be below this extended tolerance
+			// Memory = requirement - 300 MiB (below extended tolerance of ~264 MiB)
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - 300)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodMeminfo)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(ContainSubstring("minimum required RAM"))
+		})
+
+		It("Memory exactly at tolerance boundary with meminfo method", func() {
+			// Test the exact tolerance boundary: requirement - tolerance = minimum acceptable
+			// tolerance = 100 + (8192 / 50) = 100 + 163 (integer division) = 263 MiB
+			extraTolerance := minRAMMibRequirement / 50 // 163 MiB
+			totalTolerance := int64(100) + extraTolerance
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - totalTolerance)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodMeminfo)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Memory just below tolerance boundary with meminfo method", func() {
+			// Test just below the tolerance boundary
+			extraTolerance := minRAMMibRequirement / 50 // 163 MiB
+			totalTolerance := int64(100) + extraTolerance
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement-totalTolerance) - 1
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodMeminfo)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(status).To(Equal(ValidationFailure))
+			Expect(message).To(ContainSubstring("minimum required RAM"))
+		})
+
+		It("Memory with ghw method uses standard tolerance", func() {
+			// ghw is another physical memory detection method, should use standard tolerance
+			// Memory within standard tolerance (100 MiB below requirement)
+			physicalBytes := conversions.MibToBytes(minRAMMibRequirement - 50)
+			updateMemoryInventory(&host, physicalBytes, models.MemoryMethodGhw)
+			mockAndRefreshStatus(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Sufficient minimum RAM"))
+			Expect(status).To(Equal(ValidationSuccess))
+		})
+
+		It("Missing inventory", func() {
+			host.Inventory = ""
+			Expect(db.Save(&host).Error).ShouldNot(HaveOccurred())
+			mockAndRefreshStatusWithoutEvents(&host)
+			host = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db).Host
+
+			status, message, ok := getValidationResult(host.ValidationsInfo, HasMinMemory)
+			Expect(ok).To(BeTrue())
+			Expect(message).To(Equal("Missing inventory"))
+			Expect(status).To(Equal(ValidationPending))
+		})
+	})
 	Context("No iSCSI NIC belongs to machine networks", func() {
 		var (
 			cluster common.Cluster
