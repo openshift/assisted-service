@@ -603,7 +603,6 @@ var _ = Describe("telemeter manifest", func() {
 			envName: "Other envs",
 		},
 	} {
-		test := test
 		Context(test.envName, func() {
 
 			BeforeEach(func() {
@@ -1026,8 +1025,6 @@ var _ = Describe("disk encryption manifest", func() {
 			numOfManifests: 0,
 		},
 	} {
-		t := t
-
 		It(t.name, func() {
 			c.DiskEncryption = t.diskEncryption
 			if t.isTNA {
@@ -1095,7 +1092,6 @@ var _ = Describe("GetDiskEncryptionCipher", func() {
 			expectedCipher: "aes-cbc-essiv:sha256",
 		},
 	} {
-		t := t
 		It(t.name, func() {
 			if t.configCipher == "" {
 				if t.fipsError {

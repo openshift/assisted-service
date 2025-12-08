@@ -64,7 +64,6 @@ var _ = Describe("Installation Disk selection", func() {
 			inventoryDisks:             []*models.Disk{{ID: otherDiskId, Name: otherDiskName}},
 			expectedInstallationDiskId: otherDiskId},
 	} {
-		test := test
 		It(test.testName, func() {
 			selectedDisk := DetermineInstallationDisk(test.inventoryDisks, test.currentInstallationDisk)
 
@@ -677,7 +676,13 @@ var _ = Describe("GetHostInstallationDisk", func() {
 
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "HostUtil Tests")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})

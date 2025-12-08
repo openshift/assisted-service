@@ -561,8 +561,6 @@ spec:
 				reverseManifestsSearch: true,
 			},
 		} {
-			t := t
-
 			It(t.name, func() {
 
 				var clusterID strfmt.UUID

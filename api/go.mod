@@ -97,3 +97,5 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.24.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.3
 )
+
+replace github.com/golang/glog => github.com/golang/glog v1.2.4

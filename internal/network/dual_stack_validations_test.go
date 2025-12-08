@@ -9,9 +9,9 @@ import (
 
 var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 
-	Describe("GetPrimaryIPStack", func() {
+	Describe("ComputePrimaryIPStack", func() {
 		It("should return nil for empty networks", func() {
-			primaryStack, err := GetPrimaryIPStack(nil, nil, nil, nil, nil)
+			primaryStack, err := ComputePrimaryIPStack(nil, nil, nil, nil, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(primaryStack).To(BeNil())
 		})
@@ -37,7 +37,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				{Cidr: "2001:db8:2::/64"},
 			}
 
-			primaryStack, err := GetPrimaryIPStack(machineNetworks, apiVips, ingressVips, serviceNetworks, clusterNetworks)
+			primaryStack, err := ComputePrimaryIPStack(machineNetworks, apiVips, ingressVips, serviceNetworks, clusterNetworks)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(primaryStack).ToNot(BeNil())
 			Expect(*primaryStack).To(Equal(common.PrimaryIPStackV4))
@@ -65,7 +65,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				{Cidr: "10.128.0.0/14"},
 			}
 
-			primaryStack, err := GetPrimaryIPStack(machineNetworks, apiVips, ingressVips, serviceNetworks, clusterNetworks)
+			primaryStack, err := ComputePrimaryIPStack(machineNetworks, apiVips, ingressVips, serviceNetworks, clusterNetworks)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(primaryStack).ToNot(BeNil())
 			Expect(*primaryStack).To(Equal(common.PrimaryIPStackV6))
@@ -81,7 +81,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				{IP: "10.0.1.1"},
 			}
 
-			primaryStack, err := GetPrimaryIPStack(machineNetworks, apiVips, nil, nil, nil)
+			primaryStack, err := ComputePrimaryIPStack(machineNetworks, apiVips, nil, nil, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 			Expect(primaryStack).To(BeNil())
@@ -98,7 +98,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				{IP: "10.0.1.1"},
 			}
 
-			primaryStack, err := GetPrimaryIPStack(machineNetworks, apiVips, nil, nil, nil)
+			primaryStack, err := ComputePrimaryIPStack(machineNetworks, apiVips, nil, nil, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(primaryStack).ToNot(BeNil())
 			Expect(*primaryStack).To(Equal(common.PrimaryIPStackV6))

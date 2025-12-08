@@ -129,7 +129,8 @@ func WrapServeError() func(http.ResponseWriter, *http.Request, error) {
 	return func(rw http.ResponseWriter, r *http.Request, err error) {
 		if shouldModifyError(err, unsupportedHTTPCodes) {
 			err = unwrapCompositeError(err)
-			err = errormiddleware.New(http.StatusBadRequest, err.Error())
+			message := err.Error()
+			err = errormiddleware.New(http.StatusBadRequest, "%s", message)
 		}
 		errormiddleware.ServeError(rw, r, err)
 	}

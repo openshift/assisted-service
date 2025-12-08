@@ -42,3 +42,7 @@ mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
 	eventstest.WithMessageMatcher(message),
 	eventstest.WithHostIdMatcher(host.ID.String()))).Times(times)
 ```
+
+### Event Rate Limiting
+
+For information about event rate limiting, see [Event Rate Limits](event_rate_limits.md).

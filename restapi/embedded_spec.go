@@ -1916,7 +1916,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 104857600,
+            "maxLength": 262144000,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The log file to be uploaded.",
@@ -1952,6 +1952,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -6265,7 +6271,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -7329,7 +7337,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -8198,6 +8208,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -8243,7 +8254,10 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP",
-        "METALLB"
+        "METALLB",
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -8759,6 +8773,7 @@ func init() {
         "Waiting for controller",
         "Installing",
         "Writing image to disk",
+        "Copying registry data to disk",
         "Rebooting",
         "Waiting for ignition",
         "Configuring",
@@ -8926,7 +8941,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -9259,6 +9276,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
+        },
         "size_bytes": {
           "type": "integer"
         },
@@ -9355,6 +9378,12 @@ func init() {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
+        },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string",
@@ -9409,6 +9438,12 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
         },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",
@@ -13322,7 +13357,7 @@ func init() {
             "required": true
           },
           {
-            "maxLength": 104857600,
+            "maxLength": 262144000,
             "type": "file",
             "x-mimetype": "application/zip",
             "description": "The log file to be uploaded.",
@@ -13358,6 +13393,12 @@ func init() {
         "responses": {
           "204": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "401": {
             "description": "Unauthorized.",
@@ -17676,7 +17717,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -18858,7 +18901,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -19694,6 +19739,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -19739,7 +19785,10 @@ func init() {
         "CLUSTER_OBSERVABILITY",
         "NUMA_RESOURCES",
         "OADP",
-        "METALLB"
+        "METALLB",
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -20255,6 +20304,7 @@ func init() {
         "Waiting for controller",
         "Installing",
         "Writing image to disk",
+        "Copying registry data to disk",
         "Rebooting",
         "Waiting for ignition",
         "Configuring",
@@ -20422,7 +20472,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -20756,6 +20808,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
+        },
         "size_bytes": {
           "type": "integer",
           "minimum": 0
@@ -20853,6 +20911,12 @@ func init() {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
         },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
+        },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string",
@@ -20907,6 +20971,12 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at console.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "rendezvous_ip": {
+          "description": "The IP address of the host that will act as the rendezvous (bootstrap) node for agent-based installations.\nThis is optional for disconnected-iso image type and specifies which host will run the assisted service\nduring the bootstrap phase. All other hosts will connect to this IP to coordinate the installation.",
+          "type": "string",
+          "pattern": "^(?:$|(?:(?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])|(?:([0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,7}:|([0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,5}(:[0-9a-fA-F]{1,4}){1,2}|([0-9a-fA-F]{1,4}:){1,4}(:[0-9a-fA-F]{1,4}){1,3}|([0-9a-fA-F]{1,4}:){1,3}(:[0-9a-fA-F]{1,4}){1,4}|([0-9a-fA-F]{1,4}:){1,2}(:[0-9a-fA-F]{1,4}){1,5}|[0-9a-fA-F]{1,4}:(:[0-9a-fA-F]{1,4}){1,6}|:(:[0-9a-fA-F]{1,4}){1,7}|:|fe80:(:[0-9a-fA-F]{0,4}){0,4}%[0-9a-zA-Z]{1,}|::(ffff(:0{1,4}){0,1}:){0,1}((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9])|([0-9a-fA-F]{1,4}:){1,4}:((25[0-5]|(2[0-4]|1?[0-9])?[0-9])\\.){3}(25[0-5]|(2[0-4]|1?[0-9])?[0-9]))))$",
+          "x-nullable": true
         },
         "ssh_authorized_key": {
           "description": "SSH public key for debugging the installation.",

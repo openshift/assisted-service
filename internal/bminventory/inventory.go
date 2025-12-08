@@ -113,7 +113,6 @@ type Config struct {
 	RhQaRegCred                         string            `envconfig:"REGISTRY_CREDS" default:""`
 	AgentTimeoutStart                   time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	DefaultNTPSource                    string            `envconfig:"NTP_DEFAULT_SERVER"`
-	ISOCacheDir                         string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 	DefaultClusterNetworkCidr           string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
 	DefaultClusterNetworkHostPrefix     int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultClusterNetworkCidrIPv6       string            `envconfig:"CLUSTER_NETWORK_CIDR_IPV6" default:"fd01::/48"`
@@ -301,33 +300,38 @@ func NewBareMetalInventory(
 	}
 }
 
-func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
+func (b *bareMetalInventory) getPrimaryIPStack(machineNetworks []*models.MachineNetwork,
+	apiVips []*models.APIVip,
+	ingressVips []*models.IngressVip,
+	serviceNetworks []*models.ServiceNetwork,
+	clusterNetworks []*models.ClusterNetwork) (*common.PrimaryIPStack, error) {
 	// Only for dual-stack clusters
-	if !network.CheckIfClusterIsDualStack(cluster) {
-		cluster.PrimaryIPStack = nil
-		return nil
+	if !network.CheckIfNetworksAreDualStack(machineNetworks, serviceNetworks, clusterNetworks) {
+		return nil, nil
 	}
 
-	// get primary IP stack based on current network configuration
-	primaryStack, err := network.GetPrimaryIPStack(
-		cluster.MachineNetworks,
-		cluster.APIVips,
-		cluster.IngressVips,
-		cluster.ServiceNetworks,
-		cluster.ClusterNetworks,
+	// compute primary IP stack based on current network configuration
+	primaryStack, err := network.ComputePrimaryIPStack(
+		machineNetworks,
+		apiVips,
+		ingressVips,
+		serviceNetworks,
+		clusterNetworks,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cluster.PrimaryIPStack = primaryStack
+	return primaryStack, nil
+}
 
-	return nil
+func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster, primaryStack *common.PrimaryIPStack) {
+	cluster.PrimaryIPStack = primaryStack
 }
 
 // updatePrimaryIPStack handles primary IP stack validation and calculation for network changes
 // Returns true if PrimaryIPStack was updated, false otherwise
-func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClusterParams, cluster *common.Cluster) (bool, error) {
+func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClusterParams, cluster *common.Cluster) (bool, *common.PrimaryIPStack, error) {
 	// Only set primary IP stack if any networks or VIPs were actually updated
 	primaryIPStackNeedsUpdate := params.ClusterUpdateParams.ClusterNetworks != nil ||
 		params.ClusterUpdateParams.ServiceNetworks != nil ||
@@ -336,7 +340,7 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 		params.ClusterUpdateParams.IngressVips != nil
 
 	if !primaryIPStackNeedsUpdate {
-		return false, nil
+		return false, cluster.PrimaryIPStack, nil
 	}
 
 	if (params.ClusterUpdateParams.ClusterNetworks != nil &&
@@ -345,12 +349,14 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 		params.ClusterUpdateParams.APIVips != nil &&
 		params.ClusterUpdateParams.IngressVips != nil) || cluster.PrimaryIPStack == nil {
 		// Recalculate from scratch for full updates or new clusters
-		err := b.setPrimaryIPStack(cluster)
+
+		primaryIPStack, err := b.getPrimaryIPStack(params.ClusterUpdateParams.MachineNetworks, params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips, params.ClusterUpdateParams.ServiceNetworks, params.ClusterUpdateParams.ClusterNetworks)
 		if err != nil {
 			b.log.WithError(err).Errorf("cluster update failed: unable to set primary IP stack")
-			return false, common.NewApiError(http.StatusBadRequest, err)
+			return false, cluster.PrimaryIPStack, common.NewApiError(http.StatusBadRequest, err)
 		}
-		return true, nil // PrimaryIPStack was updated
+
+		return true, primaryIPStack, nil // PrimaryIPStack was updated
 	}
 
 	// For partial updates, validate against existing PrimaryIPStack
@@ -364,10 +370,10 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 	)
 	if err != nil {
 		b.log.WithError(err).Errorf("cluster update failed: partial update inconsistent with existing primary IP stack")
-		return false, common.NewApiError(http.StatusBadRequest, err)
+		return false, cluster.PrimaryIPStack, common.NewApiError(http.StatusBadRequest, err)
 	}
 	// Keep existing PrimaryIPStack - no update needed
-	return false, nil
+	return false, cluster.PrimaryIPStack, nil
 }
 
 func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
@@ -599,14 +605,14 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 	return jsonNewClusterParams
 }
 
-func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(params installer.V2RegisterClusterParams, id strfmt.UUID, ctx context.Context) error {
+func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(params installer.V2RegisterClusterParams, id strfmt.UUID, ctx context.Context, primaryIPStack *common.PrimaryIPStack) error {
 	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultHighAvailabilityAndMasterCountParams(
 		params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount,
 	)
 	if err := b.validateHighAvailabilityWithControlPlaneCount(*params.NewClusterParams.HighAvailabilityMode, *params.NewClusterParams.ControlPlaneCount, *params.NewClusterParams.OpenshiftVersion); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams); err != nil {
+	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams, primaryIPStack); err != nil {
 		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -646,11 +652,18 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			if err != nil {
 				errWrapperLog = log.WithError(err)
 			}
-			errWrapperLog.Errorf(errStr)
+			errWrapperLog.Error(errStr)
 		}
 	}()
 
-	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx); err != nil {
+	// initial computation of PrimaryIPStack (needed for validations, will be recomputed later)
+	primaryIPStack, err := b.getPrimaryIPStack(params.NewClusterParams.MachineNetworks, params.NewClusterParams.APIVips, params.NewClusterParams.IngressVips, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks)
+	if err != nil {
+		b.log.Debugf("cluster registration failed: unable to compute primary IP stack: %v", err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx, primaryIPStack); err != nil {
 		return nil, err
 	}
 
@@ -740,11 +753,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		MachineNetworkCidrUpdatedAt: time.Now(),
 	}
 
-	err = b.setPrimaryIPStack(cluster)
+	// recompute PrimaryIPStack after cluster and service network defaults are applied
+	primaryIPStack, err = b.getPrimaryIPStack(params.NewClusterParams.MachineNetworks, params.NewClusterParams.APIVips, params.NewClusterParams.IngressVips, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks)
 	if err != nil {
-		b.log.Debugf("cluster registration failed: unable to set primary IP stack: %v", err)
+		b.log.Debugf("cluster registration failed: unable to compute primary IP stack: %v", err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+
+	b.setPrimaryIPStack(cluster, primaryIPStack)
 
 	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
 		return nil, err
@@ -1453,6 +1469,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
+
+		b.orderClusterNetworks(cluster)
 	}
 	// Verify cluster is ready to install
 	if ok, reason := b.clusterApi.IsReadyForInstallation(cluster); !ok {
@@ -1478,6 +1496,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return nil, err
 	}
+
+	b.orderClusterNetworks(cluster)
 
 	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
 		b.log.WithError(err).Errorf("Failed to generate additional cluster manifest")
@@ -1814,6 +1834,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 			return err
 		}
+		b.orderClusterNetworks(cluster)
 
 		clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
 		if err != nil {
@@ -1910,8 +1931,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
-		log.WithError(err).Errorf(msg)
-		return errors.Wrapf(err, msg)
+		log.WithError(err).Error(msg)
+		return errors.Wrap(err, msg)
 	}
 
 	installerReleaseImageOverride := ""
@@ -1920,8 +1941,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
 				"for cluster %s with openshift version %s and %s arch", cluster.ID, cluster.OpenshiftVersion, cluster.CPUArchitecture)
-			log.WithError(err).Errorf(msg)
-			return errors.Wrapf(err, msg)
+			log.WithError(err).Error(msg)
+			return errors.Wrap(err, msg)
 		}
 		log.Infof("Overriding %s baremetal installer image image: %s with %s: %s", cluster.CPUArchitecture,
 			*releaseImage.URL, common.DefaultCPUArchitecture, *defaultArchImage.URL)
@@ -2018,7 +2039,7 @@ func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, cluster *common.Cluster, params *installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, cluster *common.Cluster, params *installer.V2UpdateClusterParams, primaryIPStack *common.PrimaryIPStack) (installer.V2UpdateClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
@@ -2062,7 +2083,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		}
 	}
 
-	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams); err != nil {
+	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams, primaryIPStack); err != nil {
 		b.log.WithError(err).Errorf("Cluster %s failed VIP validations", params.ClusterID)
 		return installer.V2UpdateClusterParams{}, err
 
@@ -2168,9 +2189,10 @@ func (b *bareMetalInventory) validateUpdateCluster(
 	log logrus.FieldLogger,
 	cluster *common.Cluster,
 	params installer.V2UpdateClusterParams,
+	primaryIPStack *common.PrimaryIPStack,
 ) (installer.V2UpdateClusterParams, error) {
 	var err error
-	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params); err != nil {
+	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params, primaryIPStack); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
@@ -2247,6 +2269,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
+	var primaryIPStackUpdated bool
+	var primaryIPStack *common.PrimaryIPStack
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 
 	err = b.db.Transaction(func(tx *gorm.DB) error {
@@ -2256,7 +2280,14 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 
-		params, err = b.validateUpdateCluster(ctx, log, cluster, params)
+		// compute PrimaryIPStack before validations (it’s needed by some validations)
+		// if the value changed, we set the updated PrimaryIPStack to the cluster object and to the DB later in updateClusterData.
+		primaryIPStackUpdated, primaryIPStack, err = b.updatePrimaryIPStack(params, cluster)
+		if err != nil {
+			return err
+		}
+
+		params, err = b.validateUpdateCluster(ctx, log, cluster, params, primaryIPStack)
 		if err != nil {
 			return err
 		}
@@ -2268,7 +2299,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			return err
 		}
 
-		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity, mirrorRegistryConfiguration)
+		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity, mirrorRegistryConfiguration, primaryIPStackUpdated, primaryIPStack)
 		if err != nil {
 			log.WithError(err).Error("updateClusterData")
 			return err
@@ -2578,7 +2609,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, primaryIPStackUpdated bool, primaryIPStack *common.PrimaryIPStack) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2628,7 +2659,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		} else {
 			msg := fmt.Sprintf("Can't update api vip to %s for day1 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
 			log.Error(msg)
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 	}
 
@@ -2644,7 +2675,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 		if swag.BoolValue(cluster.Imported) {
 			msg := fmt.Sprintf("cannot update cluster %s, it is not permitted to change disk encryption settings for an imported cluster", cluster.ID)
 			log.Error(msg)
-			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
 			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
@@ -2678,6 +2709,16 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if params.ClusterUpdateParams.ControlPlaneCount != nil && *params.ClusterUpdateParams.ControlPlaneCount != cluster.ControlPlaneCount {
 		updates["control_plane_count"] = *params.ClusterUpdateParams.ControlPlaneCount
+	}
+
+	// set and update the PrimaryIPStack only if it was actually updated
+	if primaryIPStackUpdated {
+		b.setPrimaryIPStack(cluster, primaryIPStack)
+		if primaryIPStack != nil {
+			updates["primary_ip_stack"] = *primaryIPStack
+		} else {
+			updates["primary_ip_stack"] = nil
+		}
 	}
 
 	if len(updates) > 0 {
@@ -3008,21 +3049,6 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 	if err = b.updateVips(db, params, cluster); err != nil {
 		return err
-	}
-
-	// Handle primary IP stack updates
-	primaryIPStackUpdated, err := b.updatePrimaryIPStack(params, cluster)
-	if err != nil {
-		return err
-	}
-
-	// Update the primary_ip_stack field only if it was actually updated
-	if primaryIPStackUpdated {
-		if cluster.PrimaryIPStack != nil {
-			updates["primary_ip_stack"] = *cluster.PrimaryIPStack
-		} else {
-			updates["primary_ip_stack"] = nil
-		}
 	}
 
 	b.setUsage(vipDhcpAllocation, usage.VipDhcpAllocationUsage, nil, usages)
@@ -3805,7 +3831,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 			// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
-			log.Warnf(msg)
+			log.Warn(msg)
 			eventgen.SendDiskSpeedSlowerThanSupportedEvent(ctx, b.eventsHandler, *h.ID, h.InfraEnvID, h.ClusterID,
 				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 		}
@@ -4637,6 +4663,8 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 		return nil, err
 	}
 
+	b.orderClusterNetworks(cluster)
+
 	return cluster, nil
 }
 
@@ -4792,7 +4820,7 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 				errString = err.Error()
 				errMsg = fmt.Sprintf("%s. Error: %s", errMsg, errString)
 			}
-			log.Errorf(errMsg)
+			log.Error(errMsg)
 			eventgen.SendInfraEnvDeregisterFailedEvent(ctx, b.eventsHandler, params.InfraEnvID, errString)
 		}
 	}()
@@ -5042,6 +5070,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
 				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
 				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				RendezvousIP:           params.InfraenvCreateParams.RendezvousIP,
 				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
 				KernelArguments:        kernelArguments,
 				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
@@ -5119,7 +5148,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		errMsg := fmt.Sprintf("Failed to register InfraEnv %s with id %s",
 			swag.StringValue(params.InfraenvCreateParams.Name), id)
 		errMsg = fmt.Sprintf("%s. Error: %s", errMsg, err.Error())
-		log.Errorf(errMsg)
+		log.Error(errMsg)
 		eventgen.SendInfraEnvRegistrationFailedEvent(ctx, b.eventsHandler, id, err.Error())
 		return nil, err
 	}
@@ -5179,6 +5208,13 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 		if err = validations.ValidatePEMCertificateBundle(params.InfraenvCreateParams.AdditionalTrustBundle); err != nil {
 			return err
 		}
+	}
+
+	if params.InfraenvCreateParams.RendezvousIP != nil && swag.StringValue(params.InfraenvCreateParams.RendezvousIP) == "" {
+		params.InfraenvCreateParams.RendezvousIP = nil
+	}
+	if err = validateRendezvousIP(params.InfraenvCreateParams.ImageType, params.InfraenvCreateParams.RendezvousIP); err != nil {
+		return err
 	}
 
 	if err = b.validateInfraEnvIgnitionParams(ctx, params.InfraenvCreateParams.IgnitionConfigOverride, nil); err != nil {
@@ -5383,6 +5419,15 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			}
 		}
 
+		currentImageType := common.ImageTypeValue(infraEnv.Type)
+		targetImageType := currentImageType
+		if requestedType := params.InfraEnvUpdateParams.ImageType; requestedType != "" {
+			targetImageType = requestedType
+		}
+		if err = b.validateRendezvousIPUpdate(params.InfraEnvUpdateParams.RendezvousIP, targetImageType); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		if err = b.validateKernelArguments(ctx, params.InfraEnvUpdateParams.KernelArguments); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -5407,7 +5452,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
-		err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log)
+		err = b.updateInfraEnvData(infraEnv, params, internalIgnitionConfig, tx, log, currentImageType, targetImageType, params.InfraEnvUpdateParams.RendezvousIP)
 		if err != nil {
 			log.WithError(err).Error("updateInfraEnvData")
 			return err
@@ -5463,7 +5508,7 @@ func (b *bareMetalInventory) validateDiscoveryIgnitionImageSize(ctx context.Cont
 	return nil
 }
 
-func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, db *gorm.DB, log logrus.FieldLogger, currentImageType, targetImageType models.ImageType, rendezvousIP *string) error {
 	updates := map[string]interface{}{}
 	if err := b.updateInfraEnvProxy(params, infraEnv, updates); err != nil {
 		return err
@@ -5496,8 +5541,8 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 		}
 	}
 
-	if params.InfraEnvUpdateParams.ImageType != "" && params.InfraEnvUpdateParams.ImageType != common.ImageTypeValue(infraEnv.Type) {
-		updates["type"] = params.InfraEnvUpdateParams.ImageType
+	if targetImageType != currentImageType {
+		updates["type"] = targetImageType
 	}
 
 	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil && *params.InfraEnvUpdateParams.AdditionalTrustBundle != infraEnv.AdditionalTrustBundle {
@@ -5517,6 +5562,8 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 			}
 		}
 	}
+
+	b.applyRendezvousIPUpdates(infraEnv, rendezvousIP, targetImageType, updates)
 
 	if params.InfraEnvUpdateParams.PullSecret != "" && params.InfraEnvUpdateParams.PullSecret != infraEnv.PullSecret {
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret
@@ -5599,6 +5646,14 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	return nil
 }
 
+func (b *bareMetalInventory) validateRendezvousIPUpdate(ip *string, targetImageType models.ImageType) error {
+	if swag.StringValue(ip) == "" {
+		return nil
+	}
+
+	return validateRendezvousIP(targetImageType, ip)
+}
+
 // TODO: modify (or remove) this validation when replace and delete operations are supported
 func (b *bareMetalInventory) validateKernelArguments(ctx context.Context, kernelArguments models.KernelArguments) error {
 	log := logutil.FromContext(ctx, b.log)
@@ -5610,6 +5665,48 @@ func (b *bareMetalInventory) validateKernelArguments(ctx context.Context, kernel
 		}
 	}
 	return nil
+}
+
+func validateRendezvousIP(imageType models.ImageType, ip *string) error {
+	if ip == nil {
+		return nil
+	}
+
+	if imageType != models.ImageTypeDisconnectedIso {
+		return errors.Errorf("RendezvousIP is only supported for disconnected ISO infra-envs")
+	}
+
+	if net.ParseIP(swag.StringValue(ip)) == nil {
+		return errors.Errorf("Invalid rendezvous IP: %s (must be a valid IPv4 or IPv6 address)", swag.StringValue(ip))
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) applyRendezvousIPUpdates(infraEnv *common.InfraEnv, rendezvousIP *string, targetImageType models.ImageType, updates map[string]interface{}) {
+	// If moving away from disconnected-iso, clear any existing value.
+	if targetImageType != models.ImageTypeDisconnectedIso && swag.StringValue(infraEnv.RendezvousIP) != "" {
+		updates["rendezvous_ip"] = gorm.Expr("NULL")
+		return
+	}
+
+	// No update requested; preserve existing value.
+	if rendezvousIP == nil {
+		return
+	}
+
+	// Explicit clear requested.
+	if *rendezvousIP == "" {
+		if swag.StringValue(infraEnv.RendezvousIP) != "" {
+			updates["rendezvous_ip"] = gorm.Expr("NULL")
+		}
+		return
+	}
+
+	// Update to a new non-empty value.
+	if *rendezvousIP != swag.StringValue(infraEnv.RendezvousIP) {
+		updates["rendezvous_ip"] = *rendezvousIP
+	}
 }
 
 func (b *bareMetalInventory) updateInfraEnvNtpSources(params installer.UpdateInfraEnvParams, infraEnv *common.InfraEnv, updates map[string]interface{}, log logrus.FieldLogger) error {
@@ -6073,13 +6170,18 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if !common.IsDay2Cluster(cluster) {
-		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if fencingErr != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, fencingErr)
+	if host.Role == models.HostRoleArbiter {
+		err = common.ValidateClusterSupportsArbiterHosts(cluster)
+		if err != nil {
+			err = errors.Wrapf(err, "Host %s is assigned the arbiter role", host.ID)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
-		if host.FencingCredentials != "" && !fencingClustersSupported {
-			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
+	}
+
+	if host.FencingCredentials != "" {
+		err = common.ValidateClusterSupportsFencingCredentials(cluster)
+		if err != nil {
+			err = errors.Wrapf(err, "Host %s has fencing credentials", host.ID)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -6337,7 +6439,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 				b.log.WithError(clusterErr).Errorf("Failed to get cluster for disconnected ignition generation, infraEnv %s", infraEnv.ID)
 				return common.GenerateErrorResponder(clusterErr)
 			}
-			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion)
+			content, err = b.disconnectedIgnitionGenerator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			if err != nil {
 				b.log.WithError(err).Error("Failed to generate disconnected ignition")
 				return common.GenerateErrorResponder(err)
@@ -6609,22 +6711,9 @@ func (b *bareMetalInventory) updateHostRole(ctx context.Context, host *common.Ho
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		if cluster == nil || cluster.OpenshiftVersion == "" {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		arbiterClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClusters, cluster.OpenshiftVersion)
+		err := common.ValidateClusterSupportsArbiterHosts(cluster)
 		if err != nil {
-			return err
-		}
-		if !arbiterClustersSupported {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForArbiterClusters)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-		if getPlatformType(cluster.Platform) != string(models.PlatformTypeBaremetal) {
-			err := errors.Errorf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with baremetal platform", host.ID, host.InfraEnvID)
+			err = errors.Wrapf(err, "Cannot set role arbiter to host %s in infra-env %s", host.ID, host.InfraEnvID)
 			log.Error(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -6852,16 +6941,11 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 		log.Error(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if cluster != nil {
-		fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if err != nil {
-			return err
-		}
-		if !fencingClustersSupported {
-			err = errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+	err := common.ValidateClusterSupportsFencingCredentials(cluster)
+	if err != nil {
+		err = errors.Wrapf(err, "Cannot set fencing credentials to host %s in infra-env %s", host.ID, host.InfraEnvID)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	fencingCredentials, err := json.Marshal(fencingCredentialsParams)
@@ -7071,6 +7155,7 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Contex
 	if err != nil {
 		return err
 	}
+	b.orderClusterNetworks(cluster)
 
 	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {

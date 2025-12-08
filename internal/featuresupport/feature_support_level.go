@@ -13,6 +13,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	// Generic features
 	models.FeatureSupportLevelIDSNO:                       (&SnoFeature{}).New(),
 	models.FeatureSupportLevelIDTNA:                       (&TnaFeature{}).New(),
+	models.FeatureSupportLevelIDTNF:                       (&TnfFeature{}).New(),
 	models.FeatureSupportLevelIDCUSTOMMANIFEST:            (&CustomManifestFeature{}).New(),
 	models.FeatureSupportLevelIDSINGLENODEEXPANSION:       (&SingleNodeExpansionFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:                (&MinimalIso{}).New(),
@@ -29,6 +30,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDSDNNETWORKTYPE:            (&SDNNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDOVNNETWORKTYPE:            (&OVNNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER:   (&UserManagedLoadBalancerFeature{}).New(),
+	models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6:      (&DualStackPrimaryIPv6Feature{}).New(),
 
 	// Olm Operators features
 	models.FeatureSupportLevelIDLVM:                    (&LvmFeature{}).New(),
@@ -57,6 +59,8 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDNUMARESOURCES:          (&NumaResourcesFeature{}).New(),
 	models.FeatureSupportLevelIDOADP:                   (&OadpFeature{}).New(),
 	models.FeatureSupportLevelIDMETALLB:                (&MetalLBFeature{}).New(),
+	models.FeatureSupportLevelIDLOKI:                   (&LokiFeature{}).New(),
+	models.FeatureSupportLevelIDOPENSHIFTLOGGING:       (&OpenShiftLoggingFeature{}).New(),
 
 	// Platform features
 	models.FeatureSupportLevelIDNUTANIXINTEGRATION:  (&NutanixIntegrationFeature{}).New(),

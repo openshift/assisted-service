@@ -1086,8 +1086,8 @@ location = "%s"
 		Expect(configText).To(MatchRegexp(`(?m)^server ntp1.example.com iburst$`))
 		Expect(configText).To(MatchRegexp(`(?m)^server ntp2.example.com iburst$`))
 
-		// Check that the original config has been preserved:
-		Expect(configText).To(MatchRegexp("(?m)^makestep 1.0 3$"))
+		// Check that makestep has been modified to allow unlimited stepping:
+		Expect(configText).To(MatchRegexp("(?m)^makestep 1.0 -1$"))
 	})
 })
 

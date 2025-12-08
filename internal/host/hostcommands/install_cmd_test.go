@@ -156,11 +156,11 @@ var _ = Describe("installcmd", func() {
 			mockGetReleaseImage(1)
 			mockImages(1)
 			Expect(db.Model(&common.Cluster{}).Where("id = ?", *host.ClusterID).Updates(map[string]interface{}{
-				"openshift_version": "4.15",
+				"openshift_version": "4.16",
 				"cpu_architecture":  "x86_64",
 			}).Error).ToNot(HaveOccurred())
 			installCmdSteps, stepErr = installCommand.GetSteps(ctx, &host)
-			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, common.MinMasterHostsNeededForInstallationInHaMode, true, "4.15", notifyNumReboots)
+			validateInstallCommand(installCommand, installCmdSteps[0], models.HostRoleMaster, infraEnvId, clusterId, *host.ID, common.TestDiskId, nil, common.MinMasterHostsNeededForInstallationInHaMode, true, "4.16", notifyNumReboots)
 		},
 		Entry("notify num reboots is false", false),
 		Entry("notify num reboots is true", true),

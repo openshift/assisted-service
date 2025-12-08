@@ -8,10 +8,12 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/clusterobservability"
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
+	"github.com/openshift/assisted-service/internal/operators/loki"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/numaresources"
 	"github.com/openshift/assisted-service/internal/operators/oadp"
+	"github.com/openshift/assisted-service/internal/operators/openshiftlogging"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
 	"github.com/openshift/assisted-service/models"
 )
@@ -957,7 +959,7 @@ func (f *NodeMaintenanceFeature) getId() models.FeatureSupportLevelID {
 }
 
 func (f *NodeMaintenanceFeature) GetName() string {
-	return fenceagentsremediation.OperatorFullName
+	return nodemaintenance.OperatorFullName
 }
 
 func (f *NodeMaintenanceFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
@@ -993,7 +995,7 @@ func (f *KubeDeschedulerFeature) getId() models.FeatureSupportLevelID {
 }
 
 func (f *KubeDeschedulerFeature) GetName() string {
-	return fenceagentsremediation.OperatorFullName
+	return kubedescheduler.OperatorFullName
 }
 
 func (f *KubeDeschedulerFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
@@ -1046,6 +1048,86 @@ func (f *ClusterObservabilityFeature) getIncompatibleFeatures(string) []models.F
 
 func (f *ClusterObservabilityFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated(clusterobservability.Operator.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// LokiFeature describes the support for the Loki Operator.
+type LokiFeature struct{}
+
+func (f *LokiFeature) New() SupportLevelFeature {
+	return &LokiFeature{}
+}
+
+func (f *LokiFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDLOKI
+}
+
+func (f *LokiFeature) GetName() string {
+	return loki.FullName
+}
+
+func (f *LokiFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	// Loki Operator is supported on OpenShift 4.17+
+	if isNotSupported, err := common.BaseVersionLessThan(loki.LokiMinOpenshiftVersion, filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+	return models.SupportLevelSupported, ""
+}
+
+func (f *LokiFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	// Loki Operator supports all architectures (x86_64, arm64, s390x, ppc64le)
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (f *LokiFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	// Loki Operator has no incompatible features
+	return []models.FeatureSupportLevelID{}
+}
+
+func (f *LokiFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(loki.Name, cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// OpenShiftLoggingFeature describes the support for the OpenShift Logging Operator.
+type OpenShiftLoggingFeature struct{}
+
+func (f *OpenShiftLoggingFeature) New() SupportLevelFeature {
+	return &OpenShiftLoggingFeature{}
+}
+
+func (f *OpenShiftLoggingFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDOPENSHIFTLOGGING
+}
+
+func (f *OpenShiftLoggingFeature) GetName() string {
+	return openshiftlogging.FullName
+}
+
+func (f *OpenShiftLoggingFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	// OpenShift Logging Operator is supported on OpenShift 4.17+
+	if isNotSupported, err := common.BaseVersionLessThan(openshiftlogging.OpenShiftLoggingMinOpenshiftVersion, filters.OpenshiftVersion); isNotSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+	return models.SupportLevelSupported, ""
+}
+
+func (f *OpenShiftLoggingFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	// OpenShift Logging Operator supports all architectures (x86_64, arm64, s390x, ppc64le)
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (f *OpenShiftLoggingFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	// OpenShift Logging Operator has no incompatible features
+	return []models.FeatureSupportLevelID{}
+}
+
+func (f *OpenShiftLoggingFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(openshiftlogging.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

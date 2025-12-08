@@ -24,6 +24,8 @@ spec:
               memory: 400Mi
           image: REPLACE_IMAGE
           imagePullPolicy: Always
+          securityContext:
+            readOnlyRootFilesystem: true
           ports:
             - containerPort: 8090
           livenessProbe:
@@ -40,6 +42,8 @@ spec:
             - configMapRef:
                 name: assisted-service-config
           env:
+            - name: TMPDIR
+              value: /data
             - name: KAFKA_BOOTSTRAP_SERVER
               value: "ai-kafka-0.ai-kafka-headless.assisted-installer.svc.cluster.local:9092"
             - name: KAFKA_EVENT_STREAM_TOPIC
@@ -143,12 +147,16 @@ spec:
             - name: mirror-registry-conf
               mountPath: "/etc/containers"
               readOnly: true
+            - name: workdir-volume
+              mountPath: /data
       serviceAccountName: assisted-service
       volumes:
         - name: route53-creds
           secret:
             secretName: route53-creds
             optional: true
+        - name: workdir-volume
+          emptyDir: {}
         - name: mirror-registry-ca
           configMap:
             name: mirror-registry-ca

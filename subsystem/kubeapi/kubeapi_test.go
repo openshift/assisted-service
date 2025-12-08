@@ -4518,7 +4518,8 @@ location = "%s"
 		stages := []models.HostStage{
 			models.HostStageStartingInstallation, models.HostStageInstalling,
 			models.HostStageWaitingForBootkube, models.HostStageWritingImageToDisk,
-			models.HostStageRebooting, models.HostStageJoined, models.HostStageDone,
+			models.HostStageCopyingRegistryDataToDisk, models.HostStageRebooting,
+			models.HostStageJoined, models.HostStageDone,
 		}
 		utils_test.TestContext.UpdateHostProgressWithInfo(*host.ID, *infraEnv.ID, installProgress, installInfo)
 

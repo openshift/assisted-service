@@ -77,7 +77,6 @@ def main():
             service_container["env"].append({'name': 'DEPLOY_TARGET', 'value': "ocp"})
             service_container["env"].append({'name': 'STORAGE', 'value': "filesystem"})
             service_container["env"].append({'name': 'ISO_WORKSPACE_BASE_DIR', 'value': '/data'})
-            service_container["env"].append({'name': 'ISO_CACHE_DIR', 'value': '/data/cache'})
 
         if deploy_options.port:
             for port_option in deploy_options.port:

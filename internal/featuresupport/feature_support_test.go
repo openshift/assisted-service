@@ -431,6 +431,197 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		)
 	})
 
+	Context("Test TNF", func() {
+		feature := models.FeatureSupportLevelIDTNF
+		openshiftVersionWithoutTNF := "4.19"
+
+		It("test feature availability", func() {
+			Expect(IsFeatureAvailable(feature, common.MinimumVersionForTwoNodesWithFencing, nil)).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, openshiftVersionWithoutTNF, nil)).To(BeFalse())
+		})
+
+		DescribeTable("test feature compatability with other features", func(activeFeatures []SupportLevelFeature, shouldSucceed bool) {
+			activeFeatures = append(activeFeatures, &TnfFeature{})
+
+			if shouldSucceed {
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForTwoNodesWithFencing,
+						activeFeatures),
+				).ToNot(HaveOccurred())
+			} else {
+				Expect(
+					isFeaturesCompatibleWithFeatures(
+						common.MinimumVersionForTwoNodesWithFencing,
+						activeFeatures),
+				).To(HaveOccurred())
+			}
+		},
+			Entry(
+				"platform baremetal",
+				[]SupportLevelFeature{&BaremetalPlatformFeature{}},
+				true,
+			),
+
+			Entry(
+				"none platform",
+				[]SupportLevelFeature{&NonePlatformFeature{}},
+				true,
+			),
+
+			Entry(
+				"external platform",
+				[]SupportLevelFeature{&ExternalPlatformFeature{}},
+				false,
+			),
+
+			Entry(
+				"nutanix platform",
+				[]SupportLevelFeature{&NutanixIntegrationFeature{}},
+				false,
+			),
+
+			Entry(
+				"vsphere platform",
+				[]SupportLevelFeature{&VsphereIntegrationFeature{}},
+				false,
+			),
+		)
+
+		DescribeTable(
+			"test feature architecture support",
+			func(arch string, result bool) {
+				Expect(
+					isFeatureCompatibleWithArchitecture(
+						&TnfFeature{},
+						common.MinimumVersionForTwoNodesWithFencing,
+						arch,
+					),
+				).To(Equal(result))
+			},
+			Entry(
+				common.X86CPUArchitecture,
+				common.X86CPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.ARM64CPUArchitecture,
+				common.ARM64CPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.S390xCPUArchitecture,
+				common.S390xCPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.PowerCPUArchitecture,
+				common.PowerCPUArchitecture,
+				true,
+			),
+
+			Entry(
+				common.MultiCPUArchitecture,
+				common.MultiCPUArchitecture,
+				true,
+			),
+		)
+
+		DescribeTable(
+			"test feature active level",
+			func(cluster *common.Cluster, result featureActiveLevel) {
+				Expect(
+					(&TnfFeature{}).getFeatureActiveLevel(cluster, nil, nil, nil),
+				).To(Equal(result))
+			},
+			Entry(
+				"active",
+				&common.Cluster{
+					Cluster: models.Cluster{
+						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
+						},
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+					},
+				},
+				activeLevelActive,
+			),
+
+			Entry(
+				"not active - nil cluster",
+				nil,
+				activeLevelNotActive,
+			),
+
+			Entry(
+				"not active - not all hosts have fencing credentials",
+				&common.Cluster{
+					Cluster: models.Cluster{
+						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
+						ControlPlaneCount: 2,
+						Hosts: []*models.Host{
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
+							{Role: models.HostRoleMaster},
+						},
+						Platform: &models.Platform{
+							Type: models.PlatformTypeBaremetal.Pointer(),
+						},
+					},
+				},
+				activeLevelNotActive,
+			),
+		)
+
+		DescribeTable(
+			"test feature support level",
+			func(filters SupportLevelFilters, result models.SupportLevel) {
+				supportLevel, _ := (&TnfFeature{}).getSupportLevel(filters)
+				Expect(supportLevel).To(Equal(result))
+			},
+			Entry(
+				"tech preview openshift version with platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForTwoNodesWithFencing,
+					PlatformType:     models.PlatformTypeBaremetal.Pointer(),
+				},
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"tech preview openshift version without platform filter",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForTwoNodesWithFencing,
+				},
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"unavailable - wrong platform",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+					PlatformType:     models.PlatformTypeVsphere.Pointer(),
+				},
+				models.SupportLevelUnavailable,
+			),
+
+			Entry(
+				"unavailable - openshift version is too low",
+				SupportLevelFilters{
+					OpenshiftVersion: openshiftVersionWithoutTNF,
+				},
+				models.SupportLevelUnavailable,
+			),
+		)
+	})
+
 	Context("Test MCE not supported under 4.10", func() {
 		feature := models.FeatureSupportLevelIDMCE
 		It(fmt.Sprintf("%s test", feature), func() {
@@ -516,27 +707,63 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		)
 	})
 
+	Context("Test DualStackPrimaryIPv6 support", func() {
+		DescribeTable(
+			"Support level based on OpenShift version",
+			func(openshiftVersion string, expectedSupportLevel models.SupportLevel) {
+				filters := SupportLevelFilters{
+					OpenshiftVersion: openshiftVersion,
+					CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				}
+				supportLevel := GetSupportLevel(models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6, filters)
+				Expect(supportLevel).To(Equal(expectedSupportLevel))
+			},
+			Entry("Unavailable with Openshift 4.11", "4.11", models.SupportLevelUnavailable),
+			Entry("Tech preview with Openshift 4.12", "4.12", models.SupportLevelTechPreview),
+		)
+
+		DescribeTable(
+			"Support level based on platform type",
+			func(platformType *models.PlatformType, openshiftVersion string, expectedSupportLevel models.SupportLevel) {
+				filters := SupportLevelFilters{
+					OpenshiftVersion: openshiftVersion,
+					CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+					PlatformType:     platformType,
+				}
+				supportLevel, reason := (&DualStackPrimaryIPv6Feature{}).getSupportLevel(filters)
+				Expect(supportLevel).To(Equal(expectedSupportLevel))
+				if expectedSupportLevel == models.SupportLevelUnavailable {
+					Expect(reason).To(Equal(models.IncompatibilityReasonPlatform))
+				}
+			},
+			Entry("Unavailable with Nutanix platform", models.PlatformTypeNutanix.Pointer(), "4.12", models.SupportLevelUnavailable),
+			Entry("Unavailable with Vsphere platform", models.PlatformTypeVsphere.Pointer(), "4.12", models.SupportLevelUnavailable),
+			Entry("Unavailable with External platform", models.PlatformTypeExternal.Pointer(), "4.12", models.SupportLevelUnavailable),
+			Entry("Tech preview with Baremetal platform", models.PlatformTypeBaremetal.Pointer(), "4.12", models.SupportLevelTechPreview),
+			Entry("Tech preview with None platform", models.PlatformTypeNone.Pointer(), "4.12", models.SupportLevelTechPreview),
+		)
+	})
+
 	Context("GetSupportList", func() {
 
 		for _, filters := range getPlatformFilters() {
-			filters := filters
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
-					Expect(len(list)).To(Equal(42))
+					Expect(len(list)).To(Equal(46))
 				})
 			})
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(47))
+			Expect(len(list)).To(Equal(51))
 
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(47))
+			Expect(len(list)).To(Equal(51))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -932,7 +1159,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					&ExternalPlatformFeature{},
 				} {
 					filters := filters
-					feature := feature
 					When("Empty support level - platforms", func() {
 						It(fmt.Sprintf("Feature %s Platform %s ExternalPlatformName %s", feature.GetName(), *filters.PlatformType, swag.StringValue(filters.ExternalPlatformName)), func() {
 							emptyFilters := SupportLevelFilters{OpenshiftVersion: "", CPUArchitecture: nil, PlatformType: nil, ExternalPlatformName: nil}
@@ -947,7 +1173,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			}
 
 			for _, filters := range getPlatformFilters() {
-				filters := filters
 				When("Empty support level - PlatformManagedNetworkingFeature", func() {
 					It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 						feature := &PlatformManagedNetworkingFeature{}
@@ -1036,9 +1261,6 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			It("incompatibleFeatures - all features - no openshift version", func() {
 				for featureId, feature := range featuresList {
-					featureId := featureId
-					feature := feature
-
 					incompatibleFeatures := feature.getIncompatibleFeatures("")
 					for _, incompatibleFeatureId := range incompatibleFeatures {
 						incompatibleFeature := featuresList[incompatibleFeatureId]
@@ -1067,6 +1289,79 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				isVsphereIncompatibleWithDualStack = isFeatureCompatible("4.13", vsphereFeature, dualStackFeature)
 				Expect(isDualStackIncompatibleWithVsphere).To(BeNil())
 				Expect(isVsphereIncompatibleWithDualStack).To(BeNil())
+			})
+
+			It("DualStackPrimaryIPv6 with incompatible platforms", func() {
+				dualStackPrimaryIPv6Feature := featuresList[models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6]
+				nutanixFeature := featuresList[models.FeatureSupportLevelIDNUTANIXINTEGRATION]
+				vsphereFeature := featuresList[models.FeatureSupportLevelIDVSPHEREINTEGRATION]
+				externalFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORM]
+				ociFeature := featuresList[models.FeatureSupportLevelIDEXTERNALPLATFORMOCI]
+				userManagedLoadBalancerFeature := featuresList[models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER]
+
+				// Test Nutanix incompatibility (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithNutanix := isFeatureCompatible("4.12", dualStackPrimaryIPv6Feature, nutanixFeature)
+				isNutanixIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.12", nutanixFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithNutanix).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithNutanix).getId()).To(Equal(nutanixFeature.getId()))
+				Expect(isNutanixIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isNutanixIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+
+				// Test Vsphere incompatibility (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithVsphere := isFeatureCompatible("4.12", dualStackPrimaryIPv6Feature, vsphereFeature)
+				isVsphereIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.12", vsphereFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithVsphere).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithVsphere).getId()).To(Equal(vsphereFeature.getId()))
+				Expect(isVsphereIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isVsphereIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+
+				// Test External platform incompatibility (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithExternal := isFeatureCompatible("4.12", dualStackPrimaryIPv6Feature, externalFeature)
+				isExternalIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.12", externalFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithExternal).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithExternal).getId()).To(Equal(externalFeature.getId()))
+				Expect(isExternalIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isExternalIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+
+				// Test OCI platform incompatibility (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithOci := isFeatureCompatible("4.12", dualStackPrimaryIPv6Feature, ociFeature)
+				isOciIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.12", ociFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithOci).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithOci).getId()).To(Equal(ociFeature.getId()))
+				Expect(isOciIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isOciIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+
+				// Test User Managed Load Balancer incompatibility (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithUMB := isFeatureCompatible("4.12", dualStackPrimaryIPv6Feature, userManagedLoadBalancerFeature)
+				isUMBIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.12", userManagedLoadBalancerFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithUMB).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithUMB).getId()).To(Equal(userManagedLoadBalancerFeature.getId()))
+				Expect(isUMBIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isUMBIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+			})
+
+			It("DualStackPrimaryIPv6 with SNO version compatibility", func() {
+				dualStackPrimaryIPv6Feature := featuresList[models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6]
+				snoFeature := featuresList[models.FeatureSupportLevelIDSNO]
+
+				// SNO incompatible with DualStackPrimaryIPv6 for versions < 4.19 (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithSNO := isFeatureCompatible("4.18", dualStackPrimaryIPv6Feature, snoFeature)
+				isSNOIncompatibleWithDualStackPrimaryIPv6 := isFeatureCompatible("4.18", snoFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithSNO).ToNot(BeNil())
+				Expect((*isDualStackPrimaryIPv6IncompatibleWithSNO).getId()).To(Equal(snoFeature.getId()))
+				Expect(isSNOIncompatibleWithDualStackPrimaryIPv6).ToNot(BeNil())
+				Expect((*isSNOIncompatibleWithDualStackPrimaryIPv6).getId()).To(Equal(dualStackPrimaryIPv6Feature.getId()))
+
+				// SNO compatible with DualStackPrimaryIPv6 for versions >= 4.19 (bidirectional)
+				isDualStackPrimaryIPv6IncompatibleWithSNO = isFeatureCompatible("4.19", dualStackPrimaryIPv6Feature, snoFeature)
+				isSNOIncompatibleWithDualStackPrimaryIPv6 = isFeatureCompatible("4.19", snoFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithSNO).To(BeNil())
+				Expect(isSNOIncompatibleWithDualStackPrimaryIPv6).To(BeNil())
+
+				isDualStackPrimaryIPv6IncompatibleWithSNO = isFeatureCompatible("4.20", dualStackPrimaryIPv6Feature, snoFeature)
+				isSNOIncompatibleWithDualStackPrimaryIPv6 = isFeatureCompatible("4.20", snoFeature, dualStackPrimaryIPv6Feature)
+				Expect(isDualStackPrimaryIPv6IncompatibleWithSNO).To(BeNil())
+				Expect(isSNOIncompatibleWithDualStackPrimaryIPv6).To(BeNil())
 			})
 		})
 
@@ -1253,6 +1548,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 		Entry(
 			"dual stack vips",
 			[]SupportLevelFeature{&DualStackVipsFeature{}},
+			false,
+		),
+
+		Entry(
+			"dual stack primary ipv6",
+			[]SupportLevelFeature{&DualStackPrimaryIPv6Feature{}},
 			false,
 		),
 

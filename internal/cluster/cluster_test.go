@@ -117,6 +117,8 @@ var _ = Describe("stateMachine", func() {
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDNmstateRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDAmdGpuRequirementsSatisfied)},
 				{Status: api.Success, ValidationId: string(models.ClusterValidationIDKmmRequirementsSatisfied)},
+				{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+				{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 			}, nil)
 		})
 
@@ -208,6 +210,8 @@ var _ = Describe("TestClusterMonitoring", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -829,6 +833,8 @@ var _ = Describe("lease timeout event", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -883,7 +889,6 @@ var _ = Describe("lease timeout event", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                &id,
@@ -970,6 +975,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -1442,7 +1449,6 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		},
 	}
 	for _, t := range tests {
-		t := t
 		It(t.name, func() {
 			c = common.Cluster{Cluster: models.Cluster{
 				ID:                    &id,
@@ -1541,7 +1547,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 		cluster = getClusterFromDB(id, db)
 		err := clusterApi.AcceptRegistration(&cluster)
 		if expectErr {
-			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate).Error()))
+			Expect(err.Error()).Should(Equal(errors.New(errTemplate).Error()))
 		} else {
 			Expect(err).Should(BeNil())
 		}
@@ -2388,6 +2394,8 @@ var _ = Describe("Majority groups", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -2733,6 +2741,8 @@ var _ = Describe("ready_state", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNumaResourcesRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOadpRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -4391,6 +4401,8 @@ var _ = Describe("TestClusterMonitoring - deadlines and blacklisting", func() {
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDNodeFeatureDiscoveryRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)},
 		}, nil)
 	})
 

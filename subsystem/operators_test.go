@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
+	"github.com/openshift/assisted-service/internal/operators/loki"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -39,6 +40,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/openshiftlogging"
 	"github.com/openshift/assisted-service/internal/operators/osc"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
@@ -86,6 +88,8 @@ var _ = Describe("Operators endpoint tests", func() {
 				numaresources.Operator.Name,
 				oadp.Operator.Name,
 				metallb.Operator.Name,
+				loki.Operator.Name,
+				openshiftlogging.Operator.Name,
 			))
 		})
 

@@ -367,10 +367,16 @@ func mockNoChangeInOperatorDependencies(mock *operators.MockAPI) {
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "inventory_test")
 }
+
+var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
+})
 
 var _ = Describe("RegisterDisconnectedCluster", func() {
 	var (
@@ -692,7 +698,6 @@ var _ = Describe("RegisterHost", func() {
 			{ctrlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, expectedRole: models.HostRoleAutoAssign},
 			{ctrlPlaneCount: 1, expectedRole: models.HostRoleMaster},
 		} {
-			test := test
 
 			It(fmt.Sprintf("cluster availability mode %d expected default host role %s",
 				test.ctrlPlaneCount, test.expectedRole), func() {
@@ -4460,7 +4465,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "IPv6-primary dual-stack requires OpenShift 4.12+")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is ipv4. All networks must have the same IP family first")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -9281,6 +9286,45 @@ var _ = Describe("infraEnvs", func() {
 				Expect(db.First(&updated, "id = ?", clusterID.String()).Error).To(Succeed())
 				Expect(swag.StringValue(updated.Status)).To(Equal(models.ClusterStatusInsufficient))
 			})
+
+			It("should fail when setting RendezvousIP on non-disconnected-iso infraenv", func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("RendezvousIP is only supported for disconnected ISO infra-envs"))).Times(1)
+
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("infra-env-with-rendezvous"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeFullIso,
+						ClusterID:        &clusterID,
+						RendezvousIP:     swag.String("192.168.1.100"),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "RendezvousIP is only supported for disconnected ISO infra-envs")
+			})
+
+			It("should fail when setting invalid IP for RendezvousIP on disconnected-iso infraenv", func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("Invalid rendezvous IP"))).Times(1)
+
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("infra-env-invalid-rendezvous"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeDisconnectedIso,
+						ClusterID:        &clusterID,
+						RendezvousIP:     swag.String("not-a-valid-ip"),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "Invalid rendezvous IP")
+			})
+
 		})
 	})
 
@@ -9550,6 +9594,112 @@ var _ = Describe("infraEnvs", func() {
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
 					})
 				})
+			})
+			Context("RendezvousIP validation", func() {
+				setInfraEnvType := func(imageType models.ImageType) {
+					err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", imageType).Error
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				It("should fail when setting RendezvousIP on non-disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeFullIso)
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("192.168.1.100"),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "RendezvousIP is only supported for disconnected ISO infra-envs")
+				})
+
+				It("should fail when setting invalid RendezvousIP on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("not-a-valid-ip"),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "Invalid rendezvous IP")
+				})
+
+				It("should succeed when setting valid RendezvousIP on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String("192.168.1.200"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(swag.StringValue(i.RendezvousIP)).To(Equal("192.168.1.200"))
+				})
+
+				It("should clear RendezvousIP when empty string is provided", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.100").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							RendezvousIP: swag.String(""),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(i.RendezvousIP).To(BeNil())
+				})
+
+				It("should clear RendezvousIP when image type changes away from disconnected-iso", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.101").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeFullIso,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(common.ImageTypeValue(i.Type)).To(Equal(models.ImageTypeFullIso))
+					Expect(i.RendezvousIP).To(BeNil())
+				})
+
+				It("should preserve RendezvousIP when field is omitted in unrelated update", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("rendezvous_ip", "192.168.1.100").Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							AdditionalNtpSources: swag.String("1.1.1.1"),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					i, err = bm.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *i.ID})
+					Expect(err).ToNot(HaveOccurred())
+					Expect(swag.StringValue(i.RendezvousIP)).To(Equal("192.168.1.100"))
+				})
+
 			})
 			It("Update AdditionalNtpSources", func() {
 				mockInfraEnvUpdateSuccess()
@@ -10563,8 +10713,28 @@ var _ = Describe("infraEnvs host", func() {
 			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
 			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 			db.Save(&cluster)
-			id, _ := bm.getClusterIDFromHost(db, hostID, infraEnvID)
-			fmt.Printf("cluster id is %s, and clusterId is %s\n", id, clusterID)
+			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+				InfraEnvID: infraEnvID,
+				HostID:     hostID,
+				HostUpdateParams: &models.HostUpdateParams{
+					HostRole: swag.String("arbiter"),
+				},
+			})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewV2UpdateHostCreated()))
+		})
+
+		It("update host role arbiter success - day2", func() {
+			mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), models.HostRole("arbiter"), gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			cluster.OpenshiftVersion = ""
+			db.Save(&cluster)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
 				HostID:     hostID,
@@ -10610,23 +10780,6 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("TNA clusters support is disabled, cannot set role arbiter to host %s in infra-env %s", hostID, infraEnvID)))
 		})
 
-		It("update host role arbiter failure - cluster's openshift version is empty", func() {
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					HostRole: swag.String("arbiter"),
-				},
-			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
-		})
-
 		It(fmt.Sprintf("update host role arbiter failure - cluster's openshift version < %s", common.MinimumVersionForArbiterClusters), func() {
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
@@ -10643,7 +10796,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
 		})
 
 		It("update host role arbiter failure - cluster's platform is not baremetal", func() {
@@ -10663,7 +10816,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s, it must be bound to a cluster with baremetal platform", hostID, infraEnvID)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal", hostID, infraEnvID)))
 		})
 
 		Context("Hostname", func() {
@@ -11047,7 +11200,6 @@ var _ = Describe("infraEnvs host", func() {
 					expectedNumOfUpdateCalls: 1,
 				},
 			} {
-				test := test
 				It(test.name, func() {
 					mockHostApi.EXPECT().UpdateRole(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), "somehostname", gomock.Any()).Times(0)
@@ -11165,6 +11317,7 @@ var _ = Describe("infraEnvs host", func() {
 					Password: swag.String("password123"),
 				}
 				cluster.OpenshiftVersion = common.MinimumVersionForTwoNodesWithFencing
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 				db.Save(&cluster)
 			})
 
@@ -11227,7 +11380,23 @@ var _ = Describe("infraEnvs host", func() {
 				})
 				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+			})
+
+			It("should return BadRequest error when platform is not allowed for fencing", func() {
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeVsphere)}
+				db.Save(&cluster)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
 			})
 
 			It("should successfully update fencing credentials when all validations pass", func() {
@@ -12867,11 +13036,12 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		mockInstallerCache.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(installercache.NewMockRelease("/tmp/test", mockEvents), nil)
 		mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any(), gomock.Any()).
+		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any()).
 			DoAndReturn(func(command string, args ...string) (string, string, int) {
 				tempDir := args[len(args)-1]
+				mockIgnition := `{"ignition": {"version": "3.2.0"},"storage":{"files":[]}}`
 				err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"),
-					[]byte(`{"ignition": {"version": "3.2.0"}}`), 0600)
+					[]byte(mockIgnition), 0600)
 				Expect(err).NotTo(HaveOccurred())
 				return "", "", 0
 			})
@@ -15840,7 +16010,7 @@ var _ = Describe("RegisterCluster", func() {
 						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "api-vip <1001:db8::64> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is 1.2.3.0/24 but api_vips first IP is 1001:db8::64. All networks must have the same IP family first")
 			})
 
 			It("Ingress VIP from IPv6 Machine Network", func() {
@@ -15858,7 +16028,7 @@ var _ = Describe("RegisterCluster", func() {
 						OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
 					},
 				})
-				verifyApiErrorString(reply, http.StatusBadRequest, "ingress-vip <1001:db8::65> does not belong to machine-network-cidr <1.2.3.0/24>")
+				verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is 1.2.3.0/24 but ingress_vips first IP is 1001:db8::65. All networks must have the same IP family first")
 			})
 		})
 
@@ -18354,10 +18524,91 @@ var _ = Describe("BindHost", func() {
 		Expect(response).To(BeAssignableToTypeOf(&installer.V2DeregisterClusterNoContent{}))
 	})
 
+	It("successful bind for arbiter host", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForArbiterClusters).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("role", models.HostRoleArbiter).Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindSucceededEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RefreshSchedulableMastersForcedTrue(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any())
+
+		response := bm.BindHost(ctx, params)
+		Expect(response).To(BeAssignableToTypeOf(&installer.BindHostOK{}))
+	})
+
+	It("failed bind for arbiter host - openshift version doesn't support TNA clusters", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", "4.18").Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("role", models.HostRoleArbiter).Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "is assigned the arbiter role")
+	})
+
+	It("failed bind for arbiter host - platform isn't allowed for TNA clusters", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForArbiterClusters).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeNone).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("role", models.HostRoleArbiter).Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "is assigned the arbiter role")
+	})
+
 	It("successful bind with fencing credentials", func() {
 		var clusterObj models.Cluster
 		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
 
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
@@ -18382,6 +18633,37 @@ var _ = Describe("BindHost", func() {
 	})
 
 	It("failed bind because openshift version doesn't support fencing credentials", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", "4.19").Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "has fencing credentials")
+	})
+
+	It("failed bind because host has fencing credentials and cluster's platform is not allowed", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeVsphere).Error).ShouldNot(HaveOccurred())
+
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
@@ -19538,11 +19820,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 
 			It("RegisterClusterInternal should reject inconsistent IP family order", func() {
-				// Need minimal mocks for the validation path up to setPrimaryIPStack
-				mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
-				mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
-				mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
-
 				params.NewClusterParams.Name = swag.String("test-inconsistent")
 				params.NewClusterParams.PullSecret = swag.String(fakePullSecret)
 				params.NewClusterParams.BaseDNSDomain = "example.com"
@@ -19687,9 +19964,6 @@ var _ = Describe("Dual-stack cluster", func() {
 			})
 
 			It("v2UpdateClusterInternal should reject inconsistent IP family order", func() {
-				// Need VerifyClusterUpdatability mock since it's called before setPrimaryIPStack
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-
 				params.ClusterUpdateParams.ClusterNetworks = []*models.ClusterNetwork{
 					{Cidr: "2001:db8::/53", HostPrefix: 64}, // IPv6 first
 					{Cidr: "10.128.0.0/14", HostPrefix: 23},
@@ -19764,7 +20038,7 @@ var _ = Describe("Dual-stack cluster", func() {
 
 			It("v2UpdateClusterInternal should reject partial updates with inconsistent IP family order", func() {
 				// First, create a cluster with IPv4-first dual-stack
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Times(2)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Times(1)
 				mockClusterUpdateSuccess(1, 0)
 
 				// Full update to create IPv4-first cluster
@@ -21418,9 +21692,9 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Describe("setPrimaryIPStack", func() {
+	Describe("getPrimaryIPStack", func() {
 		Context("Single stack clusters", func() {
-			It("should set PrimaryIPStack to nil for IPv4-only cluster", func() {
+			It("should compute PrimaryIPStack as nil for IPv4-only cluster", func() {
 				cluster := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:              &clusterID,
@@ -21432,12 +21706,12 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					},
 				}
 
-				err := bm.setPrimaryIPStack(cluster)
+				primaryIPStack, err := bm.getPrimaryIPStack(cluster.MachineNetworks, cluster.APIVips, cluster.IngressVips, cluster.ServiceNetworks, cluster.ClusterNetworks)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.PrimaryIPStack).To(BeNil())
+				Expect(primaryIPStack).To(BeNil())
 			})
 
-			It("should set PrimaryIPStack to nil for IPv6-only cluster", func() {
+			It("should compute PrimaryIPStack as nil for IPv6-only cluster", func() {
 				cluster := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:              &clusterID,
@@ -21449,14 +21723,14 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					},
 				}
 
-				err := bm.setPrimaryIPStack(cluster)
+				primaryIPStack, err := bm.getPrimaryIPStack(cluster.MachineNetworks, cluster.APIVips, cluster.IngressVips, cluster.ServiceNetworks, cluster.ClusterNetworks)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.PrimaryIPStack).To(BeNil())
+				Expect(primaryIPStack).To(BeNil())
 			})
 		})
 
 		Context("Dual stack clusters", func() {
-			It("should set PrimaryIPStack to IPv4 for IPv4-first dual stack", func() {
+			It("should compute PrimaryIPStack as IPv4 for IPv4-first dual stack", func() {
 				cluster := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:               &clusterID,
@@ -21483,14 +21757,13 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 						},
 					},
 				}
-
-				err := bm.setPrimaryIPStack(cluster)
+				primaryIPStack, err := bm.getPrimaryIPStack(cluster.MachineNetworks, cluster.APIVips, cluster.IngressVips, cluster.ServiceNetworks, cluster.ClusterNetworks)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
-				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4))
+				Expect(primaryIPStack).ToNot(BeNil())
+				Expect(*primaryIPStack).To(Equal(common.PrimaryIPStackV4))
 			})
 
-			It("should set PrimaryIPStack to IPv6 for IPv6-first dual stack", func() {
+			It("should compute PrimaryIPStack as IPv6 for IPv6-first dual stack", func() {
 				cluster := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:               &clusterID,
@@ -21518,10 +21791,10 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					},
 				}
 
-				err := bm.setPrimaryIPStack(cluster)
+				primaryIPStack, err := bm.getPrimaryIPStack(cluster.MachineNetworks, cluster.APIVips, cluster.IngressVips, cluster.ServiceNetworks, cluster.ClusterNetworks)
 				Expect(err).ToNot(HaveOccurred())
-				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
-				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+				Expect(primaryIPStack).ToNot(BeNil())
+				Expect(*primaryIPStack).To(Equal(common.PrimaryIPStackV6))
 			})
 
 			It("should return error for inconsistent IP family order", func() {
@@ -21548,7 +21821,7 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					},
 				}
 
-				err := bm.setPrimaryIPStack(cluster)
+				_, err := bm.getPrimaryIPStack(cluster.MachineNetworks, cluster.APIVips, cluster.IngressVips, cluster.ServiceNetworks, cluster.ClusterNetworks)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 			})
@@ -21739,9 +22012,10 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 
 		Context("No network updates", func() {
 			It("should return false when no networks are updated", func() {
-				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeFalse())
+				Expect(primaryIPStack).To(Equal(cluster.PrimaryIPStack))
 			})
 		})
 
@@ -21777,11 +22051,11 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 			})
 
 			It("should recalculate PrimaryIPStack for full updates", func() {
-				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
-				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
-				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+				Expect(primaryIPStack).ToNot(BeNil())
+				Expect(*primaryIPStack).To(Equal(common.PrimaryIPStackV6))
 			})
 		})
 
@@ -21795,11 +22069,11 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 				})
 
 				It("should validate and keep existing PrimaryIPStack", func() {
-					updated, err := bm.updatePrimaryIPStack(params, cluster)
+					updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 					Expect(err).ToNot(HaveOccurred())
 					Expect(updated).To(BeFalse()) // No update needed
-					Expect(cluster.PrimaryIPStack).ToNot(BeNil())
-					Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV4)) // Unchanged
+					Expect(primaryIPStack).ToNot(BeNil())
+					Expect(primaryIPStack).To(Equal(cluster.PrimaryIPStack)) // Unchanged
 				})
 			})
 
@@ -21812,11 +22086,12 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 				})
 
 				It("should return error for inconsistent partial update", func() {
-					updated, err := bm.updatePrimaryIPStack(params, cluster)
+					updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
 					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is ipv4"))
 					Expect(updated).To(BeFalse())
+					Expect(primaryIPStack).To(Equal(cluster.PrimaryIPStack))
 				})
 			})
 		})
@@ -21849,11 +22124,11 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 			})
 
 			It("should recalculate PrimaryIPStack for new cluster", func() {
-				updated, err := bm.updatePrimaryIPStack(params, cluster)
+				updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updated).To(BeTrue())
-				Expect(cluster.PrimaryIPStack).ToNot(BeNil())
-				Expect(*cluster.PrimaryIPStack).To(Equal(common.PrimaryIPStackV6))
+				Expect(primaryIPStack).ToNot(BeNil())
+				Expect(*primaryIPStack).To(Equal(common.PrimaryIPStackV6))
 			})
 		})
 	})

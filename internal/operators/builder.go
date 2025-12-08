@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
+	"github.com/openshift/assisted-service/internal/operators/loki"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
@@ -24,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
+	"github.com/openshift/assisted-service/internal/operators/openshiftlogging"
 	"github.com/openshift/assisted-service/internal/operators/osc"
 	"github.com/openshift/assisted-service/internal/operators/pipelines"
 	"github.com/openshift/assisted-service/internal/operators/selfnoderemediation"
@@ -81,6 +83,8 @@ func NewManager(log logrus.FieldLogger, manifestAPI manifestsapi.ManifestsAPI, o
 		fenceagentsremediation.NewFenceAgentsRemediationOperator(log),
 		nodemaintenance.NewNodeMaintenanceOperator(log),
 		kubedescheduler.NewKubeDeschedulerOperator(log),
+		loki.NewLokiOperator(log),
+		openshiftlogging.NewOpenShiftLoggingOperator(log),
 		clusterobservability.NewClusterObservabilityOperator(log),
 		numaresources.NewNumaResourcesOperator(log),
 		oadp.NewOadpOperator(log),

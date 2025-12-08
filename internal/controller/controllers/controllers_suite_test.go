@@ -37,8 +37,6 @@ const (
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
 	RunSpecs(t, "controllers tests")
 }
 
@@ -48,6 +46,8 @@ var (
 )
 
 var _ = BeforeSuite(func() {
+	common.InitializeDBTest()
+
 	// Configure the Kubernetes and controller-runtime libraries so that they write log messages
 	// to the Ginkgo writer, this way those messages are automatically associated to the right
 	// test.
@@ -56,6 +56,10 @@ var _ = BeforeSuite(func() {
 	logger = logrusr.New(logrusLogger)
 	klog.SetLogger(logger)
 	ctrl.SetLogger(logger)
+})
+
+var _ = AfterSuite(func() {
+	common.TerminateDBTest()
 })
 
 func newSecret(name, namespace string, data map[string][]byte) *corev1.Secret {

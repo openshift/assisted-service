@@ -40,8 +40,8 @@ func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) (models.
 	return models.SupportLevelSupported, ""
 }
 
-func (feature *SnoFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{
+func (feature *SnoFeature) getIncompatibleFeatures(openshiftVersion string) []models.FeatureSupportLevelID {
+	unsupportedFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDODF,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
@@ -54,6 +54,13 @@ func (feature *SnoFeature) getIncompatibleFeatures(string) []models.FeatureSuppo
 		models.FeatureSupportLevelIDNODEMAINTENANCE,
 		models.FeatureSupportLevelIDKUBEDESCHEDULER,
 	}
+
+	// Dual-Stack Primary IPv6 isn't supported for SNO versions < 4.19
+	if isNotSupported, err := common.BaseVersionLessThan("4.19", openshiftVersion); isNotSupported || err != nil {
+		unsupportedFeatures = append(unsupportedFeatures, models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6)
+	}
+
+	return unsupportedFeatures
 }
 
 func (feature *SnoFeature) getIncompatibleArchitectures(openshiftVersion *string) []models.ArchitectureSupportLevelID {
@@ -125,6 +132,55 @@ func (feature *TnaFeature) getIncompatibleArchitectures(_ *string) []models.Arch
 
 func (feature *TnaFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if common.IsClusterTopologyHighlyAvailableArbiter(cluster) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// TnfFeature
+type TnfFeature struct{}
+
+func (feature *TnfFeature) New() SupportLevelFeature {
+	return &TnfFeature{}
+}
+
+func (feature *TnfFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDTNF
+}
+
+func (feature *TnfFeature) GetName() string {
+	return "TNF Clusters"
+}
+
+func (feature *TnfFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	//TNF is only available with baremetal/none platform
+	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+	}
+
+	fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion)
+	if !fencingClustersSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+
+	return models.SupportLevelTechPreview, ""
+}
+
+func (feature *TnfFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
+}
+
+func (feature *TnfFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *TnfFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if common.IsClusterTopologyTwoNodesWithFencing(cluster) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

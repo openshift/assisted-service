@@ -61,6 +61,20 @@ spec:
                   from the hosts discovered by this infra-env will also trust the
                   certificates in this bundle.
                 type: string
+              agentApproval:
+                description: |-
+                  AgentApproval defines configuration for automatic approval of Agents
+                  discovered by this InfraEnv.
+                properties:
+                  autoApprove:
+                    default: false
+                    description: |-
+                      AutoApprove indicates whether Agents discovered using this InfraEnv
+                      should be automatically approved by the system.
+                      If true, any Agent referencing this InfraEnv may be approved without manual intervention.
+                      Use only in trusted environments.
+                    type: boolean
+                type: object
               agentLabels:
                 additionalProperties:
                   type: string

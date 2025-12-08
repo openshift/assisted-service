@@ -51,11 +51,13 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{}, nil
+	return []string{"openshift-logging"}, nil
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return nil
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOPENSHIFTLOGGING,
+	}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the Operator

@@ -426,7 +426,7 @@ podman-pull-service-from-docker-daemon:
 deploy-onprem:
 	podman play kube --configmap ${PODMAN_CONFIGMAP} deploy/podman/pod.yml
 	./hack/retry.sh 90 2 "curl -f http://127.0.0.1:8090/ready"
-	./hack/retry.sh 60 10 "curl -f http://127.0.0.1:8888/health"
+	./hack/retry.sh 180 10 "curl -f http://127.0.0.1:8888/health"
 
 deploy-on-openshift-ci:
 	export PERSISTENT_STORAGE="False" && export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
