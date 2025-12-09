@@ -52,6 +52,7 @@ type API interface {
 	UploadFileWithMetadata(ctx context.Context, filePath, objectName string, metadata map[string]string) error
 	Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 	DoesObjectExist(ctx context.Context, objectName string) (bool, error)
+	WaitForObject(ctx context.Context, objectName string) error
 	DeleteObject(ctx context.Context, objectName string) (bool, error)
 	GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error)
 	GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error)
@@ -276,6 +277,49 @@ func (c *S3Client) doesObjectExist(ctx context.Context, objectName, bucket strin
 
 func (c *S3Client) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	return c.doesObjectExist(ctx, objectName, c.cfg.S3Bucket, c.client)
+}
+
+// WaitForObject waits for an S3 object to become visible with exponential backoff retry.
+// This handles S3 eventual consistency issues where a newly uploaded file might not be
+// immediately visible via HeadObject/GetObject operations.
+func (c *S3Client) WaitForObject(ctx context.Context, objectName string) error {
+	log := logutil.FromContext(ctx, c.log)
+	const (
+		maxRetries     = 5
+		initialBackoff = 100 * time.Millisecond
+		maxBackoff     = 2 * time.Second
+	)
+
+	backoff := initialBackoff
+	for attempt := 1; attempt <= maxRetries; attempt++ {
+		exists, err := c.DoesObjectExist(ctx, objectName)
+		if err != nil {
+			log.WithError(err).Warnf("Error checking if object %s exists (attempt %d/%d)", objectName, attempt, maxRetries)
+			// Don't fail on check errors - continue retrying
+		} else if exists {
+			if attempt > 1 {
+				log.Infof("Object %s became available after %d attempts", objectName, attempt)
+			}
+			return nil
+		}
+
+		// Don't sleep on the last attempt
+		if attempt < maxRetries {
+			log.Debugf("Object %s not yet available, waiting %v before retry %d/%d", objectName, backoff, attempt, maxRetries)
+			select {
+			case <-ctx.Done():
+				return fmt.Errorf("context cancelled while waiting for object %s: %w", objectName, ctx.Err())
+			case <-time.After(backoff):
+				// Exponential backoff with cap
+				backoff *= 2
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+			}
+		}
+	}
+
+	return fmt.Errorf("object %s not available in S3 after %d attempts (possible eventual consistency delay)", objectName, maxRetries)
 }
 
 func (c *S3Client) DeleteObject(ctx context.Context, objectName string) (bool, error) {
