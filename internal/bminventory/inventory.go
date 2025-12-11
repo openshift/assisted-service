@@ -4797,6 +4797,17 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 }
 
 func (b *bareMetalInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {
+	hosts, err := common.GetHostsFromDBWhere(b.db, "infra_env_id = ?", params.InfraEnvID)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if len(hosts) > 0 {
+		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
+		b.log.Error(msg)
+		eventgen.SendInfraEnvDeregisterFailedEvent(ctx, b.eventsHandler, params.InfraEnvID, msg)
+		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
+	}
+
 	if err := b.DeregisterInfraEnvInternal(ctx, params); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -4828,16 +4839,6 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 
 	if _, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	hosts, err := common.GetHostsFromDBWhere(b.db, "infra_env_id = ?", params.InfraEnvID)
-	if err != nil {
-		return err
-	}
-	if len(hosts) > 0 {
-		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
-		log.Error(msg)
-		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 	}
 
 	if err = b.infraEnvApi.DeregisterInfraEnv(ctx, params.InfraEnvID); err != nil {
