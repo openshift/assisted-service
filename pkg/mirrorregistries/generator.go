@@ -119,6 +119,17 @@ func (m *mirrorRegistriesConfigBuilder) GenerateInsecurePolicyJSON() (string, er
 					{"type": "insecureAcceptAnything"},
 				},
 			},
+			"docker": map[string]interface{}{
+				"": []map[string]string{
+					{"type": "insecureAcceptAnything"},
+				},
+				"registry.redhat.io": []map[string]string{
+					{"type": "insecureAcceptAnything"},
+				},
+				"registry.access.redhat.com": []map[string]string{
+					{"type": "insecureAcceptAnything"},
+				},
+			},
 		},
 	}
 

@@ -347,6 +347,16 @@ func TestGeneratePolicyJSON_ForceInsecure(t *testing.T) {
 	daemon := transports["docker-daemon"].(map[string]interface{})
 	daemonEntry := daemon[""].([]interface{})[0].(map[string]interface{})
 	assert.Equal(t, "insecureAcceptAnything", daemonEntry["type"])
+
+	docker := transports["docker"].(map[string]interface{})
+	dockerEntry := docker[""].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "insecureAcceptAnything", dockerEntry["type"])
+
+	rhIoEntry := docker["registry.redhat.io"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "insecureAcceptAnything", rhIoEntry["type"])
+
+	accessRhIoEntry := docker["registry.access.redhat.com"].([]interface{})[0].(map[string]interface{})
+	assert.Equal(t, "insecureAcceptAnything", accessRhIoEntry["type"])
 }
 
 func TestGeneratePolicyJSON_DefaultBehavior(t *testing.T) {
