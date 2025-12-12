@@ -149,8 +149,8 @@ func (hr *HypershiftAgentServiceConfigReconciler) Reconcile(origCtx context.Cont
 			"hypershift_service_namespace": req.Namespace,
 		})
 
-	log.Info("HypershiftAgentServiceConfig Reconcile started")
-	defer log.Info("HypershiftAgentServiceConfig Reconcile ended")
+	log.Debug("HypershiftAgentServiceConfig Reconcile started")
+	defer log.Debug("HypershiftAgentServiceConfig Reconcile ended")
 
 	// read the resource from k8s
 	instance := &aiv1beta1.HypershiftAgentServiceConfig{}

@@ -104,10 +104,10 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 		})
 
 	defer func() {
-		log.Info("InfraEnv Reconcile ended")
+		log.Debug("InfraEnv Reconcile ended")
 	}()
 
-	log.Info("InfraEnv Reconcile started")
+	log.Debug("InfraEnv Reconcile started")
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {

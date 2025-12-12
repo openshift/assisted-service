@@ -141,10 +141,10 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	log := logutil.FromContext(ctx, r.Log).WithFields(logFields)
 
 	defer func() {
-		log.Info("ClusterDeployment Reconcile ended")
+		log.Debug("ClusterDeployment Reconcile ended")
 	}()
 
-	log.Info("ClusterDeployment Reconcile started")
+	log.Debug("ClusterDeployment Reconcile started")
 
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	clusterInstallDeleted := false
@@ -161,7 +161,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	clusterInstall := &hiveext.AgentClusterInstall{}
 	if clusterDeployment.Spec.ClusterInstallRef == nil {
-		log.Infof("AgentClusterInstall not set for ClusterDeployment %s", clusterDeployment.Name)
+		log.Debugf("AgentClusterInstall not set for ClusterDeployment %s", clusterDeployment.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -176,7 +176,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if k8serrors.IsNotFound(err) {
 			// mark that clusterInstall was already deleted so we skip it if needed.
 			clusterInstallDeleted = true
-			log.WithField("AgentClusterInstall", aciName).Infof("AgentClusterInstall does not exist for ClusterDeployment %s", clusterDeployment.Name)
+			log.WithField("AgentClusterInstall", aciName).Debugf("AgentClusterInstall does not exist for ClusterDeployment %s", clusterDeployment.Name)
 			if clusterDeployment.ObjectMeta.DeletionTimestamp.IsZero() {
 				// we have no agentClusterInstall and clusterDeployment is not being deleted. stop reconciliation.
 				return ctrl.Result{}, nil

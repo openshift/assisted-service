@@ -156,7 +156,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 	InfraEnvID := host.InfraEnvID
 	hostID := host.ID
 	hostStatus := swag.StringValue(host.Status)
-	log.Infof("GetNextSteps infra_env: <%s>, host: <%s>, host status: <%s>", InfraEnvID, hostID, hostStatus)
+	log.Debugf("GetNextSteps infra_env: <%s>, host: <%s>, host status: <%s>", InfraEnvID, hostID, hostStatus)
 
 	returnSteps := models.Steps{}
 	stateToSteps := i.installingClusterStateToSteps
@@ -280,7 +280,7 @@ func createStepID(stepType models.StepType) string {
 
 func logSteps(steps models.Steps, infraEnvId strfmt.UUID, hostId *strfmt.UUID, log logrus.FieldLogger) {
 	if len(steps.Instructions) == 0 {
-		log.Infof("No steps required for infraEnv <%s> host <%s>", infraEnvId, hostId)
+		log.Debugf("No steps required for infraEnv <%s> host <%s>", infraEnvId, hostId)
 	}
 	for _, step := range steps.Instructions {
 		log.Infof("Submitting step <%s> id <%s> to infra_env <%s> host <%s>  Arguments: <%+v>", step.StepType, step.StepID, infraEnvId, hostId, step.Args)

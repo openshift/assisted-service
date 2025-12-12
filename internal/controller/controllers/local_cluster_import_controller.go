@@ -85,10 +85,10 @@ func (r *LocalClusterImportReconciler) setReconciliationStatus(ctx context.Conte
 
 func (r *LocalClusterImportReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	defer func() {
-		r.log.Info("AgentServiceConfig (LocalClusterImport) Reconcile ended")
+		r.log.Debug("AgentServiceConfig (LocalClusterImport) Reconcile ended")
 	}()
 
-	r.log.Info("AgentServiceConfig (LocalClusterImport) Reconcile started")
+	r.log.Debug("AgentServiceConfig (LocalClusterImport) Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
 
