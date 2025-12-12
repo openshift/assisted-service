@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/api/v1beta1"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 )
