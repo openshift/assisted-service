@@ -98,10 +98,10 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		})
 
 	defer func() {
-		log.Info("PreprovisioningImage Reconcile ended")
+		log.Debug("PreprovisioningImage Reconcile ended")
 	}()
 
-	log.Info("PreprovisioningImage Reconcile started")
+	log.Debug("PreprovisioningImage Reconcile started")
 
 	// Retrieve PreprovisioningImage
 	image := &metal3_v1alpha1.PreprovisioningImage{}
@@ -175,7 +175,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	// The image has been created sooner than the specified cooldown period
 	imageTimePlusCooldown := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
 	if imageTimePlusCooldown.After(time.Now()) {
-		log.Info("InfraEnv image is too recent. Requeuing and retrying again soon")
+		log.Debug("InfraEnv image is too recent. Requeuing and retrying again soon")
 		err = r.patchImageStatus(ctx, log, image, setCoolDownCondition)
 		if err != nil {
 			return ctrl.Result{}, err
@@ -557,7 +557,7 @@ func (r *PreprovisioningImageReconciler) getIronicAgentImageByPriority(
 	}
 
 	if iccIronicAgentImage != "" && r.imageMatchesInfraenvArch(log, infraEnvInternal, iccIronicAgentImage) {
-		log.Infof("Setting ironic agent image (%s) from ICC config", iccIronicAgentImage)
+		log.Debugf("Setting ironic agent image (%s) from ICC config", iccIronicAgentImage)
 		return iccIronicAgentImage
 	}
 
@@ -579,7 +579,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, lo
 	}
 
 	if iccConfig != nil {
-		log.Infof("Using ironic URLs from ICC config (Base: %s, Inspector: %s)", iccConfig.IronicBaseURL, iccConfig.IronicInspectorBaseUrl)
+		log.Debugf("Using ironic URLs from ICC config (Base: %s, Inspector: %s)", iccConfig.IronicBaseURL, iccConfig.IronicInspectorBaseUrl)
 	} else {
 		iccConfig = &ICCConfig{}
 		if err := r.fillIronicServiceURLs(ctx, infraEnv, infraEnvInternal, iccConfig); err != nil {
@@ -593,7 +593,7 @@ func (r *PreprovisioningImageReconciler) getIronicConfig(ctx context.Context, lo
 		return nil, fmt.Errorf("Failed to determine ironic config")
 	}
 
-	log.Infof("Ironic Agent Image is (%s) Ironic URL is (%s) Inspector URL is (%s)",
+	log.Debugf("Ironic Agent Image is (%s) Ironic URL is (%s) Inspector URL is (%s)",
 		iccConfig.IronicAgentImage,
 		iccConfig.IronicBaseURL,
 		iccConfig.IronicInspectorBaseUrl)
@@ -628,6 +628,11 @@ func (r *PreprovisioningImageReconciler) AddIronicAgentToInfraEnv(ctx context.Co
 
 	updated := false
 	if string(conf) != infraEnvInternal.InternalIgnitionConfigOverride {
+		log.Infof("Updating Ironic config: Agent Image (%s) Ironic URL (%s) Inspector URL (%s)",
+			iccConfig.IronicAgentImage,
+			iccConfig.IronicBaseURL,
+			iccConfig.IronicInspectorBaseUrl)
+
 		var mirrorRegistryConfiguration *common.MirrorRegistryConfiguration
 		if infraEnvInternal.MirrorRegistryConfiguration != "" {
 			mirrorRegistryConfiguration, err = r.processMirrorRegistryConfig(ctx, log, infraEnv)
