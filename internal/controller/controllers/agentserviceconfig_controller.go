@@ -2092,6 +2092,36 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				corev1.ResourceMemory: resource.MustParse("400Mi"),
 			},
 		},
+		ReadinessProbe: &corev1.Probe{
+			ProbeHandler: corev1.ProbeHandler{
+				Exec: &corev1.ExecAction{
+					Command: []string{"pg_isready", "-h", "localhost", "-p", "5432"},
+				},
+			},
+			InitialDelaySeconds: 5,
+			PeriodSeconds:       5,
+		},
+	}
+
+	postgresUpgradeInitContainer := corev1.Container{
+		Name:    "postgres-upgrade",
+		Image:   DatabaseImage(),
+		Command: []string{"/bin/bash", "-c"},
+		Args:    []string{postgresUpgradeScript()},
+		VolumeMounts: []corev1.VolumeMount{
+			{Name: "postgresdb", MountPath: "/var/lib/pgsql/data"},
+		},
+		Env: []corev1.EnvVar{
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_DATABASE", "db.name", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_USER", "db.user", databaseName),
+			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_PASSWORD", "db.password", databaseName),
+		},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("256Mi"),
+			},
+		},
 	}
 
 	if asc.spec.MirrorRegistryRef != nil {
@@ -2222,6 +2252,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		setAnnotation(meta, userConfigHashAnnotation, userConfigHash)
 
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
+		deployment.Spec.Template.Spec.InitContainers = []corev1.Container{postgresUpgradeInitContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 
@@ -2281,6 +2312,103 @@ func copyEnv(config map[string]string, key string) {
 	if value, ok := os.LookupEnv(key); ok {
 		config[key] = value
 	}
+}
+
+func postgresUpgradeScript() string {
+	return fmt.Sprintf(`set -e
+
+DATA_DIR="/var/lib/pgsql/data/userdata"
+ATTEMPT_FILE="/var/lib/pgsql/data/.upgrade-attempts"
+MAX_ATTEMPTS=3
+TARGET_VERSION="%s"
+MIN_VERSION="%s"
+
+log() { echo "[postgres-upgrade] $1"; }
+
+# FRESH INSTALL CHECK
+if [ ! -d "$DATA_DIR" ] || [ ! -f "$DATA_DIR/PG_VERSION" ]; then
+    log "No existing data, fresh install - skipping upgrade"
+    rm -f "$ATTEMPT_FILE"
+    exit 0
+fi
+
+CURRENT_VERSION=$(cat "$DATA_DIR/PG_VERSION")
+log "Current PostgreSQL version: $CURRENT_VERSION"
+log "Target PostgreSQL version: $TARGET_VERSION"
+
+# ALREADY UPGRADED CHECK
+if [ "$CURRENT_VERSION" = "$TARGET_VERSION" ]; then
+    log "Already at target version $TARGET_VERSION, skipping upgrade"
+    rm -f "$ATTEMPT_FILE"
+    exit 0
+fi
+
+# AUTO-RECOVERY: Track attempts, wipe after MAX_ATTEMPTS
+if [ -f "$ATTEMPT_FILE" ]; then
+    ATTEMPTS=$(cat "$ATTEMPT_FILE")
+    ATTEMPTS=$((ATTEMPTS + 1))
+else
+    ATTEMPTS=1
+fi
+
+if [ "$ATTEMPTS" -gt "$MAX_ATTEMPTS" ]; then
+    log "CRITICAL: Exceeded $MAX_ATTEMPTS upgrade attempts"
+    log "Auto-recovery: Wiping data directory and starting fresh"
+    log "Data will be repopulated from Kubernetes CRs"
+    rm -rf /var/lib/pgsql/data/*
+    rm -f "$ATTEMPT_FILE"
+    exit 0
+fi
+
+echo "$ATTEMPTS" > "$ATTEMPT_FILE"
+log "Upgrade attempt $ATTEMPTS of $MAX_ATTEMPTS"
+
+# VERSION VALIDATION
+if [ "$CURRENT_VERSION" != "$MIN_VERSION" ]; then
+    log "ERROR: Current version $CURRENT_VERSION is not supported"
+    log "Expected version $MIN_VERSION for upgrade to $TARGET_VERSION"
+    log "Supported upgrade path: $MIN_VERSION -> $TARGET_VERSION"
+    exit 1
+fi
+
+# STALE LOCK FILE CLEANUP
+if [ -f "$DATA_DIR/postmaster.pid" ]; then
+    log "Removing stale postmaster.pid (previous unclean shutdown)"
+    rm -f "$DATA_DIR/postmaster.pid"
+fi
+
+log "Starting PostgreSQL $MIN_VERSION to $TARGET_VERSION upgrade..."
+log "Using hardlink mode (no additional storage required)"
+
+# PRE-FLIGHT CHECK AND UPGRADE
+log "Running upgrade with pre-flight checks..."
+export POSTGRESQL_UPGRADE=hardlink
+
+/usr/bin/run-postgresql &
+PG_PID=$!
+
+TIMEOUT=300
+for i in $(seq 1 $TIMEOUT); do
+    if pg_isready -h localhost -p 5432 >/dev/null 2>&1; then
+        log "PostgreSQL upgrade completed successfully!"
+        log "Shutting down postgres (main container will start it)"
+        kill -TERM $PG_PID 2>/dev/null || true
+        wait $PG_PID 2>/dev/null || true
+        rm -f "$ATTEMPT_FILE"
+        exit 0
+    fi
+    if ! kill -0 $PG_PID 2>/dev/null; then
+        log "ERROR: PostgreSQL process died during upgrade"
+        log "Check logs above for details"
+        exit 1
+    fi
+    sleep 1
+done
+
+log "ERROR: PostgreSQL did not become ready within $TIMEOUT seconds"
+kill -TERM $PG_PID 2>/dev/null || true
+exit 1
+`, PostgresTargetVersion, PostgresPrevVersion)
 }
 
 func checkIngressCMName(obj metav1.Object) bool {

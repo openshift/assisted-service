@@ -26,6 +26,12 @@ const (
 	OsImagesEnvVar string = "OS_IMAGES"
 	// leaving this here to ensure it's consistent with the previous implementation if/when it is needed for el9/10
 	serviceImageBaseAnnotation string = "agent-install.openshift.io/service-image-base"
+
+	// PostgreSQL upgrade configuration
+	// See docs/dev/postgresql-upgrade.md for upgrade path and details
+	PostgresTargetVersion = "13"
+	PostgresPrevVersion   = "12"
+	PostgresImageDefault  = "quay.io/sclorg/postgresql-13-c8s:latest"
 )
 
 func ServiceImage(asc client.Object) string {
@@ -41,7 +47,7 @@ func ImageServiceImage() string {
 }
 
 func DatabaseImage() string {
-	return getEnvVar("DATABASE_IMAGE", "quay.io/sclorg/postgresql-12-c8s:latest")
+	return getEnvVar("DATABASE_IMAGE", PostgresImageDefault)
 }
 
 func AgentImage() string {
