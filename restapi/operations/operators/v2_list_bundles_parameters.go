@@ -54,7 +54,7 @@ type V2ListBundlesParams struct {
 	  Collection Format: multi
 	*/
 	FeatureIds []string
-	/*Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.
+	/*Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.
 	  In: query
 	*/
 	OpenshiftVersion *string
