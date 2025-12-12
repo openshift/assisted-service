@@ -272,6 +272,14 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return reconcileError{err: err}.Result()
 	}
 
+	// Ensure BMH is labeled for backup if it's referenced by an InfraEnv
+	if infraEnv != nil {
+		result := r.ensureBMHIsLabelled(ctx, log, bmh)
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
+		}
+	}
+
 	result := r.handleBMHFinalizer(ctx, log, bmh, agent)
 	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
 		return res.Result()
@@ -1815,6 +1823,16 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 		return clusterDeployment, false, err
 	}
 	return clusterDeployment, true, err
+}
+
+func (r *BMACReconciler) ensureBMHIsLabelled(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+	if !metav1.HasLabel(bmh.ObjectMeta, BackupLabel) {
+		metav1.SetMetaDataLabel(&bmh.ObjectMeta, BackupLabel, BackupLabelValue)
+		log.Infof("Added backup label to BMH %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileComplete{dirty: true}
+	}
+
+	return reconcileComplete{dirty: false}
 }
 
 func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {

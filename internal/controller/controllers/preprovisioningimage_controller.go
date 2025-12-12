@@ -105,8 +105,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 
 	// Retrieve PreprovisioningImage
 	image := &metal3_v1alpha1.PreprovisioningImage{}
-	err := r.Get(ctx, req.NamespacedName, image)
-	if err != nil {
+	if err := r.Get(ctx, req.NamespacedName, image); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -116,6 +115,10 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 
 	if !funk.ContainsString(image.GetFinalizers(), PreprovisioningImageFinalizerName) {
 		return r.ensurePreprovisioningImageFinalizer(ctx, log, image)
+	}
+
+	if err := ensureVeleroExcludeBackupLabel(ctx, log, r.Client, image); err != nil {
+		return ctrl.Result{}, err
 	}
 
 	if !funk.Some(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO, metal3_v1alpha1.ImageFormatInitRD) {

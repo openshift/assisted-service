@@ -1200,7 +1200,7 @@ var _ = Describe("bmac reconcile", func() {
 					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, opts ...client.UpdateOption) error {
 						return c.Update(ctx, bmh)
 					},
-				).Times(3)
+				).Times(4)
 				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 					func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 						return c.Update(ctx, agent)
@@ -2550,6 +2550,27 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 		mockCtrl.Finish()
 	})
 
+	Context("when BMH does not have InfraEnv label", func() {
+		var host *bmh_v1alpha1.BareMetalHost
+
+		BeforeEach(func() {
+			host = newBMH("bmh-without-infraenv", &bmh_v1alpha1.BareMetalHostSpec{})
+			host.Status.Provisioning.State = bmh_v1alpha1.StateReady
+			Expect(c.Create(ctx, host)).To(BeNil())
+		})
+
+		It("should not add backup label to BMH", func() {
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Labels).NotTo(HaveKey(BackupLabel))
+		})
+	})
+
 	Context("with an existing infraEnv with ISODownloadURL", func() {
 		var infraEnv *v1beta1.InfraEnv
 		var isoImageURL string
@@ -2574,6 +2595,17 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 
 		AfterEach(func() {
 			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
+		})
+
+		It("should add backup label to BMH", func() {
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 		})
 
 		It("should not disable the BMH hardware inspection", func() {
