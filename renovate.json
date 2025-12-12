@@ -24,7 +24,7 @@
                 "/^Dockerfile.assisted-service-build$/"
             ],
             "matchStrings": [
-                "RUN curl .*https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- .* (?<currentValue>.*?)\\n"
+                "RUN curl .*https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- .* (?<currentValue>.*?)\\n"
             ],
             "depNameTemplate": "github.com/golangci/golangci-lint",
             "datasourceTemplate": "go"
