@@ -5788,7 +5788,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
@@ -17234,7 +17234,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
