@@ -332,7 +332,10 @@ func AutoMigrate(db *gorm.DB) error {
 }
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {
-	return db.Preload(tableName, conditions...)
+	// Anytime a cluster is loaded from the database, the network tables need to be ordered
+	// by IP family according to the cluster's primary_ip_stack.
+	tableConditions := addNetworkCondition(tableName, conditions...)
+	return db.Preload(tableName, tableConditions...)
 }
 
 func LoadClusterTablesFromDB(db *gorm.DB, excludeTables ...string) *gorm.DB {
@@ -423,8 +426,43 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 			db = LoadTableFromDB(db, tableName, conditions...)
 		}
 	}
-
 	return db
+}
+
+// OrderByIPFamily returns a GORM callback that orders network items by IP family
+// according to the cluster's primary_ip_stack setting.
+// Uses PostgreSQL's family() function which returns 4 for IPv4 and 6 for IPv6.
+// When primary_ip_stack is 'ipv6', the order is reversed by multiplying the results by -1.
+func OrderByIPFamily(netType, tableName string) func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		orderClause := fmt.Sprintf(
+			"CASE WHEN NULLIF(%s, '') IS NOT NULL THEN family(%s::inet) * CASE WHEN (SELECT primary_ip_stack FROM clusters WHERE id = %s.cluster_id) = '%s' THEN -1 ELSE 1 END ELSE 0 END ASC",
+			netType,
+			netType,
+			tableName,
+			PrimaryIPStackV6,
+		)
+		return db.Order(orderClause)
+	}
+}
+
+// addNetworkCondition adds the order by clause for network tables based on the cluster's primary_ip_stack setting
+// to the conditions for a given table.
+func addNetworkCondition(tableName string, conditions ...interface{}) []interface{} {
+	allConditions := conditions
+	switch tableName {
+	case MachineNetworksTable:
+		allConditions = append(allConditions, OrderByIPFamily("cidr", "machine_networks"))
+	case ClusterNetworksTable:
+		allConditions = append(allConditions, OrderByIPFamily("cidr", "cluster_networks"))
+	case ServiceNetworksTable:
+		allConditions = append(allConditions, OrderByIPFamily("cidr", "service_networks"))
+	case APIVIPsTable:
+		allConditions = append(allConditions, OrderByIPFamily("ip", "api_vips"))
+	case IngressVIPsTable:
+		allConditions = append(allConditions, OrderByIPFamily("ip", "ingress_vips"))
+	}
+	return allConditions
 }
 
 func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
