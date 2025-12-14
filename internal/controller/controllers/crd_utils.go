@@ -99,7 +99,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 	}
 
 	if err == nil {
-		log.Infof("Agent CR %s already exists", hostId)
+		log.Debugf("Agent CR %s already exists", hostId)
 		key := types.NamespacedName{Name: hostId, Namespace: infraEnvCR.Namespace}
 		// fetch previous by KubeKey
 		h, err2 := u.hostApi.GetHostByKubeKey(key)
@@ -109,11 +109,11 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 
 		if err2 == nil {
 			if cluster != nil && h.ClusterID != nil && *h.ClusterID == *cluster.ID {
-				log.Infof("Agent CR %s already exists, same cluster %s", hostId, h.ClusterID)
+				log.Debugf("Agent CR %s already exists, same cluster %s", hostId, h.ClusterID)
 				return nil
 			}
 			if h.InfraEnvID == *infraenv.ID {
-				log.Infof("Agent CR %s already exists, same infraEnv %s", hostId, h.InfraEnvID)
+				log.Debugf("Agent CR %s already exists, same infraEnv %s", hostId, h.InfraEnvID)
 				return nil
 			}
 			//delete previous host

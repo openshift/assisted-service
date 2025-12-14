@@ -60,10 +60,10 @@ func (r *AgentClassificationReconciler) Reconcile(origCtx context.Context, req c
 		})
 
 	defer func() {
-		log.Info("AgentClassification Reconcile ended")
+		log.Debug("AgentClassification Reconcile ended")
 	}()
 
-	log.Info("AgentClassification Reconcile started")
+	log.Debug("AgentClassification Reconcile started")
 
 	classification := &aiv1beta1.AgentClassification{}
 	if err := r.Get(ctx, req.NamespacedName, classification); err != nil {

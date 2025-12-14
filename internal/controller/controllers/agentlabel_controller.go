@@ -52,10 +52,10 @@ func (r *AgentLabelReconciler) Reconcile(origCtx context.Context, req ctrl.Reque
 		})
 
 	defer func() {
-		log.Info("AgentLabel Reconcile ended")
+		log.Debug("AgentLabel Reconcile ended")
 	}()
 
-	log.Info("AgentLabel Reconcile started")
+	log.Debug("AgentLabel Reconcile started")
 
 	agent := &aiv1beta1.Agent{}
 	if err := r.Get(ctx, req.NamespacedName, agent); err != nil {
