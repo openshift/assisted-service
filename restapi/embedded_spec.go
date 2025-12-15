@@ -9751,7 +9751,7 @@ func init() {
     "ip": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:inet\""
     },
     "iscsi": {
       "type": "object",
@@ -10886,7 +10886,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:cidr\""
     },
     "support-level": {
       "type": "string",
@@ -21284,7 +21284,7 @@ func init() {
     "ip": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:inet\""
     },
     "iscsi": {
       "type": "object",
@@ -22408,7 +22408,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:cidr\""
     },
     "support-level": {
       "type": "string",
