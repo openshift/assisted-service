@@ -390,6 +390,11 @@ var _ = Describe("agent reconcile", func() {
 				return c.Get(ctx, name, cd, opts...)
 			},
 		).AnyTimes()
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, ie *v1beta1.InfraEnv, opts ...client.GetOption) error {
+				return c.Get(ctx, name, ie, opts...)
+			},
+		).AnyTimes()
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
@@ -2396,7 +2401,22 @@ var _ = Describe("agent reconcile", func() {
 		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
 
 		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
+		agent.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+				Kind:       "InfraEnv",
+				Name:       infraEnvName,
+				UID:        types.UID(infraEnvId),
+			},
+		}
 		Expect(c.Create(ctx, agent)).To(Succeed())
+		infraEnv := &v1beta1.InfraEnv{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "infraEnvName",
+				Namespace: testNamespace,
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
 
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
@@ -2424,6 +2444,74 @@ var _ = Describe("agent reconcile", func() {
 		newAgent = &v1beta1.Agent{}
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.GetLabels()[v1beta1.InfraEnvNameLabel]).To(Equal(infraEnvName))
+	})
+
+	It("sets the infraEnv as an owner on an agent", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvName := "infraEnvName"
+		commonHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvId,
+			},
+		}
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(commonHost, nil).AnyTimes()
+		allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, infraEnvName)
+
+		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
+		Expect(c.Create(ctx, agent)).To(Succeed())
+		infraEnv := &v1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "infraEnvName",
+				Namespace: testNamespace,
+				UID:       types.UID(infraEnvId),
+			},
+		}
+		Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		newAgent := &v1beta1.Agent{}
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostID.String(),
+		}
+		By("sets the infraEnv as an owner when it isn't set")
+		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
+		Expect(newAgent.OwnerReferences).To(HaveLen(1))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal(infraEnv.Kind))
+		Expect(newAgent.OwnerReferences[0].Name).To(Equal(infraEnvName))
+		Expect(newAgent.OwnerReferences[0].UID).To(Equal(infraEnv.GetUID()))
+
+		By("adds the infraenv as an owner even if it's owned")
+		newAgent.OwnerReferences = []metav1.OwnerReference{
+			{
+				APIVersion: "aiv1beta1.openshift.io/v1beta1",
+				Kind:       "NotAnInfraEnv",
+				Name:       "notAnInfraEnvName",
+			},
+		}
+		Expect(c.Update(ctx, newAgent)).To(Succeed())
+
+		result, err = hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+
+		newAgent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
+		Expect(newAgent.OwnerReferences).To(HaveLen(2))
+		Expect(newAgent.OwnerReferences[1].Kind).To(Equal("InfraEnv"))
+		Expect(newAgent.OwnerReferences[1].Name).To(Equal(infraEnvName))
+		Expect(newAgent.OwnerReferences[1].UID).To(Equal(infraEnv.GetUID()))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal("NotAnInfraEnv"))
+		Expect(newAgent.OwnerReferences[0].Name).To(Equal("notAnInfraEnvName"))
 	})
 
 	It("sets 'state' annotation in the agent", func() {
@@ -4483,10 +4571,21 @@ var _ = Describe("handleAgentFinalizer", func() {
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
 		}
+
 		agent = &v1beta1.Agent{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "host",
 				Namespace: testNamespace,
+				Labels: map[string]string{
+					v1beta1.InfraEnvNameLabel: "infraenvName",
+				},
+				OwnerReferences: []metav1.OwnerReference{
+					{
+						APIVersion: "aiv1beta1.agent.openshift.io",
+						Kind:       "InfraEnv",
+						Name:       "infraenvName",
+					},
+				},
 			},
 			Spec: v1beta1.AgentSpec{
 				Hostname: agentHostname,
@@ -4581,6 +4680,8 @@ var _ = Describe("handleAgentFinalizer", func() {
 					return nil
 				},
 			).AnyTimes()
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4591,6 +4692,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 			notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: "hive.openshift.io", Resource: "ClusterDeployment"}, cdKey.Name)
 			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).Return(notFoundError).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4616,6 +4720,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 			aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 			notFoundError := k8serrors.NewNotFound(schema.GroupResource{Group: hiveext.Group, Resource: "AgentClusterInstall"}, aciKey.Name)
 			mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(notFoundError).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 			Expect(err).To(BeNil())
@@ -4643,6 +4750,41 @@ var _ = Describe("handleAgentFinalizer", func() {
 				func(_ context.Context, key client.ObjectKey, aci *hiveext.AgentClusterInstall, _ ...client.GetOption) error {
 					now := metav1.Now()
 					aci.ObjectMeta.DeletionTimestamp = &now
+					return nil
+				},
+			).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
+
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
+		It("doesn't remove the node when the infraenv is being deleted", func() {
+			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+					cd.ObjectMeta.Name = agent.Spec.ClusterDeploymentName.Name
+					cd.ObjectMeta.Namespace = testNamespace
+					cd.Spec.ClusterInstallRef = &hivev1.ClusterInstallLocalReference{
+						Group:   hiveext.Group,
+						Kind:    "AgentClusterInstall",
+						Name:    cd.Name,
+						Version: hiveext.Version,
+					}
+					return nil
+				},
+			).AnyTimes()
+
+			aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(nil).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, infraEnv *v1beta1.InfraEnv, _ ...client.GetOption) error {
+					now := metav1.Now()
+					infraEnv.ObjectMeta.DeletionTimestamp = &now
 					return nil
 				},
 			).AnyTimes()
@@ -4678,6 +4820,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 
 				aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
 				mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(nil).AnyTimes()
+
+				infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).Return(nil).AnyTimes()
 
 				secretKey := types.NamespacedName{Name: "clusterKubeConfig", Namespace: testNamespace}
 				mockClient.EXPECT().Get(ctx, secretKey, gomock.AssignableToTypeOf(&corev1.Secret{})).DoAndReturn(
