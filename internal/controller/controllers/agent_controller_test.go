@@ -389,6 +389,11 @@ var _ = Describe("agent reconcile", func() {
 				return c.Get(ctx, name, cd, opts...)
 			},
 		).AnyTimes()
+		mockClient.EXPECT().Get(gomock.Any(), gomock.AssignableToTypeOf(types.NamespacedName{}), gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+			func(ctx context.Context, name types.NamespacedName, ie *v1beta1.InfraEnv, opts ...client.GetOption) error {
+				return c.Get(ctx, name, ie, opts...)
+			},
+		).AnyTimes()
 		mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
 			func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
 				return c.Update(ctx, agent)
