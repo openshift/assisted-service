@@ -2293,11 +2293,15 @@ var _ = Describe("SetVipsData", func() {
 		It(t.name, func() {
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
-					ID:          &clusterId,
-					Status:      swag.String(t.srcState),
-					APIVips:     []*models.APIVip{{IP: models.IP(t.clusterApiVip), ClusterID: clusterId}},
-					IngressVips: []*models.IngressVip{{IP: models.IP(t.clusterIngressVip), ClusterID: clusterId}},
+					ID:     &clusterId,
+					Status: swag.String(t.srcState),
 				},
+			}
+			if t.clusterApiVip != "" {
+				cluster.APIVips = []*models.APIVip{{IP: models.IP(t.clusterApiVip), ClusterID: clusterId}}
+			}
+			if t.clusterIngressVip != "" {
+				cluster.IngressVips = []*models.IngressVip{{IP: models.IP(t.clusterIngressVip), ClusterID: clusterId}}
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			if t.eventExpected {
