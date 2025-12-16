@@ -16342,9 +16342,9 @@ var _ = Describe("RegisterCluster", func() {
 		}
 
 		It("Networking defaults", func() {
-			defaultClusterNetwork := "1.2.3.4/14"
+			defaultClusterNetwork := "1.0.0.0/14"
 			bm.Config.DefaultClusterNetworkCidr = defaultClusterNetwork
-			defultServiceNetwork := "1.2.3.5/14"
+			defultServiceNetwork := "1.0.0.0/14"
 			bm.Config.DefaultServiceNetworkCidr = defultServiceNetwork
 
 			mockClusterRegisterSuccess(true)
@@ -16397,6 +16397,9 @@ var _ = Describe("RegisterCluster", func() {
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			// Default Config for CIDRs are required to be set
+			bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+			bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 			cfg := auth.GetConfigRHSSO()
 			cfg.EnableOrgBasedFeatureGates = true
 			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
@@ -16453,6 +16456,9 @@ var _ = Describe("RegisterCluster", func() {
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			// Default Config for CIDRs are required to be set
+			bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+			bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 		})
 
 		Context("with EnableOrgBasedFeatureGates true", func() {
@@ -16557,6 +16563,9 @@ var _ = Describe("RegisterCluster", func() {
 				payload.Username = userName1
 				payload.Organization = orgID1
 				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+				// Default Config for CIDRs are required to be set
+				bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+				bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 			})
 
 			It("Register cluster with multi CPU architecture - success", func() {

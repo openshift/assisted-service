@@ -96,10 +96,9 @@ var _ = Describe("dhcpallocate", func() {
 	It("Bad CIDR", func() {
 		cluster = hostutil.GenerateTestClusterWithMachineNetworks(clusterId, []*models.MachineNetwork{{Cidr: "blah"}})
 		cluster.VipDhcpAllocation = swag.Bool(true)
-		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
-		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
-		Expect(stepReply).To(BeNil())
-		Expect(stepErr).To(HaveOccurred())
+		createError := db.Create(&cluster).Error
+		Expect(createError).To(HaveOccurred())
+		Expect(createError.Error()).To(ContainSubstring("invalid CIDR \"blah\""))
 	})
 
 	It("CIDR Mismatch", func() {
