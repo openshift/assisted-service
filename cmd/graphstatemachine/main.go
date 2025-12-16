@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/filanov/stateswitch"
-	"github.com/golang/mock/gomock"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host"
+	"go.uber.org/mock/gomock"
 )
 
 func main() {

@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	oc "github.com/openshift/assisted-service/internal/oc"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockInstallerCache is a mock of InstallerCache interface.

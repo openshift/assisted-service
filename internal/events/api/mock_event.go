@@ -10,8 +10,8 @@ import (
 	time "time"
 
 	strfmt "github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockSender is a mock of Sender interface.

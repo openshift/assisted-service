@@ -9,8 +9,8 @@ import (
 	reflect "reflect"
 
 	dnsproviders "github.com/danielerez/go-dns-client/pkg/dnsproviders"
-	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockDNSApi is a mock of DNSApi interface.

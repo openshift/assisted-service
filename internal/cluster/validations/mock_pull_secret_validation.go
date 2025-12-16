@@ -7,7 +7,7 @@ package validations
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockPullSecretValidator is a mock of PullSecretValidator interface.

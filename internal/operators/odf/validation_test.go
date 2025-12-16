@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
@@ -23,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 

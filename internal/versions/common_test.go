@@ -7,13 +7,13 @@ import (
 	"sync"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	gomock "go.uber.org/mock/gomock"
 )
 
 var _ = Describe("NewHandler", func() {

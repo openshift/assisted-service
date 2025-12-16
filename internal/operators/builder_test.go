@@ -1,12 +1,12 @@
 package operators
 
 import (
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Operators manager builder", func() {

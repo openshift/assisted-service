@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -31,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	eventModels "github.com/openshift/assisted-service/pkg/uploader/models"
 	"github.com/pkg/errors"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"

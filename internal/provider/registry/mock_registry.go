@@ -7,9 +7,9 @@ package registry
 import (
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
 	provider "github.com/openshift/assisted-service/internal/provider"
 	models "github.com/openshift/assisted-service/models"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockRegistry is a mock of Registry interface.
