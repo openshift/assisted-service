@@ -4466,7 +4466,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is ipv4. All networks must have the same IP family first")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is IPv4. All networks must have the same IP family first")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -20075,7 +20075,7 @@ var _ = Describe("Dual-stack cluster", func() {
 				_, err = bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is ipv4"))
+				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is IPv4"))
 			})
 		})
 
@@ -22087,7 +22087,7 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is ipv4"))
+					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is IPv4"))
 					Expect(updated).To(BeFalse())
 					Expect(primaryIPStack).To(Equal(cluster.PrimaryIPStack))
 				})
