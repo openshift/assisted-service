@@ -39,14 +39,14 @@ type Notifiable interface {
 }
 
 // PrimaryIPStack defines which IP family is considered primary in a dual-stack configuration.
-type PrimaryIPStack string
+type PrimaryIPStack int
 
 const (
 	// PrimaryIPStackV4 indicates the primary stack is IPv4.
-	PrimaryIPStackV4 PrimaryIPStack = "ipv4"
+	PrimaryIPStackV4 PrimaryIPStack = 4
 
 	// PrimaryIPStackV6 indicates the primary stack is IPv6.
-	PrimaryIPStackV6 PrimaryIPStack = "ipv6"
+	PrimaryIPStackV6 PrimaryIPStack = 6
 )
 
 type Cluster struct {
