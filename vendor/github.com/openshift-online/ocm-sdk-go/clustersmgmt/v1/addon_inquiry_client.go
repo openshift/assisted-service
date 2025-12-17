@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -48,8 +50,6 @@ func NewAddonInquiryClient(transport http.RoundTripper, path string) *AddonInqui
 }
 
 // Get creates a request for the 'get' method.
-//
-//
 func (c *AddonInquiryClient) Get() *AddonInquiryGetRequest {
 	return &AddonInquiryGetRequest{
 		transport: c.transport,
@@ -156,16 +156,12 @@ func (r *AddonInquiryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddonInquiryPollResponse) Body() *AddOn {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddonInquiryPollResponse) GetBody() (value *AddOn, ok bool) {
 	return r.response.GetBody()
 }
@@ -195,6 +191,13 @@ func (r *AddonInquiryGetRequest) Parameter(name string, value interface{}) *Addo
 // Header adds a request header.
 func (r *AddonInquiryGetRequest) Header(name string, value interface{}) *AddonInquiryGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AddonInquiryGetRequest) Impersonate(user string) *AddonInquiryGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -230,15 +233,21 @@ func (r *AddonInquiryGetRequest) SendContext(ctx context.Context) (result *Addon
 	result = &AddonInquiryGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAddonInquiryGetResponse(result, response.Body)
+	err = readAddonInquiryGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -278,8 +287,6 @@ func (r *AddonInquiryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AddonInquiryGetResponse) Body() *AddOn {
 	if r == nil {
 		return nil
@@ -289,8 +296,6 @@ func (r *AddonInquiryGetResponse) Body() *AddOn {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AddonInquiryGetResponse) GetBody() (value *AddOn, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
