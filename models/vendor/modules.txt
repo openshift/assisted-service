@@ -1,7 +1,7 @@
-# github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
+# github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
-# github.com/go-openapi/analysis v0.21.2
+# github.com/go-openapi/analysis v0.21.4
 ## explicit; go 1.13
 github.com/go-openapi/analysis
 github.com/go-openapi/analysis/internal/debug
@@ -10,35 +10,33 @@ github.com/go-openapi/analysis/internal/flatten/operations
 github.com/go-openapi/analysis/internal/flatten/replace
 github.com/go-openapi/analysis/internal/flatten/schutils
 github.com/go-openapi/analysis/internal/flatten/sortref
-# github.com/go-openapi/errors v0.20.3
+# github.com/go-openapi/errors v0.20.4
 ## explicit; go 1.14
 github.com/go-openapi/errors
-# github.com/go-openapi/jsonpointer v0.19.5
-## explicit; go 1.13
+# github.com/go-openapi/jsonpointer v0.20.0
+## explicit; go 1.18
 github.com/go-openapi/jsonpointer
-# github.com/go-openapi/jsonreference v0.20.0
+# github.com/go-openapi/jsonreference v0.20.2
 ## explicit; go 1.13
 github.com/go-openapi/jsonreference
 github.com/go-openapi/jsonreference/internal
-# github.com/go-openapi/loads v0.21.1
+# github.com/go-openapi/loads v0.21.2
 ## explicit; go 1.13
 github.com/go-openapi/loads
-# github.com/go-openapi/spec v0.20.7
+# github.com/go-openapi/spec v0.20.9
 ## explicit; go 1.13
 github.com/go-openapi/spec
-# github.com/go-openapi/strfmt v0.21.3
-## explicit; go 1.13
+# github.com/go-openapi/strfmt v0.21.7
+## explicit; go 1.19
 github.com/go-openapi/strfmt
-# github.com/go-openapi/swag v0.22.3
+# github.com/go-openapi/swag v0.22.4
 ## explicit; go 1.18
 github.com/go-openapi/swag
-# github.com/go-openapi/validate v0.22.0
-## explicit; go 1.14
+# github.com/go-openapi/validate v0.22.2
+## explicit; go 1.18
 github.com/go-openapi/validate
 # github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
-# github.com/google/uuid v1.3.0
-## explicit
 # github.com/jinzhu/inflection v1.0.0
 ## explicit
 github.com/jinzhu/inflection
@@ -64,10 +62,8 @@ github.com/mitchellh/mapstructure
 # github.com/oklog/ulid v1.3.1
 ## explicit
 github.com/oklog/ulid
-# github.com/stretchr/testify v1.8.1
+# go.mongodb.org/mongo-driver v1.12.0
 ## explicit; go 1.13
-# go.mongodb.org/mongo-driver v1.10.0
-## explicit; go 1.10
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions
