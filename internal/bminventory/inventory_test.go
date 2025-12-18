@@ -5035,7 +5035,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, ClusterNetwork", func() {
@@ -5047,19 +5047,19 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid HostPrefix, ClusterNetwork", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0}},
+							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0, Cidr: "1.2.0.0/24"}},
 							ServiceNetworks: []*models.ServiceNetwork{},
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network host prefix 0: Host prefix, now 0, must be a positive integer")
 				})
 
 				It("Empty networks - invalid empty ServiceNetwork", func() {
@@ -5071,7 +5071,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
@@ -5083,7 +5083,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid empty MachineNetwork", func() {
@@ -5095,7 +5095,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, MachineNetwork", func() {
@@ -5107,7 +5107,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Multiple machine networks illegal for single-stack", func() {
@@ -16080,6 +16080,48 @@ var _ = Describe("RegisterCluster", func() {
 			})
 		})
 	})
+	var _ = Describe("Network CIDR validations", func() {
+		BeforeEach(func() {
+			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+			db, dbName = common.PrepareTestDB()
+			cfg.DiskEncryptionSupport = false
+			bm = createInventory(db, cfg)
+			bm.Config.DefaultClusterNetworkCidr = "1.2.3.0/24"
+			bm.Config.DefaultServiceNetworkCidr = "1.2.4.0/24"
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			mockUsageReports()
+		})
+
+		AfterEach(func() {
+			ctrl.Finish()
+			common.DeleteTestDB(db, dbName)
+		})
+		Context("Register cluster", func() {
+			var createClusterParams *models.ClusterCreateParams
+			BeforeEach(func() {
+				createClusterParams = &models.ClusterCreateParams{
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					ControlPlaneCount:    swag.Int64(common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder),
+					OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+				}
+			})
+			It("Invalid network CIDR should fail", func() {
+				createClusterParams.MachineNetworks = []*models.MachineNetwork{{Cidr: "invalid"}}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: createClusterParams,
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Machine Network CIDR invalid")
+			})
+			It("Empty network CIDR should fail", func() {
+				createClusterParams.MachineNetworks = []*models.MachineNetwork{{Cidr: ""}}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: createClusterParams,
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
+			})
+		})
+	})
 
 	var _ = Describe("Disk encryption disabled", func() {
 
@@ -19687,6 +19729,80 @@ var _ = Describe("IPv6 support disabled", func() {
 
 			reply := bm.V2UpdateCluster(ctx, params)
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+	})
+	Context("Network CIDR validations", func() {
+		var (
+			clusterID strfmt.UUID
+			cluster   *common.Cluster
+		)
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			cluster = &common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				Kind:                  swag.String(models.ClusterKindAddHostsCluster),
+				Status:                swag.String(models.ClusterStatusInsufficient),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				UserManagedNetworking: swag.Bool(false),
+				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
+			}}
+			err := db.Create(cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			bm = createInventory(db, cfg)
+			bm.Config.DefaultClusterNetworkCidr = "1.2.3.0/24"
+			bm.Config.DefaultServiceNetworkCidr = "1.2.4.0/24"
+		})
+		It("Invalid network CIDR should fail", func() {
+			By("Invalid Machine Network CIDR")
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Machine Network CIDR invalid (index 0): invalid CIDR address: invalid")
+			By("Invalid Cluster Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ClusterNetworks: []*models.ClusterNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Cluster Network CIDR invalid (index 0): invalid CIDR address: invalid")
+			By("Invalid Service Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ServiceNetworks: []*models.ServiceNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Service Network CIDR invalid (index 0): invalid CIDR address: invalid")
+		})
+		It("Empty network CIDR should fail", func() {
+			By("Empty Machine Network CIDR")
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
+			By("Empty Cluster Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ClusterNetworks: []*models.ClusterNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
+			By("Empty Service Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ServiceNetworks: []*models.ServiceNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
 		})
 	})
 })

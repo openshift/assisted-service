@@ -1061,6 +1061,52 @@ var _ = Describe("Parse functions", func() {
 	})
 })
 
+var _ = Describe("ValidateNetworkCIDRs", func() {
+
+	It("should return an error if the Machine Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: "invalid"}}, nil, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Machine Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Cluster Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: "invalid"}})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Cluster Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Service Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: "invalid"}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Service Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Machine Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: ""}}, nil, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Machine Network CIDR cannot be empty (index 0)"))
+	})
+	It("should return an error if the Cluster Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: ""}})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Cluster Network CIDR cannot be empty (index 0)"))
+	})
+	It("should return an error if the Service Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: ""}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Service Network CIDR cannot be empty (index 0)"))
+	})
+	It("should not return an error if the Machine Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: "1.2.3.0/24"}}, nil, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("should not return an error if the Cluster Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: "1.2.3.0/24"}})
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("should not return an error if the Service Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: "1.2.3.0/24"}}, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

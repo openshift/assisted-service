@@ -617,6 +617,9 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
+	if err := validations.ValidateNetworkCIDRs(params.NewClusterParams.MachineNetworks, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
 	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2073,6 +2076,11 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name, platform); err != nil {
 			return installer.V2UpdateClusterParams{}, err
 		}
+	}
+
+	if err := validations.ValidateNetworkCIDRs(params.ClusterUpdateParams.MachineNetworks, params.ClusterUpdateParams.ServiceNetworks, params.ClusterUpdateParams.ClusterNetworks); err != nil {
+		b.log.WithError(err).Errorf("Cluster %s failed network CIDR validations", params.ClusterID)
+		return installer.V2UpdateClusterParams{}, err
 	}
 
 	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams, primaryIPStack); err != nil {
