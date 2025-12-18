@@ -7,6 +7,7 @@ require (
 	github.com/go-openapi/strfmt v0.21.7
 	github.com/go-openapi/swag v0.22.4
 	github.com/go-openapi/validate v0.22.2
+	github.com/jackc/pgtype v1.14.4
 	github.com/lib/pq v1.10.9
 	gorm.io/gorm v1.24.5
 )
@@ -19,6 +20,7 @@ require (
 	github.com/go-openapi/loads v0.21.2 // indirect
 	github.com/go-openapi/spec v0.20.9 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
+	github.com/jackc/pgio v1.0.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.4 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
