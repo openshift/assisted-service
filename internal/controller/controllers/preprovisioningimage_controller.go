@@ -708,11 +708,20 @@ func (r *PreprovisioningImageReconciler) handlePreprovisioningImageDeletion(ctx 
 		return ctrl.Result{RequeueAfter: longerRequeueAfterOnError}, err
 	}
 
-	// PreprovisioningImage should wait for a BMH with automated cleaning enabled to be deleted
+	// PreprovisioningImage should wait for a BMH with automated cleaning enabled to be deleted or finish deprovisioning
 	if bmh.Spec.AutomatedCleaningMode != metal3_v1alpha1.CleaningModeDisabled {
-		log.Infof("Cannot delete PreprovisioningImage yet: BMH %s/%s with automatedCleaningMode=%s exists and requires the image for deprovisioning",
-			bmh.Namespace, bmh.Name, bmh.Spec.AutomatedCleaningMode)
-		return ctrl.Result{Requeue: true}, nil
+		if bmh.DeletionTimestamp.IsZero() {
+			log.Infof("Cannot delete PreprovisioningImage yet: BMH %s/%s with automatedCleaningMode=%s is not being deleted",
+				bmh.Namespace, bmh.Name, bmh.Spec.AutomatedCleaningMode)
+			return ctrl.Result{Requeue: true}, nil
+		}
+		// already deprovisioned is true when the BMH is either in state powering off before delete or deleting
+		alreadyDeprovisioned := funk.Contains([]metal3_v1alpha1.ProvisioningState{metal3_v1alpha1.StatePoweringOffBeforeDelete, metal3_v1alpha1.StateDeleting}, bmh.Status.Provisioning.State)
+		if !alreadyDeprovisioned {
+			log.Infof("Cannot delete PreprovisioningImage yet: BMH %s/%s with automatedCleaningMode=%s has not finished deprovisioning yet. Current state: %s",
+				bmh.Namespace, bmh.Name, bmh.Spec.AutomatedCleaningMode, bmh.Status.Provisioning.State)
+			return ctrl.Result{Requeue: true}, nil
+		}
 	}
 
 	// Safe to delete, remove finalizer
