@@ -508,7 +508,13 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
-			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil {
+			spokeResourcesExist, err := r.spokeResourcesExist(ctx, agent)
+			if err != nil {
+				log.WithError(err).Errorf("failed to check spoke resources presence")
+				return &ctrl.Result{}, err
+			}
+			// Only remove the spoke resources if the spoke resources exist and the skip cleanup annotation is not set and it's bound to a cluster
+			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil && spokeResourcesExist {
 				// only remove the spoke resources if the entire cluster isn't being deleted
 				clusterRef := types.NamespacedName{
 					Name:      agent.Spec.ClusterDeploymentName.Name,
@@ -656,21 +662,28 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr, csrType)
 }
 
-func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
 	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
 	if !ok {
-		return false, nil
+		return nil, nil
 	}
-
 	bmhKey := types.NamespacedName{
 		Name:      bmhName,
 		Namespace: agent.Namespace,
 	}
-	if err := r.Client.Get(ctx, bmhKey, &bmh_v1alpha1.BareMetalHost{}); err != nil {
-		return false, client.IgnoreNotFound(err)
+	bmh := &bmh_v1alpha1.BareMetalHost{}
+	if err := r.Client.Get(ctx, bmhKey, bmh); err != nil {
+		return nil, client.IgnoreNotFound(err)
 	}
+	return bmh, nil
+}
 
-	return true, nil
+func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	bmh, err := r.getBMH(ctx, agent)
+	if err != nil {
+		return false, err
+	}
+	return bmh != nil, nil
 }
 
 func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.NamespacedName) (bool, error) {
@@ -911,6 +924,28 @@ func (r *AgentReconciler) applyDay2NodeLabels(ctx context.Context, log logrus.Fi
 		return client.PatchNodeLabels(ctx, node.Name, marshalledLabels)
 	}
 	return nil
+}
+
+// Spoke resources exist if the agent is installed or resources have been created for the host on the spoke cluster
+func (r *AgentReconciler) spokeResourcesExist(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	agentStage := agent.Status.Progress.CurrentStage
+	if agentStage == models.HostStageDone {
+		return true, nil
+	}
+
+	bmh, err := r.getBMH(ctx, agent)
+	if err != nil {
+		return false, err
+	}
+	if bmh != nil && metav1.HasAnnotation(bmh.ObjectMeta, BMH_SPOKE_CREATED_ANNOTATION) {
+		return true, nil
+	}
+
+	// If there are approved CSRs, then spoke resources exist
+	if len(agent.Status.CSRStatus.ApprovedCSRs) > 0 {
+		return true, nil
+	}
+	return false, nil
 }
 
 // updateStatus is updating all the Agent Conditions.
