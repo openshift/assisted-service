@@ -4536,6 +4536,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 			now := metav1.Now()
 			agent.ObjectMeta.DeletionTimestamp = &now
 			agent.ObjectMeta.Finalizers = []string{AgentFinalizerName}
+			agent.Status.Progress.CurrentStage = models.HostStageDone
 			expectHostRemoved()
 			expectAgentFinalizerRemoved()
 		})
@@ -4670,6 +4671,38 @@ var _ = Describe("handleAgentFinalizer", func() {
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
+		It("doesn't remove the node when the agent is not installed", func() {
+			agent.Status.Progress.CurrentStage = models.HostStageInstalling
+			cdKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, cdKey, gomock.AssignableToTypeOf(&hivev1.ClusterDeployment{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, cd *hivev1.ClusterDeployment, _ ...client.GetOption) error {
+					cd.ObjectMeta.Name = agent.Spec.ClusterDeploymentName.Name
+					cd.ObjectMeta.Namespace = testNamespace
+					cd.Spec.ClusterInstallRef = &hivev1.ClusterInstallLocalReference{
+						Group:   hiveext.Group,
+						Kind:    "AgentClusterInstall",
+						Name:    cd.Name,
+						Version: hiveext.Version,
+					}
+					return nil
+				},
+			).AnyTimes()
+
+			aciKey := types.NamespacedName{Name: agent.Spec.ClusterDeploymentName.Name, Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, aciKey, gomock.AssignableToTypeOf(&hiveext.AgentClusterInstall{})).Return(nil).AnyTimes()
+
+			infraEnvKey := types.NamespacedName{Name: "infraenvName", Namespace: testNamespace}
+			mockClient.EXPECT().Get(ctx, infraEnvKey, gomock.AssignableToTypeOf(&v1beta1.InfraEnv{})).DoAndReturn(
+				func(_ context.Context, key client.ObjectKey, infraEnv *v1beta1.InfraEnv, _ ...client.GetOption) error {
+					infraEnv.ObjectMeta.Name = "infraenvName"
+					infraEnv.ObjectMeta.Namespace = testNamespace
+					return nil
+				},
+			).AnyTimes()
+			res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+			Expect(err).To(BeNil())
+			Expect(res).NotTo(BeNil())
+		})
 
 		Context("with a fake spoke client", func() {
 			var (
@@ -4722,6 +4755,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 			}
 
 			BeforeEach(func() {
+				agent.Status.Progress.CurrentStage = models.HostStageDone
 				schemes := GetKubeClientSchemes()
 				fakeClient := fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 				fakeSpokeClient = fakeSpokeK8sClient{Client: fakeClient}
@@ -4737,6 +4771,55 @@ var _ = Describe("handleAgentFinalizer", func() {
 				Expect(res).NotTo(BeNil())
 
 				err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+			})
+
+			It("removes a node in the middle of Agent installation because CSRs are approved", func() {
+				agent.Status.Progress.CurrentStage = models.HostStageInstalling
+				agent.Status.CSRStatus.ApprovedCSRs = []v1beta1.CSRInfo{
+					{
+						Name:       "csr-host-serving",
+						Type:       v1beta1.CSRTypeServing,
+						ApprovedAt: metav1.Now(),
+					},
+				}
+				node := &corev1.Node{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+				Expect(fakeSpokeClient.Create(ctx, node)).To(Succeed())
+
+				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+				Expect(err).To(BeNil())
+				Expect(res).NotTo(BeNil())
+
+				err = fakeSpokeClient.Get(ctx, client.ObjectKey{Name: agentHostname}, &corev1.Node{})
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+			})
+
+			It("removes a BMH in the middle of Agent installation because BMH is created", func() {
+				agent.Status.Progress.CurrentStage = models.HostStageInstalling
+				agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = agentHostname
+				bmhKey := types.NamespacedName{Name: agentHostname, Namespace: testNamespace}
+				mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
+					func(_ context.Context, key client.ObjectKey, bmh *bmh_v1alpha1.BareMetalHost, _ ...client.GetOption) error {
+						bmh.ObjectMeta.Name = agentHostname
+						bmh.ObjectMeta.Namespace = testNamespace
+						bmh.Annotations = map[string]string{
+							BMH_SPOKE_CREATED_ANNOTATION: "true",
+						}
+						return nil
+					},
+				).AnyTimes()
+
+				bmh := &bmh_v1alpha1.BareMetalHost{ObjectMeta: metav1.ObjectMeta{Name: agentHostname}}
+				bmh.Annotations = map[string]string{
+					BMH_SPOKE_CREATED_ANNOTATION: "true",
+				}
+				Expect(fakeSpokeClient.Create(ctx, bmh)).To(Succeed())
+
+				res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
+				Expect(err).To(BeNil())
+				Expect(res).NotTo(BeNil())
+
+				err = fakeSpokeClient.Get(ctx, bmhKey, &bmh_v1alpha1.BareMetalHost{})
 				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
 			})
 
