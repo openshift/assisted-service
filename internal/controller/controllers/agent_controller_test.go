@@ -3439,7 +3439,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			nodeError:           errors.New("Stam"),
 			expectedError:       errors.New("Stam"),
 			expectedResult:      ctrl.Result{RequeueAfter: defaultRequeueAfterOnError},
-			expectedStatus:      "",
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       "",
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
