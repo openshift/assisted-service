@@ -3060,7 +3060,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			nodeError:           errors.New("Stam"),
 			expectedError:       errors.New("Stam"),
 			expectedResult:      ctrl.Result{RequeueAfter: defaultRequeueAfterOnError},
-			expectedStatus:      "",
+			expectedStatus:      models.HostStatusInstalling,
 			expectedStage:       "",
 			clusterInstall:      newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace),
 			updateProgressStage: false,
@@ -4604,6 +4604,9 @@ var _ = Describe("handleAgentFinalizer", func() {
 
 			It("removes a BMH in the middle of Agent installation because BMH is created", func() {
 				agent.Status.Progress.CurrentStage = models.HostStageInstalling
+				if agent.ObjectMeta.Labels == nil {
+					agent.ObjectMeta.Labels = make(map[string]string)
+				}
 				agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = agentHostname
 				bmhKey := types.NamespacedName{Name: agentHostname, Namespace: testNamespace}
 				mockClient.EXPECT().Get(ctx, bmhKey, gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
