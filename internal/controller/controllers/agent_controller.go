@@ -942,10 +942,16 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		shouldAutoApproveCSRs bool
 		spokeClient           spoke_k8s_client.SpokeK8sClient
 		node                  *corev1.Node
+		ret                   ctrl.Result = ctrl.Result{}
 	)
 	patch := client.MergeFrom(origAgent.DeepCopy())
-
-	ret := ctrl.Result{}
+	defer func() {
+		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
+			log.WithError(patchErr).Error("failed to patch agent Status")
+			err = patchErr
+			return
+		}
+	}()
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
@@ -981,7 +987,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				}
 				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
 					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, nil
 				}
 
 				// TODO: Node name might be FQDN and not just host name if cluster is IPv6
@@ -989,7 +996,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				if err != nil {
 					if !k8serrors.IsNotFound(err) {
 						r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)
-						return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+						ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+						return ret, err
 					}
 					node = nil
 				}
@@ -998,10 +1006,12 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				}
 				if err = r.applyDay2NodeLabels(ctx, log, agent, node, spokeClient); err != nil {
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, err
 				}
 				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node, shouldAutoApproveCSRs); err != nil {
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, err
 				}
 				if agent.Status.Progress.CurrentStage != models.HostStageDone {
 					ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
@@ -1024,7 +1034,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		if clusterId != nil {
 			err = r.populateEventsURL(log, agent, h.InfraEnvID.String())
 			if err != nil {
-				return ctrl.Result{Requeue: true}, nil
+				ret = ctrl.Result{Requeue: true}
+				err = nil
+				return ret, nil
 			}
 			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
 				var logsURL string
@@ -1045,18 +1057,10 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		setConditionsUnknown(agent)
 	}
 
-	if !reflect.DeepEqual(agent, origAgent) {
-		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
-			log.WithError(patchErr).Error("failed to patch agent Status")
-			return ctrl.Result{Requeue: true}, nil
-		}
-	} else {
-		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
-	}
 	if syncErr != nil && internal {
-		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+		ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
 	}
-	return ret, nil
+	return ret, err
 }
 
 func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node, shouldAutoApproveCSRs bool) error {
