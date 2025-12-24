@@ -3926,10 +3926,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
@@ -15372,10 +15373,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
