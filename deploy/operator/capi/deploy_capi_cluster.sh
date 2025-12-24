@@ -143,6 +143,10 @@ EOM
     # disconnected requires the additional trust bundle containing the local registry certificate
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --additional-trust-bundle /etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v ${REGISTRY_DIR}/certs/${REGISTRY_CRT}:/etc/pki/ca-trust/source/anchors/${REGISTRY_CRT}"
+    # disconnected hypershift starting from ACM 2.13/MCE 2.8 requires the olm catalog be explicitly disabled and placed on the guest cluster
+    # or it'll block the nodepool from deploying properly, which will prevent installing any hosts to the hosted cluster.
+    # Our tests use the latest Hypershift image even though this is on an older version of ACM, so we still need to set these flags.
+    export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --olm-catalog-placement Guest --olm-disable-default-sources"
 fi
 
 # TODO: make SSH public key configurable
