@@ -107,12 +107,7 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	if !funk.Some(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO, metal3_v1alpha1.ImageFormatInitRD) {
 		// Currently, the PreprovisioningImageController only support ISO and InitRD image
 		log.Infof("Unsupported image format: %s", image.Spec.AcceptFormats)
-		setUnsupportedFormatCondition(image)
-		err = r.Status().Update(ctx, image)
-		if err != nil {
-			log.WithError(err).Error("failed to update status")
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, r.patchImageStatus(ctx, log, image, setUnsupportedFormatCondition)
 	}
 	// Consider adding finalizer in case we need to clean up resources
 	// Retrieve InfraEnv
@@ -121,9 +116,9 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		log.WithError(err).Error("failed to get corresponding infraEnv")
 		return ctrl.Result{}, err
 	}
-	if infraEnv == nil {
-		log.Info("failed to find infraEnv for image")
-		return ctrl.Result{}, nil
+	if infraEnv == nil || !infraEnv.DeletionTimestamp.IsZero() {
+		log.Warn("infraEnv is not found or is being deleted")
+		return ctrl.Result{}, r.patchImageStatus(ctx, log, image, setInfraEnvNotAvailableCondition)
 	}
 
 	log = log.WithFields(logrus.Fields{
@@ -135,12 +130,9 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	infraArch := common.NormalizeCPUArchitecture(infraEnv.Spec.CpuArchitecture)
 	if infraArch != imageArch {
 		log.Infof("Image arch %s does not match infraEnv arch %s", imageArch, infraArch)
-		setMismatchedArchCondition(image, imageArch, infraArch)
-		err = r.Status().Update(ctx, image)
-		if err != nil {
-			log.WithError(err).Error("failed to update status")
-		}
-		return ctrl.Result{}, err
+		return ctrl.Result{}, r.patchImageStatus(ctx, log, image, func(img *metal3_v1alpha1.PreprovisioningImage) {
+			setMismatchedArchCondition(img, imageArch, infraArch)
+		})
 	}
 
 	infraEnvUpdated, err := r.AddIronicAgentToInfraEnv(ctx, log, infraEnv)
@@ -148,46 +140,37 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 		return ctrl.Result{}, nil
 	}
 	if err != nil {
-		setIronicAgentIgnitionFailureCondition(image, err)
-		if updErr := r.Status().Update(ctx, image); updErr != nil {
-			log.WithError(err).Error("failed to update status")
+		patchErr := r.patchImageStatus(ctx, log, image, func(img *metal3_v1alpha1.PreprovisioningImage) {
+			setIronicAgentIgnitionFailureCondition(img, err)
+		})
+		if patchErr != nil {
+			return ctrl.Result{}, patchErr
 		}
 		return ctrl.Result{}, err
 	}
 
 	if infraEnv.Status.CreatedTime == nil {
 		log.Info("InfraEnv image has not been created yet")
-		setNotCreatedCondition(image)
-		err = r.Status().Update(ctx, image)
-		if err != nil {
-			log.WithError(err).Error("failed to update status")
-			return ctrl.Result{}, err
-		}
-		// no need to requeue, the change in the infraenv should trigger a reconcile
-		return ctrl.Result{}, nil
+		// If the status updated successfully, no need to requeue, the change in the infraenv should trigger a reconcile
+		return ctrl.Result{}, r.patchImageStatus(ctx, log, image, setNotCreatedCondition)
 	}
 
 	// The image has been created sooner than the specified cooldown period
 	imageTimePlusCooldown := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
 	if imageTimePlusCooldown.After(time.Now()) {
 		log.Info("InfraEnv image is too recent. Requeuing and retrying again soon")
-		setCoolDownCondition(image)
-		err = r.Status().Update(ctx, image)
+		err = r.patchImageStatus(ctx, log, image, setCoolDownCondition)
 		if err != nil {
-			log.WithError(err).Error("failed to update status")
 			return ctrl.Result{}, err
 		}
 		return ctrl.Result{Requeue: true, RequeueAfter: time.Until(imageTimePlusCooldown)}, nil
 	}
 
-	patch := client.MergeFrom(image.DeepCopy())
 	imageUpdated := image.Status.ImageUrl != "" && image.Status.ImageUrl != infraEnv.Status.ISODownloadURL
-	err = r.setImage(image, *infraEnv)
-	if err != nil {
-		return ctrl.Result{}, err
-	}
-	log.Info("updating status")
-	err = r.Status().Patch(ctx, image, patch)
+	log.Info("Setting images in PreprovisioningImage status")
+	err = r.patchImageStatus(ctx, log, image, func(img *metal3_v1alpha1.PreprovisioningImage) {
+		r.setImage(img, *infraEnv)
+	})
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -204,6 +187,14 @@ func (r *PreprovisioningImageReconciler) Reconcile(origCtx context.Context, req 
 	return ctrl.Result{}, nil
 }
 
+func clearImageStatus(image *metal3_v1alpha1.PreprovisioningImage) {
+	image.Status.ImageUrl = ""
+	image.Status.KernelUrl = ""
+	image.Status.ExtraKernelParams = ""
+	image.Status.Format = ""
+	image.Status.Architecture = ""
+}
+
 func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
 	params := []string{fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0", infraEnv.Status.BootArtifacts.RootfsURL)}
 	for _, arg := range infraEnv.Spec.KernelArguments {
@@ -214,7 +205,7 @@ func initrdExtraKernelParams(infraEnv aiv1beta1.InfraEnv) string {
 	return strings.Join(params, " ")
 }
 
-func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) error {
+func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.PreprovisioningImage, infraEnv aiv1beta1.InfraEnv) {
 	image.Status.Architecture = infraEnv.Spec.CpuArchitecture
 	if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
 		r.Log.Infof("Updating PreprovisioningImage ImageUrl with ISO artifacts")
@@ -247,11 +238,10 @@ func (r *PreprovisioningImageReconciler) setImage(image *metal3_v1alpha1.Preprov
 	setImageCondition(generation, &image.Status,
 		metal3_v1alpha1.ConditionImageError, imageErrorStatus,
 		reason, message)
-
-	return nil
 }
 
 func setNotCreatedCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	clearImageStatus(image)
 	message := "Waiting for InfraEnv image to be created"
 	reason := imageConditionReason(strcase.ToCamel(message))
 	setImageCondition(image.GetGeneration(), &image.Status,
@@ -263,6 +253,7 @@ func setNotCreatedCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 }
 
 func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	clearImageStatus(image)
 	message := "Waiting for InfraEnv image to cool down"
 	reason := imageConditionReason(strcase.ToCamel(message))
 	setImageCondition(image.GetGeneration(), &image.Status,
@@ -275,6 +266,7 @@ func setCoolDownCondition(image *metal3_v1alpha1.PreprovisioningImage) {
 }
 
 func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	clearImageStatus(image)
 	message := "Unsupported image format"
 	reason := imageConditionReason(strcase.ToCamel(message))
 	setImageCondition(image.GetGeneration(), &image.Status,
@@ -286,6 +278,7 @@ func setUnsupportedFormatCondition(image *metal3_v1alpha1.PreprovisioningImage) 
 }
 
 func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, imageArch, infraArch string) {
+	clearImageStatus(image)
 	message := fmt.Sprintf("PreprovisioningImage CPU architecture (%s) does not match InfraEnv CPU architecture (%s)", imageArch, infraArch)
 	reason := imageConditionReason(archMismatchReason)
 	setImageCondition(image.GetGeneration(), &image.Status,
@@ -297,6 +290,7 @@ func setMismatchedArchCondition(image *metal3_v1alpha1.PreprovisioningImage, ima
 }
 
 func setIronicAgentIgnitionFailureCondition(image *metal3_v1alpha1.PreprovisioningImage, err error) {
+	clearImageStatus(image)
 	message := fmt.Sprintf("Could not add ironic agent to image: %s", err.Error())
 	reason := imageConditionReason("IronicAgentIgnitionUpdateFailure")
 	setImageCondition(image.GetGeneration(), &image.Status,
@@ -305,6 +299,14 @@ func setIronicAgentIgnitionFailureCondition(image *metal3_v1alpha1.Preprovisioni
 	setImageCondition(image.GetGeneration(), &image.Status,
 		metal3_v1alpha1.ConditionImageError, metav1.ConditionTrue,
 		reason, message)
+}
+
+func setInfraEnvNotAvailableCondition(image *metal3_v1alpha1.PreprovisioningImage) {
+	clearImageStatus(image)
+	message := fmt.Sprintf("InfraEnv %s/%s is not found or is being deleted", image.Labels[InfraEnvLabel], image.Namespace)
+	reason := imageConditionReason("InfraEnvNotAvailable")
+	setImageCondition(image.GetGeneration(), &image.Status, metal3_v1alpha1.ConditionImageReady, metav1.ConditionFalse, reason, message)
+	setImageCondition(image.GetGeneration(), &image.Status, metal3_v1alpha1.ConditionImageError, metav1.ConditionFalse, reason, message)
 }
 
 func setImageCondition(generation int64, status *metal3_v1alpha1.PreprovisioningImageStatus,
@@ -627,4 +629,16 @@ func (r *PreprovisioningImageReconciler) setBMHRebootAnnotation(ctx context.Cont
 	}
 
 	return nil
+}
+
+// patchImageStatus updates the PreprovisioningImage status using the given condition setter function
+func (r *PreprovisioningImageReconciler) patchImageStatus(
+	ctx context.Context,
+	log logrus.FieldLogger,
+	image *metal3_v1alpha1.PreprovisioningImage,
+	conditionSetter func(*metal3_v1alpha1.PreprovisioningImage),
+) error {
+	patch := client.MergeFrom(image.DeepCopy())
+	conditionSetter(image)
+	return r.Status().Patch(ctx, image, patch)
 }

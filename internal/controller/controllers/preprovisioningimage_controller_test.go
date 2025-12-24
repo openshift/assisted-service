@@ -420,7 +420,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Name:      "testPPI",
 			}
 			Expect(c.Get(ctx, key, ppi)).To(BeNil())
-			validateStatus(downloadURL,
+			validateStatus("",
 				&conditionsv1.Condition{
 					Reason:  "WaitingForInfraEnvImageToCoolDown",
 					Message: "Waiting for InfraEnv image to cool down",
@@ -873,6 +873,61 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
 			Expect(res).To(Equal(ctrl.Result{}))
+
+			ppiKey := types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+			Expect(c.Get(ctx, ppiKey, ppi)).To(Succeed())
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(readyCondition.Message).To(ContainSubstring(fmt.Sprintf("InfraEnv %s/%s is not found or is being deleted", ppi.Labels[InfraEnvLabel], ppi.Namespace)))
+			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(errorCondition.Message).To(ContainSubstring(fmt.Sprintf("InfraEnv %s/%s is not found or is being deleted", ppi.Labels[InfraEnvLabel], ppi.Namespace)))
+			Expect(ppi.Status.ImageUrl).To(BeEmpty())
+			Expect(ppi.Status.KernelUrl).To(BeEmpty())
+			Expect(ppi.Status.ExtraKernelParams).To(BeEmpty())
+			Expect(ppi.Status.Format).To(BeEmpty())
+			Expect(ppi.Status.Architecture).To(BeEmpty())
+		})
+
+		It("sets the not found condition when an existing infraEnv gets removed", func() {
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+			setInfraEnvIronicConfig()
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			// Check that the conditions are set to reflect an existing InfraEnv
+			ppiKey := types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+			Expect(c.Get(ctx, ppiKey, ppi)).To(Succeed())
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionTrue))
+			errorCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionFalse))
+
+			// Set PreprovisioningImage to a non-existing InfraEnv
+			ppi.Labels[InfraEnvLabel] = "non-existing-infraenv"
+			Expect(c.Update(ctx, ppi)).To(Succeed())
+
+			res, err = pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			// Check that the conditions are updated to reflect a non-existing InfraEnv
+			ppiKey = types.NamespacedName{Namespace: ppi.Namespace, Name: ppi.Name}
+			Expect(c.Get(ctx, ppiKey, ppi)).To(Succeed())
+			readyCondition = meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageReady))
+			Expect(readyCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(readyCondition.Message).To(ContainSubstring(fmt.Sprintf("InfraEnv %s/%s is not found or is being deleted", ppi.Labels[InfraEnvLabel], ppi.Namespace)))
+			errorCondition = meta.FindStatusCondition(ppi.Status.Conditions, string(metal3_v1alpha1.ConditionImageError))
+			Expect(errorCondition.Status).To(Equal(metav1.ConditionFalse))
+			Expect(errorCondition.Message).To(ContainSubstring(fmt.Sprintf("InfraEnv %s/%s is not found or is being deleted", ppi.Labels[InfraEnvLabel], ppi.Namespace)))
+			Expect(ppi.Status.ImageUrl).To(BeEmpty())
+			Expect(ppi.Status.KernelUrl).To(BeEmpty())
+			Expect(ppi.Status.ExtraKernelParams).To(BeEmpty())
+			Expect(ppi.Status.Format).To(BeEmpty())
+			Expect(ppi.Status.Architecture).To(BeEmpty())
 		})
 	})
 	It("PreprovisioningImage not found", func() {
