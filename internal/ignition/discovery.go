@@ -232,17 +232,17 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 }
 
 func (ib *ignitionBuilder) setIgnitionMirrorRegistry(infraEnv *common.InfraEnv, ignitionParams map[string]interface{}, configuration *common.MirrorRegistryConfiguration) error {
+	hasMirrorConfig := false
+
 	// check if mirror registry is configured in the infra env
 	if common.IsMirrorConfigurationSet(configuration) {
 		ib.log.Debugf("Setting ignition cluster mirror registry to %s", configuration.RegistriesConf)
 		ib.log.Infof("Using mirror registry configuration from InfraEnv %s", infraEnv.ID.String())
 		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.RegistriesConf))
 		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString([]byte(configuration.CaBundleCrt))
-		return nil
-	}
-
-	// check if mirror registry is configured for the entire env
-	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		hasMirrorConfig = true
+	} else if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		// check if mirror registry is configured for the entire env
 		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
 		if mirrorsErr != nil {
 			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
@@ -254,14 +254,16 @@ func (ib *ignitionBuilder) setIgnitionMirrorRegistry(infraEnv *common.InfraEnv, 
 			return mirrorsErr
 		}
 
+		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
+		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
+		hasMirrorConfig = true
+	}
+
+	if hasMirrorConfig {
 		if encodedPolicy, err := ib.mirrorRegistriesBuilder.GenerateInsecurePolicyJSON(); err == nil && encodedPolicy != "" {
 			ib.log.Infof("Applying insecure image policy override (ForceInsecurePolicy=true) to infraEnv %s", infraEnv.ID.String())
 			ignitionParams[mirrorRegistriesPolicyConfigKey] = encodedPolicy
 		}
-
-		ignitionParams[mirrorRegistriesConfigKey] = base64.StdEncoding.EncodeToString(registriesContents)
-		ignitionParams[mirrorRegistriesCAConfigKey] = base64.StdEncoding.EncodeToString(caContents)
-		return nil
 	}
 
 	return nil
