@@ -1025,8 +1025,8 @@ github.com/openshift-online/ocm-sdk-go v0.1.205/go.mod h1:iOhkt/6nFp9v7hasdmGbYl
 github.com/openshift/api v0.0.0-20200326160804-ecb9283fe820/go.mod h1:RKMJ5CBnljLfnej+BJ/xnOWc3kZDvJUaIAEq2oKSPtE=
 github.com/openshift/api v0.0.0-20200827090112-c05698d102cf/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
 github.com/openshift/api v0.0.0-20200829102639-8a3a835f1acf/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
-github.com/openshift/api v0.0.0-20251117165054-348370f055bf h1:8VzLlQFneh4bnHA3SS+Bb9VWdVaR7WugtSeqIngMC3s=
-github.com/openshift/api v0.0.0-20251117165054-348370f055bf/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
+github.com/openshift/api v0.0.0-20251203133830-85216507eada h1:Bo2v12aq3pj+kMger/lPONlq7vBJpLz4B9cZnLdZdks=
+github.com/openshift/api v0.0.0-20251203133830-85216507eada/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
 github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf h1:cBRHiPeMKGWX1ml1rLvMm1ILTJQqLC0AVhTDSJIaIDY=
 github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf/go.mod h1:C/h+zRheayk9F6NxH7t2D26p++o4bRpMf/CV4Lovp9E=
 github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e h1:wxkrIEx1lA6vdGAuBAgXmOVDJ+vX+4nhc7Cgu2jszSg=

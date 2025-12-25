@@ -21,4 +21,5 @@ type ClusterManifestsInternals interface {
 	ListClusterManifestsInternal(ctx context.Context, params operations.V2ListClusterManifestsParams) (models.ListManifests, error)
 	DeleteClusterManifestInternal(ctx context.Context, params operations.V2DeleteClusterManifestParams) error
 	FindUserManifestPathsByLegacyMetadata(ctx context.Context, clusterID strfmt.UUID) ([]string, error)
+	UpdateClusterManifestInternal(ctx context.Context, params operations.V2UpdateClusterManifestParams) (*models.Manifest, error)
 }
