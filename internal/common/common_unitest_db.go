@@ -131,7 +131,7 @@ func (c *K8SDBContext) Create() error {
 					Containers: []corev1.Container{
 						{
 							Name:  "psql",
-							Image: "quay.io/sclorg/postgresql-12-c8s",
+							Image: "quay.io/sclorg/postgresql-13-c9s",
 							Ports: []corev1.ContainerPort{
 								{
 									Name:          "tcp-5433",

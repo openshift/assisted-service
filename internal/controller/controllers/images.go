@@ -41,7 +41,7 @@ func ImageServiceImage() string {
 }
 
 func DatabaseImage() string {
-	return getEnvVar("DATABASE_IMAGE", "quay.io/sclorg/postgresql-12-c8s:latest")
+	return getEnvVar("DATABASE_IMAGE", "quay.io/sclorg/postgresql-13-c9s:latest")
 }
 
 func AgentImage() string {
