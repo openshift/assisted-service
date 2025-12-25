@@ -584,31 +584,53 @@ func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_
 
 	for i := range csrList.Items {
 		csr := &csrList.Items[i]
-		if !isCsrApproved(csr) {
-			shouldApprove, err := r.shouldApproveCSR(csr, agent, validateNodeCsr)
-			if err != nil || !shouldApprove {
-				if err != nil {
-					r.Log.WithError(err).Errorf("Failed checking if CSR %s should be approved for agent %s/%s",
-						csr.Name, agent.Namespace, agent.Name)
-				}
-				continue
-			}
+		isApproved := isCsrApproved(csr)
+
+		if isApproved && isCSRTracked(agent, csr.Name) {
+			continue
+		}
+
+		shouldProcess, err := r.shouldApproveCSR(csr, agent, validateNodeCsr)
+		if err != nil {
+			r.Log.WithError(err).Debugf("Failed validating CSR %s for agent %s", csr.Name, agent.Name)
+			continue
+		}
+		if !shouldProcess {
+			continue
+		}
+
+		approvedAt := metav1.Now()
+		if !isApproved {
 			if err = clients.ApproveCsr(ctx, csr); err != nil {
 				r.Log.WithError(err).Errorf("Failed to approve CSR %s for agent %s/%s", csr.Name, agent.Namespace, agent.Name)
 				continue
 			}
-
-			csrInfo := aiv1beta1.CSRInfo{
-				Name:       csr.Name,
-				Type:       csrType,
-				ApprovedAt: metav1.Now(),
-			}
-			agent.Status.CSRStatus.ApprovedCSRs = append(agent.Status.CSRStatus.ApprovedCSRs, csrInfo)
+		} else {
+			approvedAt = getCSRApprovalTime(csr)
 		}
 
+		r.trackCSR(agent, csr.Name, csrType, approvedAt)
 	}
-	// Track this approval attempt
+
 	agent.Status.CSRStatus.LastApprovalAttempt = metav1.Now()
+}
+
+func getCSRApprovalTime(csr *certificatesv1.CertificateSigningRequest) metav1.Time {
+	for _, c := range csr.Status.Conditions {
+		if c.Type == certificatesv1.CertificateApproved {
+			return c.LastUpdateTime
+		}
+	}
+	return metav1.Time{}
+}
+
+func (r *AgentReconciler) trackCSR(agent *aiv1beta1.Agent, csrName string, csrType aiv1beta1.CSRType, approvedAt metav1.Time) {
+	csrInfo := aiv1beta1.CSRInfo{
+		Name:       csrName,
+		Type:       csrType,
+		ApprovedAt: approvedAt,
+	}
+	agent.Status.CSRStatus.ApprovedCSRs = append(agent.Status.CSRStatus.ApprovedCSRs, csrInfo)
 }
 
 func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
@@ -643,17 +665,14 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 // requeue means that approval will be attempted again
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent, node *corev1.Node, client spoke_k8s_client.SpokeK8sClient) {
 	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
-	var validateNodeCsr nodeCsrValidator
-	csrType := aiv1beta1.CSRTypeClient
-	if node == nil {
-		validateNodeCsr = validateNodeClientCSR
-	} else {
-		validateNodeCsr = createNodeServerCsrValidator(node)
-		csrType = aiv1beta1.CSRTypeServing
-	}
 
-	// Even if node is already ready, we try approving last time
-	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr, csrType)
+	// Try to approve client CSRs
+	r.approveAIHostsCSRs(ctx, client, agent, validateNodeClientCSR, aiv1beta1.CSRTypeClient)
+
+	// Also try serving CSRs if node exists
+	if node != nil {
+		r.approveAIHostsCSRs(ctx, client, agent, createNodeServerCsrValidator(node), aiv1beta1.CSRTypeServing)
+	}
 }
 
 func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
@@ -2191,6 +2210,16 @@ func resetCSRStatus(agent *aiv1beta1.Agent) {
 		ApprovedCSRs:        []aiv1beta1.CSRInfo{},
 		LastApprovalAttempt: metav1.Time{},
 	}
+}
+
+// isCSRTracked checks if a CSR is already tracked in the agent's approved CSRs list
+func isCSRTracked(agent *aiv1beta1.Agent, csrName string) bool {
+	for _, csr := range agent.Status.CSRStatus.ApprovedCSRs {
+		if csr.Name == csrName {
+			return true
+		}
+	}
+	return false
 }
 
 func isAgentOwnedByInfraEnv(agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) bool {
