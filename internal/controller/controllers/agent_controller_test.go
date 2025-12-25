@@ -3760,7 +3760,11 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil)
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(t.node, t.nodeError).Times(t.getNodeCount)
 				if t.csrs != nil {
-					mockClient.EXPECT().ListCsrs(gomock.Any()).Return(t.csrs, nil)
+					listCsrsCallCount := 1
+					if t.node != nil {
+						listCsrsCallCount = 2
+					}
+					mockClient.EXPECT().ListCsrs(gomock.Any()).Return(t.csrs, nil).Times(listCsrsCallCount)
 				}
 				if t.approveExpected {
 					mockClient.EXPECT().ApproveCsr(gomock.Any(), gomock.Any()).Return(nil)
@@ -3797,6 +3801,219 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			Expect(agent.Status.Progress.CurrentStage).To(Equal(t.expectedStage))
 		})
 	}
+
+	It("approves both client and serving CSRs when node exists and both are pending", func() {
+		aci := newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace)
+		Expect(c.Create(ctx, aci)).To(BeNil())
+
+		agentSpec := v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			Hostname:              CommonHostname,
+		}
+		host := newAgent(hostId.String(), testNamespace, agentSpec)
+		host.Spec.Approved = true
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+		mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any())
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: CommonHostname,
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
+				Addresses: []corev1.NodeAddress{
+					{
+						Type:    corev1.NodeInternalIP,
+						Address: "192.168.111.28",
+					},
+				},
+			},
+		}
+
+		bothCsrs := &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "client-csr"},
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ClientCsr),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageClientAuth,
+						},
+						Groups: []string{
+							"system:serviceaccounts:openshift-machine-config-operator",
+							"system:serviceaccounts",
+							"system:authenticated",
+						},
+						Username: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "server-csr"},
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ServerCSR),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageServerAuth,
+						},
+						Groups: []string{
+							"system:authenticated",
+							"system:nodes",
+						},
+						Username: nodeUserPrefix + CommonHostname,
+					},
+				},
+			},
+		}
+
+		mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil)
+		mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).Times(1)
+		mockClient.EXPECT().ListCsrs(gomock.Any()).Return(bothCsrs, nil).Times(2)
+		mockClient.EXPECT().ApproveCsr(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+
+		hostRequest = newHostRequest(host)
+		result, err := hr.Reconcile(ctx, hostRequest)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Minute}))
+
+		agent := &v1beta1.Agent{}
+		Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
+		Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageJoined))
+
+		var clientCSRApproved, servingCSRApproved bool
+		for _, csr := range agent.Status.CSRStatus.ApprovedCSRs {
+			if csr.Type == v1beta1.CSRTypeClient {
+				clientCSRApproved = true
+			}
+			if csr.Type == v1beta1.CSRTypeServing {
+				servingCSRApproved = true
+			}
+		}
+		Expect(clientCSRApproved).To(BeTrue(), "Client CSR should be tracked as approved")
+		Expect(servingCSRApproved).To(BeTrue(), "Serving CSR should be tracked as approved")
+	})
+
+	It("tracks client CSR that was already approved by another approver", func() {
+		aci := newAciWithUserManagedNetworkingNoSNO("test-cluster-aci", testNamespace)
+		Expect(c.Create(ctx, aci)).To(BeNil())
+
+		agentSpec := v1beta1.AgentSpec{
+			ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			Hostname:              CommonHostname,
+		}
+		host := newAgent(hostId.String(), testNamespace, agentSpec)
+		host.Spec.Approved = true
+		Expect(c.Create(ctx, host)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+		mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any())
+
+		node := &corev1.Node{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: CommonHostname,
+			},
+			Status: corev1.NodeStatus{
+				Conditions: []corev1.NodeCondition{
+					{
+						Type:   corev1.NodeReady,
+						Status: corev1.ConditionFalse,
+					},
+				},
+				Addresses: []corev1.NodeAddress{
+					{
+						Type:    corev1.NodeInternalIP,
+						Address: "192.168.111.28",
+					},
+				},
+			},
+		}
+
+		// Client CSR is already approved (e.g., by HyperShift's CSR approver)
+		// Serving CSR is still pending
+		preApprovedTime := metav1.NewTime(time.Now().Add(-10 * time.Minute))
+		csrsWithClientAlreadyApproved := &certificatesv1.CertificateSigningRequestList{
+			Items: []certificatesv1.CertificateSigningRequest{
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "client-csr"},
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ClientCsr),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageClientAuth,
+						},
+						Groups: []string{
+							"system:serviceaccounts:openshift-machine-config-operator",
+							"system:serviceaccounts",
+							"system:authenticated",
+						},
+						Username: "system:serviceaccount:openshift-machine-config-operator:node-bootstrapper",
+					},
+					Status: certificatesv1.CertificateSigningRequestStatus{
+						Conditions: []certificatesv1.CertificateSigningRequestCondition{
+							{
+								Type:           certificatesv1.CertificateApproved,
+								Status:         corev1.ConditionTrue,
+								Reason:         "HyperShiftApproval",
+								Message:        "This CSR was approved by HyperShift",
+								LastUpdateTime: preApprovedTime,
+							},
+						},
+					},
+				},
+				{
+					ObjectMeta: metav1.ObjectMeta{Name: "server-csr"},
+					Spec: certificatesv1.CertificateSigningRequestSpec{
+						Request: []byte(x509ServerCSR),
+						Usages: []certificatesv1.KeyUsage{
+							certificatesv1.UsageDigitalSignature,
+							certificatesv1.UsageServerAuth,
+						},
+						Groups: []string{
+							"system:authenticated",
+							"system:nodes",
+						},
+						Username: nodeUserPrefix + CommonHostname,
+					},
+				},
+			},
+		}
+
+		mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+		mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil)
+		mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).Times(1)
+		mockClient.EXPECT().ListCsrs(gomock.Any()).Return(csrsWithClientAlreadyApproved, nil).Times(2)
+		// Only serving CSR should be approved (client is already approved)
+		mockClient.EXPECT().ApproveCsr(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+		beforeReconcile := time.Now()
+		hostRequest = newHostRequest(host)
+		result, err := hr.Reconcile(ctx, hostRequest)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: time.Minute}))
+
+		agent := &v1beta1.Agent{}
+		Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
+		Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageJoined))
+
+		// Both CSRs should be tracked with correct timestamps
+		for _, csr := range agent.Status.CSRStatus.ApprovedCSRs {
+			if csr.Type == v1beta1.CSRTypeClient {
+				Expect(csr.ApprovedAt.Time).To(BeTemporally("~", preApprovedTime.Time, time.Second), "Pre-approved CSR should have original approval time")
+			}
+			if csr.Type == v1beta1.CSRTypeServing {
+				Expect(csr.ApprovedAt.Time).To(BeTemporally("~", beforeReconcile, time.Second), "Newly approved CSR should have recent timestamp")
+			}
+		}
+		Expect(agent.Status.CSRStatus.ApprovedCSRs).To(HaveLen(2), "Both CSRs should be tracked")
+	})
 
 	AfterEach(func() {
 		mockCtrl.Finish()
