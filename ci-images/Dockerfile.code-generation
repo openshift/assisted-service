@@ -17,16 +17,16 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 #
 # https://issues.redhat.com/browse/MGMT-12697
 COPY --from=quay.io/goswagger/swagger:sha-5d0a00d /usr/bin/swagger /usr/bin/goswagger
-COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
+COPY --from=registry.k8s.io/kustomize/kustomize:v1.64.8 /app/kustomize /usr/bin/
 
 RUN cd / && /assisted-service/hack/setup_env.sh spectral && \
     /assisted-service/hack/setup_env.sh jq && \
-    go install github.com/golang/mock/mockgen@v1.5.0 && \
-    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0 && \
-    go install golang.org/x/tools/cmd/goimports@v0.1.5 && \
+    go install github.com/golang/mock/mockgen@v1.64.8 && \
+    go install sigs.k8s.io/controller-tools/cmd/controller-gen@v1.64.8 && \
+    go install golang.org/x/tools/cmd/goimports@v1.64.8 && \
     chmod 775 -R $GOPATH
 
-RUN curl --retry 5 -L https://github.com/operator-framework/operator-sdk/releases/download/v1.10.1/operator-sdk_linux_amd64 --output /tmp/operator-sdk_linux_amd64 && \
+RUN curl --retry 5 -L https://github.com/operator-framework/operator-sdk/releases/download/v1.64.8/operator-sdk_linux_amd64 --output /tmp/operator-sdk_linux_amd64 && \
     chmod +x /tmp/operator-sdk_linux_amd64 && \
     install /tmp/operator-sdk_linux_amd64 /usr/local/bin/operator-sdk
 
