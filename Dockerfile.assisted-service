@@ -1,6 +1,6 @@
 ARG RHEL_VERSION=9
 
-FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.24 AS golang
+FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.25 AS golang
 
 ADD . /app
 WORKDIR /app
