@@ -32,6 +32,7 @@ issues:
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
+    - G115  # Integer overflow conversion
     - G107
     - G402  # support object store DisableSSL
     - G108
