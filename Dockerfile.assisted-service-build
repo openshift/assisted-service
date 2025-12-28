@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.20 AS golang
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS golang
 
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.53.2
 RUN go install gotest.tools/gotestsum@v1.12.3
@@ -34,9 +34,9 @@ COPY --from=quay.io/goswagger/swagger:sha-5d0a00d /usr/bin/swagger /usr/bin/gosw
 
 COPY --from=quay.io/edge-infrastructure/swagger-codegen-cli:2.4.18 /opt/swagger-codegen-cli /opt/swagger-codegen-cli
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
-COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
-COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
-COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/shellcheck
+COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.64.8 /bin/opm /bin
+COPY --from=registry.k8s.io/kustomize/kustomize:v1.64.8 /app/kustomize /usr/bin/
+COPY --from=quay.io/coreos/shellcheck-alpine:v1.64.8 /bin/shellcheck /usr/bin/shellcheck
 
 RUN dnf install -y --enablerepo=crb \
         openssl openssl-devel postgresql nmstate-devel sqlite gcc genisoimage git libvirt-client libvirt-devel java make && \
