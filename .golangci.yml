@@ -19,7 +19,7 @@ run:
   # can use regexp here: generated.*, regexp is applied on full path;
   # default value is empty list, but default dirs are skipped independently
   # from this option's value (see skip-dirs-use-default).
-  skip-dirs:
+  exclude-dirs:
     - build
     - client
     - docs
@@ -46,26 +46,32 @@ issues:
   # it can be disabled by `exclude-use-default: false`. To list all
   # excluded by default patterns execute `golangci-lint run --help`
   exclude:
+    - G115  # Integer overflow conversion
     - G107
     - G402  # support object store DisableSSL
     - G108
 
 linters:
   enable:
-    - megacheck
+    - gosimple
+    - staticcheck
+    - unused
     - govet
     - gocyclo
     - gofmt
     - gosec
-    - megacheck
+    - gosimple
+    - staticcheck
+    - unused
     - unconvert
     - gci
     - goimports
-    - exportloopref
+    - copyloopvar
 
 linters-settings:
   govet:
-    check-shadowing: true
+    enable:
+      - shadow
 
     settings:
       printf:
