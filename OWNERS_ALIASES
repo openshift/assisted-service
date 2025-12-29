@@ -25,6 +25,7 @@ aliases:
     - giladravid16
     - yoavsc0302
     - cve-automation
+    - omer-vishlitzky
     - maorfr
   emeritus_approvers:
     - empovit
@@ -34,4 +35,3 @@ aliases:
     - pawanpinjarkar
     - sagidayan
     - ybettan
-    - omer-vishlitzky
