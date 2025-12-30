@@ -175,7 +175,7 @@ func validateDualStackNetworkConsistency(networks interface{}, expectedStack com
 
 	// Check consistency
 	if actualStack != expectedStack {
-		return errors.Errorf("Inconsistent IP family order: %s first IP is %s but existing primary IP stack is %s. All networks must have the same IP family first",
+		return errors.Errorf("Inconsistent IP family order: %s first IP is %s but existing primary IP stack is IPv%d. All networks must have the same IP family first",
 			actualNetworkType, firstIP, expectedStack)
 	}
 

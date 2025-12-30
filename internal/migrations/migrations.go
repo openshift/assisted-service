@@ -14,6 +14,8 @@ func MigratePre(db *gorm.DB) error {
 func pre() []*gormigrate.Migration {
 	preMigrations := []*gormigrate.Migration{
 		modifyEventsId(),
+		convertPrimaryIPStackColumnType(),
+		convertNetworkColumnsToNativeTypes(),
 	}
 
 	sort.SliceStable(preMigrations, func(i, j int) bool { return preMigrations[i].ID < preMigrations[j].ID })
