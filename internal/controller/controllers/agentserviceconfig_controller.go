@@ -2068,6 +2068,11 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	postgresContainer := corev1.Container{
 		Name:  databaseName,
 		Image: DatabaseImage(),
+		// Use a wrapper script that conditionally enables pg_upgrade only when a version
+		// mismatch is detected. This allows automatic upgrades while avoiding failures
+		// on normal restarts. See docs/dev/postgresql-upgrade.md for details.
+		Command: []string{"/bin/bash", "-c"},
+		Args:    []string{PostgresStartupScript},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,

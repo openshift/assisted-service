@@ -20,7 +20,7 @@ func (c *TestContainersDBContext) Create() error {
 	var err error
 	c.dbContainer, err = testcontainers.GenericContainer(c.ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: testcontainers.ContainerRequest{
-			Image:        "quay.io/sclorg/postgresql-12-c8s:latest",
+			Image:        "quay.io/sclorg/postgresql-13-c9s:latest",
 			Env:          map[string]string{"POSTGRESQL_ADMIN_PASSWORD": "admin"},
 			ExposedPorts: []string{fmt.Sprintf("%s/tcp", dbDefaultPort)},
 			Name:         dbDockerName,
