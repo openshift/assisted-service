@@ -128,6 +128,7 @@ metadata:
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   installPlanApproval: Automatic
+  channel: stable-4.20
   name: odf-operator
   source: redhat-operators
   sourceNamespace: openshift-marketplace`
