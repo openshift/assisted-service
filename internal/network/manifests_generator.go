@@ -12,7 +12,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
@@ -606,23 +605,9 @@ spec:
 `
 
 func (m *ManifestsGenerator) AddNicReapply(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	// Add this manifest only if one of the host is installing on an iSCSI / multiapth + iSCSI boot drive
-	_, isUsingISCSIBootDrive := lo.Find(c.Cluster.Hosts, func(h *models.Host) bool {
-		inventory, err := common.UnmarshalInventory(h.Inventory)
-		if err != nil {
-			return false
-		}
-		installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(h))
-		if installationDisk.DriveType == models.DriveTypeMultipath {
-			iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, installationDisk, models.DriveTypeISCSI)
-			return len(iSCSIDisks) > 0
-		}
-		return installationDisk.DriveType == models.DriveTypeISCSI
-	})
-
-	if !isUsingISCSIBootDrive {
-		return nil
-	}
+	// Always add this manifest to support hosts with iSCSI boot drives, including day2 hosts.
+	// The manifest performs runtime detection and is a no-op on nodes without iSCSI.
+	log.Info("Adding NIC reapply manifest for iSCSI boot drive support")
 
 	manifestParamsList := []map[string]interface{}{
 		{"ROLE": "master"},

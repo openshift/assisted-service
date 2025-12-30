@@ -1204,7 +1204,7 @@ var _ = Describe("nic reaaply manifest", func() {
 			cluster.Cluster.Hosts = []*models.Host{&hostWithMultipathiSCSI, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
-		It("not added when one of the host installs on an Multipath FC drive", func() {
+		It("added when one of the host installs on an Multipath FC drive (manifest is always added)", func() {
 			inventory := fmt.Sprintf(`{
 			"disks":[
 				{
@@ -1224,10 +1224,18 @@ var _ = Describe("nic reaaply manifest", func() {
 				Inventory:          inventory,
 				InstallationDiskID: "install-id",
 			}
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
+				FileName: "manifest.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil)
 			cluster.Cluster.Hosts = []*models.Host{&hostWithMultipathFC, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
-		It("not added when no hosts installs on an iSCSI/ Multipath iSCSI drive", func() {
+		It("added even when no hosts install on an iSCSI drive to support day2 hosts", func() {
+			manifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Times(2).Return(&models.Manifest{
+				FileName: "manifest.yaml",
+				Folder:   models.ManifestFolderOpenshift,
+			}, nil)
 			cluster.Cluster.Hosts = []*models.Host{&hostWithSSD, &hostWithSSD}
 			Expect(manifestsGeneratorApi.AddNicReapply(ctx, log, &cluster)).ShouldNot(HaveOccurred())
 		})
