@@ -233,11 +233,32 @@ parameters:
   value: "1002"
 - name: TNA_CLUSTERS_SUPPORT
   value: "true"
+- name: MONITORS_REPLICAS_COUNT
+  value: "1"
+- name: MONITORS_MEMORY_LIMIT
+  value: "2.55G"
+  required: false
+- name: MONITORS_CPU_LIMIT
+  value: "500m"
+  required: false
+- name: MONITORS_EPHEMERAL_STORAGE_LIMIT
+  value: "6G"
+  required: false
+- name: MONITORS_MEMORY_REQUEST
+  value: "1.7G"
+  required: false
+- name: MONITORS_CPU_REQUEST
+  value: "300m"
+  required: false
+- name: MONITORS_EPHEMERAL_STORAGE_REQUEST
+  value: "5G"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
   name: assisted-installer
 objects:
+
 - apiVersion: apps/v1
   kind: Deployment
   metadata:
@@ -523,6 +544,8 @@ objects:
                 value: ${TNA_CLUSTERS_SUPPORT}
               - name: TMPDIR
                 value: /data
+              - name: START_MONITORS
+                value: "false"
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
@@ -539,6 +562,264 @@ objects:
           - name: envoy-config
             configMap:
               name: ${ENVOY_CONFIGMAP_NAME}
+
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: assisted-monitors
+  spec:
+    selector:
+      matchLabels:
+        app: assisted-monitors
+    replicas: ${{MONITORS_REPLICAS_COUNT}}
+    template:
+      metadata:
+        labels:
+          app: assisted-monitors
+      spec:
+        serviceAccountName: assisted-monitors
+        containers:
+          - name: assisted-monitors
+            image: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
+            imagePullPolicy: Always
+            resources:
+              limits:
+                cpu: ${{MONITORS_CPU_LIMIT}}
+                memory: ${MONITORS_MEMORY_LIMIT}
+                ephemeral-storage: ${MONITORS_EPHEMERAL_STORAGE_LIMIT}
+              requests:
+                cpu: ${MONITORS_CPU_REQUEST}
+                memory: ${MONITORS_MEMORY_REQUEST}
+                ephemeral-storage: ${MONITORS_EPHEMERAL_STORAGE_REQUEST}
+            livenessProbe:
+              httpGet:
+                path: /health
+                port: 8090
+              initialDelaySeconds: ${{LIVENESS_PROBE_INITIAL_DELAY_SECONDS}}
+            readinessProbe:
+              httpGet:
+                path: /ready
+                port: 8090
+              initialDelaySeconds: ${{READINESS_PROBE_INITIAL_DELAY_SECONDS}}
+            env:
+              - name: AWS_SECRET_ACCESS_KEY
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_secret_access_key
+                    name: assisted-installer-s3
+              - name: AWS_ACCESS_KEY_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_access_key_id
+                    name: assisted-installer-s3
+              - name: S3_REGION
+                valueFrom:
+                  secretKeyRef:
+                    key: aws_region
+                    name: assisted-installer-s3
+              - name: S3_BUCKET
+                valueFrom:
+                  secretKeyRef:
+                    key: bucket
+                    name: assisted-installer-s3
+              - name: S3_ENDPOINT_URL
+                valueFrom:
+                  secretKeyRef:
+                    key: endpoint
+                    name: assisted-installer-s3
+              - name: S3_USE_SSL
+                value: ${S3_USE_SSL}
+              - name: ENABLE_SKIP_MCO_REBOOT
+                value: ${ENABLE_SKIP_MCO_REBOOT}
+              - name: ENABLE_SOFT_TIMEOUTS
+                value: ${ENABLE_SOFT_TIMEOUTS}
+              - name: MIN_VERSION_FOR_NMSTATE_SERVICE
+                value: ${MIN_VERSION_FOR_NMSTATE_SERVICE}
+              - name: DB_HOST
+                valueFrom:
+                  secretKeyRef:
+                    key: db.host
+                    name: assisted-installer-rds
+              - name: DB_NAME
+                valueFrom:
+                  secretKeyRef:
+                    key: db.name
+                    name: assisted-installer-rds
+              - name: DB_PASS
+                valueFrom:
+                  secretKeyRef:
+                    key: db.password
+                    name: assisted-installer-rds
+              - name: DB_PORT
+                valueFrom:
+                  secretKeyRef:
+                    key: db.port
+                    name: assisted-installer-rds
+              - name: DB_USER
+                valueFrom:
+                  secretKeyRef:
+                    key: db.user
+                    name: assisted-installer-rds
+              - name: OCM_SERVICE_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: ocm-service.clientId
+                    name: assisted-installer-sso
+              - name: OCM_SERVICE_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: ocm-service.clientSecret
+                    name: assisted-installer-sso
+              - name: KAFKA_BOOTSTRAP_SERVER
+                valueFrom:
+                  secretKeyRef:
+                    key: ${KAFKA_BOOTSTRAP_SERVER_SECRET_KEY}
+                    name: ${KAFKA_BOOTSTRAP_SERVER_SECRET_NAME}
+              - name: KAFKA_CLIENT_ID
+                valueFrom:
+                  secretKeyRef:
+                    key: ${KAFKA_USERNAME_SECRET_KEY}
+                    name: ${KAFKA_USERNAME_SECRET_NAME}
+              - name: KAFKA_CLIENT_SECRET
+                valueFrom:
+                  secretKeyRef:
+                    key: ${KAFKA_PASSWORD_SECRET_KEY}
+                    name: ${KAFKA_PASSWORD_SECRET_NAME}
+              - name: ENABLE_EVENT_STREAMING
+                value: ${ENABLE_EVENT_STREAMING}
+              - name: KAFKA_EVENT_STREAM_TOPIC
+                value: ${KAFKA_EVENT_STREAM_TOPIC}
+              - name: KAFKA_SASL_MECHANISM
+                value: ${KAFKA_SASL_MECHANISM}
+              - name: NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: SERVICE_BASE_URL
+                value: ${SERVICE_BASE_URL}
+              - name: IMAGE_SERVICE_BASE_URL
+                value: ${IMAGE_SERVICE_BASE_URL}
+              - name: BASE_DNS_DOMAINS
+                value: ${BASE_DNS_DOMAINS}
+              - name: OS_IMAGES
+                value: ${OS_IMAGES}
+              - name: RELEASE_IMAGES
+                value: ${RELEASE_IMAGES}
+              - name: MUST_GATHER_IMAGES
+                value: ${MUST_GATHER_IMAGES}
+              - name: AUTH_TYPE
+                value: ${AUTH_TYPE}
+              - name: JWKS_URL
+                value: ${JWKS_URL}
+              - name: ALLOWED_DOMAINS
+                value: ${ALLOWED_DOMAINS}
+              - name: OCM_BASE_URL
+                value: ${OCM_BASE_URL}
+              - name: HW_VALIDATOR_REQUIREMENTS
+                value: ${HW_VALIDATOR_REQUIREMENTS}
+              - name: INSTALLER_IMAGE
+                value: ${INSTALLER_IMAGE}
+              - name: SELF_VERSION
+                value: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
+              - name: CONTROLLER_IMAGE
+                value: ${CONTROLLER_IMAGE}
+              - name: AGENT_DOCKER_IMAGE
+                value: ${AGENT_DOCKER_IMAGE}
+              - name: LOG_LEVEL
+                value: ${LOG_LEVEL}
+              - name: INSTALL_RH_CA
+                value: ${INSTALL_RH_CA}
+              - name: REGISTRY_CREDS
+                value: ${REGISTRY_CREDS}
+              - name: RELEASE_TAG
+                value: ${RELEASE_TAG}
+              - name: AGENT_TIMEOUT_START
+                value: ${AGENT_TIMEOUT_START}
+              - name: AWS_SHARED_CREDENTIALS_FILE
+                value: /etc/.aws/credentials
+              - name: ADMIN_USERS
+                value: ${ADMIN_USERS}
+              - name: LIVENESS_VALIDATION_TIMEOUT
+                value: ${LIVENESS_VALIDATION_TIMEOUT}
+              - name: PUBLIC_CONTAINER_REGISTRIES
+                value: ${PUBLIC_CONTAINER_REGISTRIES}
+              - name: CHECK_CLUSTER_VERSION
+                value: ${CHECK_CLUSTER_VERSION}
+              - name: IPV6_SUPPORT
+                value: ${IPV6_SUPPORT}
+              - name: ENABLE_SINGLE_NODE_DNSMASQ
+                value: ${ENABLE_SINGLE_NODE_DNSMASQ}
+              - name: DB_MAX_IDLE_CONNECTIONS
+                value: ${DB_MAX_IDLE_CONNECTIONS}
+              - name: DB_MAX_OPEN_CONNECTIONS
+                value: ${DB_MAX_OPEN_CONNECTIONS}
+              - name: DISABLED_HOST_VALIDATIONS
+                value: ${DISABLED_HOST_VALIDATIONS}
+              - name: DISABLED_STEPS
+                value: ${DISABLED_STEPS}
+              - name: ENABLE_AUTO_ASSIGN
+                value: ${ENABLE_AUTO_ASSIGN}
+              - name: DISK_ENCRYPTION_SUPPORT
+                value: ${DISK_ENCRYPTION_SUPPORT}
+              - name: MAX_GC_INFRAENVS_PER_INTERVAL
+                value: ${MAX_GC_INFRAENVS_PER_INTERVAL}
+              - name: INFRAENV_DELETION_WORKER_INTERVAL
+                value: ${INFRAENV_DELETION_WORKER_INTERVAL}
+              - name: INFRAENV_DELETED_INACTIVE_AFTER
+                value: ${INFRAENV_DELETED_INACTIVE_AFTER}
+              - name: CNV_SNO_INSTALL_HPP
+                value: ${CNV_SNO_INSTALL_HPP}
+              - name: ENABLE_ORG_TENANCY
+                value: ${ENABLE_ORG_TENANCY}
+              - name: ENABLE_ORG_BASED_FEATURE_GATES
+                value: ${ENABLE_ORG_BASED_FEATURE_GATES}
+              - name: ISO_IMAGE_TYPE
+                value: ${ISO_IMAGE_TYPE}
+              - name: ENABLE_UPGRADE_AGENT
+                value: ${ENABLE_UPGRADE_AGENT}
+              - name: WORK_DIR
+                value: ${WORK_DIR}
+              - name: ENABLE_REJECT_UNKNOWN_FIELDS
+                value: ${ENABLE_REJECT_UNKNOWN_FIELDS}
+              - name: ENABLE_DATA_COLLECTION
+                value: ${ENABLE_DATA_COLLECTION}
+              - name: DEPLOYMENT_TYPE
+                value: ${DEPLOYMENT_TYPE}
+              - name: INSTALLER_CACHE_CAPACITY
+                value: ${INSTALLER_CACHE_CAPACITY}
+              - name: ENABLE_OKD_SUPPORT
+                value: ${ENABLE_OKD_SUPPORT}
+              - name: RELEASE_SOURCES
+                value: ${RELEASE_SOURCES}
+              - name: OPENSHIFT_RELEASE_SYNCER_INTERVAL
+                value: ${OPENSHIFT_RELEASE_SYNCER_INTERVAL}
+              - name: OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL
+                value: ${OPENSHIFT_SUPPORT_LEVEL_API_BASE_URL}
+              - name: IGNORED_OPENSHIFT_VERSIONS
+                value: ${IGNORED_OPENSHIFT_VERSIONS}
+              - name: NVIDIA_SUPPORTED_GPUS
+                value: ${NVIDIA_SUPPORTED_GPUS}
+              - name: AMD_SUPPORTED_GPUS
+                value: ${AMD_SUPPORTED_GPUS}
+              - name: TNA_CLUSTERS_SUPPORT
+                value: ${TNA_CLUSTERS_SUPPORT}
+              - name: START_MONITORS
+                value: "true"
+            volumeMounts:
+              - name: route53-creds
+                mountPath: "/etc/.aws"
+                readOnly: true
+              - name: workdir-volume
+                mountPath: ${WORK_DIR}
+        volumes:
+          - name: workdir-volume
+            emptyDir: {}
+          - name: route53-creds
+            secret:
+              secretName: route53-creds
+              optional: true
+
+
 - apiVersion: v1
   kind: Service
   metadata:
@@ -553,6 +834,7 @@ objects:
         targetPort: ${{SVC_TARGET_PORT}}
     selector:
       app: assisted-service
+
 - apiVersion: policy/v1
   kind: PodDisruptionBudget
   metadata:
@@ -564,6 +846,7 @@ objects:
     selector:
       matchLabels:
         app: assisted-service
+
 - apiVersion: v1
   kind: ConfigMap
   metadata:
