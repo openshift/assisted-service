@@ -165,6 +165,39 @@ var _ = Describe("Host tests", func() {
 		Expect(host.InstallationDiskPath).To(Equal(common.GetDeviceFullName(inventory.Disks[1])))
 	})
 
+	It("should select bootable disk as default installation disk", func() {
+		host := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
+		host = utils_test.TestContext.GetHostV2(*infraEnvID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		inventory, error := common.UnmarshalInventory(defaultInventory())
+		Expect(error).ToNot(HaveOccurred())
+		inventory.Disks = []*models.Disk{
+			{
+				ID:        "wwn-0x1111111111111111111111",
+				ByID:      "wwn-0x1111111111111111111111",
+				DriveType: "SSD",
+				Name:      "nvme0",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  false,
+			},
+			{
+				ID:        "wwn-0x2222222222222222222222",
+				ByID:      "wwn-0x2222222222222222222222",
+				DriveType: "SSD",
+				Name:      "nvme1",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+		}
+
+		inventoryStr, err := common.MarshalInventory(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host = updateInventory(ctx, *infraEnvID, *host.ID, inventoryStr)
+
+		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[1].ID))
+		Expect(host.InstallationDiskPath).To(Equal(common.GetDeviceFullName(inventory.Disks[1])))
+	})
+
 	It("next step", func() {
 		_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(ctx, &installer.V2UpdateClusterParams{
 			ClusterID: clusterID,
