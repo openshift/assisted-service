@@ -263,9 +263,15 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 		apiVips             []*models.APIVip
 		ingressVips         []*models.IngressVip
 	)
+	apiVips = cluster.APIVips
+	ingressVips = cluster.IngressVips
 
-	apiVips = params.APIVips
-	ingressVips = params.IngressVips
+	if params.APIVips != nil {
+		apiVips = params.APIVips
+	}
+	if params.IngressVips != nil {
+		ingressVips = params.IngressVips
+	}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
 		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
@@ -295,16 +301,14 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 			apiVips = []*models.APIVip{}
 			params.IngressVips = []*models.IngressVip{}
 			ingressVips = []*models.IngressVip{}
-		} else {
-			if params.APIVips == nil {
-				apiVips = cluster.APIVips
-			}
-			if params.IngressVips == nil {
-				ingressVips = cluster.IngressVips
-			}
 		}
 	}
-
+	// Clear VIPs when switching TO DHCP mode (only if user didn't explicitly send VIPs)
+	// If user sends VIPs + DHCP=true, let validation fail with "VIPs forbidden in DHCP mode"
+	if swag.BoolValue(params.VipDhcpAllocation) && params.APIVips == nil && params.IngressVips == nil {
+		apiVips = []*models.APIVip{}
+		ingressVips = []*models.IngressVip{}
+	}
 	targetConfiguration.ID = cluster.ID
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	targetConfiguration.APIVips = apiVips
@@ -313,6 +317,15 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	if params.ClusterNetworks == nil {
+		targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
+	}
+	if params.ServiceNetworks == nil {
+		targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
+	}
+	if params.MachineNetworks == nil {
+		targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	}
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
 	// Copy fields that should be preserved from the existing cluster
