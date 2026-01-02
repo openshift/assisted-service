@@ -347,9 +347,17 @@ spec:
           - ""
           resources:
           - configmaps
+          - persistentvolumeclaims
+          - secrets
+          - serviceaccounts
+          - services
           verbs:
+          - create
+          - delete
           - get
           - list
+          - patch
+          - update
           - watch
         - apiGroups:
           - ""
@@ -368,42 +376,9 @@ spec:
           - list
           - watch
         - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - get
-          - list
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - serviceaccounts
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
           - admissionregistration.k8s.io
           resources:
           - mutatingwebhookconfigurations
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - admissionregistration.k8s.io
-          resources:
           - validatingwebhookconfigurations
           verbs:
           - create
@@ -417,109 +392,9 @@ spec:
           - agent-install.openshift.io
           resources:
           - agentclassifications
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agentclassifications/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agentclassifications/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
           - agents
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agents/ai-deprovision
-          verbs:
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agents/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
           - agentserviceconfigs
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agentserviceconfigs/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - agentserviceconfigs/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
           - hypershiftagentserviceconfigs
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - hypershiftagentserviceconfigs/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
-          - hypershiftagentserviceconfigs/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - agent-install.openshift.io
-          resources:
           - infraenvs
           verbs:
           - create
@@ -532,6 +407,19 @@ spec:
         - apiGroups:
           - agent-install.openshift.io
           resources:
+          - agentclassifications/finalizers
+          - agents/ai-deprovision
+          - agentserviceconfigs/finalizers
+          - hypershiftagentserviceconfigs/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - agent-install.openshift.io
+          resources:
+          - agentclassifications/status
+          - agents/status
+          - agentserviceconfigs/status
+          - hypershiftagentserviceconfigs/status
           - infraenvs/status
           verbs:
           - get
@@ -569,17 +457,6 @@ spec:
           - apps
           resources:
           - deployments
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - apps
-          resources:
           - statefulsets
           verbs:
           - create
@@ -613,37 +490,9 @@ spec:
           - config.openshift.io
           resources:
           - clusteroperators
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - config.openshift.io
-          resources:
           - clusterversions
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - config.openshift.io
-          resources:
           - dnses
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - config.openshift.io
-          resources:
           - infrastructures
-          verbs:
-          - get
-          - list
-          - watch
-        - apiGroups:
-          - config.openshift.io
-          resources:
           - proxies
           verbs:
           - get
@@ -653,66 +502,6 @@ spec:
           - coordination.k8s.io
           resources:
           - leases
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - configmaps
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - persistentvolumeclaims
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - secrets
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - serviceaccounts
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - ""
-          resources:
-          - services
           verbs:
           - create
           - delete
@@ -834,41 +623,8 @@ spec:
           - rbac.authorization.k8s.io
           resources:
           - clusterrolebindings
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
           - clusterroles
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
           - rolebindings
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - rbac.authorization.k8s.io
-          resources:
           - roles
           verbs:
           - create
@@ -882,17 +638,6 @@ spec:
           - route.openshift.io
           resources:
           - routes
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - route.openshift.io
-          resources:
           - routes/custom-host
           verbs:
           - create
