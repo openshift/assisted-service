@@ -281,3 +281,17 @@ func (mr *MockAPIMockRecorder) UploadWithMetadata(arg0, arg1, arg2, arg3 interfa
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadWithMetadata", reflect.TypeOf((*MockAPI)(nil).UploadWithMetadata), arg0, arg1, arg2, arg3)
 }
+
+// WaitForObject mocks base method.
+func (m *MockAPI) WaitForObject(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WaitForObject", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WaitForObject indicates an expected call of WaitForObject.
+func (mr *MockAPIMockRecorder) WaitForObject(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WaitForObject", reflect.TypeOf((*MockAPI)(nil).WaitForObject), arg0, arg1)
+}
