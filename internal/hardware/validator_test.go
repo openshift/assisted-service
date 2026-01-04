@@ -964,6 +964,67 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[8].Name).Should(Equal("nvme01fs3"))
 	})
 
+	It("validate_bootable_disk_preferred", func() {
+		eligible := models.DiskInstallationEligibility{
+			Eligible: true,
+		}
+
+		inventory.Disks = []*models.Disk{
+			{DriveType: models.DriveTypeSSD, Name: "nvme0", SizeBytes: validDiskSize, InstallationEligibility: eligible, Bootable: false},
+			{DriveType: models.DriveTypeSSD, Name: "nvme1", SizeBytes: validDiskSize, InstallationEligibility: eligible, Bootable: true},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
+		disks, err := hwvalidator.GetHostValidDisks(host1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(disks)).Should(Equal(2))
+		Expect(disks[0].Name).Should(Equal("nvme1"))
+		Expect(disks[0].Bootable).Should(BeTrue())
+		Expect(disks[1].Name).Should(Equal("nvme0"))
+		Expect(disks[1].Bootable).Should(BeFalse())
+	})
+
+	It("validate_bootable_disk_preferred_over_non_nvme", func() {
+		eligible := models.DiskInstallationEligibility{
+			Eligible: true,
+		}
+
+		inventory.Disks = []*models.Disk{
+			{DriveType: models.DriveTypeHDD, Name: "sda", SizeBytes: validDiskSize, InstallationEligibility: eligible, Bootable: false},
+			{DriveType: models.DriveTypeSSD, Name: "nvme0", SizeBytes: validDiskSize, InstallationEligibility: eligible, Bootable: true},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
+		disks, err := hwvalidator.GetHostValidDisks(host1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(disks)).Should(Equal(2))
+		Expect(disks[0].Name).Should(Equal("nvme0"))
+		Expect(disks[0].Bootable).Should(BeTrue())
+	})
+
+	It("validate_multiple_bootable_disks_sorted_by_size", func() {
+		eligible := models.DiskInstallationEligibility{
+			Eligible: true,
+		}
+
+		inventory.Disks = []*models.Disk{
+			{DriveType: models.DriveTypeSSD, Name: "nvme0", SizeBytes: validDiskSize, InstallationEligibility: eligible, Bootable: true, Hctl: "N:0:1:3"},
+			{DriveType: models.DriveTypeSSD, Name: "nvme1", SizeBytes: validDiskSize * 200, InstallationEligibility: eligible, Bootable: true, Hctl: "N:0:1:2"},
+			{DriveType: models.DriveTypeSSD, Name: "nvme2", SizeBytes: validDiskSize * 400, InstallationEligibility: eligible, Bootable: true, Hctl: "N:0:1:1"},
+		}
+		hw, err := json.Marshal(&inventory)
+		Expect(err).NotTo(HaveOccurred())
+		host1.Inventory = string(hw)
+		disks, err := hwvalidator.GetHostValidDisks(host1)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(disks)).Should(Equal(3))
+		Expect(disks[0].Name).Should(Equal("nvme0"))
+		Expect(disks[1].Name).Should(Equal("nvme1"))
+		Expect(disks[2].Name).Should(Equal("nvme2"))
+	})
+
 	It("validate_aws_disk_detected", func() {
 		inventory.Disks = []*models.Disk{
 			{

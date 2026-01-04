@@ -1479,6 +1479,7 @@ var _ = Describe("Refresh Host", func() {
 			{models.HostStageStartingInstallation, true},
 			{models.HostStageInstalling, true},
 			{models.HostStageWritingImageToDisk, true},
+			{models.HostStageCopyingRegistryDataToDisk, true},
 			{models.HostStageConfiguring, true},
 			{models.HostStageDone, true},
 			{models.HostStageJoined, true},
@@ -1612,6 +1613,7 @@ var _ = Describe("Refresh Host", func() {
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
+			models.HostStageCopyingRegistryDataToDisk,
 			models.HostStageWaitingForBootkube,
 			models.HostStageWaitingForController,
 		}
@@ -1873,6 +1875,7 @@ var _ = Describe("Refresh Host", func() {
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
+			models.HostStageCopyingRegistryDataToDisk,
 			models.HostStageRebooting,
 			models.HostStageConfiguring,
 			models.HostStageInstalling,
@@ -2021,6 +2024,7 @@ var _ = Describe("Refresh Host", func() {
 		installationStages := []models.HostStage{
 			models.HostStageStartingInstallation,
 			models.HostStageWritingImageToDisk,
+			models.HostStageCopyingRegistryDataToDisk,
 			models.HostStageRebooting,
 			models.HostStageConfiguring,
 			models.HostStageInstalling,
@@ -5352,6 +5356,7 @@ var _ = Describe("Refresh Host", func() {
 				models.HostStageWaitingForController,
 				models.HostStageInstalling,
 				models.HostStageWritingImageToDisk,
+				models.HostStageCopyingRegistryDataToDisk,
 				models.HostStageRebooting,
 				models.HostStageWaitingForIgnition,
 				models.HostStageConfiguring,
@@ -6499,11 +6504,15 @@ func formatProgressTimedOutInfoWithSoftTimeoutsValue(config *Config, stage model
 		statusInfo = statusInfoInstallationInProgressSoftTimedOut
 		if stage == models.HostStageWritingImageToDisk {
 			statusInfo = statusInfoInstallationInProgressWritingImageToDiskSoftTimedOut
+		} else if stage == models.HostStageCopyingRegistryDataToDisk {
+			statusInfo = statusInfoInstallationInProgressCopyingRegistryDataToDiskSoftTimedOut
 		}
 	} else {
 		statusInfo = statusInfoInstallationInProgressTimedOut
 		if stage == models.HostStageWritingImageToDisk {
 			statusInfo = statusInfoInstallationInProgressWritingImageToDiskTimedOut
+		} else if stage == models.HostStageCopyingRegistryDataToDisk {
+			statusInfo = statusInfoInstallationInProgressCopyingRegistryDataToDiskTimedOut
 		}
 
 	}
@@ -6665,6 +6674,8 @@ var allValidationIDs = []validationID{
 	AreNUMAResourcesRequirementsSatisfied,
 	AreOADPRequirementsSatisfied,
 	AreMetalLBRequirementsSatisfied,
+	AreLokiRequirementsSatisfied,
+	AreOpenShiftLoggingRequirementsSatisfied,
 }
 
 var allConditions = []conditionId{

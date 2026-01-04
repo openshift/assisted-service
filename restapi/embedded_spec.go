@@ -3926,10 +3926,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
@@ -5788,7 +5789,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
@@ -6271,7 +6272,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -7335,7 +7338,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -8204,6 +8209,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -8250,7 +8256,9 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
-        "DUAL_STACK_PRIMARY_IPV6"
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -8766,6 +8774,7 @@ func init() {
         "Waiting for controller",
         "Installing",
         "Writing image to disk",
+        "Copying registry data to disk",
         "Rebooting",
         "Waiting for ignition",
         "Configuring",
@@ -8933,7 +8942,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -15362,10 +15373,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
@@ -17224,7 +17236,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
@@ -17707,7 +17719,9 @@ func init() {
                   "cluster-observability",
                   "numa-resources",
                   "oadp",
-                  "metallb"
+                  "metallb",
+                  "loki",
+                  "openshift-logging"
                 ]
               }
             }
@@ -18889,7 +18903,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -19725,6 +19741,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -19771,7 +19788,9 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
-        "DUAL_STACK_PRIMARY_IPV6"
+        "DUAL_STACK_PRIMARY_IPV6",
+        "LOKI",
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -20287,6 +20306,7 @@ func init() {
         "Waiting for controller",
         "Installing",
         "Writing image to disk",
+        "Copying registry data to disk",
         "Rebooting",
         "Waiting for ignition",
         "Configuring",
@@ -20454,7 +20474,9 @@ func init() {
         "cluster-observability-requirements-satisfied",
         "numa-resources-requirements-satisfied",
         "oadp-requirements-satisfied",
-        "metallb-requirements-satisfied"
+        "metallb-requirements-satisfied",
+        "loki-requirements-satisfied",
+        "openshift-logging-requirements-satisfied"
       ]
     },
     "host_network": {

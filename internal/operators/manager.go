@@ -65,9 +65,9 @@ type OperatorFeatureSupportID struct {
 
 // operatorMetadata is a struct to marshal the metadata content into YAML for the OLM Operator ConfigMap.
 type operatorMetadata struct {
-	Namespace        string   `yaml:"namespace"`
-	SubscriptionName string   `yaml:"subscriptionName"`
-	Manifests        []string `yaml:"manifests"`
+	Namespace        string   `json:"namespace" yaml:"namespace"`
+	SubscriptionName string   `json:"subscriptionName" yaml:"subscriptionName"`
+	Manifests        []string `json:"manifests" yaml:"manifests"`
 }
 
 // API defines Operator management operation
@@ -700,7 +700,7 @@ func (mgr *Manager) ListBundles(filters *featuresupport.SupportLevelFilters, fea
 		}
 
 		// Check if all operators in the bundle are supported using featuresupport API
-		if mgr.isBundleSupported(completeBundleDetails, filters) {
+		if mgr.isBundleSupported(completeBundleDetails, filters, featureIDs) {
 			ret = append(ret, completeBundleDetails)
 		}
 	}
@@ -761,7 +761,7 @@ func (mgr *Manager) GetOperatorDependenciesFeatureID() []OperatorFeatureSupportI
 }
 
 // isBundleSupported checks if all operators in a bundle are supported using featuresupport API
-func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresupport.SupportLevelFilters) bool {
+func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) bool {
 	// If bundle has no operators, it's not supported
 	if len(bundle.Operators) == 0 {
 		return false
@@ -781,7 +781,7 @@ func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresup
 			return false
 		}
 
-		if !mgr.isOperatorSupported(operatorFeatureSupportID, *filters) {
+		if !mgr.isOperatorSupported(operatorFeatureSupportID, *filters, featureIDs) {
 			return false
 		}
 	}
@@ -800,9 +800,13 @@ func (mgr *Manager) getOperatorFeatureSupportID(operatorName string) (models.Fea
 }
 
 // isOperatorSupported checks if an operator is supported using featuresupport API
-func (mgr *Manager) isOperatorSupported(featureID models.FeatureSupportLevelID, filters featuresupport.SupportLevelFilters) bool {
+func (mgr *Manager) isOperatorSupported(featureID models.FeatureSupportLevelID, filters featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) bool {
 	supportLevel := featuresupport.GetSupportLevel(featureID, filters)
 
 	// Consider the operator supported if it's not unavailable or unsupported
-	return supportLevel != models.SupportLevelUnavailable && supportLevel != models.SupportLevelUnsupported
+	if supportLevel == models.SupportLevelUnavailable || supportLevel == models.SupportLevelUnsupported {
+		return false
+	}
+
+	return featuresupport.IsFeatureCompatibleWithOther(filters.OpenshiftVersion, featureID, featureIDs)
 }

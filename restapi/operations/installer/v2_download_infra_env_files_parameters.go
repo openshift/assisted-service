@@ -32,7 +32,7 @@ type V2DownloadInfraEnvFilesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.
+	/*Overrides the ISO type for the discovery ignition.
 	  In: query
 	*/
 	DiscoveryIsoType *string
@@ -122,7 +122,7 @@ func (o *V2DownloadInfraEnvFilesParams) bindDiscoveryIsoType(rawData []string, h
 // validateDiscoveryIsoType carries on validations for parameter DiscoveryIsoType
 func (o *V2DownloadInfraEnvFilesParams) validateDiscoveryIsoType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("discovery_iso_type", "query", *o.DiscoveryIsoType, []interface{}{"full-iso", "minimal-iso"}, true); err != nil {
+	if err := validate.EnumCase("discovery_iso_type", "query", *o.DiscoveryIsoType, []interface{}{"full-iso", "minimal-iso", "disconnected-iso"}, true); err != nil {
 		return err
 	}
 

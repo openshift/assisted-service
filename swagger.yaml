@@ -1710,10 +1710,10 @@ paths:
           enum: ['discovery-image-always', 'boot-order-control']
         - in: query
           name: discovery_iso_type
-          description: Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.
+          description: Overrides the ISO type for the discovery ignition.
           required: false
           type: string
-          enum: ['full-iso', 'minimal-iso']
+          enum: ['full-iso', 'minimal-iso', 'disconnected-iso']
       responses:
         "200":
           description: Success.
@@ -2730,6 +2730,8 @@ paths:
               - 'numa-resources'
               - 'oadp'
               - 'metallb'
+              - 'loki'
+              - 'openshift-logging'
         "401":
           description: Unauthorized.
           schema:
@@ -2754,7 +2756,7 @@ paths:
         - in: query
           name: openshift_version
           type: string
-          description: Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.
+          description: Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.
         - in: query
           name: cpu_architecture
           description: The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
@@ -4386,6 +4388,7 @@ definitions:
     enum:
       - 'SNO'
       - 'TNA'
+      - 'TNF'
       - 'VIP_AUTO_ALLOC'
       - 'CUSTOM_MANIFEST'
       - 'SINGLE_NODE_EXPANSION'
@@ -4433,6 +4436,8 @@ definitions:
       - 'OADP'
       - 'METALLB'
       - 'DUAL_STACK_PRIMARY_IPV6'
+      - 'LOKI'
+      - 'OPENSHIFT_LOGGING'
 
   architecture-support-level-id:
     type: string
@@ -6151,6 +6156,7 @@ definitions:
       - Waiting for controller
       - Installing
       - Writing image to disk
+      - Copying registry data to disk
       - Rebooting
       - Waiting for ignition
       - Configuring
@@ -6960,6 +6966,8 @@ definitions:
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
       - 'metallb-requirements-satisfied'
+      - 'loki-requirements-satisfied'
+      - 'openshift-logging-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -7346,6 +7354,8 @@ definitions:
       - 'numa-resources-requirements-satisfied'
       - 'oadp-requirements-satisfied'
       - 'metallb-requirements-satisfied'
+      - 'loki-requirements-satisfied'
+      - 'openshift-logging-requirements-satisfied'
 
   logs_type:
     type: string

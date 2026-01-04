@@ -56,6 +56,7 @@ const (
 	BackupLabel                      = "cluster.open-cluster-management.io/backup"
 	BackupLabelValue                 = "true"
 	InfraEnvLabel                    = "infraenvs.agent-install.openshift.io"
+	VeleroExcludeBackupLabel         = "velero.io/exclude-from-backup"
 )
 
 //go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_sub_resource_writer.go sigs.k8s.io/controller-runtime/pkg/client SubResourceWriter
@@ -506,4 +507,27 @@ func spokeKubeconfigSecret(ctx context.Context, log logrus.FieldLogger, c client
 	}
 
 	return secret, nil
+}
+
+func ensureVeleroExcludeBackupLabel(ctx context.Context, log logrus.FieldLogger, c client.Client, obj client.Object) error {
+	labels := obj.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+
+	if val, ok := labels[VeleroExcludeBackupLabel]; ok && val == "true" {
+		return nil
+	}
+
+	patch := client.MergeFrom(obj.DeepCopyObject().(client.Object))
+	labels[VeleroExcludeBackupLabel] = "true"
+	obj.SetLabels(labels)
+
+	if err := c.Patch(ctx, obj, patch); err != nil {
+		log.WithError(err).Errorf("failed to patch %s label on %s/%s", VeleroExcludeBackupLabel, obj.GetNamespace(), obj.GetName())
+		return err
+	}
+
+	log.Debugf("Set %s label on %s/%s", VeleroExcludeBackupLabel, obj.GetNamespace(), obj.GetName())
+	return nil
 }

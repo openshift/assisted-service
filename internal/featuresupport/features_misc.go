@@ -137,6 +137,55 @@ func (feature *TnaFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *mod
 	return activeLevelNotActive
 }
 
+// TnfFeature
+type TnfFeature struct{}
+
+func (feature *TnfFeature) New() SupportLevelFeature {
+	return &TnfFeature{}
+}
+
+func (feature *TnfFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDTNF
+}
+
+func (feature *TnfFeature) GetName() string {
+	return "TNF Clusters"
+}
+
+func (feature *TnfFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	//TNF is only available with baremetal/none platform
+	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+	}
+
+	fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion)
+	if !fencingClustersSupported || err != nil {
+		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	}
+
+	return models.SupportLevelTechPreview, ""
+}
+
+func (feature *TnfFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
+		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
+		models.FeatureSupportLevelIDEXTERNALPLATFORM,
+		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
+	}
+}
+
+func (feature *TnfFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return nil
+}
+
+func (feature *TnfFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, _ *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if common.IsClusterTopologyTwoNodesWithFencing(cluster) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
 // CustomManifestFeature
 type CustomManifestFeature struct{}
 

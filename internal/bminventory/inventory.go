@@ -4797,6 +4797,17 @@ func (b *bareMetalInventory) V2ResetHostValidation(ctx context.Context, params i
 }
 
 func (b *bareMetalInventory) DeregisterInfraEnv(ctx context.Context, params installer.DeregisterInfraEnvParams) middleware.Responder {
+	hosts, err := common.GetHostsFromDBWhere(b.db, "infra_env_id = ?", params.InfraEnvID)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	if len(hosts) > 0 {
+		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
+		b.log.Error(msg)
+		eventgen.SendInfraEnvDeregisterFailedEvent(ctx, b.eventsHandler, params.InfraEnvID, msg)
+		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
+	}
+
 	if err := b.DeregisterInfraEnvInternal(ctx, params); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -4828,16 +4839,6 @@ func (b *bareMetalInventory) DeregisterInfraEnvInternal(ctx context.Context, par
 
 	if _, err = common.GetInfraEnvFromDB(b.db, params.InfraEnvID); err != nil {
 		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	hosts, err := common.GetHostsFromDBWhere(b.db, "infra_env_id = ?", params.InfraEnvID)
-	if err != nil {
-		return err
-	}
-	if len(hosts) > 0 {
-		msg := fmt.Sprintf("failed to deregister infraEnv %s, %d hosts are still associated", params.InfraEnvID, len(hosts))
-		log.Error(msg)
-		return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 	}
 
 	if err = b.infraEnvApi.DeregisterInfraEnv(ctx, params.InfraEnvID); err != nil {
@@ -6179,13 +6180,10 @@ func (b *bareMetalInventory) BindHostInternal(ctx context.Context, params instal
 		}
 	}
 
-	if !common.IsDay2Cluster(cluster) {
-		fencingClustersSupported, fencingErr := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if fencingErr != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, fencingErr)
-		}
-		if host.FencingCredentials != "" && !fencingClustersSupported {
-			err = errors.Errorf("Host %s has fencing credentials, it must be bound to a cluster with openshift version %s or newer", host.ID, common.MinimumVersionForTwoNodesWithFencing)
+	if host.FencingCredentials != "" {
+		err = common.ValidateClusterSupportsFencingCredentials(cluster)
+		if err != nil {
+			err = errors.Wrapf(err, "Host %s has fencing credentials", host.ID)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
@@ -6504,6 +6502,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
 	fileName := params.FileName
 	respBody, contentLength, err := b.V2DownloadClusterCredentialsInternal(ctx, params)
 
@@ -6519,10 +6518,20 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 
 		if err != nil && common.IsNotFoundError(err) && b.installerInvoker == "agent-installer" {
 			// For ABI, kubeconfig must be generated here for retrieval prior to cluster installation, only if file not found.
-			if agentErr := b.generateAgentInstallerKubeconfig(ctx, params); agentErr != nil {
+			// Use a transaction with row-level locking to prevent concurrent generation attempts
+			if agentErr := b.generateAgentInstallerKubeconfigWithLock(ctx, params, fileName); agentErr != nil {
 				b.log.WithError(agentErr).Errorf("failed to generate agent installer kubeconfig")
 				return common.GenerateErrorResponder(agentErr)
 			}
+
+			// Wait for S3 eventual consistency before attempting download
+			// After generation, the file might not be immediately visible due to S3 consistency delays
+			objectName := fmt.Sprintf("%s/%s", params.ClusterID, fileName)
+			if waitErr := b.objectHandler.WaitForObject(ctx, objectName); waitErr != nil {
+				log.WithError(waitErr).Errorf("file %s not available after generation for cluster %s", fileName, params.ClusterID)
+				return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, waitErr))
+			}
+
 			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 		}
 	}
@@ -6945,16 +6954,11 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 		log.Error(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if cluster != nil {
-		fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, cluster.OpenshiftVersion)
-		if err != nil {
-			return err
-		}
-		if !fencingClustersSupported {
-			err = errors.Errorf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", host.ID, host.InfraEnvID, common.MinimumVersionForTwoNodesWithFencing)
-			log.Error(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
+	err := common.ValidateClusterSupportsFencingCredentials(cluster)
+	if err != nil {
+		err = errors.Wrapf(err, "Cannot set fencing credentials to host %s in infra-env %s", host.ID, host.InfraEnvID)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	fencingCredentials, err := json.Marshal(fencingCredentialsParams)
@@ -7159,26 +7163,49 @@ func (b *bareMetalInventory) HandleVerifyVipsResponse(ctx context.Context, host 
 	return b.clusterApi.HandleVerifyVipsResponse(ctx, *host.ClusterID, stepReply)
 }
 
-func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Context, params installer.V2DownloadClusterCredentialsParams) error {
-	cluster, err := common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading)
-	if err != nil {
-		return err
-	}
-	b.orderClusterNetworks(cluster)
+// generateAgentInstallerKubeconfigWithLock generates kubeconfig with database locking to prevent race conditions
+func (b *bareMetalInventory) generateAgentInstallerKubeconfigWithLock(ctx context.Context, params installer.V2DownloadClusterCredentialsParams, fileName string) error {
+	log := logutil.FromContext(ctx, b.log)
 
-	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
-	if err != nil {
-		b.log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
-		return err
-	}
+	// Use a database transaction with SELECT FOR UPDATE to ensure only one request generates credentials
+	err := b.db.Transaction(func(tx *gorm.DB) error {
+		// Lock the cluster row to prevent concurrent generation attempts
+		cluster, err := common.GetClusterFromDBForUpdate(tx, params.ClusterID, common.UseEagerLoading)
+		if err != nil {
+			return err
+		}
+		b.orderClusterNetworks(cluster)
 
-	if err = b.generateClusterInstallConfig(ctx, *cluster, clusterInfraenvs); err != nil {
-		b.log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
-		return err
-	}
-	b.log.Infof("ignition generated for cluster for agent installer kubeconfig %s", cluster.ID.String())
+		// Double-check: File might have been created by another request while we were waiting for the lock
+		objectName := fmt.Sprintf("%s/%s", cluster.ID, fileName)
+		exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to check if object %s exists, will attempt generation", objectName)
+			// Continue with generation on error - better to regenerate than fail
+		} else if exists {
+			log.Infof("File %s was created by another request, skipping generation", objectName)
+			return nil
+		}
 
-	return nil
+		// File still doesn't exist after acquiring lock, proceed with generation
+		log.Infof("Generating kubeconfig for cluster %s (locked)", cluster.ID.String())
+
+		clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get infraenvs for cluster %s", cluster.ID.String())
+			return err
+		}
+
+		if err = b.generateClusterInstallConfig(ctx, *cluster, clusterInfraenvs); err != nil {
+			log.WithError(err).Errorf("failed to generate cluster install config for cluster %s", cluster.ID.String())
+			return err
+		}
+
+		log.Infof("Successfully generated credentials for cluster %s", cluster.ID.String())
+		return nil
+	})
+
+	return err
 }
 
 // orderClusterNetworks orders cluster networks according to PrimaryIPStack

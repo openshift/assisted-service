@@ -125,6 +125,7 @@ var Options struct {
 	IgnoredOpenshiftVersions             string        `envconfig:"IGNORED_OPENSHIFT_VERSIONS" default:""`
 	ClusterStateMonitorInterval          time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	ClusterEventsUploaderInterval        time.Duration `envconfig:"CLUSTER_EVENTS_UPLOADER_INTERVAL" default:"15m"`
+	EventRateLimits                      string        `envconfig:"EVENT_RATE_LIMITS" default:""`
 	S3Config                             s3wrapper.Config
 	HostStateMonitorInterval             time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                             versions.Versions
@@ -446,6 +447,9 @@ func main() {
 
 	var ignoredOpenshiftVersions = []string{}
 	versions.ParseIgnoredOpenshiftVersions(&ignoredOpenshiftVersions, Options.IgnoredOpenshiftVersions, failOnError)
+
+	err = events.InitializeEventLimits(Options.EventRateLimits, log)
+	failOnError(err, "Failed to initialize event rate limits")
 
 	log.Println(fmt.Sprintf("Started service with OS Images %v, Release Images %v, Release Sources %v, Ignored OpenShift Versions %v",
 		Options.OsImages, Options.ReleaseImages, Options.ReleaseSourcesConfig.ReleaseSources, Options.IgnoredOpenshiftVersions))
