@@ -3,7 +3,7 @@ FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS golang
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.7
 RUN go install gotest.tools/gotestsum@v1.12.3
 
-FROM quay.io/centos/centos:stream9
+FROM quay.io/centos/centos:stream9 AS centos-packages
 
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
@@ -15,6 +15,32 @@ ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
 COPY --from=golang $GOPATH $GOPATH
 COPY --from=golang $GOROOT $GOROOT
 
+RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT
+
+RUN dnf install -y --enablerepo=crb \
+        openssl openssl-devel postgresql nmstate-devel sqlite gcc genisoimage git libvirt-client libvirt-devel java make numactl-libs && \
+    dnf clean all
+
+RUN git config --system --add safe.directory '*'
+
+WORKDIR /home/assisted-service
+RUN mkdir -p build $TOOLS && chmod g+xw build $TOOLS
+COPY ./hack/setup_env.sh ./dev-requirements.txt ./
+RUN ./setup_env.sh podman_remote && \
+    ./setup_env.sh assisted_service && \
+    chmod g+xw -R $GOPATH
+
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:6fc28bcb6776e387d7a35a2056d9d2b985dc4e26031e98a2bd35a7137cd6fd71
+
+ENV GOROOT=/usr/lib/golang
+ENV GOPATH=/opt/app-root/src/go
+ENV VIRTUAL_ENV=/opt/venv
+
+ENV TOOLS=/tools/
+ENV PATH="$VIRTUAL_ENV/bin:$GOROOT/bin:$GOPATH/bin:$TOOLS:$PATH"
+
+COPY --from=golang $GOPATH $GOPATH
+COPY --from=golang $GOROOT $GOROOT
 RUN chmod 775 -R $GOPATH && chmod 775 -R $GOROOT
 
 # TODO: Replace with version 0.30.4 once it is released.
@@ -37,9 +63,19 @@ COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.7.1 /app/kustomize /usr/bin/
 
-RUN dnf install -y --enablerepo=crb \
-        openssl openssl-devel postgresql nmstate-devel sqlite gcc genisoimage git libvirt-client libvirt-devel java make && \
-    dnf clean all
+COPY --from=centos-packages /usr/bin/gcc /usr/bin/make /usr/bin/java /usr/bin/git /usr/bin/sqlite3 /usr/bin/
+COPY --from=centos-packages /usr/bin/genisoimage /usr/bin/virsh /usr/bin/
+COPY --from=centos-packages /usr/local/bin /usr/local/bin
+COPY --from=centos-packages /home/assisted-service/build /home/assisted-service/build
+COPY --from=centos-packages $TOOLS $TOOLS
+
+COPY --from=centos-packages /usr/lib64/libssl.so* /usr/lib64/libcrypto.so* /usr/lib64/
+COPY --from=centos-packages /usr/lib64/libpq.so* /usr/lib64/libsqlite3.so* /usr/lib64/
+COPY --from=centos-packages /usr/lib64/libvirt*.so* /usr/lib64/libnmstate*.so* /usr/lib64/
+COPY --from=centos-packages /usr/lib64/libisoburn.so* /usr/lib64/libburn.so* /usr/lib64/libisofs.so* /usr/lib64/
+COPY --from=centos-packages /usr/lib64/libnl*.so* /usr/lib64/libnuma*.so* /usr/lib64/
+
+RUN microdnf install -y tar gzip && microdnf clean all
 
 # Git checks if the user that owns the files on the filesystem match the
 # current user.  We need to disable this check because tests in Prow are
@@ -47,10 +83,4 @@ RUN dnf install -y --enablerepo=crb \
 RUN git config --system --add safe.directory '*'
 
 WORKDIR /home/assisted-service
-RUN mkdir build $TOOLS --mode g+xw
-COPY ./hack/setup_env.sh ./dev-requirements.txt ./
-RUN ./setup_env.sh podman_remote && \
-    ./setup_env.sh assisted_service && \
-    dnf clean all && \
-    chmod g+xw -R $GOPATH
 COPY ./data /tmp/data
