@@ -3,7 +3,7 @@ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.24-openshift-4.21 AS 
 WORKDIR /src
 COPY . .
 
-RUN dnf install -y gcc nmstate-devel nmstate-libs git libvirt-libs && dnf clean all
+RUN dnf install -y gcc nmstate-devel nmstate-libs git libvirt-libs postgresql-server && dnf clean all
 RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
 RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
@@ -19,10 +19,13 @@ LABEL io.openshift.release.operator=true
 # ToDo: Replace postgres with SQLite DB
 # https://issues.redhat.com/browse/AGENT-223
 # Note: libvirt-libs restored via multi-stage build for proper functionality
-RUN microdnf install -y postgresql-server nmstate nmstate-libs skopeo && \
+RUN microdnf install -y nmstate nmstate-libs skopeo && \
     microdnf clean all
 
-COPY --from=builder /usr/lib64/libvirt.so* /usr/lib64/
+# Copy PostgreSQL and libvirt from builder stage
+COPY --from=builder /usr/bin/postgres* /usr/bin/initdb /usr/bin/
+COPY --from=builder /usr/lib64/libvirt.so* /usr/lib64/libpq.so* /usr/lib64/
+RUN useradd -r -s /bin/bash postgres || true
 
 RUN microdnf update libksba libxml2 -y && microdnf clean all
 
