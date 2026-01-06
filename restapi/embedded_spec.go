@@ -6818,11 +6818,15 @@ func init() {
           "type": "string"
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
@@ -7101,11 +7105,15 @@ func init() {
           "minLength": 1
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\nNote: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading\nCNI manifests via the custom manifests API before installation.\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
@@ -8235,6 +8243,10 @@ func init() {
         "EXTERNAL_PLATFORM",
         "OVN_NETWORK_TYPE",
         "SDN_NETWORK_TYPE",
+        "CILIUM_NETWORK_TYPE",
+        "CALICO_NETWORK_TYPE",
+        "CISCO_ACI_NETWORK_TYPE",
+        "NONE_NETWORK_TYPE",
         "NODE_FEATURE_DISCOVERY",
         "NVIDIA_GPU",
         "PIPELINES",
@@ -11219,11 +11231,15 @@ func init() {
           "x-nullable": true
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\nNote: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading\nCNI manifests via the custom manifests API before installation.\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
@@ -18383,11 +18399,15 @@ func init() {
           "type": "string"
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
@@ -18666,11 +18686,15 @@ func init() {
           "minLength": 1
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\nNote: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading\nCNI manifests via the custom manifests API before installation.\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
@@ -19767,6 +19791,10 @@ func init() {
         "EXTERNAL_PLATFORM",
         "OVN_NETWORK_TYPE",
         "SDN_NETWORK_TYPE",
+        "CILIUM_NETWORK_TYPE",
+        "CALICO_NETWORK_TYPE",
+        "CISCO_ACI_NETWORK_TYPE",
+        "NONE_NETWORK_TYPE",
         "NODE_FEATURE_DISCOVERY",
         "NVIDIA_GPU",
         "PIPELINES",
@@ -22716,11 +22744,15 @@ func init() {
           "x-nullable": true
         },
         "network_type": {
-          "description": "The desired network type used.",
+          "description": "The desired network type used.\n- OVNKubernetes: Default CNI for OpenShift (recommended)\n- OpenShiftSDN: Legacy SDN (deprecated in newer versions)\n- CiscoACI: Cisco ACI CNI (requires custom manifests)\n- Cilium: Isovalent Cilium CNI (requires custom manifests)\n- Calico: Tigera Calico CNI (requires custom manifests)\n- None: No CNI - user must provide custom CNI manifests\nNote: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading\nCNI manifests via the custom manifests API before installation.\n",
           "type": "string",
           "enum": [
             "OpenShiftSDN",
-            "OVNKubernetes"
+            "OVNKubernetes",
+            "CiscoACI",
+            "Cilium",
+            "Calico",
+            "None"
           ],
           "x-nullable": true
         },
