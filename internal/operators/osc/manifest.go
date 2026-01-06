@@ -22,13 +22,18 @@ func Manifests() (map[string][]byte, []byte, error) {
 		return nil, nil, err
 	}
 
+	customManifests, err := generateCustomManifests(Namespace)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	openshiftManifests := make(map[string][]byte)
 
 	openshiftManifests["50_openshift-osc_ns.yaml"] = oscNamespaceManifest
 	openshiftManifests["50_openshift-osc_operator_group.yaml"] = oscOperatorGroupManifest
 	openshiftManifests["50_openshift-osc_subscription.yaml"] = oscSubscriptionManifest
 
-	return openshiftManifests, nil, err
+	return openshiftManifests, customManifests, err
 }
 
 func executeTemplate(data map[string]string, contentName, content string) ([]byte, error) {
@@ -68,6 +73,13 @@ func getOperatorGroup(namespace string) ([]byte, error) {
 	return executeTemplate(data, "oscOperatorGroupManifest", oscOperatorGroupManifest)
 }
 
+func generateCustomManifests(namespace string) ([]byte, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE": namespace,
+	}
+	return executeTemplate(data, "oscKataconfigManifest", oscKataconfigManifest)
+}
+
 const oscNamespaceManifest = `
 apiVersion: v1
 kind: Namespace
@@ -97,4 +109,15 @@ spec:
   sourceNamespace: openshift-marketplace
   name: {{.OPERATOR_SOURCE_NAME}}
   installPlanApproval: Automatic
+`
+
+const oscKataconfigManifest = `
+apiVersion: kataconfiguration.openshift.io/v1
+kind: KataConfig
+metadata:
+  name: cluster-kataconfig
+  namespace: {{.OPERATOR_NAMESPACE}}
+spec:
+  enablePeerPods: false
+  logLevel: info
 `
