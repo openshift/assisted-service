@@ -1336,6 +1336,7 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 
 			// UpdateBMH to set metadata cleaning enabled
 			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StateDeprovisioning
 			bmh.Finalizers = []string{"arbitraryfinalizer"}
 			Expect(c.Update(ctx, bmh)).To(Succeed())
 			// Set BMH to be deleting
@@ -1358,6 +1359,46 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 			Expect(c.Delete(ctx, ppi)).To(Succeed())
 			// Set BMH cleaning to disabled
 			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeDisabled
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("allows deletion when BMH finished deprovisioning with state deleting", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Set BMH to be deleting
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StateDeleting
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("allows deletion when BMH finished deprovisioning with state powering off before delete", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Set BMH to be deleting
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StatePoweringOffBeforeDelete
 			Expect(c.Update(ctx, bmh)).To(Succeed())
 			Expect(c.Delete(ctx, bmh)).To(Succeed())
 
