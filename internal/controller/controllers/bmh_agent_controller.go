@@ -93,6 +93,7 @@ const (
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
 	BMH_FINALIZER_NAME                  = "bmac.agent-install.openshift.io/deprovision"
 	BMH_DELETE_ANNOTATION               = "bmac.agent-install.openshift.io/remove-agent-and-node-on-delete"
+	BMH_SPOKE_CREATED_ANNOTATION        = "bmac.agent-install.openshift.io/spoke-bmh-machine-created"
 	BMH_CLUSTER_REFERENCE               = "bmac.agent-install.openshift.io/cluster-reference"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
@@ -645,7 +646,8 @@ func (r *BMACReconciler) ensureBMHDetached(log logrus.FieldLogger, bmh *bmh_v1al
 	}
 
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = desiredValue
-	log.Info("Added detached annotation to BMH")
+	setAnnotation(&bmh.ObjectMeta, BMH_SPOKE_CREATED_ANNOTATION, "true")
+	log.Info("Added detached annotation and spoke created annotation to BMH")
 	return reconcileComplete{dirty: true, stop: true}
 }
 
@@ -800,6 +802,7 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
 		delete(bmh.ObjectMeta.Annotations, BMH_PAUSED_ANNOTATION)
 		delete(bmh.ObjectMeta.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		delete(bmh.ObjectMeta.Annotations, BMH_SPOKE_CREATED_ANNOTATION)
 		bmh.Spec.Image = nil
 
 		log.Infof("Unbound agent reconciled to BMH")
@@ -832,6 +835,11 @@ func reconcileUnboundAgent(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHo
 	if _, ok := bmh.GetAnnotations()[BMH_HARDWARE_DETAILS_ANNOTATION]; ok {
 		log.Info("removing BMH hardware details annotation")
 		delete(bmh.Annotations, BMH_HARDWARE_DETAILS_ANNOTATION)
+		dirty = true
+	}
+	if _, ok := bmh.GetAnnotations()[BMH_SPOKE_CREATED_ANNOTATION]; ok {
+		log.Info("removing BMH spoke created annotation")
+		delete(bmh.Annotations, BMH_SPOKE_CREATED_ANNOTATION)
 		dirty = true
 	}
 
@@ -1045,6 +1053,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 // - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
 // BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
 func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	if _, ok := bmh.GetAnnotations()[BMH_SPOKE_CREATED_ANNOTATION]; ok {
+		log.Debugf("Stopped reconcileDay2SpokeBMH because it has already been created")
+		return reconcileComplete{}
+	}
 	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
 	if err != nil {
 		return reconcileError{err: err}
