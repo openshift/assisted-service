@@ -195,5 +195,21 @@ var _ = Describe("Network Observability manifest generation", func() {
 			// When FlowCollector is not created, customManifest may contain only YAML separators
 			Expect(string(customManifest)).To(Or(BeEmpty(), MatchRegexp(`^---\s*$`)))
 		})
+
+		It("Handles invalid sampling values gracefully", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				{
+					Name:       Name,
+					Properties: `{"createFlowCollector": true, "sampling": 0}`,
+				},
+			}
+
+			manifests, customManifest, err := operator.GenerateManifests(cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(manifests).To(HaveLen(3))
+			// When invalid sampling is provided, it falls back to defaults (createFlowCollector: false)
+			// So customManifest should be empty or only contain YAML separators
+			Expect(string(customManifest)).To(Or(BeEmpty(), MatchRegexp(`^---\s*$`)))
+		})
 	})
 })

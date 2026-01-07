@@ -40,7 +40,7 @@ func ParseProperties(properties string) (*Config, error) {
 
 	// Validate sampling rate
 	if config.Sampling <= 0 {
-		config.Sampling = 50
+		return nil, fmt.Errorf("sampling rate must be positive, got %d", config.Sampling)
 	}
 
 	return config, nil
