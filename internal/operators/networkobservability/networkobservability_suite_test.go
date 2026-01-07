@@ -11,4 +11,3 @@ func TestNetworkObservabilityOperator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Network Observability Operator Suite")
 }
-
