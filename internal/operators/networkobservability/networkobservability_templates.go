@@ -14,6 +14,6 @@ func init() {
 	var err error
 	templatesRoot, err = fs.Sub(templatesFS, "templates")
 	if err != nil {
-		panic(err)
+		panic("failed to initialize templates filesystem: " + err.Error())
 	}
 }
