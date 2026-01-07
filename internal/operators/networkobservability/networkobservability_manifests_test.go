@@ -196,7 +196,7 @@ var _ = Describe("Network Observability manifest generation", func() {
 			Expect(string(customManifest)).To(Or(BeEmpty(), MatchRegexp(`^---\s*$`)))
 		})
 
-		It("Handles invalid sampling values gracefully", func() {
+		It("Invalid sampling values trigger error handling; ParseProperties rejects sampling <= 0, GenerateManifests logs a warning and uses safe defaults", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				{
 					Name:       Name,
@@ -207,8 +207,9 @@ var _ = Describe("Network Observability manifest generation", func() {
 			manifests, customManifest, err := operator.GenerateManifests(cluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(manifests).To(HaveLen(3))
-			// When invalid sampling is provided, it falls back to defaults (createFlowCollector: false)
-			// So customManifest should be empty or only contain YAML separators
+			// Invalid sampling values trigger error handling: ParseProperties rejects sampling <= 0,
+			// GenerateManifests logs a warning and then uses safe defaults (createFlowCollector: false).
+			// This is recovery behavior, not a feature. So customManifest should be empty or only contain YAML separators.
 			Expect(string(customManifest)).To(Or(BeEmpty(), MatchRegexp(`^---\s*$`)))
 		})
 	})
