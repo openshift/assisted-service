@@ -53,7 +53,8 @@ var _ = Describe("Network Observability manifest generation", func() {
 		err = yaml.Unmarshal(nsManifest, &nsData)
 		Expect(err).ToNot(HaveOccurred())
 
-		metadata := nsData["metadata"].(map[string]interface{})
+		metadata, ok := nsData["metadata"].(map[string]interface{})
+		Expect(ok).To(BeTrue(), "Namespace manifest missing or invalid metadata key")
 		Expect(metadata["name"]).To(Equal(Namespace))
 	})
 
@@ -66,11 +67,13 @@ var _ = Describe("Network Observability manifest generation", func() {
 		err = yaml.Unmarshal(subManifest, &subData)
 		Expect(err).ToNot(HaveOccurred())
 
-		metadata := subData["metadata"].(map[string]interface{})
+		metadata, ok := subData["metadata"].(map[string]interface{})
+		Expect(ok).To(BeTrue(), "Subscription manifest missing or invalid metadata key")
 		Expect(metadata["name"]).To(Equal(SubscriptionName))
 		Expect(metadata["namespace"]).To(Equal(Namespace))
 
-		spec := subData["spec"].(map[string]interface{})
+		spec, ok := subData["spec"].(map[string]interface{})
+		Expect(ok).To(BeTrue(), "Subscription manifest missing or invalid spec key")
 		Expect(spec["channel"]).To(Equal("stable"))
 		Expect(spec["name"]).To(Equal(SourceName))
 		Expect(spec["source"]).To(Equal(Source))
@@ -86,7 +89,8 @@ var _ = Describe("Network Observability manifest generation", func() {
 		err = yaml.Unmarshal(ogManifest, &ogData)
 		Expect(err).ToNot(HaveOccurred())
 
-		metadata := ogData["metadata"].(map[string]interface{})
+		metadata, ok := ogData["metadata"].(map[string]interface{})
+		Expect(ok).To(BeTrue(), "OperatorGroup manifest missing or invalid metadata key")
 		Expect(metadata["name"]).To(Equal(GroupName))
 		Expect(metadata["namespace"]).To(Equal(Namespace))
 	})
@@ -124,18 +128,40 @@ var _ = Describe("Network Observability manifest generation", func() {
 			var flowCollectorData map[string]interface{}
 			err = yaml.Unmarshal(customManifest, &flowCollectorData)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(flowCollectorData).ToNot(BeNil(), "FlowCollector manifest should not be nil")
 
 			Expect(flowCollectorData["kind"]).To(Equal("FlowCollector"))
-			metadata := flowCollectorData["metadata"].(map[string]interface{})
+			Expect(flowCollectorData).To(HaveKey("metadata"), "FlowCollector manifest missing metadata key")
+			metadata, ok := flowCollectorData["metadata"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector manifest metadata is not a map")
 			Expect(metadata["name"]).To(Equal("cluster"))
 			Expect(metadata["namespace"]).To(Equal("netobserv"))
 
-			spec := flowCollectorData["spec"].(map[string]interface{})
-			agent := spec["agent"].(map[string]interface{})
-			ebpf := agent["ebpf"].(map[string]interface{})
-			Expect(ebpf["sampling"]).To(Equal(100))
+			Expect(flowCollectorData).To(HaveKey("spec"), "FlowCollector manifest missing spec key")
+			spec, ok := flowCollectorData["spec"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector manifest spec is not a map")
+			Expect(spec).To(HaveKey("agent"), "FlowCollector spec missing agent key")
+			agent, ok := spec["agent"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector spec agent is not a map")
+			Expect(agent).To(HaveKey("ebpf"), "FlowCollector agent missing ebpf key")
+			ebpf, ok := agent["ebpf"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector agent ebpf is not a map")
+			Expect(ebpf).To(HaveKey("sampling"), "FlowCollector ebpf missing sampling key")
+			// Handle YAML numeric types (can be int, int64, or float64)
+			samplingValue := ebpf["sampling"]
+			switch v := samplingValue.(type) {
+			case int, int64:
+				Expect(v).To(BeNumerically("==", 100))
+			case float64:
+				Expect(v).To(BeNumerically("==", 100))
+			default:
+				Fail("sampling value is not a numeric type")
+			}
 
-			loki := spec["loki"].(map[string]interface{})
+			Expect(spec).To(HaveKey("loki"), "FlowCollector spec missing loki key")
+			loki, ok := spec["loki"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector spec loki is not a map")
+			Expect(loki).To(HaveKey("enabled"), "FlowCollector loki missing enabled key")
 			Expect(loki["enabled"]).To(Equal(false))
 		})
 
@@ -154,13 +180,33 @@ var _ = Describe("Network Observability manifest generation", func() {
 			var flowCollectorData map[string]interface{}
 			err = yaml.Unmarshal(customManifest, &flowCollectorData)
 			Expect(err).ToNot(HaveOccurred())
+			Expect(flowCollectorData).ToNot(BeNil(), "FlowCollector manifest should not be nil")
 
-			spec := flowCollectorData["spec"].(map[string]interface{})
-			agent := spec["agent"].(map[string]interface{})
-			ebpf := agent["ebpf"].(map[string]interface{})
-			Expect(ebpf["sampling"]).To(Equal(50)) // Default value
+			Expect(flowCollectorData).To(HaveKey("spec"), "FlowCollector manifest missing spec key")
+			spec, ok := flowCollectorData["spec"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector manifest spec is not a map")
+			Expect(spec).To(HaveKey("agent"), "FlowCollector spec missing agent key")
+			agent, ok := spec["agent"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector spec agent is not a map")
+			Expect(agent).To(HaveKey("ebpf"), "FlowCollector agent missing ebpf key")
+			ebpf, ok := agent["ebpf"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector agent ebpf is not a map")
+			Expect(ebpf).To(HaveKey("sampling"), "FlowCollector ebpf missing sampling key")
+			// Handle YAML numeric types (can be int, int64, or float64)
+			samplingValue := ebpf["sampling"]
+			switch v := samplingValue.(type) {
+			case int, int64:
+				Expect(v).To(BeNumerically("==", 50)) // Default value
+			case float64:
+				Expect(v).To(BeNumerically("==", 50)) // Default value
+			default:
+				Fail("sampling value is not a numeric type")
+			}
 
-			loki := spec["loki"].(map[string]interface{})
+			Expect(spec).To(HaveKey("loki"), "FlowCollector spec missing loki key")
+			loki, ok := spec["loki"].(map[string]interface{})
+			Expect(ok).To(BeTrue(), "FlowCollector spec loki is not a map")
+			Expect(loki).To(HaveKey("enabled"), "FlowCollector loki missing enabled key")
 			Expect(loki["enabled"]).To(Equal(false)) // Always false
 		})
 	})
