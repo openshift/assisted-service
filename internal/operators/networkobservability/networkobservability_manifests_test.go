@@ -1,6 +1,8 @@
 package networkobservability
 
 import (
+	"bytes"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -124,9 +126,10 @@ var _ = Describe("Network Observability manifest generation", func() {
 			Expect(manifests).To(HaveLen(3))
 			Expect(customManifest).ToNot(BeEmpty())
 
-			// Parse the custom manifest (it's a multi-document YAML)
+			// Parse the first document from the custom manifest (supports multi-document YAML)
+			decoder := yaml.NewDecoder(bytes.NewReader(customManifest))
 			var flowCollectorData map[string]interface{}
-			err = yaml.Unmarshal(customManifest, &flowCollectorData)
+			err = decoder.Decode(&flowCollectorData)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(flowCollectorData).ToNot(BeNil(), "FlowCollector manifest should not be nil")
 
@@ -177,8 +180,10 @@ var _ = Describe("Network Observability manifest generation", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(customManifest).ToNot(BeEmpty())
 
+			// Parse the first document from the custom manifest (supports multi-document YAML)
+			decoder := yaml.NewDecoder(bytes.NewReader(customManifest))
 			var flowCollectorData map[string]interface{}
-			err = yaml.Unmarshal(customManifest, &flowCollectorData)
+			err = decoder.Decode(&flowCollectorData)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(flowCollectorData).ToNot(BeNil(), "FlowCollector manifest should not be nil")
 
