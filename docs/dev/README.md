@@ -36,7 +36,7 @@ $ podman ps
 
 CONTAINER ID  IMAGE                                                      COMMAND               CREATED        STATUS        PORTS                                                                   NAMES
 487e6c1bdb9a  localhost/podman-pause:4.9.3-1708357294                                          4 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  7c18ebd0915a-infra
-8479b5eb8a8d  quay.io/sclorg/postgresql-12-c8s:latest                    run-postgresql        4 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  assisted-installer-db
+8479b5eb8a8d  quay.io/sclorg/postgresql-13-c9s:latest                    run-postgresql        4 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  assisted-installer-db
 ffb9013c4fab  quay.io/edge-infrastructure/assisted-installer-ui:latest   /deploy/start.sh      3 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  assisted-installer-ui
 100c865abfd6  quay.io/edge-infrastructure/assisted-image-service:latest  /assisted-image-s...  3 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  assisted-installer-image-service
 78924b68f7af  quay.io/edge-infrastructure/assisted-service:latest        /assisted-service     3 minutes ago  Up 3 minutes  0.0.0.0:8080->8080/tcp, 0.0.0.0:8090->8090/tcp, 0.0.0.0:8888->8888/tcp  assisted-installer-service
