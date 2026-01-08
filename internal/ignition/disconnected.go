@@ -24,9 +24,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/yaml"
 )
 
 type DisconnectedIgnitionGenerator struct {
