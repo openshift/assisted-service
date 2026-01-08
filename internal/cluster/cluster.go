@@ -773,6 +773,45 @@ func (m *Manager) processClusterMonitoring(ctxWithDeadline context.Context, ctxB
 		return err
 	}
 
+	// Ensure cluster has hosts loaded for the re-trigger check
+	if len(clusterAfterRefresh.Hosts) == 0 {
+		var clusterWithHosts common.Cluster
+		if err = dbc.Preload("Hosts").Take(&clusterWithHosts, "id = ?", clusterAfterRefresh.ID.String()).Error; err == nil {
+			clusterAfterRefresh = &clusterWithHosts
+		}
+	}
+
+	// Re-trigger HandlePreInstallSuccess if needed after host re-registration
+	// When a host re-registers during preparing-for-installation, LastInstallationPreparation.Status
+	// is reset to NotStarted. Once all hosts become preparing-successful again, we need to re-trigger
+	// HandlePreInstallSuccess to set the status back to Success, enabling the transition to installing.
+	if swag.StringValue(clusterAfterRefresh.Status) == models.ClusterStatusPreparingForInstallation {
+		allHostsPrepared := true
+		for _, h := range clusterAfterRefresh.Hosts {
+			if swag.StringValue(h.Status) != models.HostStatusPreparingSuccessful {
+				allHostsPrepared = false
+				break
+			}
+		}
+		// Re-trigger if all hosts are ready but LastInstallationPreparation.Status is still NotStarted
+		// (indicating it was reset during re-registration and needs to be set to Success again)
+		if allHostsPrepared && clusterAfterRefresh.LastInstallationPreparation.Status == models.LastInstallationPreparationStatusNotStarted {
+			log.Infof("Cluster %s: all hosts are preparing-successful but LastInstallationPreparation.Status is NotStarted (likely reset after re-registration), re-triggering HandlePreInstallSuccess",
+				clusterAfterRefresh.ID.String())
+			m.HandlePreInstallSuccess(ctxWithDeadline, clusterAfterRefresh)
+			// Reload cluster from DB to get updated LastInstallationPreparation status
+			var updatedCluster common.Cluster
+			if err = dbc.Preload("Hosts").Take(&updatedCluster, "id = ?", clusterAfterRefresh.ID.String()).Error; err == nil {
+				clusterAfterRefresh = &updatedCluster
+			}
+			// Refresh again to pick up the status change and potentially transition to installing
+			clusterAfterRefresh, err = m.refreshStatusInternal(ctxWithDeadline, clusterAfterRefresh, dbc)
+			if err != nil {
+				log.WithError(err).Warnf("Failed to refresh cluster %s after re-triggering HandlePreInstallSuccess", clusterAfterRefresh.ID.String())
+			}
+		}
+	}
+
 	if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
 		log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID, swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
 	}
@@ -1145,6 +1184,9 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 
 func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
 	log := logutil.FromContext(ctx, m.log)
+	previousStatus := c.LastInstallationPreparation.Status
+	log.Infof("HandlePreInstallSuccess called for cluster %s, previous LastInstallationPreparation.Status: %s",
+		c.ID.String(), previousStatus)
 	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
 		LastInstallationPreparation: models.LastInstallationPreparation{
 			Status: models.LastInstallationPreparationStatusSuccess,
@@ -1154,7 +1196,8 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
 	} else {
-		log.Infof("Successfully handled pre-installation success, cluster %s", c.ID.String())
+		log.Infof("Successfully handled pre-installation success for cluster %s, status changed from %s to Success",
+			c.ID.String(), previousStatus)
 		eventgen.SendClusterPrepareInstallationStartedEvent(ctx, m.eventsHandler, *c.ID)
 	}
 }
