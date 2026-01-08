@@ -4987,6 +4987,15 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: The host's BMC credentials that will be used in TNF.
+      ironic_agent_status:
+        type: string
+        enum: ['completed', 'not_required', 'in_progress']
+        default: not_required
+        description: |
+          The status of the ironic agent. Default is not_required, if not set. 
+          Only used for converged flow in kube-api and gates installation
+          if the ironic agent hasn't completed.
+
 
   installer-args-params:
     type: object
@@ -5304,6 +5313,15 @@ definitions:
         $ref: '#/definitions/fencing-credentials-params'
         x-nullable: true
         description: The host's BMC credentials that will be used in TNF.
+      ironic_agent_status:
+        type: string
+        enum: ['completed', 'not_required', 'in_progress']
+        default: not_required
+        description: |
+          The status of the ironic agent. Default is not_required, if not set.
+          Only used for converged flow in kube-api and gates installation
+          if the ironic agent hasn't completed.
+
 
   disconnected-cluster-create-params:
     type: object
