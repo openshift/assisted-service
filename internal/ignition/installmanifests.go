@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -20,11 +21,14 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
 	"github.com/openshift/assisted-service/internal/common"
 	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -139,6 +143,8 @@ type installerGenerator struct {
 	installerCache                *installercache.Installers
 	nodeIpAllocations             map[strfmt.UUID]*network.NodeIpAllocation
 	manifestApi                   manifestsapi.ManifestsAPI
+	iriPatcher                    internalReleaseImagePatcher
+	rawInstallConfig              []byte
 }
 
 var fileNames = [...]string{
@@ -170,6 +176,7 @@ func NewGenerator(workDir string, cluster *common.Cluster, releaseImage string, 
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
 		installerCache:                installerCache,
 		manifestApi:                   manifestApi,
+		iriPatcher:                    NewInternalReleaseImagePatcher(cluster, s3Client, manifestApi, log),
 	}
 }
 
@@ -177,6 +184,18 @@ func NewGenerator(workDir string, cluster *common.Cluster, releaseImage string, 
 // S3-compatible storage
 func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
+}
+
+func (g *installerGenerator) patchInternalReleaseManifests(ctx context.Context, manifestFiles []s3wrapper.ObjectInfo) error {
+	if !g.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall) {
+		return nil
+	}
+
+	if err := g.iriPatcher.PatchManifests(ctx, manifestFiles); err != nil {
+		g.log.WithError(err).Errorf("failed to process manifests for cluster %s", g.cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
@@ -194,6 +213,7 @@ func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, forceInsecurePolicyJson bool) error {
 	var err error
 	log := logutil.FromContext(ctx, g.log)
+	g.rawInstallConfig = installConfig
 
 	defer func() {
 		if err != nil {
@@ -268,6 +288,10 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 	manifestFiles, err := manifests.GetClusterManifests(ctx, g.cluster.ID, g.s3Client)
 	if err != nil {
 		log.WithError(err).Errorf("failed to check if cluster %s has manifests", g.cluster.ID)
+		return err
+	}
+	err = g.patchInternalReleaseManifests(ctx, manifestFiles)
+	if err != nil {
 		return err
 	}
 
@@ -788,6 +812,13 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 	// as there is no network scripts added in SNO mode (None) we should not touch Netmanager config
 	if !common.IsSingleNodeCluster(g.cluster) {
 		setNMConfigration(config)
+	}
+
+	if g.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall) {
+		err = g.iriPatcher.UpdateBootstrap(config)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = ignitioncommon.WriteIgnitionFile(bootstrapPath, config)
@@ -1324,6 +1355,35 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 		return err
 	}
 	return nil
+}
+
+func (g *installerGenerator) isFeatureGateEnabled(feature v1.FeatureGateName) bool {
+	var installConfig installcfg.InstallerConfigBaremetal
+
+	if err := json.Unmarshal(g.rawInstallConfig, &installConfig); err != nil {
+		g.log.Errorf("cannot convert install config data while checking feature gate %s", string(feature))
+		return false
+	}
+	for _, fg := range installConfig.FeatureGates {
+		// Parse feature gate
+		featureParts := strings.Split(fg, "=")
+		if len(featureParts) != 2 {
+			g.log.Debugf("Cannot parse feature gate %s, skipping", fg)
+			continue
+		}
+		featureName := featureParts[0]
+		featureEnabled, err := strconv.ParseBool(featureParts[1])
+		if err != nil {
+			g.log.Debugf("Unsupported feature value %s, skipping", fg)
+			continue
+		}
+
+		if featureName == string(feature) && featureEnabled {
+			g.log.Debugf("Feature gate %s is enabled", string(feature))
+			return true
+		}
+	}
+	return false
 }
 
 // UploadToS3 uploads the generated files to S3
