@@ -799,6 +799,7 @@ var _ = Describe("construct host install arguments", func() {
 			],
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/25"]
 				}
@@ -807,7 +808,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Debug info: Unmarshalled Inventory: %+v, Host's Inventory: %s", inventory, host.Inventory))
-		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
 	})
 	It("multipath iSCSI installation disk with 2 different nics", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -837,10 +838,12 @@ var _ = Describe("construct host install arguments", func() {
 			],
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/25"]
 				},
 				{
+					"name": "eth1",
 					"mac_address": "07:08:09:0A:0B:0C",
 					"ipv4_addresses":["10.56.20.81/25"]
 				}
@@ -849,7 +852,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Debug info: Unmarshalled Inventory: %+v, Host's Inventory: %s", inventory, host.Inventory))
-		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp","--append-karg","ip=07-08-09-0A-0B-0C:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp","--append-karg","ifname=eth1:07:08:09:0A:0B:0C","--append-karg","ip=eth1:dhcp"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
 	})
 	It("non-multipath installation disk", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -894,10 +897,12 @@ var _ = Describe("construct host install arguments", func() {
 			],
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/25"]
 				},
 				{
+					"name": "eth1",
 					"mac_address": "07:08:09:0A:0B:0C",
 					"ipv4_addresses":["10.56.21.80/25"]
 				}
@@ -906,7 +911,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("iSCSI installation disk - Host IPv6 address", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
@@ -926,10 +931,12 @@ var _ = Describe("construct host install arguments", func() {
 			],
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2002:db8::1/64"]
 				},
 				{
+					"name": "eth1",
 					"mac_address": "07:08:09:0A:0B:0C",
 					"ipv4_addresses":["10.56.21.80/25"]
 				}
@@ -938,7 +945,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp6"]`))
 	})
 	It("iSCSI installation disk - IP configuration is not appended if user already added it", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -1043,10 +1050,12 @@ var _ = Describe("construct host install arguments", func() {
 			],
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/25"]
 				},
 				{
+					"name": "eth1",
 					"mac_address": "07:08:09:0A:0B:0C",
 					"ipv4_addresses":["10.56.21.80/25"]
 				}
@@ -1055,7 +1064,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("Raid installation disk - Host IPv4 address", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
@@ -1088,6 +1097,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2001:db8::a/120"]
 				}
@@ -1096,13 +1106,14 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=01-02-03-04-05-06:dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp6"]`))
 	})
 	It("ip=<nic>:dhcp6 not added whachine CIDR is IPv6 and no matching interface", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/64"}}
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2002:db8::a/120"]
 				}
@@ -1118,6 +1129,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/25"]
 				}
@@ -1126,13 +1138,14 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("ip=<nic>:dhcp added when machine CIDR is IPv4 and multiple addresses", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/24", "192.186.10.10/25"]
 				}
@@ -1141,17 +1154,19 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("ip=<nic>:dhcp added when machine CIDR is IPv4 and multiple interfaces", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["10.56.20.80/24"]
 				},
 				{
+					"name": "eth1",
 					"mac_address": "07:08:09:0A:0B:0C",
 					"ipv4_addresses":["192.186.10.10/25"]
 				}
@@ -1160,7 +1175,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=07-08-09-0A-0B-0C:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth1:07:08:09:0A:0B:0C","--append-karg","ip=eth1:dhcp"]`))
 	})
 	It("ip=<nic>:dhcp not added when machine CIDR is IPv4 and no matching interface", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -1193,6 +1208,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2002:db8::b/120"]
 				}
@@ -1201,7 +1217,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=01-02-03-04-05-06:dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp6"]`))
 	})
 	It("ip=<nic>:dhcp6 not added when there's no machine CIDR, bootstrap is IPv6, but no matching interface", func() {
 		cluster.Hosts = []*models.Host{
@@ -1219,6 +1235,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2001:db8::b/120"]
 				}
@@ -1245,6 +1262,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"]
 				}
@@ -1253,7 +1271,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("ip=<nic>:dhcp not added when there's no machine CIDR, bootstrap is IPv4, but no matching interface", func() {
 		cluster.Hosts = []*models.Host{
@@ -1288,6 +1306,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"]
 				}
@@ -1306,6 +1325,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"]
 				}
@@ -1322,6 +1342,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"]
 				}
@@ -1330,7 +1351,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--copy-network","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("existing args updated with ip=<nic>:dhcp6 when machine CIDR is IPv6", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "2001:db8::/120"}}
@@ -1338,6 +1359,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv6_addresses":["2001:db8::b/120"]
 				}
@@ -1346,7 +1368,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=01-02-03-04-05-06:dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp6"]`))
 	})
 	It("existing args updated with ip=<nic>:dhcp,dhcp6 dual stuck", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}, {Cidr: "2001:db8::/120"}}
@@ -1354,6 +1376,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"],
 					"ipv6_addresses":["2001:db8::b/120"]
@@ -1363,7 +1386,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=01-02-03-04-05-06:dhcp,dhcp6"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp,dhcp6"]`))
 	})
 	It("existing args updated with ip=<nic>:dhcp when machine CIDR is IPv4", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
@@ -1371,6 +1394,7 @@ var _ = Describe("construct host install arguments", func() {
 		host.Inventory = `{
 			"interfaces":[
 				{
+					"name": "eth0",
 					"mac_address": "01:02:03:04:05:06",
 					"ipv4_addresses":["192.186.10.10/24"]
 				}
@@ -1379,7 +1403,7 @@ var _ = Describe("construct host install arguments", func() {
 		inventory, _ := common.UnmarshalInventory(host.Inventory)
 		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ifname=eth0:01:02:03:04:05:06","--append-karg","ip=eth0:dhcp"]`))
 	})
 	It("don't add ip arg if ip=dhcp added by user", func() {
 		kargs := `["--append-karg","ip=dhcp"]`
