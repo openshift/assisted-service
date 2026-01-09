@@ -57,6 +57,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/labels"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -258,12 +259,23 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
 	}
 
-	if autoApproved {
+	// check and apply auto-approval based on MAC addresses in ConfigMaps
+	macAutoApproved, err := r.checkAndAutoApproveByMACAddress(ctx, log, agent)
+	if err != nil {
+		log.WithError(err).Warn("Failed to check MAC address auto-approval")
+		return r.updateStatus(ctx, log, agent, origAgent, &h.Host, h.ClusterID, err, true)
+	}
+
+	if autoApproved || macAutoApproved {
 		if updateErr := r.Update(ctx, agent); updateErr != nil {
 			log.WithError(updateErr).Error("Failed to persist auto-approval to Agent")
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, updateErr
 		}
-		log.Infof("Persisted auto-approval to Agent %s/%s", agent.Namespace, agent.Name)
+		if macAutoApproved {
+			log.Infof("Persisted MAC address-based auto-approval to Agent %s/%s", agent.Namespace, agent.Name)
+		} else {
+			log.Infof("Persisted auto-approval to Agent %s/%s", agent.Namespace, agent.Name)
+		}
 	}
 
 	// check for updates from user, compare spec and update if needed
@@ -2108,6 +2120,85 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
+	mapConfigMapToAgents := func(ctx context.Context, cm client.Object) []reconcile.Request {
+		log := logutil.FromContext(ctx, r.Log).WithFields(
+			logrus.Fields{
+				"configmap_name":      cm.GetName(),
+				"configmap_namespace": cm.GetNamespace(),
+			})
+		
+		// Find all InfraEnvs in the same namespace
+		infraEnvs := &aiv1beta1.InfraEnvList{}
+		if err := r.List(ctx, infraEnvs, client.InNamespace(cm.GetNamespace())); err != nil {
+			log.Debugf("failed to list InfraEnvs")
+			return []reconcile.Request{}
+		}
+
+		// Check if this ConfigMap matches any InfraEnv's label selector
+		matchingInfraEnvs := make([]aiv1beta1.InfraEnv, 0)
+		for _, infraEnv := range infraEnvs.Items {
+			if len(infraEnv.Spec.ApprovedMACAddressConfigMapLabelSelector.MatchLabels) == 0 {
+				continue
+			}
+			selector, err := metav1.LabelSelectorAsSelector(&infraEnv.Spec.ApprovedMACAddressConfigMapLabelSelector)
+			if err != nil {
+				log.WithError(err).Debugf("failed to create selector for InfraEnv %s", infraEnv.Name)
+				continue
+			}
+			if selector.Matches(labels.Set(cm.GetLabels())) {
+				matchingInfraEnvs = append(matchingInfraEnvs, infraEnv)
+			}
+		}
+
+		if len(matchingInfraEnvs) == 0 {
+			return []reconcile.Request{}
+		}
+
+		// Get all agents in the namespace
+		agents := &aiv1beta1.AgentList{}
+		if err := r.List(ctx, agents, client.InNamespace(cm.GetNamespace())); err != nil {
+			log.Debugf("failed to list agents")
+			return []reconcile.Request{}
+		}
+
+		// Get approved MAC addresses from ConfigMap
+		configMap := &corev1.ConfigMap{}
+		if err := r.Get(ctx, types.NamespacedName{Namespace: cm.GetNamespace(), Name: cm.GetName()}, configMap); err != nil {
+			if k8serrors.IsNotFound(err) {
+				// ConfigMap was deleted, still reconcile agents to check if they should remain approved
+				log.Debugf("ConfigMap %s not found, will reconcile agents anyway", cm.GetName())
+			} else {
+				log.WithError(err).Debugf("failed to get ConfigMap")
+				return []reconcile.Request{}
+			}
+		}
+
+		approvedMACs := extractMACAddressesFromConfigMap(configMap)
+		if len(approvedMACs) == 0 && configMap != nil {
+			log.Debugf("No MAC addresses found in ConfigMap %s", cm.GetName())
+		}
+
+		// Find agents that should be reconciled (those associated with matching InfraEnvs)
+		reply := make([]reconcile.Request, 0)
+		for _, agent := range agents.Items {
+			// Check if agent is associated with any matching InfraEnv
+			infraEnvName, exists := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+			if !exists {
+				continue
+			}
+			for _, infraEnv := range matchingInfraEnvs {
+				if infraEnv.Name == infraEnvName {
+					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+						Namespace: agent.Namespace,
+						Name:      agent.Name,
+					}})
+					break
+				}
+			}
+		}
+		return reply
+	}
+
 	var err error
 	r.reclaimer, err = newAgentReclaimer(r.HostFSMountDir)
 	if err != nil {
@@ -2116,6 +2207,7 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapSecretToAgents)).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(mapConfigMapToAgents)).
 		WatchesRawSource(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)
@@ -2271,4 +2363,132 @@ func isAgentOwnedByInfraEnv(agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv
 		}
 	}
 	return false
+}
+
+// extractMACAddressesFromConfigMap extracts MAC addresses from a ConfigMap.
+// It looks for MAC addresses in all data values of the ConfigMap.
+// MAC addresses can be in various formats (colon-separated, hyphen-separated, etc.)
+// and are normalized to lowercase with colon separator for comparison.
+// It also handles MAC addresses that might be on separate lines or in lists.
+func extractMACAddressesFromConfigMap(cm *corev1.ConfigMap) map[string]bool {
+	if cm == nil {
+		return make(map[string]bool)
+	}
+	
+	macSet := make(map[string]bool)
+	// Regular expression to match MAC addresses in various formats (colon or hyphen separated)
+	macRegex := regexp.MustCompile(`([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})`)
+	
+	// Extract from Data (string values)
+	for _, value := range cm.Data {
+		// Split by newlines to handle MAC addresses on separate lines
+		lines := strings.Split(value, "\n")
+		for _, line := range lines {
+			// Trim whitespace
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue // Skip empty lines and comments
+			}
+			matches := macRegex.FindAllString(line, -1)
+			for _, mac := range matches {
+				// Normalize MAC address to lowercase and use colon separator
+				normalized := normalizeMACAddress(mac)
+				macSet[normalized] = true
+			}
+		}
+	}
+	
+	// Also check BinaryData
+	for _, value := range cm.BinaryData {
+		lines := strings.Split(string(value), "\n")
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			matches := macRegex.FindAllString(line, -1)
+			for _, mac := range matches {
+				normalized := normalizeMACAddress(mac)
+				macSet[normalized] = true
+			}
+		}
+	}
+	
+	return macSet
+}
+
+// normalizeMACAddress normalizes a MAC address to lowercase with colon separator
+func normalizeMACAddress(mac string) string {
+	return strings.ToLower(strings.ReplaceAll(mac, "-", ":"))
+}
+
+// checkAndAutoApproveByMACAddress checks if the agent should be auto-approved based on
+// MAC addresses in ConfigMaps matching the InfraEnv's label selector.
+func (r *AgentReconciler) checkAndAutoApproveByMACAddress(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (bool, error) {
+	// Only check if agent is not already approved
+	if agent.Spec.Approved {
+		return false, nil
+	}
+	
+	// Get the InfraEnv for this agent
+	infraEnvName, exists := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !exists {
+		return false, nil
+	}
+	
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Get(ctx, types.NamespacedName{Namespace: agent.Namespace, Name: infraEnvName}, infraEnv); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	
+	// Check if InfraEnv has the label selector configured
+	if len(infraEnv.Spec.ApprovedMACAddressConfigMapLabelSelector.MatchLabels) == 0 {
+		return false, nil
+	}
+	
+	// Find ConfigMaps matching the label selector
+	selector, err := metav1.LabelSelectorAsSelector(&infraEnv.Spec.ApprovedMACAddressConfigMapLabelSelector)
+	if err != nil {
+		log.WithError(err).Debugf("failed to create selector for InfraEnv %s", infraEnvName)
+		return false, nil
+	}
+	
+	configMaps := &corev1.ConfigMapList{}
+	if err := r.List(ctx, configMaps, client.InNamespace(agent.Namespace)); err != nil {
+		log.WithError(err).Debugf("failed to list ConfigMaps")
+		return false, nil
+	}
+	
+	// Collect approved MAC addresses from matching ConfigMaps
+	approvedMACs := make(map[string]bool)
+	for _, cm := range configMaps.Items {
+		if selector.Matches(labels.Set(cm.GetLabels())) {
+			macs := extractMACAddressesFromConfigMap(&cm)
+			for mac := range macs {
+				approvedMACs[mac] = true
+			}
+		}
+	}
+	
+	if len(approvedMACs) == 0 {
+		return false, nil
+	}
+	
+	// Check if any of the agent's MAC addresses match
+	for _, iface := range agent.Status.Inventory.Interfaces {
+		if iface.MacAddress == "" {
+			continue
+		}
+		normalizedMAC := normalizeMACAddress(iface.MacAddress)
+		if approvedMACs[normalizedMAC] {
+			log.Infof("Auto-approving agent %s/%s due to matching MAC address %s", agent.Namespace, agent.Name, iface.MacAddress)
+			agent.Spec.Approved = true
+			return true, nil
+		}
+	}
+	
+	return false, nil
 }
