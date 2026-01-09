@@ -5831,6 +5831,11 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 		// extra nodes (as workers). In that case, this line might need to be removed.
 		defaultRole := models.HostRoleAutoAssign
 
+		ironicAgentStatus := "not_required"
+		if infraEnv.InternalIgnitionConfigOverride != "" {
+			ironicAgentStatus = "in_progress"
+		}
+
 		host = &models.Host{
 			ID:                       params.NewHostParams.HostID,
 			Href:                     swag.String(url.String()),
@@ -5843,6 +5848,7 @@ func (b *bareMetalInventory) V2RegisterHost(ctx context.Context, params installe
 			SuggestedRole:            defaultRole,
 			InfraEnvID:               *infraEnv.ID,
 			IgnitionEndpointTokenSet: false,
+			IronicAgentStatus:        swag.String(ironicAgentStatus),
 		}
 
 		if cluster != nil {
@@ -6659,6 +6665,11 @@ func (b *bareMetalInventory) V2UpdateHostInternal(ctx context.Context, params in
 			return err
 		}
 
+		err = b.updateHostIronicAgentStatus(ctx, host, params.HostUpdateParams.IronicAgentStatus, tx)
+		if err != nil {
+			return err
+		}
+
 		//get bound cluster
 		if cluster != nil {
 			c = &cluster.Cluster
@@ -6959,6 +6970,21 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 	err = b.hostApi.UpdateFencing(ctx, &host.Host, string(fencingCredentials), db)
 	if err != nil {
 		log.WithError(err).Errorf("failed to set fencing credentials to host <%s> in infra env <%s>", host.ID, host.InfraEnvID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateHostIronicAgentStatus(ctx context.Context, host *common.Host, ironicAgentStatus *string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if ironicAgentStatus == nil {
+		log.Infof("No request for ironic agent status update for host %s", host.ID)
+		return nil
+	}
+	err := b.hostApi.UpdateIronicAgentStatus(ctx, &host.Host, *ironicAgentStatus, db)
+	if err != nil {
+		log.WithError(err).Errorf("failed to set ironic agent status <%s> host <%s>, infra env <%s>",
+			*ironicAgentStatus, host.ID, host.InfraEnvID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil

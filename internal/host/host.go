@@ -113,6 +113,7 @@ type API interface {
 	UpdateNodeLabels(ctx context.Context, h *models.Host, nodeLabelsStr string, db *gorm.DB) error
 	UpdateNodeSkipDiskFormatting(ctx context.Context, h *models.Host, skipDiskFormatting string, db *gorm.DB) error
 	UpdateFencing(ctx context.Context, h *models.Host, fencingCredentials string, db *gorm.DB) error
+	UpdateIronicAgentStatus(ctx context.Context, h *models.Host, ironicAgentStatus string, db *gorm.DB) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	UpdateKubeKeyNS(ctx context.Context, hostID, namespace string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
@@ -876,6 +877,27 @@ func (m *Manager) UpdateFencing(ctx context.Context, h *models.Host, fencingCred
 		cdb = db
 	}
 	updates := map[string]interface{}{"fencing_credentials": h.FencingCredentials, "trigger_monitor_timestamp": time.Now()}
+
+	return m.updateHost(ctx, cdb, h, updates).Error
+}
+
+func (m *Manager) UpdateIronicAgentStatus(ctx context.Context, h *models.Host, ironicAgentStatus string, db *gorm.DB) error {
+	hostStatus := swag.StringValue(h.Status)
+	if !funk.ContainsString(hostStatusesBeforeInstallationOrUnbound[:], hostStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Host is in %s state, ironic agent status can be set only in one of %s states",
+				hostStatus, hostStatusesBeforeInstallation[:]))
+	}
+	if !funk.ContainsString([]string{"not_required", "in_progress", "completed"}, ironicAgentStatus) {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("Invalid ironic agent status: %s", ironicAgentStatus))
+	}
+	h.IronicAgentStatus = &ironicAgentStatus
+	cdb := m.db
+	if db != nil {
+		cdb = db
+	}
+	updates := map[string]interface{}{"ironic_agent_status": ironicAgentStatus, "trigger_monitor_timestamp": time.Now()}
 
 	return m.updateHost(ctx, cdb, h, updates).Error
 }

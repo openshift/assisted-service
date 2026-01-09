@@ -691,6 +691,20 @@ func (mr *MockAPIMockRecorder) UpdateInventory(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), arg0, arg1, arg2)
 }
 
+// UpdateIronicAgentStatus mocks base method.
+func (m *MockAPI) UpdateIronicAgentStatus(arg0 context.Context, arg1 *models.Host, arg2 string, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateIronicAgentStatus", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateIronicAgentStatus indicates an expected call of UpdateIronicAgentStatus.
+func (mr *MockAPIMockRecorder) UpdateIronicAgentStatus(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIronicAgentStatus", reflect.TypeOf((*MockAPI)(nil).UpdateIronicAgentStatus), arg0, arg1, arg2, arg3)
+}
+
 // UpdateKubeKeyNS mocks base method.
 func (m *MockAPI) UpdateKubeKeyNS(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

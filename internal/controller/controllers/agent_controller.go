@@ -1823,6 +1823,36 @@ func (r *AgentReconciler) updateHostIgnitionEndpointToken(ctx context.Context, l
 	return false, nil
 }
 
+func (r *AgentReconciler) ironicAgentStatusNeedsUpdate(ctx context.Context, log logrus.FieldLogger, params *installer.V2UpdateHostParams, agent *aiv1beta1.Agent, host *common.Host, bmh *bmh_v1alpha1.BareMetalHost) bool {
+	ironicAgentFinished := bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioning || bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned
+
+	if host.IronicAgentStatus == nil {
+		// If the status is nil, then this host was created before this change
+		// So we need to check if the converged flow is enabled for this host to set the status appropriately
+		infraEnv, err := r.Installer.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: host.InfraEnvID})
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get infra env for host %s while setting ironic agent status, skipping update", agent.Name)
+			return false
+		}
+		if infraEnv.InternalIgnitionConfigOverride == "" {
+			params.HostUpdateParams.IronicAgentStatus = swag.String("not_required")
+			return true
+		}
+		// Converged flow is enabled
+		params.HostUpdateParams.IronicAgentStatus = swag.String("in_progress")
+		if ironicAgentFinished {
+			params.HostUpdateParams.IronicAgentStatus = swag.String("completed")
+		}
+		return true
+	}
+
+	if *host.IronicAgentStatus == "in_progress" && ironicAgentFinished {
+		params.HostUpdateParams.IronicAgentStatus = swag.String("completed")
+		return true
+	}
+	return false
+}
+
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, internalHost *common.Host) (*common.Host, error) {
 	spec := agent.Spec
 	var err error
@@ -1925,6 +1955,16 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 				Value: swag.String(""),
 			})
 		}
+	}
+
+	// Check if the ironic agent has completed and update the host's ironic agent status if needed
+	bmh, err := r.getBMH(ctx, agent)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get BMH for host %s", agent.Name)
+		return internalHost, err
+	}
+	if bmh != nil {
+		hostUpdate = hostUpdate || r.ironicAgentStatusNeedsUpdate(ctx, log, params, agent, internalHost, bmh)
 	}
 
 	if hostUpdate {

@@ -581,6 +581,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(c.Create(ctx, bmh)).ToNot(HaveOccurred())
 				aci := newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("clusterDeployment-test"), clusterDeployment)
 				Expect(c.Create(ctx, aci)).To(BeNil())
+				commonHost.IronicAgentStatus = swag.String("completed")
 			})
 			createKubeconfigSecret := func(clusterDeploymentName string) {
 				secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeploymentName)
