@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
@@ -89,6 +90,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				metallb.Operator.Name,
 				loki.Operator.Name,
 				openshiftlogging.Operator.Name,
+				networkobservability.Operator.Name,
 			))
 		})
 

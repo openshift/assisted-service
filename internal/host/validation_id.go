@@ -76,6 +76,7 @@ const (
 	AreMetalLBRequirementsSatisfied                = validationID(models.HostValidationIDMetallbRequirementsSatisfied)
 	AreLokiRequirementsSatisfied                   = validationID(models.HostValidationIDLokiRequirementsSatisfied)
 	AreOpenShiftLoggingRequirementsSatisfied       = validationID(models.HostValidationIDOpenshiftLoggingRequirementsSatisfied)
+	AreNetworkObservabilityRequirementsSatisfied   = validationID(models.HostValidationIDNetworkObservabilityRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -146,7 +147,8 @@ func (v validationID) category() (string, error) {
 		AreOADPRequirementsSatisfied,
 		AreMetalLBRequirementsSatisfied,
 		AreLokiRequirementsSatisfied,
-		AreOpenShiftLoggingRequirementsSatisfied:
+		AreOpenShiftLoggingRequirementsSatisfied,
+		AreNetworkObservabilityRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))
