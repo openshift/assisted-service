@@ -191,6 +191,7 @@ func (feature *NutanixIntegrationFeature) getIncompatibleFeatures(string) []mode
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 		models.FeatureSupportLevelIDOSC,
 		models.FeatureSupportLevelIDNMSTATE,
+		models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6,
 	}
 }
 
@@ -248,6 +249,7 @@ func (feature *VsphereIntegrationFeature) getIncompatibleFeatures(openshiftVersi
 		models.FeatureSupportLevelIDMTV,
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDOSC,
+		models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6,
 	}
 
 	if isNotSupported, err := common.BaseVersionLessThan("4.13", openshiftVersion); isNotSupported || err != nil {
@@ -308,6 +310,7 @@ func (feature *OciIntegrationFeature) getIncompatibleFeatures(string) []models.F
 		models.FeatureSupportLevelIDNMSTATE,
 		models.FeatureSupportLevelIDODF,
 		models.FeatureSupportLevelIDOPENSHIFTAI,
+		models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6,
 	}
 }
 
@@ -362,6 +365,7 @@ func (feature *ExternalPlatformFeature) getIncompatibleFeatures(string) []models
 		models.FeatureSupportLevelIDNONSTANDARDHACONTROLPLANE,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 		models.FeatureSupportLevelIDNMSTATE,
+		models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6,
 	}
 }
 

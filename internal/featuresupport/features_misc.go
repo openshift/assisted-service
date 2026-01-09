@@ -40,8 +40,8 @@ func (feature *SnoFeature) getSupportLevel(filters SupportLevelFilters) (models.
 	return models.SupportLevelSupported, ""
 }
 
-func (feature *SnoFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{
+func (feature *SnoFeature) getIncompatibleFeatures(openshiftVersion string) []models.FeatureSupportLevelID {
+	unsupportedFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDODF,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
@@ -54,6 +54,13 @@ func (feature *SnoFeature) getIncompatibleFeatures(string) []models.FeatureSuppo
 		models.FeatureSupportLevelIDNODEMAINTENANCE,
 		models.FeatureSupportLevelIDKUBEDESCHEDULER,
 	}
+
+	// Dual-Stack Primary IPv6 isn't supported for SNO versions < 4.19
+	if isNotSupported, err := common.BaseVersionLessThan("4.19", openshiftVersion); isNotSupported || err != nil {
+		unsupportedFeatures = append(unsupportedFeatures, models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6)
+	}
+
+	return unsupportedFeatures
 }
 
 func (feature *SnoFeature) getIncompatibleArchitectures(openshiftVersion *string) []models.ArchitectureSupportLevelID {
