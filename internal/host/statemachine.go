@@ -127,13 +127,25 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
 		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		DestinationState: stateswitch.State(models.HostStatusKnown),
+		PostTransition:   th.PostRegisterDuringPreparingForInstallation,
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Re-registration during preparation",
+			Description: "When a host re-registers during preparing-for-installation, we preserve inventory and bootstrap flag, reset to 'known' status, and reset LastInstallationPreparation to allow state machine re-evaluation",
+		},
+	})
+
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRegisterHost,
+		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusResettingPendingUserAction),
-			stateswitch.State(models.HostStatusPreparingForInstallation),
-			stateswitch.State(models.HostStatusPreparingSuccessful),
 			stateswitch.State(models.HostStatusBinding),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
