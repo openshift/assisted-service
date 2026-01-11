@@ -78,8 +78,8 @@ function assisted_service() {
   chmod +x operator-sdk_${OS}_${ARCH}
   install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
-  go install golang.org/x/tools/cmd/goimports@v0.1.5
-  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+  go install golang.org/x/tools/cmd/goimports@v0.34.0
+  go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.17.0
 
   python3 -m venv ${VIRTUAL_ENV:-/opt/venv}
   source ${VIRTUAL_ENV:-/opt/venv}/bin/activate
