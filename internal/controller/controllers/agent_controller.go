@@ -1930,32 +1930,11 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 	}
 	hostUpdate = hostUpdate || IgnitionEndpointTokenUpdated
 
-	if agent.Spec.IgnitionEndpointHTTPHeaders != nil {
-		hostIgnitionEndpointHTTPHeaders := make(map[string]string)
-		if internalHost.IgnitionEndpointHTTPHeaders != "" {
-			if err = json.Unmarshal([]byte(internalHost.IgnitionEndpointHTTPHeaders), &hostIgnitionEndpointHTTPHeaders); err != nil {
-				log.WithError(err).Errorf("failed to unmarshal ignition endpoint HTTP headers for host %s infra-env %s", internalHost.ID.String(), internalHost.InfraEnvID.String())
-			}
-		}
-
-		if !reflect.DeepEqual(agent.Spec.IgnitionEndpointHTTPHeaders, hostIgnitionEndpointHTTPHeaders) {
-			funk.ForEach(agent.Spec.IgnitionEndpointHTTPHeaders, func(key, value string) {
-				params.HostUpdateParams.IgnitionEndpointHTTPHeaders = append(params.HostUpdateParams.IgnitionEndpointHTTPHeaders, &models.IgnitionEndpointHTTPHeadersParams{
-					Key:   swag.String(key),
-					Value: swag.String(value),
-				})
-			})
-			hostUpdate = true
-		}
-	} else {
-		if internalHost.IgnitionEndpointHTTPHeaders != "" {
-			hostUpdate = true
-			params.HostUpdateParams.IgnitionEndpointHTTPHeaders = append(params.HostUpdateParams.IgnitionEndpointHTTPHeaders, &models.IgnitionEndpointHTTPHeadersParams{
-				Key:   swag.String(""),
-				Value: swag.String(""),
-			})
-		}
+	ignitionEndpointHTTPHeadersUpdated, err := r.updateHostIgnitionEndpointHTTPHeaders(ctx, log, internalHost, agent, params)
+	if err != nil {
+		return internalHost, err
 	}
+	hostUpdate = hostUpdate || ignitionEndpointHTTPHeadersUpdated
 
 	// Check if the ironic agent has completed and update the host's ironic agent status if needed
 	bmh, err := r.getBMH(ctx, agent)
@@ -2036,6 +2015,38 @@ func updateInstallDisk(host *models.Host, desiredDiskID, desiredDiskByPath strin
 		diskID == common.GetDeviceFullName(installationDisk)
 
 	return !matchesInstallDisk, diskID, nil
+}
+
+func (r *AgentReconciler) updateHostIgnitionEndpointHTTPHeaders(ctx context.Context, log logrus.FieldLogger, internalHost *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
+	if agent.Spec.IgnitionEndpointHTTPHeaders == nil {
+		if internalHost.IgnitionEndpointHTTPHeaders == "" {
+			return false, nil
+		}
+		params.HostUpdateParams.IgnitionEndpointHTTPHeaders = append(params.HostUpdateParams.IgnitionEndpointHTTPHeaders, &models.IgnitionEndpointHTTPHeadersParams{
+			Key:   swag.String(""),
+			Value: swag.String(""),
+		})
+		return true, nil
+	}
+
+	hostIgnitionEndpointHTTPHeaders := make(map[string]string)
+	if internalHost.IgnitionEndpointHTTPHeaders != "" {
+		if err := json.Unmarshal([]byte(internalHost.IgnitionEndpointHTTPHeaders), &hostIgnitionEndpointHTTPHeaders); err != nil {
+			log.WithError(err).Errorf("failed to unmarshal ignition endpoint HTTP headers for host %s infra-env %s", internalHost.ID.String(), internalHost.InfraEnvID.String())
+			return false, errors.Wrap(err, "failed to unmarshal ignition endpoint HTTP headers")
+		}
+	}
+
+	if !reflect.DeepEqual(agent.Spec.IgnitionEndpointHTTPHeaders, hostIgnitionEndpointHTTPHeaders) {
+		funk.ForEach(agent.Spec.IgnitionEndpointHTTPHeaders, func(key, value string) {
+			params.HostUpdateParams.IgnitionEndpointHTTPHeaders = append(params.HostUpdateParams.IgnitionEndpointHTTPHeaders, &models.IgnitionEndpointHTTPHeadersParams{
+				Key:   swag.String(key),
+				Value: swag.String(value),
+			})
+		})
+		return true, nil
+	}
+	return false, nil
 }
 
 func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
