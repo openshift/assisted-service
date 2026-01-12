@@ -68,6 +68,10 @@ func NewInstallCmd(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Val
 }
 
 func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
+	if host.IronicAgentStatus != nil && (*host.IronicAgentStatus == "in_progress") {
+		return nil, errors.Errorf("ironic agent is still in progress, not sending install command, current status: %s", *host.IronicAgentStatus)
+	}
+
 	step := &models.Step{}
 	step.StepType = models.StepTypeInstall
 
