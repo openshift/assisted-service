@@ -351,6 +351,50 @@ func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressV
 	return nil
 }
 
+// ValidateNetworkCIDRs validates that the CIDRs for all networksare parsable and not empty
+func ValidateNetworkCIDRs(machineNetworks []*models.MachineNetwork, serviceNetworks []*models.ServiceNetwork, clusterNetworks []*models.ClusterNetwork) error {
+	var multiErr error
+
+	for i, mn := range machineNetworks {
+		if mn != nil {
+			if string(mn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Machine Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(mn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Machine Network CIDR %s (index %d): %v", string(mn.Cidr), i, err))
+			}
+		}
+	}
+	for i, sn := range serviceNetworks {
+		if sn != nil {
+			if string(sn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Service Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(sn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Service Network CIDR %s (index %d): %v", string(sn.Cidr), i, err))
+			}
+		}
+	}
+	for i, cn := range clusterNetworks {
+		if cn != nil {
+			if string(cn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Cluster Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(cn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Cluster Network CIDR %s (index %d): %v", string(cn.Cidr), i, err))
+			}
+		}
+	}
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
+	}
+
+	return nil
+}
+
 func validateApiVipAddressesInput(apiVips []*models.APIVip) error {
 	if len(apiVips) > 2 {
 		return errors.Errorf("apiVIPs supports 2 vips. got: %d", len(apiVips))

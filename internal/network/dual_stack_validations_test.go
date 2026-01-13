@@ -481,7 +481,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is ipv4"))
+				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is IPv4"))
 			})
 
 			It("should handle nil network parameters", func() {
@@ -535,7 +535,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 				)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-				Expect(err.Error()).To(ContainSubstring("api_vips first IP is 10.0.1.1 but existing primary IP stack is ipv6"))
+				Expect(err.Error()).To(ContainSubstring("api_vips first IP is 10.0.1.1 but existing primary IP stack is IPv6"))
 			})
 		})
 	})

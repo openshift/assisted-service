@@ -2763,7 +2763,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Standalone iSCSI - Machine networks IPv4 uses the same interface as host IPv6 address", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.1.1/24",
+						Cidr:      "192.168.1.0/24",
 						ClusterID: clusterID,
 					},
 				},
@@ -2777,7 +2777,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Multipath iSCSI - Machine networks IPv4 uses the same interface as host IPv6 address", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "2001:0db8:85a3::8a2e:0370:7334"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.1.1/24",
+						Cidr:      "192.168.1.0/24",
 						ClusterID: clusterID,
 					},
 				},
@@ -2791,7 +2791,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Standalone iSCSI - Machine networks IPv4 and host IPv4 address use different interfaces", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.2.1/24",
+						Cidr:      "192.168.2.0/24",
 						ClusterID: clusterID,
 					},
 				},
@@ -2807,7 +2807,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Multipath iSCSI - Machine networks IPv4 and host IPv4 address use different interfaces", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.2.1/24",
+						Cidr:      "192.168.2.0/24",
 						ClusterID: clusterID,
 					},
 				},
@@ -2823,7 +2823,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Standalone iSCSI - Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", standaloneiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.2.1/24",
+						Cidr:      "192.168.2.0/24",
 						ClusterID: clusterID,
 					},
 					{
@@ -2844,7 +2844,7 @@ var _ = Describe("Validations test", func() {
 			Entry("Multipath iSCSI - Machine networks IPv4/IPv6 and host IPv4 address use different interfaces", multipathiSCSIDisks(&models.Iscsi{HostIPAddress: "192.168.1.1"}),
 				[]*models.MachineNetwork{
 					{
-						Cidr:      "192.168.2.1/24",
+						Cidr:      "192.168.2.0/24",
 						ClusterID: clusterID,
 					},
 					{
@@ -2888,18 +2888,18 @@ var _ = Describe("Validations test", func() {
 
 		mNet := []*models.MachineNetwork{
 			{
-				Cidr:      "1.2.3.1/24",
+				Cidr:      "1.2.3.0/24",
 				ClusterID: clusterID,
 			},
 		}
 
 		multipleMNets := []*models.MachineNetwork{
 			{
-				Cidr:      "1.2.3.1/24",
+				Cidr:      "1.2.3.0/24",
 				ClusterID: clusterID,
 			},
 			{
-				Cidr:      "1.2.4.1/24",
+				Cidr:      "1.2.4.0/24",
 				ClusterID: clusterID,
 			},
 		}
