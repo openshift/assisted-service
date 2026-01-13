@@ -13,7 +13,7 @@ spec:
             type: OpenshiftDefaultIngress
         managementState: Managed
         name: knative-serving
-      managementState: Managed
+      managementState: {{ if .IsSNO }}Removed{{ else }}Managed{{ end }}
     trustyai:
       managementState: Removed
     ray:
