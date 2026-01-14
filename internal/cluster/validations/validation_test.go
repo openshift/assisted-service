@@ -786,98 +786,184 @@ var _ = Describe("vip dhcp allocation", func() {
 })
 
 var _ = Describe("IPv6 support", func() {
+	v6 := common.PrimaryIPStackV6
+	v4 := common.PrimaryIPStackV4
+
 	tests := []struct {
-		ipV6Supported bool
-		element       []*string
-		valid         bool
+		ipV6Supported  bool
+		element        []*string
+		valid          bool
+		primaryIPStack *common.PrimaryIPStack
 	}{
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("1001:db8::/120")},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("1001:db8::/120")},
+			primaryIPStack: &v6,
+			valid:          true,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("1001:db8::/120")},
-			valid:         false,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("1001:db8::/120")},
+			primaryIPStack: nil,
+			valid:          true,
 		},
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("10.56.20.0/24")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("1001:db8::/120")},
+			valid:          false,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("10.56.20.0/24")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("1001:db8::/120")},
+			valid:          true,
+			primaryIPStack: &v6,
 		},
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("1001:db8::1")},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("1001:db8::1")},
-			valid:         false,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: &v4,
 		},
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("10.56.20.70")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("10.56.20.70")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: &v4,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("")},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("1001:db8::1")},
+			valid:          true,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{nil},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("1001:db8::1")},
+			valid:          true,
+			primaryIPStack: &v6,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{nil, swag.String("1001:db8::1")},
-			valid:         false,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("1001:db8::1")},
+			valid:          false,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("1001:db8::1")},
+			valid:          true,
+			primaryIPStack: &v6,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("1001:db8::/64"), swag.String("10.56.20.0/24")},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("10.56.20.70")},
+			valid:          true,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: false,
-			element:       []*string{swag.String("10.56.20.70"), swag.String("10.56.20.0/24")},
-			valid:         true,
+			ipV6Supported:  true,
+			element:        []*string{swag.String("10.56.20.70")},
+			valid:          true,
+			primaryIPStack: &v4,
 		},
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.70")},
+			valid:          true,
+			primaryIPStack: nil,
 		},
 		{
-			ipV6Supported: true,
-			element:       []*string{swag.String("1001:db8::1"), swag.String("10.56.20.70")},
-			valid:         true,
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.70")},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("")},
+			valid:          true,
+			primaryIPStack: nil,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("")},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("")},
+			valid:          true,
+			primaryIPStack: &v6,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{nil},
+			valid:          true,
+			primaryIPStack: nil,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{nil},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{nil},
+			valid:          true,
+			primaryIPStack: &v6,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("1001:db8::/64"), swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: &v6,
+		},
+		{
+			ipV6Supported:  false,
+			element:        []*string{swag.String("10.56.20.70"), swag.String("10.56.20.0/24")},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  true,
+			element:        []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
+			valid:          true,
+			primaryIPStack: &v4,
+		},
+		{
+			ipV6Supported:  true,
+			element:        []*string{swag.String("1001:db8::1"), swag.String("10.56.20.70")},
+			valid:          true,
+			primaryIPStack: &v6,
 		},
 	}
 	for _, t := range tests {
 		It(fmt.Sprintf("IPv6 support validation. Supported: %t, IP addresses/CIDRs: %v", t.ipV6Supported, t.element), func() {
 			if t.valid {
-				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).ToNot(HaveOccurred())
+				Expect(ValidateIPAddressFamily(t.ipV6Supported, "networks", t.primaryIPStack, t.element...)).ToNot(HaveOccurred())
 			} else {
-				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).To(HaveOccurred())
+				Expect(ValidateIPAddressFamily(t.ipV6Supported, "networks", t.primaryIPStack, t.element...)).To(HaveOccurred())
 			}
 		})
 	}

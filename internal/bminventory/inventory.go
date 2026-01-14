@@ -301,33 +301,38 @@ func NewBareMetalInventory(
 	}
 }
 
-func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster) error {
+func (b *bareMetalInventory) getPrimaryIPStack(machineNetworks []*models.MachineNetwork,
+	apiVips []*models.APIVip,
+	ingressVips []*models.IngressVip,
+	serviceNetworks []*models.ServiceNetwork,
+	clusterNetworks []*models.ClusterNetwork) (*common.PrimaryIPStack, error) {
 	// Only for dual-stack clusters
-	if !network.CheckIfClusterIsDualStack(cluster) {
-		cluster.PrimaryIPStack = nil
-		return nil
+	if !network.CheckIfNetworksAreDualStack(machineNetworks, serviceNetworks, clusterNetworks) {
+		return nil, nil
 	}
 
-	// get primary IP stack based on current network configuration
-	primaryStack, err := network.GetPrimaryIPStack(
-		cluster.MachineNetworks,
-		cluster.APIVips,
-		cluster.IngressVips,
-		cluster.ServiceNetworks,
-		cluster.ClusterNetworks,
+	// compute primary IP stack based on current network configuration
+	primaryStack, err := network.ComputePrimaryIPStack(
+		machineNetworks,
+		apiVips,
+		ingressVips,
+		serviceNetworks,
+		clusterNetworks,
 	)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	cluster.PrimaryIPStack = primaryStack
+	return primaryStack, nil
+}
 
-	return nil
+func (b *bareMetalInventory) setPrimaryIPStack(cluster *common.Cluster, primaryStack *common.PrimaryIPStack) {
+	cluster.PrimaryIPStack = primaryStack
 }
 
 // updatePrimaryIPStack handles primary IP stack validation and calculation for network changes
 // Returns true if PrimaryIPStack was updated, false otherwise
-func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClusterParams, cluster *common.Cluster) (bool, error) {
+func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClusterParams, cluster *common.Cluster) (bool, *common.PrimaryIPStack, error) {
 	// Only set primary IP stack if any networks or VIPs were actually updated
 	primaryIPStackNeedsUpdate := params.ClusterUpdateParams.ClusterNetworks != nil ||
 		params.ClusterUpdateParams.ServiceNetworks != nil ||
@@ -336,7 +341,7 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 		params.ClusterUpdateParams.IngressVips != nil
 
 	if !primaryIPStackNeedsUpdate {
-		return false, nil
+		return false, cluster.PrimaryIPStack, nil
 	}
 
 	if (params.ClusterUpdateParams.ClusterNetworks != nil &&
@@ -345,12 +350,14 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 		params.ClusterUpdateParams.APIVips != nil &&
 		params.ClusterUpdateParams.IngressVips != nil) || cluster.PrimaryIPStack == nil {
 		// Recalculate from scratch for full updates or new clusters
-		err := b.setPrimaryIPStack(cluster)
+
+		primaryIPStack, err := b.getPrimaryIPStack(params.ClusterUpdateParams.MachineNetworks, params.ClusterUpdateParams.APIVips, params.ClusterUpdateParams.IngressVips, params.ClusterUpdateParams.ServiceNetworks, params.ClusterUpdateParams.ClusterNetworks)
 		if err != nil {
 			b.log.WithError(err).Errorf("cluster update failed: unable to set primary IP stack")
-			return false, common.NewApiError(http.StatusBadRequest, err)
+			return false, cluster.PrimaryIPStack, common.NewApiError(http.StatusBadRequest, err)
 		}
-		return true, nil // PrimaryIPStack was updated
+
+		return true, primaryIPStack, nil // PrimaryIPStack was updated
 	}
 
 	// For partial updates, validate against existing PrimaryIPStack
@@ -364,10 +371,10 @@ func (b *bareMetalInventory) updatePrimaryIPStack(params installer.V2UpdateClust
 	)
 	if err != nil {
 		b.log.WithError(err).Errorf("cluster update failed: partial update inconsistent with existing primary IP stack")
-		return false, common.NewApiError(http.StatusBadRequest, err)
+		return false, cluster.PrimaryIPStack, common.NewApiError(http.StatusBadRequest, err)
 	}
 	// Keep existing PrimaryIPStack - no update needed
-	return false, nil
+	return false, cluster.PrimaryIPStack, nil
 }
 
 func (b *bareMetalInventory) ValidatePullSecret(additionalPublicRegistries []string, secret string, username string, releaseImageURL string) error {
@@ -599,14 +606,14 @@ func MarshalNewClusterParamsNoPullSecret(params installer.V2RegisterClusterParam
 	return jsonNewClusterParams
 }
 
-func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(params installer.V2RegisterClusterParams, id strfmt.UUID, ctx context.Context) error {
+func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(params installer.V2RegisterClusterParams, id strfmt.UUID, ctx context.Context, primaryIPStack *common.PrimaryIPStack) error {
 	params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount = common.GetDefaultHighAvailabilityAndMasterCountParams(
 		params.NewClusterParams.HighAvailabilityMode, params.NewClusterParams.ControlPlaneCount,
 	)
 	if err := b.validateHighAvailabilityWithControlPlaneCount(*params.NewClusterParams.HighAvailabilityMode, *params.NewClusterParams.ControlPlaneCount, *params.NewClusterParams.OpenshiftVersion); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams); err != nil {
+	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams, primaryIPStack); err != nil {
 		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -650,7 +657,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		}
 	}()
 
-	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx); err != nil {
+	// initial computation of PrimaryIPStack (needed for validations, will be recomputed later)
+	primaryIPStack, err := b.getPrimaryIPStack(params.NewClusterParams.MachineNetworks, params.NewClusterParams.APIVips, params.NewClusterParams.IngressVips, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks)
+	if err != nil {
+		b.log.Debugf("cluster registration failed: unable to compute primary IP stack: %v", err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if err = b.validateRegisterClusterInternalPreDefaultValuesSet(params, id, ctx, primaryIPStack); err != nil {
 		return nil, err
 	}
 
@@ -740,11 +754,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 		MachineNetworkCidrUpdatedAt: time.Now(),
 	}
 
-	err = b.setPrimaryIPStack(cluster)
+	// recompute PrimaryIPStack after cluster and service network defaults are applied
+	primaryIPStack, err = b.getPrimaryIPStack(params.NewClusterParams.MachineNetworks, params.NewClusterParams.APIVips, params.NewClusterParams.IngressVips, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks)
 	if err != nil {
-		b.log.Debugf("cluster registration failed: unable to set primary IP stack: %v", err)
+		b.log.Debugf("cluster registration failed: unable to compute primary IP stack: %v", err)
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+
+	b.setPrimaryIPStack(cluster, primaryIPStack)
 
 	if err = cluster.SetMirrorRegistryConfiguration(mirrorRegistryConfiguration); err != nil {
 		return nil, err
@@ -2023,7 +2040,7 @@ func (b *bareMetalInventory) v2NoneHaModeClusterUpdateValidations(cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, cluster *common.Cluster, params *installer.V2UpdateClusterParams) (installer.V2UpdateClusterParams, error) {
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, cluster *common.Cluster, params *installer.V2UpdateClusterParams, primaryIPStack *common.PrimaryIPStack) (installer.V2UpdateClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	// We don't want to update ControlPlaneCount in day2 clusters as we don't know the previous hosts
@@ -2067,7 +2084,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		}
 	}
 
-	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams); err != nil {
+	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams, primaryIPStack); err != nil {
 		b.log.WithError(err).Errorf("Cluster %s failed VIP validations", params.ClusterID)
 		return installer.V2UpdateClusterParams{}, err
 
@@ -2173,9 +2190,10 @@ func (b *bareMetalInventory) validateUpdateCluster(
 	log logrus.FieldLogger,
 	cluster *common.Cluster,
 	params installer.V2UpdateClusterParams,
+	primaryIPStack *common.PrimaryIPStack,
 ) (installer.V2UpdateClusterParams, error) {
 	var err error
-	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params); err != nil {
+	if params, err = b.validateAndUpdateClusterParams(ctx, cluster, &params, primaryIPStack); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
@@ -2252,6 +2270,8 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
+	var primaryIPStackUpdated bool
+	var primaryIPStack *common.PrimaryIPStack
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 
 	err = b.db.Transaction(func(tx *gorm.DB) error {
@@ -2261,7 +2281,14 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 
-		params, err = b.validateUpdateCluster(ctx, log, cluster, params)
+		// compute PrimaryIPStack before validations (it’s needed by some validations)
+		// if the value changed, we set the updated PrimaryIPStack to the cluster object and to the DB later in updateClusterData.
+		primaryIPStackUpdated, primaryIPStack, err = b.updatePrimaryIPStack(params, cluster)
+		if err != nil {
+			return err
+		}
+
+		params, err = b.validateUpdateCluster(ctx, log, cluster, params, primaryIPStack)
 		if err != nil {
 			return err
 		}
@@ -2273,7 +2300,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 			return err
 		}
 
-		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity, mirrorRegistryConfiguration)
+		err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity, mirrorRegistryConfiguration, primaryIPStackUpdated, primaryIPStack)
 		if err != nil {
 			log.WithError(err).Error("updateClusterData")
 			return err
@@ -2583,7 +2610,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, primaryIPStackUpdated bool, primaryIPStack *common.PrimaryIPStack) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2683,6 +2710,16 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	if params.ClusterUpdateParams.ControlPlaneCount != nil && *params.ClusterUpdateParams.ControlPlaneCount != cluster.ControlPlaneCount {
 		updates["control_plane_count"] = *params.ClusterUpdateParams.ControlPlaneCount
+	}
+
+	// set and update the PrimaryIPStack only if it was actually updated
+	if primaryIPStackUpdated {
+		b.setPrimaryIPStack(cluster, primaryIPStack)
+		if primaryIPStack != nil {
+			updates["primary_ip_stack"] = *primaryIPStack
+		} else {
+			updates["primary_ip_stack"] = nil
+		}
 	}
 
 	if len(updates) > 0 {
@@ -3013,21 +3050,6 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.V2UpdateCluste
 	}
 	if err = b.updateVips(db, params, cluster); err != nil {
 		return err
-	}
-
-	// Handle primary IP stack updates
-	primaryIPStackUpdated, err := b.updatePrimaryIPStack(params, cluster)
-	if err != nil {
-		return err
-	}
-
-	// Update the primary_ip_stack field only if it was actually updated
-	if primaryIPStackUpdated {
-		if cluster.PrimaryIPStack != nil {
-			updates["primary_ip_stack"] = *cluster.PrimaryIPStack
-		} else {
-			updates["primary_ip_stack"] = nil
-		}
 	}
 
 	b.setUsage(vipDhcpAllocation, usage.VipDhcpAllocationUsage, nil, usages)
