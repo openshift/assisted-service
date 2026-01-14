@@ -49,8 +49,8 @@ RUN git config --system --add safe.directory '*'
 WORKDIR /home/assisted-service
 RUN mkdir build $TOOLS --mode g+xw
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
-RUN ./setup_env.sh podman_remote && \
-    ./setup_env.sh assisted_service && \
+RUN ./setup_env.sh podman_remote && echo "podman_remote" && \
+    ./setup_env.sh assisted_service && echo "assisted_service" && \
     dnf clean all && \
     chmod g+xw -R $GOPATH
 COPY ./data /tmp/data
