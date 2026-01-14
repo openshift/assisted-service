@@ -1,6 +1,8 @@
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/add-ntp-sources.sh
+# In RHCOS (ostree), /usr is read-only and ignition redirects /usr/local to /var/usrlocal.
+# Use a shell command to check both paths for fail-safe execution.
+ExecStart=/bin/bash -c 'if [ -f /usr/local/bin/add-ntp-sources.sh ]; then /usr/local/bin/add-ntp-sources.sh; elif [ -f /var/usrlocal/bin/add-ntp-sources.sh ]; then /var/usrlocal/bin/add-ntp-sources.sh; else echo "Error: add-ntp-sources.sh not found in /usr/local/bin or /var/usrlocal/bin"; exit 1; fi'
 
 [Unit]
 Before=chronyd.service
