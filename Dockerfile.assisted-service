@@ -8,11 +8,11 @@ RUN go install github.com/google/go-licenses@v1.6.0
 RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 # Build binaries
-FROM quay.io/centos/centos:stream9 as builder
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:3816d303e75dec4da2d10eeb9e8651eef4393721598bea4690c607282635aa57 as builder
 
-# Build requirements 
-RUN dnf install --enablerepo=crb -y gcc git nmstate-devel openssl-devel \
-    && dnf clean all
+# Build requirements
+RUN dnf install -y gcc git nmstate-devel openssl-devel && \
+    dnf clean all
 
 ENV GOROOT=/usr/lib/golang
 ENV GOPATH=/opt/app-root/src/go
@@ -44,7 +44,7 @@ RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=
 RUN git rev-parse --short HEAD > /commit-reference.txt
 
 # Create final image
-FROM quay.io/centos/centos:stream9
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:6fc28bcb6776e387d7a35a2056d9d2b985dc4e26031e98a2bd35a7137cd6fd71
 
 ARG release=main
 ARG version=latest
@@ -64,12 +64,13 @@ LABEL maintainer "Red Hat"
 COPY --from=golang /tmp/licenses /licenses
 
 # multiarch images need it till WRKLDS-222 and https://bugzilla.redhat.com/show_bug.cgi?id=2111537 are fixed
-RUN dnf install -y --setopt=install_weak_deps=False skopeo
-# openshift-install requires this
-RUN dnf install -y libvirt-libs nmstate nmstate-libs &&\
-    dnf clean all
+RUN microdnf install -y skopeo && \
+    microdnf clean all
+# openshift-install requirements
+RUN microdnf install -y nmstate nmstate-libs && \
+    microdnf clean all
 
-RUN dnf update libksba libxml2 -y && dnf clean all
+RUN microdnf update libksba libxml2 -y && microdnf clean all
 
 # Ensure UID can write in data dir (e.g.: when using podman, docker, ...)
 # Ensure root group can write in data dir when deployed on OCP
