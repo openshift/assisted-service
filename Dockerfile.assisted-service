@@ -35,10 +35,10 @@ RUN go mod download
 
 COPY . /assisted-service/
 
-RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
-RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
-RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
-RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
+RUN cd cmd && CGO_ENABLED=1 GOFIPS140=v1.0.0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
+RUN cd ./cmd/operator && CGO_ENABLED=1 GOFIPS140=v1.0.0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
+RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFIPS140=v1.0.0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission
+RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFIPS140=v1.0.0 GOFLAGS="" GO111MODULE=on go build -o /build/agent-installer-client
 
 # Extract the commit reference from which the image is built
 RUN git rev-parse --short HEAD > /commit-reference.txt
