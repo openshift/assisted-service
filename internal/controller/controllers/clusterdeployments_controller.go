@@ -2412,6 +2412,11 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 
 // ensureOwnerRef sets the owner reference of ClusterDeployment on AgentClusterInstall
 func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log logrus.FieldLogger, cd *hivev1.ClusterDeployment, ci *hiveext.AgentClusterInstall) error {
+	for _, ref := range ci.GetOwnerReferences() {
+		if ref.UID == cd.UID {
+			return nil
+		}
+	}
 
 	if err := controllerutil.SetOwnerReference(cd, ci, r.Scheme); err != nil {
 		log.WithError(err).Error("error setting owner reference Agent Cluster Install")
