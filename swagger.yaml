@@ -4414,6 +4414,10 @@ definitions:
       - 'EXTERNAL_PLATFORM'
       - 'OVN_NETWORK_TYPE'
       - 'SDN_NETWORK_TYPE'
+      - 'CILIUM_NETWORK_TYPE'
+      - 'CALICO_NETWORK_TYPE'
+      - 'CISCO_ACI_NETWORK_TYPE'
+      - 'NONE_NETWORK_TYPE'
       - 'NODE_FEATURE_DISCOVERY'
       - 'NVIDIA_GPU'
       - 'PIPELINES'
@@ -5208,8 +5212,17 @@ definitions:
         default: 'all'
       network_type:
         type: string
-        description: "The desired network type used."
-        enum: ['OpenShiftSDN', 'OVNKubernetes']
+        description: |
+          The desired network type used.
+          - OVNKubernetes: Default CNI for OpenShift (recommended)
+          - OpenShiftSDN: Legacy SDN (deprecated in newer versions)
+          - CiscoACI: Cisco ACI CNI (requires custom manifests)
+          - Cilium: Isovalent Cilium CNI (requires custom manifests)
+          - Calico: Tigera Calico CNI (requires custom manifests)
+          - None: No CNI - user must provide custom CNI manifests
+          Note: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading
+          CNI manifests via the custom manifests API before installation.
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'CiscoACI', 'Cilium', 'Calico', 'None']
         x-nullable: true
       schedulable_masters:
         type: boolean
@@ -5422,8 +5435,17 @@ definitions:
         x-nullable: true
       network_type:
         type: string
-        description: The desired network type used.
-        enum: ['OpenShiftSDN', 'OVNKubernetes']
+        description: |
+          The desired network type used.
+          - OVNKubernetes: Default CNI for OpenShift (recommended)
+          - OpenShiftSDN: Legacy SDN (deprecated in newer versions)
+          - CiscoACI: Cisco ACI CNI (requires custom manifests)
+          - Cilium: Isovalent Cilium CNI (requires custom manifests)
+          - Calico: Tigera Calico CNI (requires custom manifests)
+          - None: No CNI - user must provide custom CNI manifests
+          Note: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading
+          CNI manifests via the custom manifests API before installation.
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'CiscoACI', 'Cilium', 'Calico', 'None']
         x-nullable: true
       schedulable_masters:
         type: boolean
@@ -5789,8 +5811,15 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
       network_type:
         type: string
-        description: The desired network type used.
-        enum: ['OpenShiftSDN', 'OVNKubernetes']
+        description: |
+          The desired network type used.
+          - OVNKubernetes: Default CNI for OpenShift (recommended)
+          - OpenShiftSDN: Legacy SDN (deprecated in newer versions)
+          - CiscoACI: Cisco ACI CNI (requires custom manifests)
+          - Cilium: Isovalent Cilium CNI (requires custom manifests)
+          - Calico: Tigera Calico CNI (requires custom manifests)
+          - None: No CNI - user must provide custom CNI manifests
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'CiscoACI', 'Cilium', 'Calico', 'None']
         x-nullable: true
       cluster_networks:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;references:ID"
