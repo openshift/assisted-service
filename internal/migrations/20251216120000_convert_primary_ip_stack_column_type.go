@@ -13,14 +13,17 @@ func convertPrimaryIPStackColumnType() *gormigrate.Migration {
 		var dataType string
 		err := tx.Raw(`
 			SELECT data_type FROM information_schema.columns 
-			WHERE table_name = 'clusters' AND column_name = 'primary_ip_stack'
+			WHERE table_schema = current_schema() 
+			  AND table_name = 'clusters' 
+			  AND column_name = 'primary_ip_stack'
 		`).Scan(&dataType).Error
 		if err != nil {
 			return err
 		}
 
-		// Only convert if column is text/varchar - skip for any other type
-		// (including integer, bigint, or if column doesn't exist)
+		// Only convert if column is a text/varchar type - skip for any other type
+		// (including integer, bigint, or if column doesn't exist/not found)
+		// PostgreSQL returns "text" for TEXT and "character varying" for VARCHAR
 		if dataType != "text" && dataType != "character varying" {
 			return nil
 		}
@@ -33,6 +36,8 @@ func convertPrimaryIPStackColumnType() *gormigrate.Migration {
 			USING CASE 
 				WHEN primary_ip_stack = 'ipv4' THEN 4 
 				WHEN primary_ip_stack = 'ipv6' THEN 6 
+				WHEN primary_ip_stack = '4' THEN 4
+				WHEN primary_ip_stack = '6' THEN 6
 				ELSE NULL 
 			END
 		`).Error
@@ -44,14 +49,16 @@ func convertPrimaryIPStackColumnType() *gormigrate.Migration {
 		var dataType string
 		err := tx.Raw(`
 			SELECT data_type FROM information_schema.columns 
-			WHERE table_name = 'clusters' AND column_name = 'primary_ip_stack'
+			WHERE table_schema = current_schema() 
+			  AND table_name = 'clusters' 
+			  AND column_name = 'primary_ip_stack'
 		`).Scan(&dataType).Error
 		if err != nil {
 			return err
 		}
 
 		// Only convert if column is integer/bigint - skip for any other type
-		// (including text, varchar, or if column doesn't exist)
+		// (including text, character varying, or if column doesn't exist)
 		if dataType != "integer" && dataType != "bigint" {
 			return nil
 		}
