@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
+	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/stream"
@@ -60,6 +61,7 @@ type TransitionHandler interface {
 	PostRefreshReclaimTimeout(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterAfterInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
+	PostRegisterDuringPreparingForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostRegisterHost(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
 	PostResettingPendingUserAction(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error
@@ -111,16 +113,20 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		// because in day2 it may be changed during re-registration
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "", "kind", hostParam.Kind)
 		extra = append(extra, resetLogsField...)
-		extra = append(extra, resetProgressFields...)
+
+		// Use the destination state determined by the state machine (could be discovering or discovering-unbound)
+		// The state machine calls SetState before PostTransition, so hostParam.Status is already set
+		dstStatus := swag.StringValue(hostParam.Status)
+		// Use statusInfoDiscovering for both bound and unbound hosts (the state machine has already set the correct status)
 		var dbHost *common.Host
 		if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, th.stream, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
-			swag.StringValue(hostParam.Status), statusInfoDiscovering, extra...); err != nil {
+			dstStatus, statusInfoDiscovering, extra...); err != nil {
 			return err
-		} else {
-			sHost.host = &dbHost.Host
-			return nil
 		}
+		sHost.host = &dbHost.Host
+		return nil
 	}
+	// For new hosts, the state machine has already set the correct status (discovering or discovering-unbound)
 	hostParam.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	hostParam.StatusInfo = swag.String(statusInfoDiscovering)
 	hostToCreate := &common.Host{
@@ -237,6 +243,80 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 
 	messages = append(messages, fmt.Sprintf("(%s, %s)", installationDisk.Name, common.GetDeviceIdentifier(installationDisk)))
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
+}
+
+func (th *transitionHandler) PostRegisterDuringPreparingForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return errors.New("PostRegisterDuringPreparingForInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRegisterHost)
+	if !ok {
+		return errors.New("PostRegisterDuringPreparingForInstallation invalid argument")
+	}
+
+	log := logutil.FromContext(params.ctx, th.log)
+	hostParam := sHost.host
+
+	// Get existing host from DB
+	dbHost, err := common.GetHostFromDB(params.db, hostParam.InfraEnvID.String(), hostParam.ID.String())
+	if err != nil {
+		return err
+	}
+
+	// Reset LastInstallationPreparation to allow state machine to re-evaluate once all hosts are ready
+	// This is critical for the fix to work - if it fails, the cluster may not re-evaluate properly
+	// and could remain stuck in preparing-for-installation
+	// Note: We use raw GORM here instead of cluster.UpdateCluster to avoid import cycle (host package
+	// cannot import cluster package). This matches the pattern used in cluster.HandlePreInstallSuccess
+	// and cluster.HandlePreInstallError for updating LastInstallationPreparation fields.
+	if dbHost.ClusterID != nil {
+		log.Infof("Host %s re-registered during cluster %s preparation, resetting LastInstallationPreparation status",
+			hostParam.ID.String(), dbHost.ClusterID.String())
+		if err = params.db.Model(&models.Cluster{}).Where("id = ?", dbHost.ClusterID.String()).Updates(&models.Cluster{
+			LastInstallationPreparation: models.LastInstallationPreparation{
+				Status: models.LastInstallationPreparationStatusNotStarted,
+				Reason: constants.InstallationPreparationReasonNotPerformed,
+			},
+		}).Error; err != nil {
+			log.WithError(err).Errorf("Failed to reset LastInstallationPreparation for cluster %s - this may cause the cluster to remain stuck", dbHost.ClusterID.String())
+			return errors.Wrapf(err, "failed to reset LastInstallationPreparation for cluster %s", dbHost.ClusterID.String())
+		}
+	}
+
+	// Reset to 'known' instead of 'discovering' to avoid triggering UnPreparingtHostsExist condition
+	// which would move the cluster from preparing-for-installation to insufficient
+	// Preserve inventory and bootstrap flag so the host can continue with preparation
+	extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "", "kind", hostParam.Kind)
+
+	// Filter out inventory and bootstrap fields that should be preserved during re-registration
+	// (inventory is required for host to transition to preparing-for-installation,
+	// bootstrap flag is critical for SNO clusters to identify the bootstrap host)
+	var filteredExtra []interface{}
+	for i := 0; i < len(extra); i += 2 {
+		fieldName := extra[i]
+		// Preserve inventory: required for host to transition to preparing-for-installation
+		if fieldName == "inventory" {
+			continue
+		}
+		// Preserve bootstrap: critical for SNO clusters to identify the bootstrap host
+		if fieldName == "bootstrap" {
+			continue
+		}
+		filteredExtra = append(filteredExtra, extra[i])
+		if i+1 < len(extra) {
+			filteredExtra = append(filteredExtra, extra[i+1])
+		}
+	}
+	extra = filteredExtra
+	extra = append(extra, resetLogsField...)
+
+	if dbHost, err = hostutil.UpdateHostStatus(params.ctx, log, params.db, th.eventsHandler, th.stream, hostParam.InfraEnvID, *hostParam.ID, sHost.srcState,
+		models.HostStatusKnown, statusInfoKnown, extra...); err != nil {
+		return err
+	}
+	sHost.host = &dbHost.Host
+	return nil
 }
 
 // //////////////////////////////////////////////////////////////////////////
