@@ -147,6 +147,31 @@ var _ = Describe("convertPrimaryIPStackColumnType", func() {
 		Expect(stackNull).To(BeNil())
 	})
 
+	It("should handle values '4' and '6' as integer values", func() {
+		clusterIPv4 := strfmt.UUID(uuid.New().String())
+		clusterIPv6 := strfmt.UUID(uuid.New().String())
+
+		// Revert the column type back to text for upgrade testing
+		Expect(revertColumnToText(db)).To(Succeed())
+
+		// Insert clusters with different values
+		Expect(db.Exec(`INSERT INTO clusters (id, primary_ip_stack) VALUES (?, '4')`, clusterIPv4.String()).Error).ToNot(HaveOccurred())
+		Expect(db.Exec(`INSERT INTO clusters (id, primary_ip_stack) VALUES (?, '6')`, clusterIPv6.String()).Error).ToNot(HaveOccurred())
+
+		// Run this migration
+		gm := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{migration})
+		Expect(gm.Migrate()).To(Succeed())
+
+		// Verify all values were converted correctly
+		var stack4, stack6 int
+
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterIPv4).Select("primary_ip_stack").Scan(&stack4).Error).To(Succeed())
+		Expect(stack4).To(Equal(4))
+
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterIPv6).Select("primary_ip_stack").Scan(&stack6).Error).To(Succeed())
+		Expect(stack6).To(Equal(6))
+	})
+
 	It("should rollback from integer to text correctly", func() {
 		clusterID := strfmt.UUID(uuid.New().String())
 
@@ -180,6 +205,41 @@ var _ = Describe("convertPrimaryIPStackColumnType", func() {
 		var primaryStack string
 		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
 		Expect(primaryStack).To(Equal("ipv4"))
+	})
+
+	It("null values should be preserved during rollback", func() {
+		clusterID := strfmt.UUID(uuid.New().String())
+
+		// Revert the column to text first (AutoMigrate creates it as integer)
+		// so that the forward migration can run correctly
+		Expect(revertColumnToText(db)).To(Succeed())
+
+		// Run the migration
+		gm := gormigrate.New(db, gormigrate.DefaultOptions, []*gormigrate.Migration{migration})
+		Expect(gm.Migrate()).To(Succeed())
+
+		// Create a cluster with integer primary_ip_stack using the new type
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:   &clusterID,
+				Name: "test-cluster-rollback",
+			},
+			PrimaryIPStack: nil,
+		}
+		Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+		// Run rollback of this specific migration
+		Expect(gm.RollbackMigration(migration)).To(Succeed())
+
+		// Verify the column type was reverted to text
+		colType, err := getColumnType(dbName, &common.Cluster{}, "primary_ip_stack")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(colType).To(Equal("text"))
+
+		// Verify the value remains NULL
+		var primaryStack *string
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Select("primary_ip_stack").Scan(&primaryStack).Error).To(Succeed())
+		Expect(primaryStack).To(BeNil())
 	})
 })
 
