@@ -43,6 +43,13 @@ type HostUpdateParams struct {
 	// A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.
 	IgnitionEndpointToken *string `json:"ignition_endpoint_token,omitempty"`
 
+	// The status of the ironic agent. Default is not_required, if not set.
+	// Only used for converged flow in kube-api and gates installation
+	// if the ironic agent hasn't completed.
+	//
+	// Enum: [completed not_required in_progress]
+	IronicAgentStatus *string `json:"ironic_agent_status,omitempty"`
+
 	// machine config pool name
 	MachineConfigPoolName *string `json:"machine_config_pool_name,omitempty"`
 
@@ -71,6 +78,10 @@ func (m *HostUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateIgnitionEndpointHTTPHeaders(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIronicAgentStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -224,6 +235,51 @@ func (m *HostUpdateParams) validateIgnitionEndpointHTTPHeaders(formats strfmt.Re
 			}
 		}
 
+	}
+
+	return nil
+}
+
+var hostUpdateParamsTypeIronicAgentStatusPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["completed","not_required","in_progress"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		hostUpdateParamsTypeIronicAgentStatusPropEnum = append(hostUpdateParamsTypeIronicAgentStatusPropEnum, v)
+	}
+}
+
+const (
+
+	// HostUpdateParamsIronicAgentStatusCompleted captures enum value "completed"
+	HostUpdateParamsIronicAgentStatusCompleted string = "completed"
+
+	// HostUpdateParamsIronicAgentStatusNotRequired captures enum value "not_required"
+	HostUpdateParamsIronicAgentStatusNotRequired string = "not_required"
+
+	// HostUpdateParamsIronicAgentStatusInProgress captures enum value "in_progress"
+	HostUpdateParamsIronicAgentStatusInProgress string = "in_progress"
+)
+
+// prop value enum
+func (m *HostUpdateParams) validateIronicAgentStatusEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, hostUpdateParamsTypeIronicAgentStatusPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *HostUpdateParams) validateIronicAgentStatus(formats strfmt.Registry) error {
+	if swag.IsZero(m.IronicAgentStatus) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateIronicAgentStatusEnum("ironic_agent_status", "body", *m.IronicAgentStatus); err != nil {
+		return err
 	}
 
 	return nil

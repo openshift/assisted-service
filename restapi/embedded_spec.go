@@ -8512,6 +8512,16 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "ironic_agent_status": {
+          "description": "The status of the ironic agent. Default is not_required, if not set. \nOnly used for converged flow in kube-api and gates installation\nif the ironic agent hasn't completed.\n",
+          "type": "string",
+          "default": "not_required",
+          "enum": [
+            "completed",
+            "not_required",
+            "in_progress"
+          ]
+        },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n",
           "type": "string",
@@ -8861,6 +8871,16 @@ func init() {
           "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
           "type": "string",
           "x-nullable": true
+        },
+        "ironic_agent_status": {
+          "description": "The status of the ironic agent. Default is not_required, if not set.\nOnly used for converged flow in kube-api and gates installation\nif the ironic agent hasn't completed.\n",
+          "type": "string",
+          "default": "not_required",
+          "enum": [
+            "completed",
+            "not_required",
+            "in_progress"
+          ]
         },
         "machine_config_pool_name": {
           "type": "string",
@@ -20044,6 +20064,16 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "ironic_agent_status": {
+          "description": "The status of the ironic agent. Default is not_required, if not set. \nOnly used for converged flow in kube-api and gates installation\nif the ironic agent hasn't completed.\n",
+          "type": "string",
+          "default": "not_required",
+          "enum": [
+            "completed",
+            "not_required",
+            "in_progress"
+          ]
+        },
         "kind": {
           "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n",
           "type": "string",
@@ -20393,6 +20423,16 @@ func init() {
           "description": "A string which will be used as Authorization Bearer token to fetch the ignition from ignition_endpoint_url.",
           "type": "string",
           "x-nullable": true
+        },
+        "ironic_agent_status": {
+          "description": "The status of the ironic agent. Default is not_required, if not set.\nOnly used for converged flow in kube-api and gates installation\nif the ironic agent hasn't completed.\n",
+          "type": "string",
+          "default": "not_required",
+          "enum": [
+            "completed",
+            "not_required",
+            "in_progress"
+          ]
         },
         "machine_config_pool_name": {
           "type": "string",

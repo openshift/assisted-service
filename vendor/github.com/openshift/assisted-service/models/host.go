@@ -111,6 +111,13 @@ type Host struct {
 	// inventory
 	Inventory string `json:"inventory,omitempty" gorm:"type:text"`
 
+	// The status of the ironic agent. Default is not_required, if not set.
+	// Only used for converged flow in kube-api and gates installation
+	// if the ironic agent hasn't completed.
+	//
+	// Enum: [completed not_required in_progress]
+	IronicAgentStatus *string `json:"ironic_agent_status,omitempty"`
+
 	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
 	// 'AddToExistingClusterHost' for host being added to existing OCP cluster, or
 	//
@@ -228,6 +235,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateInfraEnvID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateIronicAgentStatus(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -365,6 +376,51 @@ func (m *Host) validateInfraEnvID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("infra_env_id", "body", "uuid", m.InfraEnvID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var hostTypeIronicAgentStatusPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["completed","not_required","in_progress"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		hostTypeIronicAgentStatusPropEnum = append(hostTypeIronicAgentStatusPropEnum, v)
+	}
+}
+
+const (
+
+	// HostIronicAgentStatusCompleted captures enum value "completed"
+	HostIronicAgentStatusCompleted string = "completed"
+
+	// HostIronicAgentStatusNotRequired captures enum value "not_required"
+	HostIronicAgentStatusNotRequired string = "not_required"
+
+	// HostIronicAgentStatusInProgress captures enum value "in_progress"
+	HostIronicAgentStatusInProgress string = "in_progress"
+)
+
+// prop value enum
+func (m *Host) validateIronicAgentStatusEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, hostTypeIronicAgentStatusPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Host) validateIronicAgentStatus(formats strfmt.Registry) error {
+	if swag.IsZero(m.IronicAgentStatus) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateIronicAgentStatusEnum("ironic_agent_status", "body", *m.IronicAgentStatus); err != nil {
 		return err
 	}
 
