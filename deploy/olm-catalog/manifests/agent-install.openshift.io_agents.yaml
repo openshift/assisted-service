@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.17.0
+    controller-gen.kubebuilder.io/version: v0.14.0
   creationTimestamp: null
   name: agents.agent-install.openshift.io
 spec:
@@ -147,6 +147,7 @@ spec:
               role:
                 description: |-
                   HostRole host role
+
 
                   swagger:model host-role
                 type: string
@@ -444,6 +445,7 @@ spec:
                       description: |-
                         SourceState source state
 
+
                         swagger:model source_state
                       type: string
                   type: object
@@ -468,6 +470,7 @@ spec:
                       description: |-
                         HostStage host stage
 
+
                         swagger:model host-stage
                       type: string
                     type: array
@@ -483,6 +486,7 @@ spec:
               role:
                 description: |-
                   HostRole host role
+
 
                   swagger:model host-role
                 type: string
