@@ -233,6 +233,8 @@ parameters:
   value: "1002"
 - name: TNA_CLUSTERS_SUPPORT
   value: "true"
+- name: PDB_MIN_AVAILABLE
+  value: "2"
 apiVersion: v1
 kind: Template
 metadata:
@@ -560,7 +562,7 @@ objects:
       app: assisted-service
     name: assisted-service
   spec:
-    minAvailable: 2
+    minAvailable: ${{PDB_MIN_AVAILABLE}}
     selector:
       matchLabels:
         app: assisted-service
