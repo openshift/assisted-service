@@ -34,6 +34,10 @@ const (
 // getFencingCredentialsPath returns the path to the fencing credentials file.
 // It reads from the FENCING_CREDENTIALS_FILE environment variable, falling back
 // to the default manifests path if not set.
+//
+// Note: The installer generates fencing credentials to "cluster-manifests/fencing-credentials.yaml",
+// which gets embedded into the ISO. At runtime, Ignition remaps this to "/manifests/fencing-credentials.yaml"
+// on the booted node, which is why the default path differs from the installer's output path.
 func getFencingCredentialsPath() string {
 	if path := os.Getenv("FENCING_CREDENTIALS_FILE"); path != "" {
 		return path
@@ -439,7 +443,10 @@ type HostConfigs []*hostConfig
 func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
 	log.Infof("Searching for config for host %s", hostID)
 
-	// First: try MAC-based matching
+	var macConfig *hostConfig
+	var hostnameConfig *hostConfig
+
+	// First: try MAC-based matching (for role + disk hints)
 	for _, hc := range configs {
 		if len(hc.macAddresses) > 0 {
 			for _, nic := range inventory.Interfaces {
@@ -447,22 +454,47 @@ func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.
 					for _, mac := range hc.macAddresses {
 						if nic.MacAddress == mac {
 							log.Infof("Found host config in %s (MAC match)", hc.configDir)
-							hc.hostID = hostID
-							return hc
+							macConfig = hc
+							break
 						}
 					}
 				}
+				if macConfig != nil {
+					break
+				}
 			}
+		}
+		if macConfig != nil {
+			break
 		}
 	}
 
-	// Second: try hostname-based matching (for fencing configs)
+	// Second: try hostname-based matching (for fencing credentials)
 	for _, hc := range configs {
 		if hc.hostname != "" && hc.hostname == inventory.Hostname {
-			log.Infof("Found host config for hostname %s", hc.hostname)
-			hc.hostID = hostID
-			return hc
+			log.Infof("Found fencing config for hostname %s", hc.hostname)
+			hostnameConfig = hc
+			break
 		}
+	}
+
+	// Merge: if both exist, add fencing credentials from hostname config to MAC config
+	if macConfig != nil && hostnameConfig != nil {
+		log.Infof("Merging fencing credentials from hostname config into MAC config")
+		macConfig.fencingCredentials = hostnameConfig.fencingCredentials
+		macConfig.hostID = hostID
+		return macConfig
+	}
+
+	// Return whichever config was found
+	if macConfig != nil {
+		macConfig.hostID = hostID
+		return macConfig
+	}
+
+	if hostnameConfig != nil {
+		hostnameConfig.hostID = hostID
+		return hostnameConfig
 	}
 
 	log.Info("No config found for host")
@@ -472,9 +504,12 @@ func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.
 func (configs HostConfigs) missing(log *log.Logger) []missingHost {
 	missing := []missingHost{}
 	for _, hc := range configs {
+		// Skip hostname-based configs (fencing) - they're supplementary, not primary host definitions
+		if hc.hostname != "" {
+			continue
+		}
 		if hc.hostID == "" {
 			log.Infof("No agent found matching config at %s (%s)", hc.configDir, strings.Join(hc.macAddresses, ", "))
-
 			missing = append(missing, missingHost{config: hc})
 		}
 	}
@@ -539,6 +574,9 @@ type missingHost struct {
 }
 
 func (mh missingHost) Hostname() string {
+	if mh.config.hostname != "" {
+		return mh.config.hostname
+	}
 	return path.Base(mh.config.configDir)
 }
 

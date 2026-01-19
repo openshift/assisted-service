@@ -181,6 +181,26 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err.Error()).To(ContainSubstring("failed to parse fencing credentials file"))
 			Expect(creds).To(BeNil())
 		})
+
+		It("should return error for duplicate hostnames", func() {
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+- hostname: master-0
+  address: redfish+https://192.168.111.2:8000/redfish/v1/Systems/def
+  username: admin2
+  password: password456
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("duplicate fencing credential for hostname: master-0"))
+			Expect(creds).To(BeNil())
+		})
 	})
 
 	Context("YAML round-trip compatibility with installer output", func() {
@@ -320,16 +340,17 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 	})
 
 	Context("when configs contain both MAC-based and hostname-based entries", func() {
-		It("should prefer MAC-based matching", func() {
+		It("should merge fencing credentials when both MAC and hostname match", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
+			expectedCreds := &models.FencingCredentialsParams{
+				Address: strPtr("redfish+https://example.com"),
+			}
 			hostnameConfig := &hostConfig{
-				hostname: "master-0",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address: strPtr("redfish+https://example.com"),
-				},
+				hostname:           "master-0",
+				fencingCredentials: expectedCreds,
 			}
 			configs := HostConfigs{macConfig, hostnameConfig}
 
@@ -341,7 +362,10 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 			}
 
 			result := configs.findHostConfig(testHostID, inventory)
-			Expect(result).To(Equal(macConfig))
+			// Should return MAC config with fencing credentials merged in
+			Expect(result.configDir).To(Equal("/mac/path"))
+			Expect(result.macAddresses).To(Equal([]string{"aa:bb:cc:dd:ee:ff"}))
+			Expect(result.fencingCredentials).To(Equal(expectedCreds))
 			Expect(result.hostID).To(Equal(testHostID))
 		})
 
