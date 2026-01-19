@@ -429,12 +429,9 @@ func (hc hostConfig) Role() (*string, error) {
 }
 
 // FencingCredentials returns the fencing credentials for this host config.
-// Only hostname-based configs have fencing credentials.
+// Returns credentials if present, regardless of whether this is a MAC-based
+// or hostname-based config (credentials may be merged from hostname config).
 func (hc hostConfig) FencingCredentials() *models.FencingCredentialsParams {
-	// Only hostname-based configs have fencing credentials
-	if hc.hostname == "" {
-		return nil
-	}
 	return hc.fencingCredentials
 }
 

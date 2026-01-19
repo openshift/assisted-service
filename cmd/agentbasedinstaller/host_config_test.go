@@ -303,7 +303,7 @@ var _ = Describe("applyFencingCredentials", func() {
 })
 
 var _ = Describe("hostConfig.FencingCredentials", func() {
-	Context("when hostConfig is MAC-based (empty hostname)", func() {
+	Context("when hostConfig has no fencing credentials", func() {
 		It("should return nil", func() {
 			hc := hostConfig{
 				configDir:    "/some/path",
@@ -314,15 +314,18 @@ var _ = Describe("hostConfig.FencingCredentials", func() {
 		})
 	})
 
-	Context("when hostConfig is hostname-based", func() {
-		It("should return the stored fencing credentials", func() {
+	Context("when hostConfig has fencing credentials", func() {
+		It("should return credentials regardless of hostname", func() {
 			expectedCreds := &models.FencingCredentialsParams{
 				Address:  strPtr("redfish+https://example.com"),
 				Username: strPtr("admin"),
 				Password: strPtr("password"),
 			}
+			// MAC-based config with merged credentials (simulates post-merge state)
 			hc := hostConfig{
-				hostname:           "master-0",
+				configDir:          "/some/path",
+				macAddresses:       []string{"aa:bb:cc:dd:ee:ff"},
+				hostname:           "", // Empty hostname - this is a MAC-based config
 				fencingCredentials: expectedCreds,
 			}
 			Expect(hc.FencingCredentials()).To(Equal(expectedCreds))
