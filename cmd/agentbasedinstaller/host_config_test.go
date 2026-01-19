@@ -1,17 +1,12 @@
 package agentbasedinstaller
 
 import (
-	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
-	installerclient "github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus/hooks/test"
 )
@@ -35,7 +30,7 @@ var _ = Describe("loadFencingCredentials", func() {
 
 	Context("when fencing-credentials.yaml file does not exist", func() {
 		It("should return nil map with no error", func() {
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(BeNil())
 		})
@@ -58,7 +53,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(2))
 
@@ -87,7 +82,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
 			Expect(creds).To(HaveKey("master-0"))
@@ -106,7 +101,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("has empty hostname"))
 			Expect(creds).To(BeNil())
@@ -121,7 +116,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("missing required field: address"))
 			Expect(creds).To(BeNil())
@@ -136,7 +131,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("missing required field: username"))
 			Expect(creds).To(BeNil())
@@ -151,7 +146,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("missing required field: password"))
 			Expect(creds).To(BeNil())
@@ -164,7 +159,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to parse fencing credentials file"))
 			Expect(creds).To(BeNil())
@@ -181,7 +176,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to parse fencing credentials file"))
 			Expect(creds).To(BeNil())
@@ -206,7 +201,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(2))
 		})
@@ -224,7 +219,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			// Case-insensitive matching means this parses successfully
-			creds, err := loadFencingCredentials(tempDir)
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
 			Expect(creds).To(HaveKey("master-0"))
@@ -232,187 +227,171 @@ var _ = Describe("loadFencingCredentials", func() {
 	})
 })
 
-var _ = Describe("applyHostConfigByHostname", func() {
+var _ = Describe("applyFencingCredentials", func() {
+	Context("when credentials are nil", func() {
+		It("should return false without modifying updateParams", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			updateParams := &models.HostUpdateParams{}
+
+			changed := applyFencingCredentials(testLogger, host, nil, updateParams)
+			Expect(changed).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
+		})
+	})
+
+	Context("when host already has fencing credentials", func() {
+		It("should return false without modifying updateParams", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{
+				FencingCredentials: `{"address": "existing"}`,
+			}
+			creds := &models.FencingCredentialsParams{
+				Address:  strPtr("redfish+https://example.com"),
+				Username: strPtr("admin"),
+				Password: strPtr("password"),
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			changed := applyFencingCredentials(testLogger, host, creds, updateParams)
+			Expect(changed).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
+		})
+	})
+
+	Context("when credentials should be applied", func() {
+		It("should set fencing credentials and return true", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			creds := &models.FencingCredentialsParams{
+				Address:                 strPtr("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"),
+				Username:                strPtr("admin"),
+				Password:                strPtr("password"),
+				CertificateVerification: strPtr("Disabled"),
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			changed := applyFencingCredentials(testLogger, host, creds, updateParams)
+			Expect(changed).To(BeTrue())
+			Expect(updateParams.FencingCredentials).NotTo(BeNil())
+			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
+			Expect(*updateParams.FencingCredentials.Password).To(Equal("password"))
+			Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
+		})
+	})
+})
+
+var _ = Describe("hostConfig.FencingCredentials", func() {
+	Context("when hostConfig is MAC-based (empty hostname)", func() {
+		It("should return nil", func() {
+			hc := hostConfig{
+				configDir:    "/some/path",
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+				hostname:     "",
+			}
+			Expect(hc.FencingCredentials()).To(BeNil())
+		})
+	})
+
+	Context("when hostConfig is hostname-based", func() {
+		It("should return the stored fencing credentials", func() {
+			expectedCreds := &models.FencingCredentialsParams{
+				Address:  strPtr("redfish+https://example.com"),
+				Username: strPtr("admin"),
+				Password: strPtr("password"),
+			}
+			hc := hostConfig{
+				hostname:           "master-0",
+				fencingCredentials: expectedCreds,
+			}
+			Expect(hc.FencingCredentials()).To(Equal(expectedCreds))
+		})
+	})
+})
+
+var _ = Describe("findHostConfig with hostname matching", func() {
 	var (
-		ctx            context.Context
-		fakeTransport  *mockHostConfigTransport
-		bmInventory    *client.AssistedInstall
-		testHostID     strfmt.UUID
-		testInfraEnvID strfmt.UUID
+		testHostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		ctx = context.Background()
-
 		testHostID = strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
-		testInfraEnvID = strfmt.UUID("f789ab3f-4c96-51f1-9eda-93585266efc3")
-
-		fakeTransport = NewMockHostConfigTransport()
-		fakeInstallerClient := installerclient.New(fakeTransport, nil, nil)
-		bmInventory = &client.AssistedInstall{
-			Installer: fakeInstallerClient,
-		}
 	})
 
-	Context("when fencing credentials map is nil", func() {
-		It("should return nil without error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{"hostname": "master-0"}`,
+	Context("when configs contain both MAC-based and hostname-based entries", func() {
+		It("should prefer MAC-based matching", func() {
+			macConfig := &hostConfig{
+				configDir:    "/mac/path",
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
-
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, nil)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeTransport.updateHostCalled).To(BeFalse())
-		})
-	})
-
-	Context("when host has no inventory", func() {
-		It("should return nil without error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  "",
+			hostnameConfig := &hostConfig{
+				hostname: "master-0",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address: strPtr("redfish+https://example.com"),
+				},
 			}
+			configs := HostConfigs{macConfig, hostnameConfig}
 
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:  strPtr("redfish+https://example.com"),
-					Username: strPtr("admin"),
-					Password: strPtr("password"),
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
 				},
 			}
 
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeTransport.updateHostCalled).To(BeFalse())
+			result := configs.findHostConfig(testHostID, inventory)
+			Expect(result).To(Equal(macConfig))
+			Expect(result.hostID).To(Equal(testHostID))
 		})
-	})
 
-	Context("when host has empty hostname", func() {
-		It("should return nil without error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{"hostname": ""}`,
+		It("should fall back to hostname matching when MAC doesn't match", func() {
+			macConfig := &hostConfig{
+				configDir:    "/mac/path",
+				macAddresses: []string{"11:22:33:44:55:66"},
 			}
+			hostnameConfig := &hostConfig{
+				hostname: "master-0",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address: strPtr("redfish+https://example.com"),
+				},
+			}
+			configs := HostConfigs{macConfig, hostnameConfig}
 
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:  strPtr("redfish+https://example.com"),
-					Username: strPtr("admin"),
-					Password: strPtr("password"),
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
 				},
 			}
 
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeTransport.updateHostCalled).To(BeFalse())
+			result := configs.findHostConfig(testHostID, inventory)
+			Expect(result).To(Equal(hostnameConfig))
+			Expect(result.hostID).To(Equal(testHostID))
 		})
-	})
 
-	Context("when no matching hostname in credentials", func() {
-		It("should return nil without error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{"hostname": "worker-0"}`,
+		It("should return nil when neither MAC nor hostname matches", func() {
+			macConfig := &hostConfig{
+				configDir:    "/mac/path",
+				macAddresses: []string{"11:22:33:44:55:66"},
 			}
+			hostnameConfig := &hostConfig{
+				hostname: "master-1",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address: strPtr("redfish+https://example.com"),
+				},
+			}
+			configs := HostConfigs{macConfig, hostnameConfig}
 
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:  strPtr("redfish+https://example.com"),
-					Username: strPtr("admin"),
-					Password: strPtr("password"),
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
 				},
 			}
 
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeTransport.updateHostCalled).To(BeFalse())
-		})
-	})
-
-	Context("when matching hostname found in credentials", func() {
-		It("should call V2UpdateHost with fencing credentials", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{"hostname": "master-0"}`,
-			}
-
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:                 strPtr("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"),
-					Username:                strPtr("admin"),
-					Password:                strPtr("password"),
-					CertificateVerification: strPtr("Disabled"),
-				},
-			}
-
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).NotTo(HaveOccurred())
-			Expect(fakeTransport.updateHostCalled).To(BeTrue())
-			Expect(fakeTransport.lastUpdateParams).NotTo(BeNil())
-			Expect(fakeTransport.lastUpdateParams.FencingCredentials).NotTo(BeNil())
-			Expect(*fakeTransport.lastUpdateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(*fakeTransport.lastUpdateParams.FencingCredentials.Username).To(Equal("admin"))
-			Expect(*fakeTransport.lastUpdateParams.FencingCredentials.Password).To(Equal("password"))
-			Expect(*fakeTransport.lastUpdateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
-		})
-	})
-
-	Context("when V2UpdateHost fails", func() {
-		It("should return error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{"hostname": "master-0"}`,
-			}
-
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:  strPtr("redfish+https://example.com"),
-					Username: strPtr("admin"),
-					Password: strPtr("password"),
-				},
-			}
-
-			fakeTransport.SetUpdateError("API error")
-
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to update Host"))
-		})
-	})
-
-	Context("when host has malformed inventory JSON", func() {
-		It("should return error", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				ID:         &testHostID,
-				InfraEnvID: testInfraEnvID,
-				Inventory:  `{invalid json`,
-			}
-
-			fencingCreds := map[string]*models.FencingCredentialsParams{
-				"master-0": {
-					Address:  strPtr("redfish+https://example.com"),
-					Username: strPtr("admin"),
-					Password: strPtr("password"),
-				},
-			}
-
-			err := applyHostConfigByHostname(ctx, testLogger, bmInventory, host, fencingCreds)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("failed to unmarshal"))
+			result := configs.findHostConfig(testHostID, inventory)
+			Expect(result).To(BeNil())
 		})
 	})
 })
@@ -420,36 +399,4 @@ var _ = Describe("applyHostConfigByHostname", func() {
 // Helper function to create string pointers
 func strPtr(s string) *string {
 	return &s
-}
-
-// mockHostConfigTransport is a mock transport for testing applyHostConfigByHostname
-type mockHostConfigTransport struct {
-	updateHostCalled bool
-	lastUpdateParams *models.HostUpdateParams
-	updateError      error
-}
-
-func NewMockHostConfigTransport() *mockHostConfigTransport {
-	return &mockHostConfigTransport{}
-}
-
-func (m *mockHostConfigTransport) Submit(op *runtime.ClientOperation) (interface{}, error) {
-	switch v := op.Params.(type) {
-	case *installerclient.V2UpdateHostParams:
-		if m.updateError != nil {
-			return nil, m.updateError
-		}
-		m.updateHostCalled = true
-		m.lastUpdateParams = v.HostUpdateParams
-		return &installerclient.V2UpdateHostCreated{
-			Payload: &models.Host{},
-		}, nil
-
-	default:
-		return nil, fmt.Errorf("[mockHostConfigTransport] unmanaged type: %T", v)
-	}
-}
-
-func (m *mockHostConfigTransport) SetUpdateError(errMsg string) {
-	m.updateError = fmt.Errorf("%s", errMsg)
 }
