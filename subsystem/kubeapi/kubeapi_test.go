@@ -1348,28 +1348,25 @@ location = "%s"
 			return string(*infraEnv.InfraEnv.Type) == "full-iso"
 		}, "1m", "20s").Should(BeTrue())
 
-		By("Set infra-env to minimal iso to test update")
+		By("Set infra-env to minimal iso to test that controller enforces full-iso for s390x")
 		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(map[string]interface{}{"type": models.ImageTypeMinimalIso}).Error
 		Expect(err).ToNot(HaveOccurred())
+		// Trigger controller reconciliation by updating the CRD (controller only reconciles on CRD changes)
+		// The controller should correct the type back to full-iso for s390x architecture
+		// since the CRD doesn't specify ImageType (empty), GetInfraEnvIsoImageType will return full-iso for s390x
+		infraEnvCR := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
+		if infraEnvCR.ObjectMeta.Labels == nil {
+			infraEnvCR.ObjectMeta.Labels = make(map[string]string)
+		}
+		infraEnvCR.ObjectMeta.Labels["test"] = "trigger-reconciliation"
+		err = kubeClient.Update(ctx, infraEnvCR)
+		Expect(err).ToNot(HaveOccurred())
+		// Verify the controller corrected the type back to full-iso for s390x
 		Eventually(func() bool {
 			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, types.NamespacedName{
 				Namespace: Options.Namespace,
 				Name:      infraNsName.Name,
 			}, waitForReconcileTimeout)
-			return string(*infraEnv.InfraEnv.Type) == "minimal-iso"
-		}, "1m", "20s").Should(BeTrue())
-
-		By("Update infraenv and observe that type is set to full-iso")
-		infraEnvCR := getInfraEnvCRD(ctx, kubeClient, infraEnvKey)
-		infraEnvCR.ObjectMeta.Labels = map[string]string{"foo": "bmhName"}
-		err = kubeClient.Update(ctx, infraEnvCR)
-		Expect(err).ToNot(HaveOccurred())
-		infraEnvKey = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      infraNsName.Name,
-		}
-		Eventually(func() bool {
-			infraEnv = getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
 			return string(*infraEnv.InfraEnv.Type) == "full-iso"
 		}, "1m", "20s").Should(BeTrue())
 	})

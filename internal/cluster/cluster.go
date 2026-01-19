@@ -773,6 +773,22 @@ func (m *Manager) processClusterMonitoring(ctxWithDeadline context.Context, ctxB
 		return err
 	}
 
+	// Handle re-registered hosts during preparation phase
+	// (the method will load hosts if needed)
+	clusterAfterRefresh, err = m.handleReRegisteredHostsDuringPreparation(ctxWithDeadline, log, dbc, clusterAfterRefresh)
+	if err != nil {
+		// Preserve cluster reference for logging in case method returned nil on error
+		clusterID := "unknown"
+		if clusterAfterRefresh != nil {
+			clusterID = clusterAfterRefresh.ID.String()
+		}
+		log.WithError(err).Warnf("Failed to handle re-registered hosts for cluster %s", clusterID)
+		// If clusterAfterRefresh is nil, use the original cluster to avoid nil pointer issues downstream
+		if clusterAfterRefresh == nil {
+			clusterAfterRefresh = cluster
+		}
+	}
+
 	if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
 		log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID, swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
 	}
@@ -1145,6 +1161,9 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 
 func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
 	log := logutil.FromContext(ctx, m.log)
+	previousStatus := c.LastInstallationPreparation.Status
+	log.Infof("HandlePreInstallSuccess called for cluster %s, previous LastInstallationPreparation.Status: %s",
+		c.ID.String(), previousStatus)
 	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
 		LastInstallationPreparation: models.LastInstallationPreparation{
 			Status: models.LastInstallationPreparationStatusSuccess,
@@ -1154,9 +1173,62 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
 	} else {
-		log.Infof("Successfully handled pre-installation success, cluster %s", c.ID.String())
+		log.Infof("Successfully handled pre-installation success for cluster %s, status changed from %s to Success",
+			c.ID.String(), previousStatus)
 		eventgen.SendClusterPrepareInstallationStartedEvent(ctx, m.eventsHandler, *c.ID)
 	}
+}
+
+// handleReRegisteredHostsDuringPreparation handles the case where hosts re-register during cluster preparation.
+// When a host re-registers during preparing-for-installation, LastInstallationPreparation.Status is reset to NotStarted.
+// Once all hosts become preparing-successful again, we need to re-trigger HandlePreInstallSuccess to set the status
+// back to Success, enabling the transition to installing.
+func (m *Manager) handleReRegisteredHostsDuringPreparation(ctx context.Context, log logrus.FieldLogger, dbc *gorm.DB, cluster *common.Cluster) (*common.Cluster, error) {
+	if swag.StringValue(cluster.Status) != models.ClusterStatusPreparingForInstallation {
+		return cluster, nil
+	}
+
+	// Ensure cluster has hosts loaded
+	if len(cluster.Hosts) == 0 {
+		clusterWithHosts, err := common.GetClusterFromDBWithHosts(dbc, *cluster.ID)
+		if err != nil {
+			return cluster, errors.Wrapf(err, "failed to load cluster %s with hosts", cluster.ID.String())
+		}
+		cluster = clusterWithHosts
+	}
+
+	// Only check if cluster has hosts - prevent false re-trigger when hosts aren't loaded
+	allHostsPrepared := len(cluster.Hosts) > 0
+	for _, h := range cluster.Hosts {
+		if swag.StringValue(h.Status) != models.HostStatusPreparingSuccessful {
+			allHostsPrepared = false
+			break
+		}
+	}
+
+	// Re-trigger if all hosts are ready but LastInstallationPreparation.Status is still NotStarted
+	// (indicating it was reset during re-registration and needs to be set to Success again)
+	if allHostsPrepared && cluster.LastInstallationPreparation.Status == models.LastInstallationPreparationStatusNotStarted {
+		log.Infof("Cluster %s: all hosts are preparing-successful but LastInstallationPreparation.Status is NotStarted (likely reset after re-registration), re-triggering HandlePreInstallSuccess",
+			cluster.ID.String())
+		m.HandlePreInstallSuccess(ctx, cluster)
+		// Reload cluster from DB to get updated LastInstallationPreparation status
+		updatedCluster, err := common.GetClusterFromDBWithHosts(dbc, *cluster.ID)
+		if err != nil {
+			return cluster, errors.Wrapf(err, "failed to reload cluster %s after re-triggering HandlePreInstallSuccess", cluster.ID.String())
+		}
+		cluster = updatedCluster
+		// Preserve cluster reference before refresh in case refreshStatusInternal returns nil on error
+		clusterBeforeRefresh := cluster
+		// Refresh again to pick up the status change and potentially transition to installing
+		cluster, err = m.refreshStatusInternal(ctx, cluster, dbc)
+		if err != nil {
+			log.WithError(err).Warnf("Failed to refresh cluster %s after re-triggering HandlePreInstallSuccess", clusterBeforeRefresh.ID.String())
+			return clusterBeforeRefresh, err
+		}
+	}
+
+	return cluster, nil
 }
 
 func vipMismatchError(apiVip, ingressVip string, cluster *common.Cluster) error {
