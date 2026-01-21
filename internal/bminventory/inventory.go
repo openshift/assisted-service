@@ -105,8 +105,6 @@ type Config struct {
 	S3EndpointURL                       string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
 	S3Bucket                            string            `envconfig:"S3_BUCKET" default:"test"`
 	ImageExpirationTime                 time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
-	AwsAccessKeyID                      string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey                  string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
 	BaseDNSDomains                      map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
 	SkipCertVerification                bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
 	InstallRHCa                         bool              `envconfig:"INSTALL_RH_CA" default:"false"`
