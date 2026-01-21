@@ -295,9 +295,10 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Infof("No host configuration directory found %s", hostConfigDir)
-			return nil, nil
+			entries = []os.DirEntry{} // Continue to load fencing credentials
+		} else {
+			return nil, fmt.Errorf("failed to read config directory %s: %w", hostConfigDir, err)
 		}
-		return nil, fmt.Errorf("failed to read config directory %s: %w", hostConfigDir, err)
 	}
 
 	for _, e := range entries {
