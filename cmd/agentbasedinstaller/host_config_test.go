@@ -38,6 +38,10 @@ var _ = Describe("loadFencingCredentials", func() {
 
 	Context("when fencing-credentials.yaml has permission issues", func() {
 		It("should return error for unreadable file", func() {
+			if os.Geteuid() == 0 {
+				Skip("Test skipped when running as root - chmod 0000 is ineffective for root user")
+			}
+
 			filePath := filepath.Join(tempDir, "fencing-credentials.yaml")
 			err := os.WriteFile(filePath, []byte("credentials: []"), 0600)
 			Expect(err).NotTo(HaveOccurred())
@@ -45,7 +49,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			// Make file unreadable
 			err = os.Chmod(filePath, 0000)
 			Expect(err).NotTo(HaveOccurred())
-			defer os.Chmod(filePath, 0600) // Cleanup
+			defer func() { _ = os.Chmod(filePath, 0600) }() // Cleanup
 
 			creds, err := loadFencingCredentials(filePath)
 			Expect(err).To(HaveOccurred())

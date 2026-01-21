@@ -307,7 +307,8 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		hostPath := path.Join(hostConfigDir, e.Name())
 		log.Infof("Reading directory %s", hostPath)
 
-		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
+		var macs []byte
+		macs, err = os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
 		if os.IsNotExist(err) {
 			log.Info("No MAC Addresses file found")
 			continue
@@ -332,7 +333,8 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			// Filter out the other HostConfig entries because each day-2
 			// node is added in isolation using their own internal assisted-service
 			// instance.
-			addHostConfig, err := currentHostHasMACAddress(addresses)
+			var addHostConfig bool
+			addHostConfig, err = currentHostHasMACAddress(addresses)
 			if err != nil {
 				return nil, err
 			}
