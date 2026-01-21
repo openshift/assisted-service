@@ -806,8 +806,17 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
-	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=disable",
-		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=%s",
+		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass, Options.DBConfig.SSLMode)
+	if Options.DBConfig.SSLRootCert != "" {
+		dbConnectionStr += fmt.Sprintf(" sslrootcert=%s", Options.DBConfig.SSLRootCert)
+	}
+	if Options.DBConfig.SSLCert != "" {
+		dbConnectionStr += fmt.Sprintf(" sslcert=%s", Options.DBConfig.SSLCert)
+	}
+	if Options.DBConfig.SSLKey != "" {
+		dbConnectionStr += fmt.Sprintf(" sslkey=%s", Options.DBConfig.SSLKey)
+	}
 	var db *gorm.DB
 	var err error
 	// Tries to open a db connection every 2 seconds
