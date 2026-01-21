@@ -78,7 +78,7 @@ github.com/mitchellh/mapstructure
 ## explicit
 github.com/oklog/ulid
 # github.com/openshift/assisted-service/models v0.0.0 => ../models
-## explicit; go 1.21
+## explicit; go 1.25.0
 github.com/openshift/assisted-service/models
 github.com/openshift/assisted-service/models/validations
 # go.mongodb.org/mongo-driver v1.12.0
