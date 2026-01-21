@@ -423,6 +423,130 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 	})
 })
 
+var _ = Describe("missingFencingCredentials", func() {
+	var testLogger *test.Hook
+
+	BeforeEach(func() {
+		_, testLogger = test.NewNullLogger()
+		_ = testLogger // Silence unused warning
+	})
+
+	Context("when fencing credentials are matched to a host", func() {
+		It("should return empty list", func() {
+			testLogger, _ := test.NewNullLogger()
+			configs := HostConfigs{
+				&hostConfig{
+					hostname:           "master-0",
+					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
+					hostID:             strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2"), // Matched
+				},
+			}
+
+			missing := configs.missingFencingCredentials(testLogger)
+			Expect(missing).To(BeEmpty())
+		})
+	})
+
+	Context("when fencing credentials have no matching hostname", func() {
+		It("should return failure for unmatched fencing config", func() {
+			testLogger, _ := test.NewNullLogger()
+			configs := HostConfigs{
+				&hostConfig{
+					hostname:           "master-0",
+					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
+					hostID:             "", // Not matched - no host with this hostname
+				},
+			}
+
+			missing := configs.missingFencingCredentials(testLogger)
+			Expect(missing).To(HaveLen(1))
+			Expect(missing[0].Hostname()).To(Equal("master-0"))
+			Expect(missing[0].DescribeFailure()).To(Equal("Fencing credentials loaded but no host with matching hostname found"))
+		})
+	})
+
+	Context("when MAC-based config without fencing is unmatched", func() {
+		It("should not be reported by missingFencingCredentials", func() {
+			testLogger, _ := test.NewNullLogger()
+			configs := HostConfigs{
+				&hostConfig{
+					configDir:    "/mac/path",
+					macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+					hostID:       "", // Not matched
+				},
+			}
+
+			// missingFencingCredentials should not report MAC-based configs
+			missing := configs.missingFencingCredentials(testLogger)
+			Expect(missing).To(BeEmpty())
+		})
+	})
+
+	Context("when hostname config has no fencing credentials", func() {
+		It("should not be reported", func() {
+			testLogger, _ := test.NewNullLogger()
+			configs := HostConfigs{
+				&hostConfig{
+					hostname:           "master-0",
+					fencingCredentials: nil, // No credentials
+					hostID:             "",
+				},
+			}
+
+			missing := configs.missingFencingCredentials(testLogger)
+			Expect(missing).To(BeEmpty())
+		})
+	})
+
+	Context("with mixed matched and unmatched fencing configs", func() {
+		It("should only report unmatched configs with credentials", func() {
+			testLogger, _ := test.NewNullLogger()
+			configs := HostConfigs{
+				&hostConfig{
+					hostname:           "master-0",
+					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example1.com")},
+					hostID:             strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2"), // Matched
+				},
+				&hostConfig{
+					hostname:           "master-1",
+					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example2.com")},
+					hostID:             "", // Not matched
+				},
+			}
+
+			missing := configs.missingFencingCredentials(testLogger)
+			Expect(missing).To(HaveLen(1))
+			Expect(missing[0].Hostname()).To(Equal("master-1"))
+		})
+	})
+})
+
+var _ = Describe("missingHost.DescribeFailure", func() {
+	Context("when config is MAC-based without fencing", func() {
+		It("should return 'Host not registered'", func() {
+			mh := missingHost{
+				config: &hostConfig{
+					configDir:    "/mac/path",
+					macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+				},
+			}
+			Expect(mh.DescribeFailure()).To(Equal("Host not registered"))
+		})
+	})
+
+	Context("when config is hostname-based with fencing credentials", func() {
+		It("should return fencing-specific message", func() {
+			mh := missingHost{
+				config: &hostConfig{
+					hostname:           "master-0",
+					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
+				},
+			}
+			Expect(mh.DescribeFailure()).To(Equal("Fencing credentials loaded but no host with matching hostname found"))
+		})
+	})
+})
+
 // Helper function to create string pointers
 func strPtr(s string) *string {
 	return &s

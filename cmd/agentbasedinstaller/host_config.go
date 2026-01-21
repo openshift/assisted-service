@@ -55,7 +55,7 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 			log.Info("No fencing credentials file found, skipping fencing configuration")
 			return nil, nil // Not an error - fencing is optional
 		}
-		return nil, fmt.Errorf("failed to read fencing credentials file: %w", err)
+		return nil, fmt.Errorf("failed to read fencing credentials file at %s: %w", fencingFilePath, err)
 	}
 
 	// Intermediate structure matching installer's YAML output
@@ -71,7 +71,11 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 
 	fcFile := &fencingCredentialsFile{}
 	if err := yaml.UnmarshalStrict(fileData, fcFile); err != nil {
-		return nil, fmt.Errorf("failed to parse fencing credentials file: %w", err)
+		return nil, fmt.Errorf("failed to parse fencing credentials file at %s: %w", fencingFilePath, err)
+	}
+
+	if len(fcFile.Credentials) == 0 {
+		log.Warnf("Fencing credentials file at %s exists but contains no credentials - this may be a configuration error", fencingFilePath)
 	}
 
 	credentialsMap := make(map[string]*models.FencingCredentialsParams)
@@ -137,6 +141,13 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	} else {
 		log.Info("All expected hosts found")
 	}
+
+	// Check for unmatched fencing credentials (critical for TNF clusters)
+	missingFencing := hostConfigs.missingFencingCredentials(log)
+	for _, mf := range missingFencing {
+		failures = append(failures, mf)
+	}
+
 	return failures, nil
 }
 
@@ -513,6 +524,21 @@ func (configs HostConfigs) missing(log *log.Logger) []missingHost {
 	return missing
 }
 
+// missingFencingCredentials returns fencing credential configs that were loaded but not matched to any host.
+// Unlike missing(), this specifically checks hostname-based configs that contain fencing credentials.
+// This is critical for TNF clusters where all control-plane nodes must have fencing credentials.
+func (configs HostConfigs) missingFencingCredentials(log *log.Logger) []missingHost {
+	missing := []missingHost{}
+	for _, hc := range configs {
+		// Only check hostname-based configs with fencing credentials
+		if hc.hostname != "" && hc.fencingCredentials != nil && hc.hostID == "" {
+			log.Warnf("Fencing credentials for hostname %s were loaded but no matching host was found", hc.hostname)
+			missing = append(missing, missingHost{config: hc})
+		}
+	}
+	return missing
+}
+
 type Failure interface {
 	Hostname() string
 	DescribeFailure() string
@@ -578,5 +604,8 @@ func (mh missingHost) Hostname() string {
 }
 
 func (mh missingHost) DescribeFailure() string {
+	if mh.config.hostname != "" && mh.config.fencingCredentials != nil {
+		return "Fencing credentials loaded but no host with matching hostname found"
+	}
 	return "Host not registered"
 }
