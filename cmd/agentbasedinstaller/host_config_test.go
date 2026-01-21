@@ -36,6 +36,37 @@ var _ = Describe("loadFencingCredentials", func() {
 		})
 	})
 
+	Context("when fencing-credentials.yaml has permission issues", func() {
+		It("should return error for unreadable file", func() {
+			filePath := filepath.Join(tempDir, "fencing-credentials.yaml")
+			err := os.WriteFile(filePath, []byte("credentials: []"), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Make file unreadable
+			err = os.Chmod(filePath, 0000)
+			Expect(err).NotTo(HaveOccurred())
+			defer os.Chmod(filePath, 0600) // Cleanup
+
+			creds, err := loadFencingCredentials(filePath)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to read fencing credentials file"))
+			Expect(creds).To(BeNil())
+		})
+	})
+
+	Context("when fencing-credentials.yaml has empty credentials array", func() {
+		It("should return empty map for file with empty credentials array", func() {
+			content := `credentials: []`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds).NotTo(BeNil())
+			Expect(creds).To(HaveLen(0))
+		})
+	})
+
 	Context("when fencing-credentials.yaml has valid content", func() {
 		It("should parse credentials with all fields", func() {
 			content := `credentials:
@@ -419,6 +450,66 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 
 			result := configs.findHostConfig(testHostID, inventory)
 			Expect(result).To(BeNil())
+		})
+
+		It("should mark hostnameConfig as matched when merging", func() {
+			macConfig := &hostConfig{
+				configDir:    "/mac/path",
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+			hostnameConfig := &hostConfig{
+				hostname: "master-0",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address: strPtr("redfish+https://example.com"),
+				},
+			}
+			configs := HostConfigs{macConfig, hostnameConfig}
+
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
+				},
+			}
+
+			_ = configs.findHostConfig(testHostID, inventory)
+
+			// Both configs should be marked as matched
+			Expect(macConfig.hostID).To(Equal(testHostID))
+			Expect(hostnameConfig.hostID).To(Equal(testHostID))
+		})
+
+		It("should return independent struct that doesn't affect original macConfig", func() {
+			originalCreds := &models.FencingCredentialsParams{
+				Address: strPtr("original-address"),
+			}
+			macConfig := &hostConfig{
+				configDir:          "/mac/path",
+				macAddresses:       []string{"aa:bb:cc:dd:ee:ff"},
+				fencingCredentials: originalCreds,
+			}
+			newCreds := &models.FencingCredentialsParams{
+				Address: strPtr("new-address"),
+			}
+			hostnameConfig := &hostConfig{
+				hostname:           "master-0",
+				fencingCredentials: newCreds,
+			}
+			configs := HostConfigs{macConfig, hostnameConfig}
+
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
+				},
+			}
+
+			result := configs.findHostConfig(testHostID, inventory)
+
+			// Returned config should have new credentials
+			Expect(*result.fencingCredentials.Address).To(Equal("new-address"))
+			// Original macConfig should still have original credentials
+			Expect(*macConfig.fencingCredentials.Address).To(Equal("original-address"))
 		})
 	})
 })

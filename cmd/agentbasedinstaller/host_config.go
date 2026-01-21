@@ -329,7 +329,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			// In the addnodes workflow, the only host config we want to load is the
 			// current host's. Multiple HostConfigs could exist in hostConfigDir
 			// if multiple day-2 nodes are being added using the same day-2 ISO.
-			// Filter otu the other HostConfig entries because each day-2
+			// Filter out the other HostConfig entries because each day-2
 			// node is added in isolation using their own internal assisted-service
 			// instance.
 			addHostConfig, err := currentHostHasMACAddress(addresses)
@@ -352,8 +352,23 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
 	}
 
+	// For AddNodes workflow, filter to only current host's credentials
+	// (same approach as MAC-based filtering above)
+	var currentHostname string
+	if workflowType == AgentWorkflowTypeAddNodes && len(fencingCreds) > 0 {
+		currentHostname, err = os.Hostname()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current hostname for fencing filter: %w", err)
+		}
+		log.Infof("AddNodes workflow: filtering fencing credentials to current host %s", currentHostname)
+	}
+
 	// Create hostname-based hostConfig entries for each fencing credential
 	for hostname, creds := range fencingCreds {
+		if workflowType == AgentWorkflowTypeAddNodes && hostname != currentHostname {
+			log.Infof("Skipping fencing credential for %s (current host is %s)", hostname, currentHostname)
+			continue
+		}
 		configs = append(configs, &hostConfig{
 			hostname:           hostname,
 			fencingCredentials: creds,
@@ -486,12 +501,19 @@ func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.
 		}
 	}
 
-	// Merge: if both exist, add fencing credentials from hostname config to MAC config
+	// Merge: if both exist, create merged config with fencing credentials from hostname config
 	if macConfig != nil && hostnameConfig != nil {
 		log.Infof("Merging fencing credentials from hostname config into MAC config")
-		macConfig.fencingCredentials = hostnameConfig.fencingCredentials
+		// Mark both original configs as matched (for missing() and missingFencingCredentials())
 		macConfig.hostID = hostID
-		return macConfig
+		hostnameConfig.hostID = hostID
+		// Return new struct to avoid mutating shared macConfig
+		return &hostConfig{
+			configDir:          macConfig.configDir,
+			macAddresses:       macConfig.macAddresses,
+			fencingCredentials: hostnameConfig.fencingCredentials,
+			hostID:             hostID,
+		}
 	}
 
 	// Return whichever config was found
