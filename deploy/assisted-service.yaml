@@ -75,6 +75,12 @@ spec:
                 secretKeyRef:
                   name: assisted-installer-rds
                   key: db.user
+            - name: DB_SSLMODE
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-rds
+                  key: db.sslmode
+                  optional: true
             - name: OCM_SERVICE_CLIENT_ID
               valueFrom:
                 secretKeyRef:

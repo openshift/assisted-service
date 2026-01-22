@@ -1847,6 +1847,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 					"db.password": pass,
 					"db.name":     "installer",
 					"db.port":     databasePort.String(),
+					"db.sslmode":  "disable",
 				},
 				Type: corev1.SecretTypeOpaque,
 			}
@@ -1874,6 +1875,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(found.StringData["db.user"]).To(Equal("admin"))
 			Expect(found.StringData["db.name"]).To(Equal("installer"))
 			Expect(found.StringData["db.port"]).To(Equal(databasePort.String()))
+			Expect(found.StringData["db.sslmode"]).To(Equal("disable"))
 			Expect(found.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 			// password will be random
 			foundPass := found.StringData["db.password"]

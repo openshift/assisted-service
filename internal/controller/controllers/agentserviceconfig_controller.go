@@ -1051,6 +1051,17 @@ func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 				"db.password": pass,
 				"db.name":     "installer",
 				"db.port":     databasePort.String(),
+				"db.sslmode":  "disable",
+			}
+		}
+
+		// Backfill sslmode for upgrades where the key is missing
+		if _, ok := secret.Data["db.sslmode"]; !ok {
+			if secret.StringData == nil {
+				secret.StringData = map[string]string{}
+			}
+			if _, ok := secret.StringData["db.sslmode"]; !ok {
+				secret.StringData["db.sslmode"] = "disable"
 			}
 		}
 		return nil
@@ -1888,6 +1899,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PASS", "db.password", databaseName),
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PORT", "db.port", databaseName),
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_USER", "db.user", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_SSLMODE", "db.sslmode", databaseName),
 
 		// local auth secret
 		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
