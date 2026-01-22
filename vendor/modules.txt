@@ -705,7 +705,7 @@ github.com/santhosh-tekuri/jsonschema/decoders
 github.com/santhosh-tekuri/jsonschema/formats
 github.com/santhosh-tekuri/jsonschema/loader
 github.com/santhosh-tekuri/jsonschema/mediatypes
-# github.com/sirupsen/logrus v1.9.0
+# github.com/sirupsen/logrus v1.9.3
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/test
@@ -959,6 +959,8 @@ golang.org/x/term
 # golang.org/x/text v0.14.0
 ## explicit; go 1.18
 golang.org/x/text/cases
+golang.org/x/text/collate
+golang.org/x/text/collate/build
 golang.org/x/text/encoding
 golang.org/x/text/encoding/charmap
 golang.org/x/text/encoding/htmlindex
@@ -970,9 +972,13 @@ golang.org/x/text/encoding/simplifiedchinese
 golang.org/x/text/encoding/traditionalchinese
 golang.org/x/text/encoding/unicode
 golang.org/x/text/internal
+golang.org/x/text/internal/colltab
+golang.org/x/text/internal/gen
 golang.org/x/text/internal/language
 golang.org/x/text/internal/language/compact
 golang.org/x/text/internal/tag
+golang.org/x/text/internal/triegen
+golang.org/x/text/internal/ucd
 golang.org/x/text/internal/utf8internal
 golang.org/x/text/language
 golang.org/x/text/runes
@@ -980,7 +986,9 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/secure/precis
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
+golang.org/x/text/unicode/cldr
 golang.org/x/text/unicode/norm
+golang.org/x/text/unicode/rangetable
 golang.org/x/text/width
 # golang.org/x/time v0.0.0-20220210224613-90d013bbcef8
 ## explicit
