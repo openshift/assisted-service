@@ -175,7 +175,8 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	// Only apply root device hints for MAC-based configs
 	if len(config.macAddresses) > 0 {
-		rdh, err := config.RootDeviceHints()
+		var rdh *bmh_v1alpha1.RootDeviceHints
+		rdh, err = config.RootDeviceHints()
 		if err != nil {
 			return err
 		}
