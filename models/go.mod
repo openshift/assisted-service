@@ -33,3 +33,5 @@ require (
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
