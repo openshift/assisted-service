@@ -1,7 +1,6 @@
 contentOrigin:
   repofiles: ["./redhat.repo"]
 packages:
-  - libvirt-libs
   - nmstate
   - nmstate-devel
   - nmstate-libs
@@ -9,7 +8,8 @@ packages:
   - openshift-clients
   - gcc
   - git
-  - openssl-devel  
+  - openssl-devel
+  - libseccomp  
 arches:
   - aarch64
   - x86_64

@@ -1,6 +1,6 @@
-FROM registry.access.redhat.com/ubi9/go-toolset:1.24 AS golang
+FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS golang
 
-RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.64.7
+RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/main/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
 RUN go install gotest.tools/gotestsum@v1.12.3
 
 FROM quay.io/centos/centos:stream9
@@ -49,8 +49,8 @@ RUN git config --system --add safe.directory '*'
 WORKDIR /home/assisted-service
 RUN mkdir build $TOOLS --mode g+xw
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
-RUN ./setup_env.sh podman_remote && \
-    ./setup_env.sh assisted_service && \
+RUN ./setup_env.sh podman_remote && echo "podman_remote" && \
+    ./setup_env.sh assisted_service && echo "assisted_service" && \
     dnf clean all && \
     chmod g+xw -R $GOPATH
 COPY ./data /tmp/data

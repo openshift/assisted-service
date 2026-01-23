@@ -13,6 +13,7 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	// Generic features
 	models.FeatureSupportLevelIDSNO:                       (&SnoFeature{}).New(),
 	models.FeatureSupportLevelIDTNA:                       (&TnaFeature{}).New(),
+	models.FeatureSupportLevelIDTNF:                       (&TnfFeature{}).New(),
 	models.FeatureSupportLevelIDCUSTOMMANIFEST:            (&CustomManifestFeature{}).New(),
 	models.FeatureSupportLevelIDSINGLENODEEXPANSION:       (&SingleNodeExpansionFeature{}).New(),
 	models.FeatureSupportLevelIDMINIMALISO:                (&MinimalIso{}).New(),
@@ -180,6 +181,26 @@ func IsFeatureAvailable(featureId models.FeatureSupportLevelID, openshiftVersion
 	}
 
 	return GetSupportLevel(featureId, filters) != models.SupportLevelUnavailable
+}
+
+func IsFeatureCompatibleWithOther(openshiftVersion string, featureID models.FeatureSupportLevelID, other []models.FeatureSupportLevelID) bool {
+	if other == nil {
+		return true
+	}
+
+	feature := GetFeatureByID(featureID)
+	if feature == nil {
+		return true // Unknown features are considered compatible with everything
+	}
+
+	incompatibilities := feature.getIncompatibleFeatures(openshiftVersion)
+	for _, incompatibility := range incompatibilities {
+		if slices.Contains(other, incompatibility) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func isFeatureCompatible(openshiftVersion string, feature SupportLevelFeature, features ...SupportLevelFeature) *SupportLevelFeature {

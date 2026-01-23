@@ -242,10 +242,10 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		})
 
 	defer func() {
-		log.Info("BareMetalHost Reconcile ended")
+		log.Debug("BareMetalHost Reconcile ended")
 	}()
 
-	log.Info("BareMetalHost Reconcile started")
+	log.Debug("BareMetalHost Reconcile started")
 	bmh := &bmh_v1alpha1.BareMetalHost{}
 
 	if err := r.Get(ctx, req.NamespacedName, bmh); err != nil {
@@ -270,6 +270,14 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
 	if err != nil {
 		return reconcileError{err: err}.Result()
+	}
+
+	// Ensure BMH is labeled for backup if it's referenced by an InfraEnv
+	if infraEnv != nil {
+		result := r.ensureBMHIsLabelled(ctx, log, bmh)
+		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+			return res.Result()
+		}
 	}
 
 	result := r.handleBMHFinalizer(ctx, log, bmh, agent)
@@ -1093,10 +1101,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 
 	if !proceed {
 		if requeuePeriod != 0 {
-			log.Infof("Requeuing reconcileBMH: %s", reason)
+			log.Debugf("Requeuing reconcileBMH: %s", reason)
 			return reconcileRequeue{requeueAfter: requeuePeriod}
 		}
-		log.Infof("Stopping reconcileBMH: %s", reason)
+		log.Debugf("Stopping reconcileBMH: %s", reason)
 		return reconcileComplete{dirty: dirty, stop: stopReconcileLoop}
 	}
 
@@ -1143,7 +1151,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileError{err: err}
 	}
 	if !installed {
-		log.Infof("Skipping spoke BareMetalHost reconcile for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
+		log.Debugf("Skipping spoke BareMetalHost reconcile for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1174,7 +1182,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileComplete{}
 	}
 	if skipSpokeBMH {
-		log.Infof("Skipping spoke BareMetalHost creation for agent %s/%s since it's baremetal platform without MAPI capability", agent.Name, agent.Namespace)
+		log.Debugf("Skipping spoke BareMetalHost creation for agent %s/%s since it's baremetal platform without MAPI capability", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1202,7 +1210,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 	if err != nil {
 		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
 		if stopReconcileLoop {
-			log.Info("Stopping reconcileDay2SpokeBMH")
+			log.Debug("Stopping reconcileDay2SpokeBMH")
 			return reconcileComplete{dirty: false, stop: stopReconcileLoop}
 		}
 		return reconcileError{err: err}
@@ -1472,7 +1480,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 		return reconcileError{err: err}
 	}
 	if !installed {
-		log.Infof("Skipping spoke MCS cert for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
+		log.Debugf("Skipping spoke MCS cert for agent %s/%s since it's not day2.", agent.Name, agent.Namespace)
 		return reconcileComplete{}
 	}
 
@@ -1815,6 +1823,16 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 		return clusterDeployment, false, err
 	}
 	return clusterDeployment, true, err
+}
+
+func (r *BMACReconciler) ensureBMHIsLabelled(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+	if !metav1.HasLabel(bmh.ObjectMeta, BackupLabel) {
+		metav1.SetMetaDataLabel(&bmh.ObjectMeta, BackupLabel, BackupLabelValue)
+		log.Infof("Added backup label to BMH %s/%s", bmh.Namespace, bmh.Name)
+		return reconcileComplete{dirty: true}
+	}
+
+	return reconcileComplete{dirty: false}
 }
 
 func removeBMHDetachedAnnotation(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (dirty bool) {

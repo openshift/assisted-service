@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	commontesting "github.com/openshift/assisted-service/internal/common/testing"
+	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/events/eventstest"
 	"github.com/openshift/assisted-service/internal/feature"
@@ -350,6 +351,213 @@ var _ = Describe("RegisterHost", func() {
 				Expect(swag.StringValue(h.Kind)).To(Equal(t.kind))
 			})
 		}
+	})
+
+	Context("host re-registration during cluster preparation", func() {
+		It("should reset LastInstallationPreparation and host to known when host re-registers during preparing-for-installation", func() {
+			// Create a cluster in preparing-for-installation state with LastInstallationPreparation.Status = Success
+			cluster := hostutil.GenerateTestCluster(clusterId)
+			cluster.Status = swag.String(models.ClusterStatusPreparingForInstallation)
+			cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+				Status: models.LastInstallationPreparationStatusSuccess,
+				Reason: constants.InstallationPreparationReasonSuccess,
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			// Create a host that belongs to the cluster (with bootstrap flag set for SNO)
+			Expect(db.Create(&models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &clusterId,
+				Role:       models.HostRoleMaster,
+				Inventory:  defaultHwInfo,
+				Bootstrap:  true,
+				Status:     swag.String(models.HostStatusPreparingForInstallation),
+			}).Error).ShouldNot(HaveOccurred())
+
+			// Re-register the host
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+				eventstest.WithClusterIdMatcher(clusterId.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+			Expect(hapi.RegisterHost(ctx, &models.Host{
+				ID:                    &hostId,
+				InfraEnvID:            infraEnvId,
+				ClusterID:             &clusterId,
+				Status:                swag.String(models.HostStatusPreparingForInstallation),
+				DiscoveryAgentVersion: "v2.0.5",
+			},
+				db)).ShouldNot(HaveOccurred())
+
+			// Verify the host was reset to 'known' instead of 'discovering'
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusKnown))
+			Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoKnown))
+			// Verify inventory was preserved so the host can continue with preparation
+			Expect(h.Inventory).Should(Equal(defaultHwInfo))
+			// Verify bootstrap flag was preserved (critical for SNO clusters)
+			Expect(h.Bootstrap).Should(BeTrue())
+
+			// Verify the cluster's LastInstallationPreparation was reset
+			var updatedCluster common.Cluster
+			Expect(db.Take(&updatedCluster, "id = ?", clusterId.String()).Error).ShouldNot(HaveOccurred())
+			Expect(updatedCluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusNotStarted))
+			Expect(updatedCluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonNotPerformed))
+
+			// Verify the cluster is still in preparing-for-installation (not insufficient)
+			Expect(swag.StringValue(updatedCluster.Status)).Should(Equal(models.ClusterStatusPreparingForInstallation))
+		})
+
+		It("should reset LastInstallationPreparation and host to known when host re-registers from preparing-successful state", func() {
+			// Create a cluster in preparing-for-installation state with LastInstallationPreparation.Status = Success
+			cluster := hostutil.GenerateTestCluster(clusterId)
+			cluster.Status = swag.String(models.ClusterStatusPreparingForInstallation)
+			cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+				Status: models.LastInstallationPreparationStatusSuccess,
+				Reason: constants.InstallationPreparationReasonSuccess,
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			// Create a host that belongs to the cluster (with bootstrap flag set for SNO)
+			Expect(db.Create(&models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &clusterId,
+				Role:       models.HostRoleMaster,
+				Inventory:  defaultHwInfo,
+				Bootstrap:  true,
+				Status:     swag.String(models.HostStatusPreparingSuccessful),
+			}).Error).ShouldNot(HaveOccurred())
+
+			// Re-register the host
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+				eventstest.WithClusterIdMatcher(clusterId.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+			Expect(hapi.RegisterHost(ctx, &models.Host{
+				ID:                    &hostId,
+				InfraEnvID:            infraEnvId,
+				ClusterID:             &clusterId,
+				Status:                swag.String(models.HostStatusPreparingSuccessful),
+				DiscoveryAgentVersion: "v2.0.5",
+			},
+				db)).ShouldNot(HaveOccurred())
+
+			// Verify the host was reset to 'known' instead of 'discovering'
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusKnown))
+			Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoKnown))
+			// Verify inventory was preserved so the host can continue with preparation
+			Expect(h.Inventory).Should(Equal(defaultHwInfo))
+			// Verify bootstrap flag was preserved (critical for SNO clusters)
+			Expect(h.Bootstrap).Should(BeTrue())
+
+			// Verify the cluster's LastInstallationPreparation was reset
+			var updatedCluster common.Cluster
+			Expect(db.Take(&updatedCluster, "id = ?", clusterId.String()).Error).ShouldNot(HaveOccurred())
+			Expect(updatedCluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusNotStarted))
+			Expect(updatedCluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonNotPerformed))
+
+			// Verify the cluster is still in preparing-for-installation (not insufficient)
+			Expect(swag.StringValue(updatedCluster.Status)).Should(Equal(models.ClusterStatusPreparingForInstallation))
+		})
+
+		It("should not reset LastInstallationPreparation and reset host to discovering when cluster is not in preparing-for-installation", func() {
+			// Create a cluster in ready state with LastInstallationPreparation.Status = Success
+			cluster := hostutil.GenerateTestCluster(clusterId)
+			cluster.Status = swag.String(models.ClusterStatusReady)
+			cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+				Status: models.LastInstallationPreparationStatusSuccess,
+				Reason: constants.InstallationPreparationReasonSuccess,
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			// Create a host that belongs to the cluster
+			Expect(db.Create(&models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  &clusterId,
+				Role:       models.HostRoleMaster,
+				Inventory:  defaultHwInfo,
+				Status:     swag.String(models.HostStatusKnown),
+			}).Error).ShouldNot(HaveOccurred())
+
+			// Re-register the host
+			mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+				eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+				eventstest.WithHostIdMatcher(hostId.String()),
+				eventstest.WithInfraEnvIdMatcher(infraEnvId.String()),
+				eventstest.WithClusterIdMatcher(clusterId.String()),
+				eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+
+			Expect(hapi.RegisterHost(ctx, &models.Host{
+				ID:                    &hostId,
+				InfraEnvID:            infraEnvId,
+				ClusterID:             &clusterId,
+				Status:                swag.String(models.HostStatusKnown),
+				DiscoveryAgentVersion: "v2.0.5",
+			},
+				db)).ShouldNot(HaveOccurred())
+
+			// Verify the host was reset to 'discovering' (default behavior)
+			h := hostutil.GetHostFromDB(hostId, infraEnvId, db)
+			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
+			Expect(swag.StringValue(h.StatusInfo)).Should(Equal(statusInfoDiscovering))
+
+			// Verify the cluster's LastInstallationPreparation was NOT reset
+			var updatedCluster common.Cluster
+			Expect(db.Take(&updatedCluster, "id = ?", clusterId.String()).Error).ShouldNot(HaveOccurred())
+			Expect(updatedCluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
+			Expect(updatedCluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonSuccess))
+		})
+
+		It("should not reset LastInstallationPreparation when host has no cluster ID", func() {
+			// Create a cluster in preparing-for-installation state
+			cluster := hostutil.GenerateTestCluster(clusterId)
+			cluster.Status = swag.String(models.ClusterStatusPreparingForInstallation)
+			cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+				Status: models.LastInstallationPreparationStatusSuccess,
+				Reason: constants.InstallationPreparationReasonSuccess,
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			// Create a host without cluster ID
+			Expect(db.Create(&models.Host{
+				ID:         &hostId,
+				InfraEnvID: infraEnvId,
+				ClusterID:  nil,
+				Role:       models.HostRoleMaster,
+				Inventory:  defaultHwInfo,
+				Status:     swag.String(models.HostStatusDiscovering),
+			}).Error).ShouldNot(HaveOccurred())
+
+			// Re-register the host
+			// Note: No event is expected because the host is already in 'discovering' state
+			// and re-registration to the same state doesn't trigger a status update event.
+			// If an event were sent (which it shouldn't be), it would have no cluster_id since
+			// the host has no cluster ID. This test verifies that no event is sent and that
+			// LastInstallationPreparation is not reset for hosts without cluster IDs.
+			Expect(hapi.RegisterHost(ctx, &models.Host{
+				ID:                    &hostId,
+				InfraEnvID:            infraEnvId,
+				ClusterID:             nil,
+				Status:                swag.String(models.HostStatusDiscovering),
+				DiscoveryAgentVersion: "v2.0.5",
+			},
+				db)).ShouldNot(HaveOccurred())
+
+			// Verify the cluster's LastInstallationPreparation was NOT reset
+			var updatedCluster common.Cluster
+			Expect(db.Take(&updatedCluster, "id = ?", clusterId.String()).Error).ShouldNot(HaveOccurred())
+			Expect(updatedCluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
+			Expect(updatedCluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonSuccess))
+		})
 	})
 
 	Context("host already exist registration fail", func() {

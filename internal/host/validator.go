@@ -426,7 +426,14 @@ func (v *validator) hasMinMemory(c *validationContext) (ValidationStatus, string
 	if c.inventory == nil {
 		return status, "Missing inventory"
 	}
-	status = boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement-HostMemoryRequirementToleranceMiB))
+	tolerance := HostMemoryRequirementToleranceMiB
+	if c.inventory.Memory.PhysicalBytesMethod == models.MemoryMethodMeminfo {
+		// We are using the usable memory as a proxy for the physical memory, so
+		// allow for an extra 2% of physical memory that is present but not
+		// usable (because it is allocated for e.g. the BIOS).
+		tolerance += c.minRAMMibRequirement / 50
+	}
+	status = boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement-tolerance))
 	if status == ValidationSuccess {
 		return status, "Sufficient minimum RAM"
 	}

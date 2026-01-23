@@ -756,6 +756,7 @@ location = "%s"
 
 		It("produce ignition with secure cluster mirror registries config", func() {
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return("", nil).Times(1)
 
 			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
 			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
@@ -775,6 +776,7 @@ location = "%s"
 
 		It("service MirrorRegistriesConfig and cluster MirrorRegistryConfiguration are both set - only MirrorRegistryConfiguration applied", func() {
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return("", nil).Times(1)
 
 			// These mocks are not needed here; they are only included to demonstrate that having service mirror configurations
 			// does not affect the mirror registry configuration in the ignition file.
@@ -809,6 +811,7 @@ location = "%s"
 
 		It("produce ignition with insecure cluster mirror registries config", func() {
 			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some error")).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return("", nil).Times(1)
 
 			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getInsecureRegistryToml(), mirrorRegistryCertificate)
 			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
@@ -844,6 +847,34 @@ location = "%s"
 			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(text).To(ContainSubstring("policy.json"))
+		})
+
+		It("adds insecureAcceptAnything policy when InfraEnv has mirror config and ForceInsecurePolicy is true", func() {
+			policyJSON := `{"default":[{"type":"insecureAcceptAnything"}],"transports":{"docker-daemon":{"":{"type":"insecureAcceptAnything"}}}}`
+			encodedPolicy := base64.StdEncoding.EncodeToString([]byte(policyJSON))
+			mockMirrorRegistriesConfigBuilder.EXPECT().GenerateInsecurePolicyJSON().Return(encodedPolicy, nil).Times(1)
+			mockVersionHandler.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(nil, errors.New("some error")).Times(1)
+
+			mirrorRegistryConf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
+			Expect(infraEnv.SetMirrorRegistryConfiguration(mirrorRegistryConf)).NotTo(HaveOccurred())
+			text, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnv, ignitionConfig, false, auth.TypeRHSSO, "")
+			Expect(err).ToNot(HaveOccurred())
+
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+
+			var policyFile *types_31.File
+			for i := range config.Storage.Files {
+				if config.Storage.Files[i].Path == "/etc/containers/policy.json" {
+					policyFile = &config.Storage.Files[i]
+					break
+				}
+			}
+			Expect(policyFile).NotTo(BeNil(), "policy.json should be present in ignition files")
+			Expect(policyFile.Overwrite).NotTo(BeNil())
+			Expect(*policyFile.Overwrite).To(BeTrue(), "policy.json should have overwrite=true")
 		})
 
 		It("does not add policy file when ForceInsecurePolicy is false", func() {
@@ -1086,8 +1117,8 @@ location = "%s"
 		Expect(configText).To(MatchRegexp(`(?m)^server ntp1.example.com iburst$`))
 		Expect(configText).To(MatchRegexp(`(?m)^server ntp2.example.com iburst$`))
 
-		// Check that the original config has been preserved:
-		Expect(configText).To(MatchRegexp("(?m)^makestep 1.0 3$"))
+		// Check that makestep has been modified to allow unlimited stepping:
+		Expect(configText).To(MatchRegexp("(?m)^makestep 1.0 -1$"))
 	})
 })
 

@@ -437,6 +437,20 @@ func (mr *MockTransitionHandlerMockRecorder) PostRegisterDuringInstallation(sw, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRegisterDuringInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).PostRegisterDuringInstallation), sw, args)
 }
 
+// PostRegisterDuringPreparingForInstallation mocks base method.
+func (m *MockTransitionHandler) PostRegisterDuringPreparingForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PostRegisterDuringPreparingForInstallation", sw, args)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PostRegisterDuringPreparingForInstallation indicates an expected call of PostRegisterDuringPreparingForInstallation.
+func (mr *MockTransitionHandlerMockRecorder) PostRegisterDuringPreparingForInstallation(sw, args interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PostRegisterDuringPreparingForInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).PostRegisterDuringPreparingForInstallation), sw, args)
+}
+
 // PostRegisterDuringReboot mocks base method.
 func (m *MockTransitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	m.ctrl.T.Helper()

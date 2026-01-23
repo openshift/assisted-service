@@ -487,6 +487,36 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(bmh.Annotations).ToNot(HaveKey("reboot.metal3.io"))
 		})
 
+		It("sets the velero exclude label on PreprovisioningImage", func() {
+			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+			setInfraEnvIronicConfig()
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			// Verify the label is not set initially
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			Expect(ppi.Labels).ToNot(HaveKey(VeleroExcludeBackupLabel))
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			// Verify the label is set after reconcile
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			Expect(ppi.Labels).To(HaveKey(VeleroExcludeBackupLabel))
+			Expect(ppi.Labels[VeleroExcludeBackupLabel]).To(Equal("true"))
+		})
+
 		It("reboots the host when the image is updated", func() {
 			oldURL := "https://example.com/images/4b495e3f-6a3d-4742-aedd-7db57912c819?api_key=myotherkey&arch=x86_64&type=minimal-iso&version=4.13"
 			infraEnv.Status.ISODownloadURL = oldURL
@@ -1336,6 +1366,7 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 
 			// UpdateBMH to set metadata cleaning enabled
 			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StateDeprovisioning
 			bmh.Finalizers = []string{"arbitraryfinalizer"}
 			Expect(c.Update(ctx, bmh)).To(Succeed())
 			// Set BMH to be deleting
@@ -1358,6 +1389,46 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 			Expect(c.Delete(ctx, ppi)).To(Succeed())
 			// Set BMH cleaning to disabled
 			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeDisabled
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("allows deletion when BMH finished deprovisioning with state deleting", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Set BMH to be deleting
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StateDeleting
+			Expect(c.Update(ctx, bmh)).To(Succeed())
+			Expect(c.Delete(ctx, bmh)).To(Succeed())
+
+			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			// Verify ppi was deleted
+			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
+			Expect(k8serrors.IsNotFound(c.Get(ctx, key, ppi))).To(BeTrue())
+		})
+
+		It("allows deletion when BMH finished deprovisioning with state powering off before delete", func() {
+			Expect(c.Create(ctx, ppi)).To(Succeed())
+			// Delete ppi
+			Expect(c.Delete(ctx, ppi)).To(Succeed())
+			// Set BMH to be deleting
+			bmh.Spec.AutomatedCleaningMode = metal3_v1alpha1.CleaningModeMetadata
+			bmh.Status.Provisioning.State = metal3_v1alpha1.StatePoweringOffBeforeDelete
 			Expect(c.Update(ctx, bmh)).To(Succeed())
 			Expect(c.Delete(ctx, bmh)).To(Succeed())
 

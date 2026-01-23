@@ -2491,6 +2491,7 @@ var _ = Describe("cluster", func() {
 						ingressVip := "2001:db8::2"
 						apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("8.8.8.7")}}
 						ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("8.8.8.1")}}
+
 						reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 							NewClusterParams: &models.ClusterCreateParams{
 								Name:             swag.String("some-cluster-name"),
@@ -3166,7 +3167,7 @@ var _ = Describe("cluster", func() {
 						Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
 						UserManagedNetworking: swag.Bool(false),
 						CPUArchitecture:       common.X86CPUArchitecture,
-						MachineNetworks:       []*models.MachineNetwork{{Cidr: "1.3.4.0/24"}},
+						MachineNetworks:       []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
 					}}
 					err := db.Create(cluster).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -3253,14 +3254,15 @@ var _ = Describe("cluster", func() {
 					ingressVip := "1.2.3.101"
 					apiVips := []*models.APIVip{{IP: models.IP(apiVip)}, {IP: models.IP("2001:db8::1")}}
 					ingressVips := []*models.IngressVip{{IP: models.IP(ingressVip)}, {IP: models.IP("2001:db8::2")}}
-
+					machineNetworks := []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}, {Cidr: "2001:db8::/64"}}
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							Name:        swag.String("some-cluster-name"),
-							PullSecret:  swag.String(fakePullSecret),
-							APIVips:     apiVips,
-							IngressVips: ingressVips,
+							Name:            swag.String("some-cluster-name"),
+							PullSecret:      swag.String(fakePullSecret),
+							APIVips:         apiVips,
+							IngressVips:     ingressVips,
+							MachineNetworks: machineNetworks,
 						},
 					})
 					Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4036,6 +4038,8 @@ var _ = Describe("cluster", func() {
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
 							UserManagedNetworking: swag.Bool(false),
 							VipDhcpAllocation:     swag.Bool(true),
+							APIVips:               []*models.APIVip{},
+							IngressVips:           []*models.IngressVip{},
 						},
 					})
 					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
@@ -4466,7 +4470,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "fd2e:6f44:5dd8:c956::/120"}, {Cidr: "10.12.0.0/16"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is ipv4. All networks must have the same IP family first")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Inconsistent IP family order: machine_networks first IP is fd2e:6f44:5dd8:c956::/120 but existing primary IP stack is IPv4. All networks must have the same IP family first")
 				})
 				It("API VIP in wrong subnet for dual-stack", func() {
 					apiVip := "10.11.12.15"
@@ -4629,9 +4633,9 @@ var _ = Describe("cluster", func() {
 			Context("DHCP", func() {
 
 				var (
-					apiVip             = "10.11.12.15"
-					ingressVip         = "10.11.12.16"
-					primaryMachineCIDR = models.Subnet("10.11.0.0/16")
+					apiVip             = "1.2.3.15"
+					ingressVip         = "1.2.3.16"
+					primaryMachineCIDR = models.Subnet("1.2.3.0/24")
 				)
 
 				verifyMachineCIDRTimestampUpdated := func(beforeTimestamp time.Time) {
@@ -5034,7 +5038,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, ClusterNetwork", func() {
@@ -5046,19 +5050,19 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid HostPrefix, ClusterNetwork", func() {
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.V2ClusterUpdateParams{
-							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0}},
+							ClusterNetworks: []*models.ClusterNetwork{{HostPrefix: 0, Cidr: "1.2.0.0/24"}},
 							ServiceNetworks: []*models.ServiceNetwork{},
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Cluster network host prefix 0: Host prefix, now 0, must be a positive integer")
 				})
 
 				It("Empty networks - invalid empty ServiceNetwork", func() {
@@ -5070,7 +5074,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, ServiceNetwork", func() {
@@ -5082,7 +5086,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Service network CIDR : Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid empty MachineNetwork", func() {
@@ -5094,7 +5098,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Empty networks - invalid CIDR, MachineNetwork", func() {
@@ -5106,7 +5110,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Machine network CIDR '': Failed to parse CIDR '': invalid CIDR address: ")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
 				})
 
 				It("Multiple machine networks illegal for single-stack", func() {
@@ -11316,6 +11320,7 @@ var _ = Describe("infraEnvs host", func() {
 					Password: swag.String("password123"),
 				}
 				cluster.OpenshiftVersion = common.MinimumVersionForTwoNodesWithFencing
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeBaremetal)}
 				db.Save(&cluster)
 			})
 
@@ -11378,7 +11383,23 @@ var _ = Describe("infraEnvs host", func() {
 				})
 				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s, it must be bound to a cluster with openshift version %s or newer", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForTwoNodesWithFencing)))
+			})
+
+			It("should return BadRequest error when platform is not allowed for fencing", func() {
+				cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeVsphere)}
+				db.Save(&cluster)
+
+				resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
+					InfraEnvID: infraEnvID,
+					HostID:     hostID,
+					HostUpdateParams: &models.HostUpdateParams{
+						FencingCredentials: validFencingCredentials,
+					},
+				})
+				Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+				Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set fencing credentials to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
 			})
 
 			It("should successfully update fencing credentials when all validations pass", func() {
@@ -16062,6 +16083,48 @@ var _ = Describe("RegisterCluster", func() {
 			})
 		})
 	})
+	var _ = Describe("Network CIDR validations", func() {
+		BeforeEach(func() {
+			Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+			db, dbName = common.PrepareTestDB()
+			cfg.DiskEncryptionSupport = false
+			bm = createInventory(db, cfg)
+			bm.Config.DefaultClusterNetworkCidr = "1.2.3.0/24"
+			bm.Config.DefaultServiceNetworkCidr = "1.2.4.0/24"
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			mockUsageReports()
+		})
+
+		AfterEach(func() {
+			ctrl.Finish()
+			common.DeleteTestDB(db, dbName)
+		})
+		Context("Register cluster", func() {
+			var createClusterParams *models.ClusterCreateParams
+			BeforeEach(func() {
+				createClusterParams = &models.ClusterCreateParams{
+					HighAvailabilityMode: swag.String(models.ClusterHighAvailabilityModeFull),
+					ControlPlaneCount:    swag.Int64(common.AllowedNumberOfMasterHostsForInstallationInHaModeOfOCP417OrOlder),
+					OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+				}
+			})
+			It("Invalid network CIDR should fail", func() {
+				createClusterParams.MachineNetworks = []*models.MachineNetwork{{Cidr: "invalid"}}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: createClusterParams,
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Machine Network CIDR invalid")
+			})
+			It("Empty network CIDR should fail", func() {
+				createClusterParams.MachineNetworks = []*models.MachineNetwork{{Cidr: ""}}
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: createClusterParams,
+				})
+				verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
+			})
+		})
+	})
 
 	var _ = Describe("Disk encryption disabled", func() {
 
@@ -16476,9 +16539,9 @@ var _ = Describe("RegisterCluster", func() {
 		}
 
 		It("Networking defaults", func() {
-			defaultClusterNetwork := "1.2.3.4/14"
+			defaultClusterNetwork := "1.0.0.0/14"
 			bm.Config.DefaultClusterNetworkCidr = defaultClusterNetwork
-			defultServiceNetwork := "1.2.3.5/14"
+			defultServiceNetwork := "1.0.0.0/14"
 			bm.Config.DefaultServiceNetworkCidr = defultServiceNetwork
 
 			mockClusterRegisterSuccess(true)
@@ -16531,6 +16594,9 @@ var _ = Describe("RegisterCluster", func() {
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			// Default Config for CIDRs are required to be set
+			bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+			bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 			cfg := auth.GetConfigRHSSO()
 			cfg.EnableOrgBasedFeatureGates = true
 			mockOcmAuthz = ocm.NewMockOCMAuthorization(ctrl)
@@ -16587,6 +16653,9 @@ var _ = Describe("RegisterCluster", func() {
 			bm = createInventory(db, Config{})
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
+			// Default Config for CIDRs are required to be set
+			bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+			bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 		})
 
 		Context("with EnableOrgBasedFeatureGates true", func() {
@@ -16691,6 +16760,9 @@ var _ = Describe("RegisterCluster", func() {
 				payload.Username = userName1
 				payload.Organization = orgID1
 				authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
+				// Default Config for CIDRs are required to be set
+				bm.Config.DefaultClusterNetworkCidr = "10.0.0.0/16"
+				bm.Config.DefaultServiceNetworkCidr = "172.30.0.0/16"
 			})
 
 			It("Register cluster with multi CPU architecture - success", func() {
@@ -18589,6 +18661,7 @@ var _ = Describe("BindHost", func() {
 		var clusterObj models.Cluster
 		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
 
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
@@ -18613,6 +18686,37 @@ var _ = Describe("BindHost", func() {
 	})
 
 	It("failed bind because openshift version doesn't support fencing credentials", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", "4.19").Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeBaremetal).Error).ShouldNot(HaveOccurred())
+
+		var hostObj models.Host
+		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
+
+		params := installer.BindHostParams{
+			HostID:         hostID,
+			InfraEnvID:     infraEnvID,
+			BindHostParams: &models.BindHostParams{ClusterID: &clusterID},
+		}
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostBindFailedEventName),
+			eventstest.WithHostIdMatcher(params.HostID.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityError)))
+		mockHostApi.EXPECT().BindHost(ctx, gomock.Any(), clusterID, gomock.Any()).Times(0)
+
+		response := bm.BindHost(ctx, params)
+		verifyApiErrorString(response, http.StatusBadRequest, "has fencing credentials")
+	})
+
+	It("failed bind because host has fencing credentials and cluster's platform is not allowed", func() {
+		var clusterObj models.Cluster
+		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForTwoNodesWithFencing).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeVsphere).Error).ShouldNot(HaveOccurred())
+
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&hostObj).Update("fencing_credentials", "credentials").Error).ShouldNot(HaveOccurred())
@@ -19630,6 +19734,80 @@ var _ = Describe("IPv6 support disabled", func() {
 			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
 		})
 	})
+	Context("Network CIDR validations", func() {
+		var (
+			clusterID strfmt.UUID
+			cluster   *common.Cluster
+		)
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			cluster = &common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				Kind:                  swag.String(models.ClusterKindAddHostsCluster),
+				Status:                swag.String(models.ClusterStatusInsufficient),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+				UserManagedNetworking: swag.Bool(false),
+				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
+			}}
+			err := db.Create(cluster).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			bm = createInventory(db, cfg)
+			bm.Config.DefaultClusterNetworkCidr = "1.2.3.0/24"
+			bm.Config.DefaultServiceNetworkCidr = "1.2.4.0/24"
+		})
+		It("Invalid network CIDR should fail", func() {
+			By("Invalid Machine Network CIDR")
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Machine Network CIDR invalid (index 0): invalid CIDR address: invalid")
+			By("Invalid Cluster Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ClusterNetworks: []*models.ClusterNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Cluster Network CIDR invalid (index 0): invalid CIDR address: invalid")
+			By("Invalid Service Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ServiceNetworks: []*models.ServiceNetwork{{Cidr: "invalid"}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Could not parse Service Network CIDR invalid (index 0): invalid CIDR address: invalid")
+		})
+		It("Empty network CIDR should fail", func() {
+			By("Empty Machine Network CIDR")
+			reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					MachineNetworks: []*models.MachineNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Machine Network CIDR cannot be empty (index 0)")
+			By("Empty Cluster Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ClusterNetworks: []*models.ClusterNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Cluster Network CIDR cannot be empty (index 0)")
+			By("Empty Service Network CIDR")
+			reply = bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					ServiceNetworks: []*models.ServiceNetwork{{Cidr: ""}},
+				},
+			})
+			verifyApiErrorString(reply, http.StatusBadRequest, "Service Network CIDR cannot be empty (index 0)")
+		})
+	})
 })
 
 var _ = Describe("Dual-stack cluster", func() {
@@ -19970,6 +20148,14 @@ var _ = Describe("Dual-stack cluster", func() {
 						{Cidr: "10.0.0.0/16"}, // IPv4 first - consistent
 						{Cidr: "2001:db8::/64"},
 					},
+					APIVips: []*models.APIVip{
+						{IP: "10.0.0.1"}, // IPv4 first
+						{IP: "2001:db8::1"},
+					},
+					IngressVips: []*models.IngressVip{
+						{IP: "10.0.0.2"}, // IPv4 first
+						{IP: "2001:db8::2"},
+					},
 				}
 
 				updatedCluster, err := bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
@@ -20026,7 +20212,7 @@ var _ = Describe("Dual-stack cluster", func() {
 				_, err = bm.v2UpdateClusterInternal(ctx, params, Interactive, nil)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is ipv4"))
+				Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db8::/64 but existing primary IP stack is IPv4"))
 			})
 		})
 
@@ -21777,151 +21963,6 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 		})
 	})
 
-	Describe("orderClusterNetworks", func() {
-		Context("IPv4 primary stack", func() {
-			It("should not change networks already in IPv4-first order", func() {
-				cluster := &common.Cluster{
-					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV4}[0],
-					Cluster: models.Cluster{
-						ID: &clusterID,
-						MachineNetworks: []*models.MachineNetwork{
-							{Cidr: "10.0.0.0/16"},
-							{Cidr: "2001:db8::/64"},
-						},
-						APIVips: []*models.APIVip{
-							{IP: "10.0.1.1"},
-							{IP: "2001:db8::1"},
-						},
-						IngressVips: []*models.IngressVip{
-							{IP: "10.0.1.2"},
-							{IP: "2001:db8::2"},
-						},
-						ServiceNetworks: []*models.ServiceNetwork{
-							{Cidr: "172.30.0.0/16"},
-							{Cidr: "2001:db8:1::/64"},
-						},
-						ClusterNetworks: []*models.ClusterNetwork{
-							{Cidr: "10.128.0.0/14", HostPrefix: 23},
-							{Cidr: "2001:db8:2::/64", HostPrefix: 64},
-						},
-					},
-				}
-
-				bm.orderClusterNetworks(cluster)
-
-				// Networks should remain in IPv4-first order
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("10.0.0.0/16"))
-				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
-				Expect(string(cluster.APIVips[0].IP)).To(Equal("10.0.1.1"))
-				Expect(string(cluster.APIVips[1].IP)).To(Equal("2001:db8::1"))
-				Expect(string(cluster.IngressVips[0].IP)).To(Equal("10.0.1.2"))
-				Expect(string(cluster.IngressVips[1].IP)).To(Equal("2001:db8::2"))
-				Expect(string(cluster.ServiceNetworks[0].Cidr)).To(Equal("172.30.0.0/16"))
-				Expect(string(cluster.ServiceNetworks[1].Cidr)).To(Equal("2001:db8:1::/64"))
-				Expect(string(cluster.ClusterNetworks[0].Cidr)).To(Equal("10.128.0.0/14"))
-				Expect(string(cluster.ClusterNetworks[1].Cidr)).To(Equal("2001:db8:2::/64"))
-			})
-
-			It("should reorder IPv6-first networks to IPv4-first", func() {
-				cluster := &common.Cluster{
-					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV4}[0],
-					Cluster: models.Cluster{
-						ID: &clusterID,
-						MachineNetworks: []*models.MachineNetwork{
-							{Cidr: "2001:db8::/64"},
-							{Cidr: "10.0.0.0/16"},
-						},
-						APIVips: []*models.APIVip{
-							{IP: "2001:db8::1"},
-							{IP: "10.0.1.1"},
-						},
-					},
-				}
-
-				bm.orderClusterNetworks(cluster)
-
-				// Networks should be reordered to IPv4-first
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("10.0.0.0/16"))
-				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
-				Expect(string(cluster.APIVips[0].IP)).To(Equal("10.0.1.1"))
-				Expect(string(cluster.APIVips[1].IP)).To(Equal("2001:db8::1"))
-			})
-		})
-
-		Context("IPv6 primary stack", func() {
-			It("should not change networks already in IPv6-first order", func() {
-				cluster := &common.Cluster{
-					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV6}[0],
-					Cluster: models.Cluster{
-						ID: &clusterID,
-						MachineNetworks: []*models.MachineNetwork{
-							{Cidr: "2001:db8::/64"},
-							{Cidr: "10.0.0.0/16"},
-						},
-						APIVips: []*models.APIVip{
-							{IP: "2001:db8::1"},
-							{IP: "10.0.1.1"},
-						},
-					},
-				}
-
-				bm.orderClusterNetworks(cluster)
-
-				// Networks should remain in IPv6-first order
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
-				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
-				Expect(string(cluster.APIVips[0].IP)).To(Equal("2001:db8::1"))
-				Expect(string(cluster.APIVips[1].IP)).To(Equal("10.0.1.1"))
-			})
-
-			It("should reorder IPv4-first networks to IPv6-first", func() {
-				cluster := &common.Cluster{
-					PrimaryIPStack: &[]common.PrimaryIPStack{common.PrimaryIPStackV6}[0],
-					Cluster: models.Cluster{
-						ID: &clusterID,
-						MachineNetworks: []*models.MachineNetwork{
-							{Cidr: "10.0.0.0/16"},
-							{Cidr: "2001:db8::/64"},
-						},
-						APIVips: []*models.APIVip{
-							{IP: "10.0.1.1"},
-							{IP: "2001:db8::1"},
-						},
-					},
-				}
-
-				bm.orderClusterNetworks(cluster)
-
-				// Networks should be reordered to IPv6-first
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
-				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
-				Expect(string(cluster.APIVips[0].IP)).To(Equal("2001:db8::1"))
-				Expect(string(cluster.APIVips[1].IP)).To(Equal("10.0.1.1"))
-			})
-		})
-
-		Context("No primary stack set", func() {
-			It("should not change networks when PrimaryIPStack is nil", func() {
-				cluster := &common.Cluster{
-					PrimaryIPStack: nil,
-					Cluster: models.Cluster{
-						ID: &clusterID,
-						MachineNetworks: []*models.MachineNetwork{
-							{Cidr: "2001:db8::/64"},
-							{Cidr: "10.0.0.0/16"},
-						},
-					},
-				}
-
-				bm.orderClusterNetworks(cluster)
-
-				// Networks should remain unchanged
-				Expect(string(cluster.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
-				Expect(string(cluster.MachineNetworks[1].Cidr)).To(Equal("10.0.0.0/16"))
-			})
-		})
-	})
-
 	Describe("updatePrimaryIPStack", func() {
 		var (
 			cluster *common.Cluster
@@ -22038,7 +22079,7 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 					updated, primaryIPStack, err := bm.updatePrimaryIPStack(params, cluster)
 					Expect(err).To(HaveOccurred())
 					Expect(err.Error()).To(ContainSubstring("Inconsistent IP family order"))
-					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is ipv4"))
+					Expect(err.Error()).To(ContainSubstring("machine_networks first IP is 2001:db9::/64 but existing primary IP stack is IPv4"))
 					Expect(updated).To(BeFalse())
 					Expect(primaryIPStack).To(Equal(cluster.PrimaryIPStack))
 				})

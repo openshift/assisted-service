@@ -120,10 +120,10 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		})
 
 	defer func() {
-		log.Info("Agent Reconcile ended")
+		log.Debug("Agent Reconcile ended")
 	}()
 
-	log.Info("Agent Reconcile started")
+	log.Debug("Agent Reconcile started")
 
 	agent := &aiv1beta1.Agent{}
 
@@ -181,8 +181,8 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		}
 	}
 
-	if err = r.setInfraEnvNameLabel(ctx, log, h, agent); err != nil {
-		log.WithError(err).Warnf("failed to set infraEnv name label on agent %s/%s", agent.Namespace, agent.Name)
+	if err = r.setOwnerAndLabel(ctx, log, h, agent); err != nil {
+		log.WithError(err).Warnf("failed to set infraEnv as the owner and the name label on agent %s/%s", agent.Namespace, agent.Name)
 	}
 
 	// Add/Update Agent annotations
@@ -508,7 +508,13 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
-			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil {
+			spokeResourcesExist, err := r.spokeResourcesExist(ctx, agent)
+			if err != nil {
+				log.WithError(err).Errorf("failed to check spoke resources presence")
+				return &ctrl.Result{}, err
+			}
+			// Only remove the spoke resources if the spoke resources exist and the skip cleanup annotation is not set and it's bound to a cluster
+			if _, skipCleanup := agent.GetAnnotations()[AgentSkipSpokeCleanupAnnotation]; !skipCleanup && agent.Spec.ClusterDeploymentName != nil && spokeResourcesExist {
 				// only remove the spoke resources if the entire cluster isn't being deleted
 				clusterRef := types.NamespacedName{
 					Name:      agent.Spec.ClusterDeploymentName.Name,
@@ -519,7 +525,13 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 					log.WithError(err).Errorf("failed to check cluster deployment presence")
 					return &ctrl.Result{}, err
 				}
-				if clusterExists {
+				infraEnvExists, err := r.infraEnvExists(ctx, agent)
+				if err != nil {
+					log.WithError(err).Errorf("failed to check infraenv presence")
+					return &ctrl.Result{}, err
+				}
+				// If the cluster exists and the infraenv exists, remove the spoke resources
+				if clusterExists && infraEnvExists {
 					spokeClient, err := r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 					if err != nil {
 						log.WithError(err).Error("failed to create spoke client")
@@ -578,31 +590,53 @@ func (r *AgentReconciler) approveAIHostsCSRs(ctx context.Context, clients spoke_
 
 	for i := range csrList.Items {
 		csr := &csrList.Items[i]
-		if !isCsrApproved(csr) {
-			shouldApprove, err := r.shouldApproveCSR(csr, agent, validateNodeCsr)
-			if err != nil || !shouldApprove {
-				if err != nil {
-					r.Log.WithError(err).Errorf("Failed checking if CSR %s should be approved for agent %s/%s",
-						csr.Name, agent.Namespace, agent.Name)
-				}
-				continue
-			}
+		isApproved := isCsrApproved(csr)
+
+		if isApproved && isCSRTracked(agent, csr.Name) {
+			continue
+		}
+
+		shouldProcess, err := r.shouldApproveCSR(csr, agent, validateNodeCsr)
+		if err != nil {
+			r.Log.WithError(err).Debugf("Failed validating CSR %s for agent %s", csr.Name, agent.Name)
+			continue
+		}
+		if !shouldProcess {
+			continue
+		}
+
+		approvedAt := metav1.Now()
+		if !isApproved {
 			if err = clients.ApproveCsr(ctx, csr); err != nil {
 				r.Log.WithError(err).Errorf("Failed to approve CSR %s for agent %s/%s", csr.Name, agent.Namespace, agent.Name)
 				continue
 			}
-
-			csrInfo := aiv1beta1.CSRInfo{
-				Name:       csr.Name,
-				Type:       csrType,
-				ApprovedAt: metav1.Now(),
-			}
-			agent.Status.CSRStatus.ApprovedCSRs = append(agent.Status.CSRStatus.ApprovedCSRs, csrInfo)
+		} else {
+			approvedAt = getCSRApprovalTime(csr)
 		}
 
+		r.trackCSR(agent, csr.Name, csrType, approvedAt)
 	}
-	// Track this approval attempt
+
 	agent.Status.CSRStatus.LastApprovalAttempt = metav1.Now()
+}
+
+func getCSRApprovalTime(csr *certificatesv1.CertificateSigningRequest) metav1.Time {
+	for _, c := range csr.Status.Conditions {
+		if c.Type == certificatesv1.CertificateApproved {
+			return c.LastUpdateTime
+		}
+	}
+	return metav1.Time{}
+}
+
+func (r *AgentReconciler) trackCSR(agent *aiv1beta1.Agent, csrName string, csrType aiv1beta1.CSRType, approvedAt metav1.Time) {
+	csrInfo := aiv1beta1.CSRInfo{
+		Name:       csrName,
+		Type:       csrType,
+		ApprovedAt: approvedAt,
+	}
+	agent.Status.CSRStatus.ApprovedCSRs = append(agent.Status.CSRStatus.ApprovedCSRs, csrInfo)
 }
 
 func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1beta1.ClusterReference) (spoke_k8s_client.SpokeK8sClient, error) {
@@ -637,34 +671,38 @@ func (r *AgentReconciler) spokeKubeClient(ctx context.Context, clusterRef *aiv1b
 // requeue means that approval will be attempted again
 func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1beta1.Agent, node *corev1.Node, client spoke_k8s_client.SpokeK8sClient) {
 	r.Log.Infof("Approving CSRs for agent %s/%s", agent.Namespace, agent.Name)
-	var validateNodeCsr nodeCsrValidator
-	csrType := aiv1beta1.CSRTypeClient
-	if node == nil {
-		validateNodeCsr = validateNodeClientCSR
-	} else {
-		validateNodeCsr = createNodeServerCsrValidator(node)
-		csrType = aiv1beta1.CSRTypeServing
-	}
 
-	// Even if node is already ready, we try approving last time
-	r.approveAIHostsCSRs(ctx, client, agent, validateNodeCsr, csrType)
+	// Try to approve client CSRs
+	r.approveAIHostsCSRs(ctx, client, agent, validateNodeClientCSR, aiv1beta1.CSRTypeClient)
+
+	// Also try serving CSRs if node exists
+	if node != nil {
+		r.approveAIHostsCSRs(ctx, client, agent, createNodeServerCsrValidator(node), aiv1beta1.CSRTypeServing)
+	}
 }
 
-func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
 	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
 	if !ok {
-		return false, nil
+		return nil, nil
 	}
-
 	bmhKey := types.NamespacedName{
 		Name:      bmhName,
 		Namespace: agent.Namespace,
 	}
-	if err := r.Client.Get(ctx, bmhKey, &bmh_v1alpha1.BareMetalHost{}); err != nil {
-		return false, client.IgnoreNotFound(err)
+	bmh := &bmh_v1alpha1.BareMetalHost{}
+	if err := r.Client.Get(ctx, bmhKey, bmh); err != nil {
+		return nil, client.IgnoreNotFound(err)
 	}
+	return bmh, nil
+}
 
-	return true, nil
+func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	bmh, err := r.getBMH(ctx, agent)
+	if err != nil {
+		return false, err
+	}
+	return bmh != nil, nil
 }
 
 func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.NamespacedName) (bool, error) {
@@ -686,6 +724,22 @@ func (r *AgentReconciler) clusterExists(ctx context.Context, clusterRef types.Na
 	}
 
 	return aci.DeletionTimestamp.IsZero(), nil
+}
+
+// Check if the infraenv exists for the agent
+// Returns true if the infraenv exists, false if it does not exist or is being deleted
+func (r *AgentReconciler) infraEnvExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	infraEnvName, ok := agent.Labels[aiv1beta1.InfraEnvNameLabel]
+	if !ok {
+		return false, fmt.Errorf("failed to find infraenv name for agent %s in namespace %s", agent.Name, agent.Namespace)
+	}
+	key := types.NamespacedName{Namespace: agent.Namespace, Name: infraEnvName}
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Client.Get(ctx, key, infraEnv); err != nil {
+		return false, client.IgnoreNotFound(err)
+	}
+
+	return infraEnv.DeletionTimestamp.IsZero(), nil
 }
 
 func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1beta1.Agent) bool {
@@ -891,6 +945,28 @@ func (r *AgentReconciler) applyDay2NodeLabels(ctx context.Context, log logrus.Fi
 	return nil
 }
 
+// Spoke resources exist if the agent is installed or resources have been created for the host on the spoke cluster
+func (r *AgentReconciler) spokeResourcesExist(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	agentStage := agent.Status.Progress.CurrentStage
+	if agentStage == models.HostStageDone {
+		return true, nil
+	}
+
+	bmh, err := r.getBMH(ctx, agent)
+	if err != nil {
+		return false, err
+	}
+	if bmh != nil && metav1.HasAnnotation(bmh.ObjectMeta, BMH_SPOKE_CREATED_ANNOTATION) {
+		return true, nil
+	}
+
+	// If there are approved CSRs, then spoke resources exist
+	if len(agent.Status.CSRStatus.ApprovedCSRs) > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has ocurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
@@ -901,10 +977,16 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		shouldAutoApproveCSRs bool
 		spokeClient           spoke_k8s_client.SpokeK8sClient
 		node                  *corev1.Node
+		ret                   ctrl.Result = ctrl.Result{}
 	)
 	patch := client.MergeFrom(origAgent.DeepCopy())
-
-	ret := ctrl.Result{}
+	defer func() {
+		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
+			log.WithError(patchErr).Error("failed to patch agent Status")
+			err = patchErr
+			return
+		}
+	}()
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
@@ -940,7 +1022,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				}
 				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
 					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, nil
 				}
 
 				// TODO: Node name might be FQDN and not just host name if cluster is IPv6
@@ -948,7 +1031,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				if err != nil {
 					if !k8serrors.IsNotFound(err) {
 						r.Log.WithError(err).Errorf("agent %s/%s: failed to get node", agent.Namespace, agent.Name)
-						return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+						ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+						return ret, err
 					}
 					node = nil
 				}
@@ -957,10 +1041,12 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 				}
 				if err = r.applyDay2NodeLabels(ctx, log, agent, node, spokeClient); err != nil {
 					log.WithError(err).Errorf("Failed to apply labels for day2 node %s/%s", agent.Namespace, agent.Name)
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, err
 				}
 				if err = r.UpdateDay2InstallPogress(ctx, h, agent, node, shouldAutoApproveCSRs); err != nil {
-					return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
+					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
+					return ret, err
 				}
 				if agent.Status.Progress.CurrentStage != models.HostStageDone {
 					ret = ctrl.Result{RequeueAfter: r.ApproveCsrsRequeueDuration}
@@ -983,7 +1069,9 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		if clusterId != nil {
 			err = r.populateEventsURL(log, agent, h.InfraEnvID.String())
 			if err != nil {
-				return ctrl.Result{Requeue: true}, nil
+				ret = ctrl.Result{Requeue: true}
+				err = nil
+				return ret, nil
 			}
 			if agent.Status.DebugInfo.LogsURL == "" && !time.Time(h.LogsCollectedAt).Equal(time.Time{}) { // logs collection time is updated means logs are available
 				var logsURL string
@@ -1004,18 +1092,10 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		setConditionsUnknown(agent)
 	}
 
-	if !reflect.DeepEqual(agent, origAgent) {
-		if patchErr := r.Status().Patch(ctx, agent, patch); patchErr != nil {
-			log.WithError(patchErr).Error("failed to patch agent Status")
-			return ctrl.Result{Requeue: true}, nil
-		}
-	} else {
-		log.Debugf("Agent %s/%s: update skipped", agent.Namespace, agent.Name)
-	}
 	if syncErr != nil && internal {
-		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+		ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
 	}
-	return ret, nil
+	return ret, err
 }
 
 func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *models.Host, agent *aiv1beta1.Agent, node *corev1.Node, shouldAutoApproveCSRs bool) error {
@@ -1538,6 +1618,17 @@ func (r *AgentReconciler) updateInventoryAndLabels(log logrus.FieldLogger, ctx c
 			}
 		}
 	}
+	if inventory.Gpus != nil {
+		gpus := make([]aiv1beta1.HostGpu, len(inventory.Gpus))
+		agent.Status.Inventory.Gpus = gpus
+		for i, g := range inventory.Gpus {
+			gpus[i].Address = g.Address
+			gpus[i].DeviceID = g.DeviceID
+			gpus[i].Name = g.Name
+			gpus[i].Vendor = g.Vendor
+			gpus[i].VendorID = g.VendorID
+		}
+	}
 
 	return r.updateLabels(log, ctx, agent)
 }
@@ -1924,7 +2015,7 @@ func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpoint
 	return string(token), nil
 }
 
-func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.FieldLogger, h *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) setOwnerAndLabel(ctx context.Context, log logrus.FieldLogger, h *common.Host, agent *aiv1beta1.Agent) error {
 	infraEnv, err := r.Installer.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: h.InfraEnvID})
 	if err != nil {
 		return err
@@ -1932,7 +2023,26 @@ func (r *AgentReconciler) setInfraEnvNameLabel(ctx context.Context, log logrus.F
 	if infraEnv.Name == nil {
 		return errors.Errorf("infraEnv %s name is nil", h.InfraEnvID)
 	}
+	err = r.addInfraEnvAsOwner(ctx, agent, *infraEnv.Name)
+	if err != nil {
+		log.WithError(err).Errorf("failed to add infraenv %s owner reference to agent %s/%s", *infraEnv.Name, agent.Namespace, agent.Name)
+		return err
+	}
 	if setAgentLabel(log, agent, aiv1beta1.InfraEnvNameLabel, *infraEnv.Name) {
+		return r.updateAndReplaceAgent(ctx, agent)
+	}
+	return nil
+}
+
+func (r *AgentReconciler) addInfraEnvAsOwner(ctx context.Context, agent *aiv1beta1.Agent, infraEnvName string) error {
+	infraEnv := &aiv1beta1.InfraEnv{}
+	if err := r.Get(ctx, types.NamespacedName{Name: infraEnvName, Namespace: agent.Namespace}, infraEnv); err != nil {
+		return err
+	}
+	if !isAgentOwnedByInfraEnv(agent, infraEnv) {
+		if err := controllerutil.SetOwnerReference(infraEnv, agent, r.Scheme); err != nil {
+			return err
+		}
 		return r.updateAndReplaceAgent(ctx, agent)
 	}
 	return nil
@@ -2139,4 +2249,26 @@ func resetCSRStatus(agent *aiv1beta1.Agent) {
 		ApprovedCSRs:        []aiv1beta1.CSRInfo{},
 		LastApprovalAttempt: metav1.Time{},
 	}
+}
+
+// isCSRTracked checks if a CSR is already tracked in the agent's approved CSRs list
+func isCSRTracked(agent *aiv1beta1.Agent, csrName string) bool {
+	for _, csr := range agent.Status.CSRStatus.ApprovedCSRs {
+		if csr.Name == csrName {
+			return true
+		}
+	}
+	return false
+}
+
+func isAgentOwnedByInfraEnv(agent *aiv1beta1.Agent, infraEnv *aiv1beta1.InfraEnv) bool {
+	if agent.OwnerReferences == nil {
+		return false
+	}
+	for _, ownerRef := range agent.OwnerReferences {
+		if ownerRef.Kind == infraEnv.Kind && ownerRef.Name == infraEnv.Name && ownerRef.UID == infraEnv.UID {
+			return true
+		}
+	}
+	return false
 }

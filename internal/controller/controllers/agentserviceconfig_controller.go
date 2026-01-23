@@ -235,10 +235,10 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		})
 
 	defer func() {
-		log.Info("AgentServiceConfig Reconcile ended")
+		log.Debug("AgentServiceConfig Reconcile ended")
 	}()
 
-	log.Info("AgentServiceConfig Reconcile started")
+	log.Debug("AgentServiceConfig Reconcile started")
 
 	instance := &aiv1beta1.AgentServiceConfig{}
 	asc = initASC(r, instance)
@@ -1361,6 +1361,7 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"INSTALL_INVOKER":        "assisted-installer-operator",
 			"SKIP_CERT_VERIFICATION": "False",
 			"HOST_STAGE_WAITING_FOR_CONTROL_PLANE_TIMEOUT": getWaitingForControlPlaneHostStageTimeout(),
+			"EVENT_RATE_LIMITS":                            "",
 		}
 		// serve https only on OCP
 		if asc.rec.IsOpenShift {
@@ -2067,6 +2068,11 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 	postgresContainer := corev1.Container{
 		Name:  databaseName,
 		Image: DatabaseImage(),
+		// Use a wrapper script that conditionally enables pg_upgrade only when a version
+		// mismatch is detected. This allows automatic upgrades while avoiding failures
+		// on normal restarts. See docs/dev/postgresql-upgrade.md for details.
+		Command: []string{"/bin/bash", "-c"},
+		Args:    []string{PostgresStartupScript},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          databaseName,

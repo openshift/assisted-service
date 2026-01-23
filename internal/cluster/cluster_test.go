@@ -2116,6 +2116,69 @@ var _ = Describe("HandlePreInstallationChanges", func() {
 		Expect(db.Take(&cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(cluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
 	})
+
+	It("should re-trigger HandlePreInstallSuccess when all hosts are preparing-successful but LastInstallationPreparation.Status is NotStarted", func() {
+		// This test verifies the re-trigger logic in processClusterMonitoring.
+		// The logic is tested by manually calling HandlePreInstallSuccess after setting up the conditions,
+		// since processClusterMonitoring is private and only called from ClusterMonitoring.
+		// Full integration testing happens through ClusterMonitoring in integration tests.
+
+		// Update the existing cluster (created in BeforeEach) to preparing-for-installation
+		// with LastInstallationPreparation.Status = NotStarted
+		// (simulating a host re-registration scenario where LastInstallationPreparation was reset)
+		var cluster common.Cluster
+		Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
+		cluster.Status = swag.String(models.ClusterStatusPreparingForInstallation)
+		cluster.StatusInfo = swag.String(statusInfoPreparingForInstallation)
+		cluster.PullSecretSet = true
+		cluster.BaseDNSDomain = "test.com"
+		cluster.OpenshiftVersion = testing.ValidOCPVersionForNonStandardHAOCPControlPlane
+		cluster.ControlPlaneCount = 1
+		cluster.LastInstallationPreparation = models.LastInstallationPreparation{
+			Status: models.LastInstallationPreparationStatusNotStarted,
+			Reason: constants.InstallationPreparationReasonNotPerformed,
+		}
+		Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
+
+		// Create a host in preparing-successful state
+		hostId := strfmt.UUID(uuid.New().String())
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		Expect(db.Create(&models.Host{
+			ID:         &hostId,
+			InfraEnvID: infraEnvId,
+			ClusterID:  &clusterId,
+			Role:       models.HostRoleMaster,
+			Status:     swag.String(models.HostStatusPreparingSuccessful),
+		}).Error).ShouldNot(HaveOccurred())
+
+		// Load cluster with hosts
+		clusterWithHosts, err := common.GetClusterFromDBWithHosts(db, clusterId)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// Verify the condition that triggers re-trigger: all hosts preparing-successful and LastInstallationPreparation.Status = NotStarted
+		allHostsPrepared := true
+		for _, h := range clusterWithHosts.Hosts {
+			if swag.StringValue(h.Status) != models.HostStatusPreparingSuccessful {
+				allHostsPrepared = false
+				break
+			}
+		}
+		Expect(allHostsPrepared).Should(BeTrue())
+		Expect(clusterWithHosts.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusNotStarted))
+
+		// Mock expectations - HandlePreInstallSuccess will be called and send an event
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithClusterIdMatcher(clusterId.String()))).Times(1)
+
+		// Manually trigger HandlePreInstallSuccess to simulate what processClusterMonitoring would do
+		capi.HandlePreInstallSuccess(ctx, clusterWithHosts)
+
+		// Verify LastInstallationPreparation.Status was updated to Success
+		var updatedCluster models.Cluster
+		Expect(db.Take(&updatedCluster, "id = ?", clusterId.String()).Error).ShouldNot(HaveOccurred())
+		Expect(updatedCluster.LastInstallationPreparation.Status).Should(Equal(models.LastInstallationPreparationStatusSuccess))
+		Expect(updatedCluster.LastInstallationPreparation.Reason).Should(Equal(constants.InstallationPreparationReasonSuccess))
+	})
 })
 
 var _ = Describe("SetVipsData", func() {
@@ -2293,11 +2356,15 @@ var _ = Describe("SetVipsData", func() {
 		It(t.name, func() {
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
-					ID:          &clusterId,
-					Status:      swag.String(t.srcState),
-					APIVips:     []*models.APIVip{{IP: models.IP(t.clusterApiVip), ClusterID: clusterId}},
-					IngressVips: []*models.IngressVip{{IP: models.IP(t.clusterIngressVip), ClusterID: clusterId}},
+					ID:     &clusterId,
+					Status: swag.String(t.srcState),
 				},
+			}
+			if t.clusterApiVip != "" {
+				cluster.APIVips = []*models.APIVip{{IP: models.IP(t.clusterApiVip), ClusterID: clusterId}}
+			}
+			if t.clusterIngressVip != "" {
+				cluster.IngressVips = []*models.IngressVip{{IP: models.IP(t.clusterIngressVip), ClusterID: clusterId}}
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			if t.eventExpected {

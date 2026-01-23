@@ -24,20 +24,21 @@ var _ = Describe("OSC manifest generation", func() {
 	Context("OSC manifest", func() {
 		It("Check YAMLs of OSC", func() {
 			cluster = getCluster("4.17.0")
-			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
+			openshiftManifests, customManifest, err := operator.GenerateManifests(cluster)
 
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(openshiftManifests).To(HaveLen(3))
 			Expect(openshiftManifests["50_openshift-osc_ns.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["50_openshift-osc_subscription.yaml"]).NotTo(HaveLen(0))
 			Expect(openshiftManifests["50_openshift-osc_operator_group.yaml"]).NotTo(HaveLen(0))
+			Expect(string(customManifest)).To(ContainSubstring("KataConfig"))
 
 			for _, manifest := range openshiftManifests {
 				_, err = yaml.YAMLToJSON(manifest)
 				Expect(err).ShouldNot(HaveOccurred())
 			}
 
-			_, err = yaml.YAMLToJSON(manifest)
+			_, err = yaml.YAMLToJSON(customManifest)
 			Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("yamltojson err: %v", err))
 		})
 
@@ -64,6 +65,13 @@ var _ = Describe("OSC manifest generation", func() {
 			Expect(err).To(BeNil())
 
 			Expect(extractData(opData, "metadata.namespace")).To(Equal(Namespace))
+		})
+
+		It("Check kata runtime customManifest", func() {
+			kataData, err := generateCustomManifests(Namespace)
+			Expect(err).To(BeNil())
+
+			Expect(extractData(kataData, "metadata.namespace")).To(Equal(Namespace))
 		})
 
 	})

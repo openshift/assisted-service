@@ -1710,10 +1710,10 @@ paths:
           enum: ['discovery-image-always', 'boot-order-control']
         - in: query
           name: discovery_iso_type
-          description: Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.
+          description: Overrides the ISO type for the discovery ignition.
           required: false
           type: string
-          enum: ['full-iso', 'minimal-iso']
+          enum: ['full-iso', 'minimal-iso', 'disconnected-iso']
       responses:
         "200":
           description: Success.
@@ -2756,7 +2756,7 @@ paths:
         - in: query
           name: openshift_version
           type: string
-          description: Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.
+          description: Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.
         - in: query
           name: cpu_architecture
           description: The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
@@ -4388,6 +4388,7 @@ definitions:
     enum:
       - 'SNO'
       - 'TNA'
+      - 'TNF'
       - 'VIP_AUTO_ALLOC'
       - 'CUSTOM_MANIFEST'
       - 'SINGLE_NODE_EXPANSION'
@@ -7941,12 +7942,12 @@ definitions:
 
   ip:
     type: string
-    x-go-custom-tag: gorm:"primaryKey"
+    x-go-custom-tag: gorm:"primaryKey;type:inet"
     pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$'
 
   subnet:
     type: string
-    x-go-custom-tag: gorm:"primaryKey"
+    x-go-custom-tag: gorm:"primaryKey;type:cidr"
     pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
 
   vip_verification:

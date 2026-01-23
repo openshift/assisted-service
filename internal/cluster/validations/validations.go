@@ -258,14 +258,31 @@ func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdate
 
 func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams, primaryIPStack *common.PrimaryIPStack) error {
 	var (
-		err                 error
-		targetConfiguration common.Cluster
-		apiVips             []*models.APIVip
-		ingressVips         []*models.IngressVip
+		err error
 	)
 
-	apiVips = params.APIVips
-	ingressVips = params.IngressVips
+	apiVips := cluster.APIVips
+	if params.APIVips != nil {
+		apiVips = params.APIVips
+	}
+	ingressVips := cluster.IngressVips
+	if params.IngressVips != nil {
+		ingressVips = params.IngressVips
+	}
+	// Clear VIPs when DHCP allocation mode changes (to or from DHCP) and the user
+	// didn't explicitly provide VIPs in the update params. This matches the behavior
+	// in inventory.go:updateNetworkParams which clears VIPs when VipDhcpAllocation
+	// changes to prevent:
+	// 1. Non-DHCP mode using VIPs previously obtained via DHCP
+	// 2. DHCP mode being fed with manually provided VIPs
+	// If the user explicitly provides VIPs while changing DHCP mode, validation will
+	// fail appropriately (e.g., "Setting API VIPs is forbidden when cluster is in
+	// vip-dhcp-allocation mode").
+	dhcpModeChanging := params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) != swag.BoolValue(cluster.VipDhcpAllocation)
+	if dhcpModeChanging && params.APIVips == nil && params.IngressVips == nil {
+		apiVips = []*models.APIVip{}
+		ingressVips = []*models.IngressVip{}
+	}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
 		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
@@ -289,22 +306,9 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 			err = errors.Errorf("%s cannot be set with %s", errParts[1], errParts[0])
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-
-		if cluster.VipDhcpAllocation != nil && swag.BoolValue(cluster.VipDhcpAllocation) { // override VIPs that were allocated via DHCP
-			params.APIVips = []*models.APIVip{}
-			apiVips = []*models.APIVip{}
-			params.IngressVips = []*models.IngressVip{}
-			ingressVips = []*models.IngressVip{}
-		} else {
-			if params.APIVips == nil {
-				apiVips = cluster.APIVips
-			}
-			if params.IngressVips == nil {
-				ingressVips = cluster.IngressVips
-			}
-		}
 	}
 
+	targetConfiguration := common.Cluster{}
 	targetConfiguration.ID = cluster.ID
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	targetConfiguration.APIVips = apiVips
@@ -313,6 +317,15 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	if params.ClusterNetworks == nil {
+		targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
+	}
+	if params.ServiceNetworks == nil {
+		targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
+	}
+	if params.MachineNetworks == nil {
+		targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	}
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
 	// Copy fields that should be preserved from the existing cluster
@@ -342,6 +355,50 @@ func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressV
 	for i := range ingressVips {
 		if string(ingressVips[i].IP) != "" && net.ParseIP(string(ingressVips[i].IP)) == nil {
 			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", string(ingressVips[i].IP)))
+		}
+	}
+	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+		return multiErr
+	}
+
+	return nil
+}
+
+// ValidateNetworkCIDRs validates that the CIDRs for all networksare parsable and not empty
+func ValidateNetworkCIDRs(machineNetworks []*models.MachineNetwork, serviceNetworks []*models.ServiceNetwork, clusterNetworks []*models.ClusterNetwork) error {
+	var multiErr error
+
+	for i, mn := range machineNetworks {
+		if mn != nil {
+			if string(mn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Machine Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(mn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Machine Network CIDR %s (index %d): %v", string(mn.Cidr), i, err))
+			}
+		}
+	}
+	for i, sn := range serviceNetworks {
+		if sn != nil {
+			if string(sn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Service Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(sn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Service Network CIDR %s (index %d): %v", string(sn.Cidr), i, err))
+			}
+		}
+	}
+	for i, cn := range clusterNetworks {
+		if cn != nil {
+			if string(cn.Cidr) == "" {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Cluster Network CIDR cannot be empty (index %d)", i))
+				continue
+			}
+			if _, _, err := net.ParseCIDR(string(cn.Cidr)); err != nil {
+				multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse Cluster Network CIDR %s (index %d): %v", string(cn.Cidr), i, err))
+			}
 		}
 	}
 	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {

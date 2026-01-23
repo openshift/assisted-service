@@ -239,4 +239,114 @@ var _ = Describe("Manifest generation", func() {
 		Expect(string(setupJob)).To(ContainSubstring("storage_class='ocs-storagecluster-ceph-rbd'"))
 		Expect(string(setupJob)).ToNot(ContainSubstring("storage_class='lvms-vg1'"))
 	})
+
+	It("Configures DataScienceCluster correctly for SNO cluster", func() {
+		// Test SNO cluster
+		snoCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion:  "4.12.0",
+				ControlPlaneCount: 1, // SNO cluster
+			},
+		}
+
+		// Convert the manifests into a list of objects:
+		_, manifests, err := operator.GenerateManifests(snoCluster)
+		Expect(err).ToNot(HaveOccurred())
+		objects := decodeManifests(manifests)
+
+		// Find the DataScienceCluster:
+		var clusters []any
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DataScienceCluster")`,
+			objects,
+			&clusters,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusters).To(HaveLen(1))
+
+		// Check that kserve.managementState is Removed for SNO
+		var kserveManagementState string
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DataScienceCluster") | .spec.components.kserve.managementState`,
+			objects,
+			&kserveManagementState,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(kserveManagementState).To(Equal("Removed"))
+
+		// Find the DSCInitialization:
+		var dscInitializations []any
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DSCInitialization")`,
+			objects,
+			&dscInitializations,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dscInitializations).To(HaveLen(1))
+
+		// Check that serviceMesh.managementState is Removed for SNO
+		var serviceMeshManagementState string
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DSCInitialization") | .spec.serviceMesh.managementState`,
+			objects,
+			&serviceMeshManagementState,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(serviceMeshManagementState).To(Equal("Removed"))
+	})
+
+	It("Configures DataScienceCluster correctly for multi-node cluster", func() {
+		// Test multi-node cluster
+		multiNodeCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion:  "4.12.0",
+				ControlPlaneCount: 3, // Multi-node cluster
+			},
+		}
+
+		// Convert the manifests into a list of objects:
+		_, manifests, err := operator.GenerateManifests(multiNodeCluster)
+		Expect(err).ToNot(HaveOccurred())
+		objects := decodeManifests(manifests)
+
+		// Find the DataScienceCluster:
+		var clusters []any
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DataScienceCluster")`,
+			objects,
+			&clusters,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(clusters).To(HaveLen(1))
+
+		// Check that kserve.managementState is Managed for multi-node
+		var kserveManagementState string
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DataScienceCluster") | .spec.components.kserve.managementState`,
+			objects,
+			&kserveManagementState,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(kserveManagementState).To(Equal("Managed"))
+
+		// Find the DSCInitialization:
+		var dscInitializations []any
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DSCInitialization")`,
+			objects,
+			&dscInitializations,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(dscInitializations).To(HaveLen(1))
+
+		// Check that serviceMesh.managementState is Managed for multi-node
+		var serviceMeshManagementState string
+		err = jqTool.Evaluate(
+			`.[] | select(.kind == "DSCInitialization") | .spec.serviceMesh.managementState`,
+			objects,
+			&serviceMeshManagementState,
+		)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(serviceMeshManagementState).To(Equal("Managed"))
+	})
 })

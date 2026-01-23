@@ -220,7 +220,9 @@ The converged flow is enabled by default, you can disable the converged flow by 
 The ironic agent image will be determined based on the hub release image set in the ClusterVersion resource.
 For cases where the hub and spoke architectures are different (e.g., hub is x86_64 and spoke is arm64), the system can automatically detect the appropriate ironic agent image if:
 - The hub is using a multi-architecture release image that contains the spoke's architecture, OR
-- A ClusterImageSet exists for the hub's version and the spoke's architecture
+- Two ClusterImageSets exist:
+    - one for the hub's architecture and the spoke's version
+    - one for the spoke's architecture and the spoke's version
 
 If none of the above conditions are met, and no ironic-agent-image-override annotation has been provided, a default ironic agent image will be used.
 The defaults are:

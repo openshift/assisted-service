@@ -1061,6 +1061,109 @@ var _ = Describe("Parse functions", func() {
 	})
 })
 
+var _ = Describe("ValidateNetworkCIDRs", func() {
+
+	It("should return an error if the Machine Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: "invalid"}}, nil, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Machine Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Cluster Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: "invalid"}})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Cluster Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Service Network CIDR is invalid", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: "invalid"}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse Service Network CIDR invalid (index 0): invalid CIDR address: invalid"))
+	})
+	It("should return an error if the Machine Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: ""}}, nil, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Machine Network CIDR cannot be empty (index 0)"))
+	})
+	It("should return an error if the Cluster Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: ""}})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Cluster Network CIDR cannot be empty (index 0)"))
+	})
+	It("should return an error if the Service Network CIDR is empty", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: ""}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Service Network CIDR cannot be empty (index 0)"))
+	})
+	It("should not return an error if the Machine Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs([]*models.MachineNetwork{{Cidr: "1.2.3.0/24"}}, nil, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("should not return an error if the Cluster Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs(nil, nil, []*models.ClusterNetwork{{Cidr: "1.2.3.0/24"}})
+		Expect(err).ToNot(HaveOccurred())
+	})
+	It("should not return an error if the Service Network CIDR is valid", func() {
+		err := ValidateNetworkCIDRs(nil, []*models.ServiceNetwork{{Cidr: "1.2.3.0/24"}}, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
+var _ = Describe("ValidateClusterUpdateVIPAddresses - partial network updates", func() {
+	var cluster common.Cluster
+
+	BeforeEach(func() {
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion: "4.14.0",
+				CPUArchitecture:  "x86_64",
+				MachineNetworks: []*models.MachineNetwork{
+					{Cidr: "192.168.1.0/24"},
+					{Cidr: "2001:db8::/64"},
+				},
+				ServiceNetworks: []*models.ServiceNetwork{
+					{Cidr: "172.30.0.0/16"},
+					{Cidr: "fd02::/112"},
+				},
+				ClusterNetworks: []*models.ClusterNetwork{
+					{Cidr: "10.128.0.0/14", HostPrefix: 23},
+					{Cidr: "fd01::/48", HostPrefix: 64},
+				},
+				APIVips: []*models.APIVip{
+					{IP: "192.168.1.100"},
+					{IP: "2001:db8::100"},
+				},
+				IngressVips: []*models.IngressVip{
+					{IP: "192.168.1.101"},
+					{IP: "2001:db8::101"},
+				},
+			},
+		}
+	})
+
+	It("preserves MachineNetworks when only updating ClusterNetworks in dual-stack cluster", func() {
+		params := &models.V2ClusterUpdateParams{
+			ClusterNetworks: []*models.ClusterNetwork{
+				{Cidr: "10.128.0.0/15", HostPrefix: 22},
+				{Cidr: "fd01::/48", HostPrefix: 66},
+			},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("allows updating only APIVips in dual-stack cluster", func() {
+		params := &models.V2ClusterUpdateParams{
+			APIVips: []*models.APIVip{
+				{IP: "192.168.1.102"},
+				{IP: "2001:db8::102"},
+			},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

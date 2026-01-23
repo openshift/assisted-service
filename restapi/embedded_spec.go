@@ -3926,10 +3926,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
@@ -5788,7 +5789,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
@@ -8208,6 +8209,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -9750,7 +9752,7 @@ func init() {
     "ip": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:inet\""
     },
     "iscsi": {
       "type": "object",
@@ -10885,7 +10887,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:cidr\""
     },
     "support-level": {
       "type": "string",
@@ -15371,10 +15373,11 @@ func init() {
           {
             "enum": [
               "full-iso",
-              "minimal-iso"
+              "minimal-iso",
+              "disconnected-iso"
             ],
             "type": "string",
-            "description": "Overrides the ISO type for the disovery ignition, either 'full-iso' or 'minimal-iso'.",
+            "description": "Overrides the ISO type for the discovery ignition.",
             "name": "discovery_iso_type",
             "in": "query"
           }
@@ -17233,7 +17236,7 @@ func init() {
         "parameters": [
           {
             "type": "string",
-            "description": "Version of the OpenShift cluster. If the parameter is not specified, only feature_ids parameter is taken into account.",
+            "description": "Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.",
             "name": "openshift_version",
             "in": "query"
           },
@@ -19738,6 +19741,7 @@ func init() {
       "enum": [
         "SNO",
         "TNA",
+        "TNF",
         "VIP_AUTO_ALLOC",
         "CUSTOM_MANIFEST",
         "SINGLE_NODE_EXPANSION",
@@ -21282,7 +21286,7 @@ func init() {
     "ip": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:inet\""
     },
     "iscsi": {
       "type": "object",
@@ -22406,7 +22410,7 @@ func init() {
     "subnet": {
       "type": "string",
       "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$",
-      "x-go-custom-tag": "gorm:\"primaryKey\""
+      "x-go-custom-tag": "gorm:\"primaryKey;type:cidr\""
     },
     "support-level": {
       "type": "string",
