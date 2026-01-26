@@ -245,66 +245,11 @@ var _ = Describe("loadFencingCredentials", func() {
 })
 
 var _ = Describe("applyFencingCredentials", func() {
-	Context("when credentials are nil", func() {
-		It("should return false without modifying updateParams", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{}
-			updateParams := &models.HostUpdateParams{}
-
-			changed := applyFencingCredentials(testLogger, host, nil, updateParams)
-			Expect(changed).To(BeFalse())
-			Expect(updateParams.FencingCredentials).To(BeNil())
-		})
-	})
-
-	Context("when host already has fencing credentials", func() {
-		It("should return false without modifying updateParams", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{
-				FencingCredentials: `{"address": "existing"}`,
-			}
-			creds := &models.FencingCredentialsParams{
-				Address:  strPtr("redfish+https://example.com"),
-				Username: strPtr("admin"),
-				Password: strPtr("password"),
-			}
-			updateParams := &models.HostUpdateParams{}
-
-			changed := applyFencingCredentials(testLogger, host, creds, updateParams)
-			Expect(changed).To(BeFalse())
-			Expect(updateParams.FencingCredentials).To(BeNil())
-		})
-	})
-
-	Context("when credentials should be applied", func() {
-		It("should set fencing credentials and return true", func() {
-			testLogger, _ := test.NewNullLogger()
-			host := &models.Host{}
-			creds := &models.FencingCredentialsParams{
-				Address:                 strPtr("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"),
-				Username:                strPtr("admin"),
-				Password:                strPtr("password"),
-				CertificateVerification: strPtr("Disabled"),
-			}
-			updateParams := &models.HostUpdateParams{}
-
-			changed := applyFencingCredentials(testLogger, host, creds, updateParams)
-			Expect(changed).To(BeTrue())
-			Expect(updateParams.FencingCredentials).NotTo(BeNil())
-			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
-			Expect(*updateParams.FencingCredentials.Password).To(Equal("password"))
-			Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
-		})
-	})
-})
-
-var _ = Describe("hostConfig.FencingCredentials", func() {
 	var tempDir string
 
 	BeforeEach(func() {
 		var err error
-		tempDir, err = os.MkdirTemp("", "fencing-creds-test-*")
+		tempDir, err = os.MkdirTemp("", "apply-fencing-test-*")
 		Expect(err).NotTo(HaveOccurred())
 	})
 
@@ -314,59 +259,78 @@ var _ = Describe("hostConfig.FencingCredentials", func() {
 		}
 	})
 
-	Context("when hostConfig is MAC-based (no hostname)", func() {
-		It("should return nil without loading file", func() {
-			hc := hostConfig{
-				configDir:    "/some/path",
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
-				hostname:     "",
+	Context("when inventory has no hostname", func() {
+		It("should return false without modifying updateParams", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			inventory := &models.Inventory{
+				Hostname: "",
 			}
-			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
 		})
 	})
 
-	Context("when hostConfig is hostname-based", func() {
-		It("should load credentials from file on-demand", func() {
+	Context("when host already has fencing credentials", func() {
+		It("should return false without modifying updateParams", func() {
+			// Create fencing credentials file
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://example.com
+  username: admin
+  password: password
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{
+				FencingCredentials: `{"address": "existing"}`,
+			}
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
+		})
+	})
+
+	Context("when credentials should be applied", func() {
+		It("should set fencing credentials and return true", func() {
+			// Create fencing credentials file
 			content := `credentials:
 - hostname: master-0
   address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
   username: admin
-  password: password123
+  password: password
+  certificateVerification: Disabled
 `
 			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			hc := hostConfig{
-				hostname: "master-0",
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			inventory := &models.Inventory{
+				Hostname: "master-0",
 			}
-			creds := hc.FencingCredentials(tempDir)
-			Expect(creds).NotTo(BeNil())
-			Expect(*creds.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(*creds.Username).To(Equal("admin"))
-			Expect(*creds.Password).To(Equal("password123"))
-		})
+			updateParams := &models.HostUpdateParams{}
 
-		It("should return nil if file does not exist", func() {
-			hc := hostConfig{
-				hostname: "master-0",
-			}
-			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
-		})
-
-		It("should return nil if hostname not found in file", func() {
-			content := `credentials:
-- hostname: master-1
-  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
-  username: admin
-  password: password123
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
 			Expect(err).NotTo(HaveOccurred())
-
-			hc := hostConfig{
-				hostname: "master-0", // Different hostname
-			}
-			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
+			Expect(applied).To(BeTrue())
+			Expect(updateParams.FencingCredentials).NotTo(BeNil())
+			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
+			Expect(*updateParams.FencingCredentials.Password).To(Equal("password"))
+			Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
 		})
 	})
 })

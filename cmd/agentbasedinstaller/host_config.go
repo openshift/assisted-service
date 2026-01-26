@@ -151,8 +151,11 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 		changed = true
 	}
 
-	// Apply fencing credentials
-	if applyFencingCredentials(log, host, config.FencingCredentials(hostConfigDir), updateParams) {
+	applied, err = applyFencingCredentials(log, host, inventory, hostConfigDir, updateParams)
+	if err != nil {
+		return err
+	}
+	if applied {
 		changed = true
 	}
 
@@ -182,14 +185,12 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 }
 
 func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
-	// Only MAC-based configs have root device hints
-	if len(config.macAddresses) == 0 {
-		return false, nil
-	}
-
 	rdh, err := config.RootDeviceHints()
 	if err != nil {
 		return false, err
+	}
+	if rdh == nil {
+		return false, nil
 	}
 
 	acceptableDisks := hostutil.GetAcceptableDisksWithHints(inventory.Disks, rdh)
@@ -242,20 +243,35 @@ func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, 
 	return true
 }
 
-func applyFencingCredentials(log *log.Logger, host *models.Host, creds *models.FencingCredentialsParams, updateParams *models.HostUpdateParams) bool {
-	if creds == nil {
-		return false
+// applyFencingCredentials looks up fencing credentials by the host's actual hostname
+// from inventory. Unlike Role and RootDeviceHints which are stored in per-host
+// directories (keyed by MAC), fencing credentials are stored in a shared file
+// (fencing-credentials.yaml) keyed by hostname. Therefore, we look up directly
+// by inventory.Hostname rather than relying on the matched hostConfig.
+func applyFencingCredentials(log *log.Logger, host *models.Host, inventory *models.Inventory, hostConfigDir string, updateParams *models.HostUpdateParams) (bool, error) {
+	if inventory.Hostname == "" {
+		return false, nil
+	}
+
+	creds, err := loadFencingCredentials(filepath.Join(hostConfigDir, "fencing-credentials.yaml"))
+	if err != nil || creds == nil {
+		return false, nil
+	}
+
+	hostCreds := creds[inventory.Hostname]
+	if hostCreds == nil {
+		return false, nil
 	}
 
 	// Skip if already configured
 	if host.FencingCredentials != "" {
 		log.Info("Fencing credentials already configured for host")
-		return false
+		return false, nil
 	}
 
-	log.Info("Adding fencing credentials to host update")
-	updateParams.FencingCredentials = creds
-	return true
+	log.Infof("Adding fencing credentials for hostname %s", inventory.Hostname)
+	updateParams.FencingCredentials = hostCreds
+	return true, nil
 }
 
 func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (HostConfigs, error) {
@@ -412,20 +428,6 @@ func (hc hostConfig) Role() (*string, error) {
 
 	log.Infof("Found role %s", role)
 	return &role, nil
-}
-
-// FencingCredentials returns the fencing credentials for this host config.
-// For hostname-based configs, loads credentials from the fencing-credentials.yaml file.
-// For MAC-based configs, returns nil (no fencing credentials).
-func (hc hostConfig) FencingCredentials(hostConfigDir string) *models.FencingCredentialsParams {
-	if hc.hostname == "" {
-		return nil // MAC-based config, no fencing credentials
-	}
-	creds, err := loadFencingCredentials(filepath.Join(hostConfigDir, "fencing-credentials.yaml"))
-	if err != nil || creds == nil {
-		return nil
-	}
-	return creds[hc.hostname]
 }
 
 type HostConfigs []*hostConfig
