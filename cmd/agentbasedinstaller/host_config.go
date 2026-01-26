@@ -70,10 +70,6 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 		return nil, fmt.Errorf("failed to parse fencing credentials file at %s: %w", fencingFilePath, err)
 	}
 
-	if len(fcFile.Credentials) == 0 {
-		log.Warnf("Fencing credentials file at %s exists but contains no credentials - this may be a configuration error", fencingFilePath)
-	}
-
 	credentialsMap := make(map[string]*models.FencingCredentialsParams)
 
 	for _, cred := range fcFile.Credentials {
@@ -330,28 +326,15 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 	}
 
 	// Load fencing credentials and create hostname-based configs
+	// Note: For AddNodes workflow, the installer doesn't generate fencing-credentials.yaml,
+	// so no special filtering is needed - the file simply won't exist.
 	fencingCreds, err := loadFencingCredentials(getFencingCredentialsPath(hostConfigDir))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
 	}
 
-	// For AddNodes workflow, filter to only current host's credentials
-	// (same approach as MAC-based filtering above)
-	var currentHostname string
-	if workflowType == AgentWorkflowTypeAddNodes && len(fencingCreds) > 0 {
-		currentHostname, err = os.Hostname()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get current hostname for fencing filter: %w", err)
-		}
-		log.Infof("AddNodes workflow: filtering fencing credentials to current host %s", currentHostname)
-	}
-
 	// Create hostname-based hostConfig entries for each fencing credential
 	for hostname := range fencingCreds {
-		if workflowType == AgentWorkflowTypeAddNodes && hostname != currentHostname {
-			log.Infof("Skipping fencing credential for %s (current host is %s)", hostname, currentHostname)
-			continue
-		}
 		configs = append(configs, &hostConfig{
 			hostname: hostname,
 		})
