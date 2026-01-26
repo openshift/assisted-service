@@ -135,16 +135,12 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	updateParams := &models.HostUpdateParams{}
 	changed := false
 
-	// Only apply root device hints for MAC-based configs
-	if len(config.macAddresses) > 0 {
-		var rdh *bmh_v1alpha1.RootDeviceHints
-		rdh, err = config.RootDeviceHints()
-		if err != nil {
-			return err
-		}
-		if applyRootDeviceHints(log, host, inventory, rdh, updateParams) {
-			changed = true
-		}
+	applied, err := applyRootDeviceHints(log, host, inventory, config, updateParams)
+	if err != nil {
+		return err
+	}
+	if applied {
+		changed = true
 	}
 
 	role, err := config.Role()
@@ -185,13 +181,23 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	return nil
 }
 
-func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, rdh *bmh_v1alpha1.RootDeviceHints, updateParams *models.HostUpdateParams) bool {
+func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
+	// Only MAC-based configs have root device hints
+	if len(config.macAddresses) == 0 {
+		return false, nil
+	}
+
+	rdh, err := config.RootDeviceHints()
+	if err != nil {
+		return false, err
+	}
+
 	acceptableDisks := hostutil.GetAcceptableDisksWithHints(inventory.Disks, rdh)
 	if host.InstallationDiskID != "" {
 		for _, disk := range acceptableDisks {
 			if disk.ID == host.InstallationDiskID {
 				log.Infof("Selected disk %s already matches root device hints", host.InstallationDiskID)
-				return false
+				return false, nil
 			}
 		}
 	}
@@ -218,7 +224,7 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 	updateParams.DisksSelectedConfig = []*models.DiskConfigParams{
 		{ID: &diskID, Role: models.DiskRoleInstall},
 	}
-	return true
+	return true, nil
 }
 
 func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, role *string, updateParams *models.HostUpdateParams) bool {
