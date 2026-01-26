@@ -31,16 +31,6 @@ const (
 	AgentWorkflowTypeAddNodes AgentWorkflowType = "addnodes"
 )
 
-// getFencingCredentialsPath returns the path to the fencing credentials file.
-// It reads from the FENCING_CREDENTIALS_FILE environment variable, falling back
-// to a path within hostConfigDir if not set.
-func getFencingCredentialsPath(hostConfigDir string) string {
-	if path := os.Getenv("FENCING_CREDENTIALS_FILE"); path != "" {
-		return path
-	}
-	return filepath.Join(hostConfigDir, "fencing-credentials.yaml")
-}
-
 // loadFencingCredentials reads the fencing-credentials.yaml file from the specified path
 // and returns a map of hostname→credentials for easy lookup during host application.
 // Returns nil map (not error) if file doesn't exist, since fencing is optional.
@@ -328,7 +318,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 	// Load fencing credentials and create hostname-based configs
 	// Note: For AddNodes workflow, the installer doesn't generate fencing-credentials.yaml,
 	// so no special filtering is needed - the file simply won't exist.
-	fencingCreds, err := loadFencingCredentials(getFencingCredentialsPath(hostConfigDir))
+	fencingCreds, err := loadFencingCredentials(filepath.Join(hostConfigDir, "fencing-credentials.yaml"))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
 	}
@@ -425,7 +415,7 @@ func (hc hostConfig) FencingCredentials(hostConfigDir string) *models.FencingCre
 	if hc.hostname == "" {
 		return nil // MAC-based config, no fencing credentials
 	}
-	creds, err := loadFencingCredentials(getFencingCredentialsPath(hostConfigDir))
+	creds, err := loadFencingCredentials(filepath.Join(hostConfigDir, "fencing-credentials.yaml"))
 	if err != nil || creds == nil {
 		return nil
 	}
