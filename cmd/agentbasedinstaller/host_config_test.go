@@ -259,17 +259,17 @@ var _ = Describe("applyFencingCredentials", func() {
 		}
 	})
 
-	Context("when inventory has no hostname", func() {
+	Context("when config has no fencing credentials", func() {
 		It("should return false without modifying updateParams", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
-			inventory := &models.Inventory{
-				Hostname: "",
+			config := &hostConfig{
+				// MAC-based config without fencing credentials
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
-			Expect(err).NotTo(HaveOccurred())
+			applied := applyFencingCredentials(testLogger, host, config, updateParams)
 			Expect(applied).To(BeFalse())
 			Expect(updateParams.FencingCredentials).To(BeNil())
 		})
@@ -277,27 +277,24 @@ var _ = Describe("applyFencingCredentials", func() {
 
 	Context("when host already has fencing credentials", func() {
 		It("should return false without modifying updateParams", func() {
-			// Create fencing credentials file
-			content := `credentials:
-- hostname: master-0
-  address: redfish+https://example.com
-  username: admin
-  password: password
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
-			Expect(err).NotTo(HaveOccurred())
-
 			testLogger, _ := test.NewNullLogger()
+			address := "redfish+https://example.com"
+			username := "admin"
+			password := "password"
 			host := &models.Host{
 				FencingCredentials: `{"address": "existing"}`,
 			}
-			inventory := &models.Inventory{
-				Hostname: "master-0",
+			config := &hostConfig{
+				hostname: "master-0",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address:  &address,
+					Username: &username,
+					Password: &password,
+				},
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
-			Expect(err).NotTo(HaveOccurred())
+			applied := applyFencingCredentials(testLogger, host, config, updateParams)
 			Expect(applied).To(BeFalse())
 			Expect(updateParams.FencingCredentials).To(BeNil())
 		})
@@ -305,26 +302,24 @@ var _ = Describe("applyFencingCredentials", func() {
 
 	Context("when credentials should be applied", func() {
 		It("should set fencing credentials and return true", func() {
-			// Create fencing credentials file
-			content := `credentials:
-- hostname: master-0
-  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
-  username: admin
-  password: password
-  certificateVerification: Disabled
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
-			Expect(err).NotTo(HaveOccurred())
-
 			testLogger, _ := test.NewNullLogger()
+			address := "redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"
+			username := "admin"
+			password := "password"
+			certVerification := "Disabled"
 			host := &models.Host{}
-			inventory := &models.Inventory{
-				Hostname: "master-0",
+			config := &hostConfig{
+				hostname: "master-0",
+				fencingCredentials: &models.FencingCredentialsParams{
+					Address:                 &address,
+					Username:                &username,
+					Password:                &password,
+					CertificateVerification: &certVerification,
+				},
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied, err := applyFencingCredentials(testLogger, host, inventory, tempDir, updateParams)
-			Expect(err).NotTo(HaveOccurred())
+			applied := applyFencingCredentials(testLogger, host, config, updateParams)
 			Expect(applied).To(BeTrue())
 			Expect(updateParams.FencingCredentials).NotTo(BeNil())
 			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
@@ -335,7 +330,7 @@ var _ = Describe("applyFencingCredentials", func() {
 	})
 })
 
-var _ = Describe("findHostConfig with hostname matching", func() {
+var _ = Describe("findHostConfigs with hostname matching", func() {
 	var (
 		testHostID strfmt.UUID
 	)
@@ -345,7 +340,7 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 	})
 
 	Context("when configs contain both MAC-based and hostname-based entries", func() {
-		It("should return MAC config immediately when MAC matches (no merge)", func() {
+		It("should return both MAC and hostname configs when both match", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
@@ -362,16 +357,17 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 				},
 			}
 
-			result := configs.findHostConfig(testHostID, inventory)
-			// Should return MAC config immediately - no merge with hostname config
-			Expect(result.configDir).To(Equal("/mac/path"))
-			Expect(result.macAddresses).To(Equal([]string{"aa:bb:cc:dd:ee:ff"}))
-			Expect(result.hostID).To(Equal(testHostID))
-			// Hostname config should NOT be marked as matched (return-immediately behavior)
-			Expect(hostnameConfig.hostID).To(Equal(strfmt.UUID("")))
+			results := configs.findHostConfigs(testHostID, inventory)
+			// Should return both configs
+			Expect(results).To(HaveLen(2))
+			Expect(results[0].configDir).To(Equal("/mac/path"))
+			Expect(results[0].macAddresses).To(Equal([]string{"aa:bb:cc:dd:ee:ff"}))
+			Expect(results[0].hostID).To(Equal(testHostID))
+			Expect(results[1].hostname).To(Equal("master-0"))
+			Expect(results[1].hostID).To(Equal(testHostID))
 		})
 
-		It("should fall back to hostname matching when MAC doesn't match", func() {
+		It("should return only hostname config when MAC doesn't match", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
 				macAddresses: []string{"11:22:33:44:55:66"},
@@ -388,12 +384,13 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 				},
 			}
 
-			result := configs.findHostConfig(testHostID, inventory)
-			Expect(result).To(Equal(hostnameConfig))
-			Expect(result.hostID).To(Equal(testHostID))
+			results := configs.findHostConfigs(testHostID, inventory)
+			Expect(results).To(HaveLen(1))
+			Expect(results[0]).To(Equal(hostnameConfig))
+			Expect(results[0].hostID).To(Equal(testHostID))
 		})
 
-		It("should return nil when neither MAC nor hostname matches", func() {
+		It("should return empty slice when neither MAC nor hostname matches", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
 				macAddresses: []string{"11:22:33:44:55:66"},
@@ -410,8 +407,8 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 				},
 			}
 
-			result := configs.findHostConfig(testHostID, inventory)
-			Expect(result).To(BeNil())
+			results := configs.findHostConfigs(testHostID, inventory)
+			Expect(results).To(BeEmpty())
 		})
 	})
 })

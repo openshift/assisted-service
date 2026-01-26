@@ -216,7 +216,7 @@ func configure(ctx context.Context, log *log.Logger, bmInventory *client.Assiste
 	done := false
 	sleepTime := 1 * time.Second
 	for !done {
-		failures, err := agentbasedinstaller.ApplyHostConfigs(ctx, log, bmInventory, hostConfigs, strfmt.UUID(ConfigureOptions.InfraEnvID), ConfigureOptions.HostConfigDir)
+		failures, err := agentbasedinstaller.ApplyHostConfigs(ctx, log, bmInventory, hostConfigs, strfmt.UUID(ConfigureOptions.InfraEnvID))
 		if err != nil {
 			log.Fatal("Failed to apply host configuration: ", err)
 		}
