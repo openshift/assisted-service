@@ -21,7 +21,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 	ctx := context.Background()
 
 	It("good flow", func() {
-		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(os.DirFS("/"), ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"../docs/hive-integration/crds/clusterDeployment.yaml",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
@@ -32,7 +32,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
-		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(os.DirFS("/"), ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
 			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
 
@@ -43,7 +43,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 	})
 
 	It("InstallConfig override good flow", func() {
-		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(os.DirFS("/"), ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"../docs/hive-integration/crds/clusterDeployment.yaml",
 			"../docs/hive-integration/crds/agentClusterInstall-with-installconfig-overrides.yaml",
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)
@@ -55,7 +55,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
-		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+		modelInfraEnv, registerInfraEnvErr := agentbasedinstaller.RegisterInfraEnv(os.DirFS("/"), ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			modelCluster, "../docs/hive-integration/crds/infraEnv.yaml",
 			"../docs/hive-integration/crds/nmstate.yaml", "full-iso", "")
 
@@ -66,7 +66,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 	})
 
 	It("missing one of the ZTP manifests", func() {
-		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
+		modelCluster, registerClusterErr := agentbasedinstaller.RegisterCluster(os.DirFS("/"), ctx, log, utils_test.TestContext.UserBMClient, pullSecret,
 			"file-does-not-exist",
 			"../docs/hive-integration/crds/agentClusterInstall.yaml",
 			"../docs/hive-integration/crds/clusterImageSet.yaml", "", "", false)

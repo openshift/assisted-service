@@ -169,16 +169,129 @@ var _ = DescribeTable(
 	}),
 )
 
+type registerInfraEnvCase struct {
+	files                            map[string]string
+	expectedStaticNetworkConfigCount int
+	description                      string
+}
+
+var _ = DescribeTable(
+	"RegisterInfraEnv",
+	func(tc registerInfraEnvCase) {
+		fakeLogger, _ := test.NewNullLogger()
+
+		clusterID := strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
+		fakeCluster := &models.Cluster{
+			ID: &clusterID,
+		}
+
+		fakeFileSystem := fstest.MapFS{}
+		for name, data := range tc.files {
+			fakeFileSystem[name] = &fstest.MapFile{Data: []byte(data)}
+		}
+
+		fakeTransport := NewMockTransport()
+		fakeInstallerClient := installerclient.New(fakeTransport, nil, nil)
+		fakeBMClient := &client.AssistedInstall{
+			Installer: fakeInstallerClient,
+		}
+
+		// For this test, we'll directly test that the StaticNetworkConfig is set
+		// We need to provide a minimal InfraEnv configuration
+		infraEnvPath := "infraenv.yaml"
+		nmStateConfigPath := "nmstate.yaml"
+
+		_, err := RegisterInfraEnv(fakeFileSystem, context.Background(), fakeLogger, fakeBMClient, "pull-secret", fakeCluster,
+			infraEnvPath, nmStateConfigPath, "full-iso", "")
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(fakeTransport.lastInfraEnvParamsReceived).NotTo(BeNil())
+		Expect(fakeTransport.lastInfraEnvParamsReceived.StaticNetworkConfig).To(HaveLen(tc.expectedStaticNetworkConfigCount))
+	},
+	Entry("with NMStateConfig provided", registerInfraEnvCase{
+		files: map[string]string{
+			"infraenv.yaml": `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: test-infraenv
+  labels:
+    networkType: static
+spec:
+  nmStateConfigLabelSelector:
+    matchLabels:
+      networkType: static
+`,
+			"nmstate.yaml": `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: test-nmstate
+  labels:
+    networkType: static
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+        state: up
+  interfaces:
+    - name: eth0
+      macAddress: "00:00:00:00:00:00"
+`,
+		},
+		expectedStaticNetworkConfigCount: 1,
+		description:                      "should set StaticNetworkConfig from NMStateConfig",
+	}),
+	Entry("without NMStateConfig but with keyfiles", registerInfraEnvCase{
+		files: map[string]string{
+			"infraenv.yaml": `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: test-infraenv
+spec:
+  clusterRef:
+    name: test-cluster
+    namespace: test-namespace
+`,
+			"etc/NetworkManager/system-connections/eth0.nmconnection": `[connection]
+id=eth0
+type=ethernet
+`,
+		},
+		expectedStaticNetworkConfigCount: 1,
+		description:                      "should set placeholder StaticNetworkConfig when NetworkManager keyfiles exist",
+	}),
+	Entry("without NMStateConfig and no keyfiles", registerInfraEnvCase{
+		files: map[string]string{
+			"infraenv.yaml": `
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: test-infraenv
+spec:
+  clusterRef:
+    name: test-cluster
+    namespace: test-namespace
+`,
+		},
+		expectedStaticNetworkConfigCount: 0,
+		description:                      "should not set StaticNetworkConfig when no NMStateConfig and no keyfiles",
+	}),
+)
+
 func TestAgentbasedinstaller(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Agentbasedinstaller Suite")
 }
 
 type mockTransport struct {
-	filesReceived            map[string]string
-	lastImportParamsReceived *models.ImportClusterParams
-	lastUpdateParamsReceived *models.V2ClusterUpdateParams
-	err                      error
+	filesReceived               map[string]string
+	lastImportParamsReceived    *models.ImportClusterParams
+	lastUpdateParamsReceived    *models.V2ClusterUpdateParams
+	lastInfraEnvParamsReceived  *models.InfraEnvCreateParams
+	err                         error
 }
 
 func NewMockTransport() *mockTransport {
@@ -208,6 +321,14 @@ func (m *mockTransport) Submit(op *runtime.ClientOperation) (interface{}, error)
 	case *installerclient.V2UpdateClusterParams:
 		m.lastUpdateParamsReceived = v.ClusterUpdateParams
 		result = &installerclient.V2UpdateClusterCreated{}
+	case *installerclient.RegisterInfraEnvParams:
+		m.lastInfraEnvParamsReceived = v.InfraenvCreateParams
+		infraEnvID := strfmt.UUID("test-infraenv-id")
+		result = &installerclient.RegisterInfraEnvCreated{
+			Payload: &models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
 	default:
 		return nil, fmt.Errorf("[mockTransport] unmanaged type: %T", v)
 	}

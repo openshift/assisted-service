@@ -40,7 +40,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const failureOutputPath = "/var/run/agent-installer/host-config-failures"
+const (
+	failureOutputPath = "/var/run/agent-installer/host-config-failures"
+	rootPath          = "/"
+)
 
 var Options struct {
 	ServiceBaseUrl string `envconfig:"SERVICE_BASE_URL" default:""`
@@ -48,16 +51,16 @@ var Options struct {
 }
 
 var RegisterOptions struct {
-	ClusterDeploymentFile   string `envconfig:"CLUSTER_DEPLOYMENT_FILE" default:"/manifests/cluster-deployment.yaml"`
-	AgentClusterInstallFile string `envconfig:"AGENT_CLUSTER_INSTALL_FILE" default:"/manifests/agent-cluster-install.yaml"`
-	InfraEnvFile            string `envconfig:"INFRA_ENV_FILE" default:"/manifests/infraenv.yaml"`
-	PullSecretFile          string `envconfig:"PULL_SECRET_FILE" default:"/manifests/pull-secret.yaml"`
-	ClusterImageSetFile     string `envconfig:"CLUSTER_IMAGE_SET_FILE" default:"/manifests/cluster-image-set.yaml"`
-	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"/manifests/nmstateconfig.yaml"`
+	ClusterDeploymentFile   string `envconfig:"CLUSTER_DEPLOYMENT_FILE" default:"manifests/cluster-deployment.yaml"`
+	AgentClusterInstallFile string `envconfig:"AGENT_CLUSTER_INSTALL_FILE" default:"manifests/agent-cluster-install.yaml"`
+	InfraEnvFile            string `envconfig:"INFRA_ENV_FILE" default:"manifests/infraenv.yaml"`
+	PullSecretFile          string `envconfig:"PULL_SECRET_FILE" default:"manifests/pull-secret.yaml"`
+	ClusterImageSetFile     string `envconfig:"CLUSTER_IMAGE_SET_FILE" default:"manifests/cluster-image-set.yaml"`
+	NMStateConfigFile       string `envconfig:"NMSTATE_CONFIG_FILE" default:"manifests/nmstateconfig.yaml"`
 	ImageTypeISO            string `envconfig:"IMAGE_TYPE_ISO" default:"full-iso"`
 	ReleaseImageMirror      string `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	ExtraManifests          string `envconfig:"EXTRA_MANIFESTS_PATH" default:"/extra-manifests"`
-	OperatorInstallFile     string `envconfig:"OPERATOR_INSTALL_FILE" default:"/manifests/operators.yaml"`
+	OperatorInstallFile     string `envconfig:"OPERATOR_INSTALL_FILE" default:"manifests/operators.yaml"`
 }
 
 var ConfigureOptions struct {
@@ -128,12 +131,12 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		log.Infof("Found existing cluster with id: %s", existingCluster.ID.String())
 		modelsCluster = existingCluster
 	} else {
-		pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+		pullSecret, err := agentbasedinstaller.GetPullSecret(os.DirFS(rootPath), RegisterOptions.PullSecretFile)
 		if err != nil {
 			log.Fatal("Failed to get pull secret: ", err.Error())
 		}
 
-		modelsCluster, err = agentbasedinstaller.RegisterCluster(ctx, log, bmInventory, pullSecret,
+		modelsCluster, err = agentbasedinstaller.RegisterCluster(os.DirFS(rootPath), ctx, log, bmInventory, pullSecret,
 			RegisterOptions.ClusterDeploymentFile, RegisterOptions.AgentClusterInstallFile, RegisterOptions.ClusterImageSetFile,
 			RegisterOptions.ReleaseImageMirror, RegisterOptions.OperatorInstallFile, false)
 		if err != nil {
@@ -143,7 +146,7 @@ func registerCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	// Apply installConfig overrides if present (idempotent)
 	log.Info("Applying installConfig overrides...")
-	updatedCluster, err := agentbasedinstaller.ApplyInstallConfigOverrides(ctx, log, bmInventory, modelsCluster, RegisterOptions.AgentClusterInstallFile)
+	updatedCluster, err := agentbasedinstaller.ApplyInstallConfigOverrides(os.DirFS(rootPath), ctx, log, bmInventory, modelsCluster, RegisterOptions.AgentClusterInstallFile)
 	if err != nil {
 		log.Fatal("Failed to apply installConfig overrides: ", err)
 	}
@@ -173,7 +176,7 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		return existingInfraEnv.ID.String()
 	}
 
-	pullSecret, err := agentbasedinstaller.GetPullSecret(RegisterOptions.PullSecretFile)
+	pullSecret, err := agentbasedinstaller.GetPullSecret(os.DirFS(rootPath), RegisterOptions.PullSecretFile)
 	if err != nil {
 		log.Fatal("Failed to get pull secret: ", err.Error())
 	}
@@ -189,7 +192,7 @@ func registerInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 		}
 	}
 
-	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(ctx, log, bmInventory, pullSecret,
+	modelsInfraEnv, err := agentbasedinstaller.RegisterInfraEnv(os.DirFS(rootPath), ctx, log, bmInventory, pullSecret,
 		modelsCluster, RegisterOptions.InfraEnvFile, RegisterOptions.NMStateConfigFile, RegisterOptions.ImageTypeISO, "")
 	if err != nil {
 		log.Fatal("Failed to register infraenv with assisted-service: ", err)
