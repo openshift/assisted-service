@@ -126,25 +126,14 @@ var _ = Describe("loadFencingCredentials", func() {
 	})
 
 	Context("when fencing-credentials.yaml has invalid content", func() {
-		It("should return error for empty hostname", func() {
+		It("should skip entries with empty hostname", func() {
 			content := `credentials:
 - hostname: ""
   address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
   username: admin
   password: password123
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("has empty hostname"))
-			Expect(creds).To(BeNil())
-		})
-
-		It("should return error for missing address", func() {
-			content := `credentials:
 - hostname: master-0
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/def
   username: admin
   password: password123
 `
@@ -152,39 +141,10 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("missing required field: address"))
-			Expect(creds).To(BeNil())
-		})
-
-		It("should return error for missing username", func() {
-			content := `credentials:
-- hostname: master-0
-  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
-  password: password123
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
 			Expect(err).NotTo(HaveOccurred())
-
-			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("missing required field: username"))
-			Expect(creds).To(BeNil())
-		})
-
-		It("should return error for missing password", func() {
-			content := `credentials:
-- hostname: master-0
-  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
-  username: admin
-`
-			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
-			Expect(err).NotTo(HaveOccurred())
-
-			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("missing required field: password"))
-			Expect(creds).To(BeNil())
+			// Only the valid entry with hostname should be loaded
+			Expect(creds).To(HaveLen(1))
+			Expect(creds).To(HaveKey("master-0"))
 		})
 
 		It("should return error for invalid YAML", func() {
@@ -217,7 +177,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(creds).To(BeNil())
 		})
 
-		It("should return error for duplicate hostnames", func() {
+		It("should use last entry for duplicate hostnames", func() {
 			content := `credentials:
 - hostname: master-0
   address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
@@ -232,9 +192,11 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("duplicate fencing credential for hostname: master-0"))
-			Expect(creds).To(BeNil())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds).To(HaveLen(1))
+			Expect(creds).To(HaveKey("master-0"))
+			// The last entry should be used
+			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.2:8000/redfish/v1/Systems/def"))
 		})
 	})
 
@@ -338,32 +300,73 @@ var _ = Describe("applyFencingCredentials", func() {
 })
 
 var _ = Describe("hostConfig.FencingCredentials", func() {
-	Context("when hostConfig has no fencing credentials", func() {
-		It("should return nil", func() {
+	var tempDir string
+
+	BeforeEach(func() {
+		var err error
+		tempDir, err = os.MkdirTemp("", "fencing-creds-test-*")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		if tempDir != "" {
+			os.RemoveAll(tempDir)
+		}
+	})
+
+	Context("when hostConfig is MAC-based (no hostname)", func() {
+		It("should return nil without loading file", func() {
 			hc := hostConfig{
 				configDir:    "/some/path",
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 				hostname:     "",
 			}
-			Expect(hc.FencingCredentials()).To(BeNil())
+			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
 		})
 	})
 
-	Context("when hostConfig has fencing credentials", func() {
-		It("should return credentials regardless of hostname", func() {
-			expectedCreds := &models.FencingCredentialsParams{
-				Address:  strPtr("redfish+https://example.com"),
-				Username: strPtr("admin"),
-				Password: strPtr("password"),
-			}
-			// MAC-based config with merged credentials (simulates post-merge state)
+	Context("when hostConfig is hostname-based", func() {
+		It("should load credentials from file on-demand", func() {
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
 			hc := hostConfig{
-				configDir:          "/some/path",
-				macAddresses:       []string{"aa:bb:cc:dd:ee:ff"},
-				hostname:           "", // Empty hostname - this is a MAC-based config
-				fencingCredentials: expectedCreds,
+				hostname: "master-0",
 			}
-			Expect(hc.FencingCredentials()).To(Equal(expectedCreds))
+			creds := hc.FencingCredentials(tempDir)
+			Expect(creds).NotTo(BeNil())
+			Expect(*creds.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*creds.Username).To(Equal("admin"))
+			Expect(*creds.Password).To(Equal("password123"))
+		})
+
+		It("should return nil if file does not exist", func() {
+			hc := hostConfig{
+				hostname: "master-0",
+			}
+			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
+		})
+
+		It("should return nil if hostname not found in file", func() {
+			content := `credentials:
+- hostname: master-1
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			hc := hostConfig{
+				hostname: "master-0", // Different hostname
+			}
+			Expect(hc.FencingCredentials(tempDir)).To(BeNil())
 		})
 	})
 })
@@ -378,17 +381,13 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 	})
 
 	Context("when configs contain both MAC-based and hostname-based entries", func() {
-		It("should merge fencing credentials when both MAC and hostname match", func() {
+		It("should return MAC config immediately when MAC matches (no merge)", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
-			expectedCreds := &models.FencingCredentialsParams{
-				Address: strPtr("redfish+https://example.com"),
-			}
 			hostnameConfig := &hostConfig{
-				hostname:           "master-0",
-				fencingCredentials: expectedCreds,
+				hostname: "master-0",
 			}
 			configs := HostConfigs{macConfig, hostnameConfig}
 
@@ -400,11 +399,12 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 			}
 
 			result := configs.findHostConfig(testHostID, inventory)
-			// Should return MAC config with fencing credentials merged in
+			// Should return MAC config immediately - no merge with hostname config
 			Expect(result.configDir).To(Equal("/mac/path"))
 			Expect(result.macAddresses).To(Equal([]string{"aa:bb:cc:dd:ee:ff"}))
-			Expect(result.fencingCredentials).To(Equal(expectedCreds))
 			Expect(result.hostID).To(Equal(testHostID))
+			// Hostname config should NOT be marked as matched (return-immediately behavior)
+			Expect(hostnameConfig.hostID).To(Equal(strfmt.UUID("")))
 		})
 
 		It("should fall back to hostname matching when MAC doesn't match", func() {
@@ -414,9 +414,6 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 			}
 			hostnameConfig := &hostConfig{
 				hostname: "master-0",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address: strPtr("redfish+https://example.com"),
-				},
 			}
 			configs := HostConfigs{macConfig, hostnameConfig}
 
@@ -439,9 +436,6 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 			}
 			hostnameConfig := &hostConfig{
 				hostname: "master-1",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address: strPtr("redfish+https://example.com"),
-				},
 			}
 			configs := HostConfigs{macConfig, hostnameConfig}
 
@@ -455,169 +449,11 @@ var _ = Describe("findHostConfig with hostname matching", func() {
 			result := configs.findHostConfig(testHostID, inventory)
 			Expect(result).To(BeNil())
 		})
-
-		It("should mark hostnameConfig as matched when merging", func() {
-			macConfig := &hostConfig{
-				configDir:    "/mac/path",
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
-			}
-			hostnameConfig := &hostConfig{
-				hostname: "master-0",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address: strPtr("redfish+https://example.com"),
-				},
-			}
-			configs := HostConfigs{macConfig, hostnameConfig}
-
-			inventory := &models.Inventory{
-				Hostname: "master-0",
-				Interfaces: []*models.Interface{
-					{MacAddress: "aa:bb:cc:dd:ee:ff"},
-				},
-			}
-
-			_ = configs.findHostConfig(testHostID, inventory)
-
-			// Both configs should be marked as matched
-			Expect(macConfig.hostID).To(Equal(testHostID))
-			Expect(hostnameConfig.hostID).To(Equal(testHostID))
-		})
-
-		It("should return independent struct that doesn't affect original macConfig", func() {
-			originalCreds := &models.FencingCredentialsParams{
-				Address: strPtr("original-address"),
-			}
-			macConfig := &hostConfig{
-				configDir:          "/mac/path",
-				macAddresses:       []string{"aa:bb:cc:dd:ee:ff"},
-				fencingCredentials: originalCreds,
-			}
-			newCreds := &models.FencingCredentialsParams{
-				Address: strPtr("new-address"),
-			}
-			hostnameConfig := &hostConfig{
-				hostname:           "master-0",
-				fencingCredentials: newCreds,
-			}
-			configs := HostConfigs{macConfig, hostnameConfig}
-
-			inventory := &models.Inventory{
-				Hostname: "master-0",
-				Interfaces: []*models.Interface{
-					{MacAddress: "aa:bb:cc:dd:ee:ff"},
-				},
-			}
-
-			result := configs.findHostConfig(testHostID, inventory)
-
-			// Returned config should have new credentials
-			Expect(*result.fencingCredentials.Address).To(Equal("new-address"))
-			// Original macConfig should still have original credentials
-			Expect(*macConfig.fencingCredentials.Address).To(Equal("original-address"))
-		})
-	})
-})
-
-var _ = Describe("missingFencingCredentials", func() {
-	var testLogger *test.Hook
-
-	BeforeEach(func() {
-		_, testLogger = test.NewNullLogger()
-		_ = testLogger // Silence unused warning
-	})
-
-	Context("when fencing credentials are matched to a host", func() {
-		It("should return empty list", func() {
-			testLogger, _ := test.NewNullLogger()
-			configs := HostConfigs{
-				&hostConfig{
-					hostname:           "master-0",
-					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
-					hostID:             strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2"), // Matched
-				},
-			}
-
-			missing := configs.missingFencingCredentials(testLogger)
-			Expect(missing).To(BeEmpty())
-		})
-	})
-
-	Context("when fencing credentials have no matching hostname", func() {
-		It("should return failure for unmatched fencing config", func() {
-			testLogger, _ := test.NewNullLogger()
-			configs := HostConfigs{
-				&hostConfig{
-					hostname:           "master-0",
-					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
-					hostID:             "", // Not matched - no host with this hostname
-				},
-			}
-
-			missing := configs.missingFencingCredentials(testLogger)
-			Expect(missing).To(HaveLen(1))
-			Expect(missing[0].Hostname()).To(Equal("master-0"))
-			Expect(missing[0].DescribeFailure()).To(Equal("Fencing credentials loaded but no host with matching hostname found"))
-		})
-	})
-
-	Context("when MAC-based config without fencing is unmatched", func() {
-		It("should not be reported by missingFencingCredentials", func() {
-			testLogger, _ := test.NewNullLogger()
-			configs := HostConfigs{
-				&hostConfig{
-					configDir:    "/mac/path",
-					macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
-					hostID:       "", // Not matched
-				},
-			}
-
-			// missingFencingCredentials should not report MAC-based configs
-			missing := configs.missingFencingCredentials(testLogger)
-			Expect(missing).To(BeEmpty())
-		})
-	})
-
-	Context("when hostname config has no fencing credentials", func() {
-		It("should not be reported", func() {
-			testLogger, _ := test.NewNullLogger()
-			configs := HostConfigs{
-				&hostConfig{
-					hostname:           "master-0",
-					fencingCredentials: nil, // No credentials
-					hostID:             "",
-				},
-			}
-
-			missing := configs.missingFencingCredentials(testLogger)
-			Expect(missing).To(BeEmpty())
-		})
-	})
-
-	Context("with mixed matched and unmatched fencing configs", func() {
-		It("should only report unmatched configs with credentials", func() {
-			testLogger, _ := test.NewNullLogger()
-			configs := HostConfigs{
-				&hostConfig{
-					hostname:           "master-0",
-					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example1.com")},
-					hostID:             strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2"), // Matched
-				},
-				&hostConfig{
-					hostname:           "master-1",
-					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example2.com")},
-					hostID:             "", // Not matched
-				},
-			}
-
-			missing := configs.missingFencingCredentials(testLogger)
-			Expect(missing).To(HaveLen(1))
-			Expect(missing[0].Hostname()).To(Equal("master-1"))
-		})
 	})
 })
 
 var _ = Describe("missingHost.DescribeFailure", func() {
-	Context("when config is MAC-based without fencing", func() {
+	Context("when config is MAC-based", func() {
 		It("should return 'Host not registered'", func() {
 			mh := missingHost{
 				config: &hostConfig{
@@ -629,12 +465,11 @@ var _ = Describe("missingHost.DescribeFailure", func() {
 		})
 	})
 
-	Context("when config is hostname-based with fencing credentials", func() {
+	Context("when config is hostname-based", func() {
 		It("should return fencing-specific message", func() {
 			mh := missingHost{
 				config: &hostConfig{
-					hostname:           "master-0",
-					fencingCredentials: &models.FencingCredentialsParams{Address: strPtr("redfish+https://example.com")},
+					hostname: "master-0",
 				},
 			}
 			Expect(mh.DescribeFailure()).To(Equal("Fencing credentials loaded but no host with matching hostname found"))
