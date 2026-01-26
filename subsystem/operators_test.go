@@ -407,7 +407,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("should lvm installed as cnv dependency", func() {
 			cluster := registerNewCluster(
-				"4.12.0",
+				"4.13.0",
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -435,9 +435,9 @@ var _ = Describe("Operators endpoint tests", func() {
 			))
 		})
 
-		It("should lvm have right subscription name on 4.12", func() {
+		It("should lvm have right subscription name on 4.13", func() {
 			cluster := registerNewCluster(
-				"4.12.0",
+				"4.13.0",
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -539,7 +539,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			utils_test.TestContext.V2ReportMonitoredOperatorStatus(ctx, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, "4.12")
+			utils_test.TestContext.V2ReportMonitoredOperatorStatus(ctx, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, "4.13")
 
 			ops, err := utils_test.TestContext.AgentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
@@ -550,7 +550,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(operators).To(HaveLen(1))
 			Expect(operators[0].StatusInfo).To(BeEquivalentTo(string(models.OperatorStatusFailed)))
 			Expect(operators[0].Status).To(BeEquivalentTo(models.OperatorStatusFailed))
-			Expect(operators[0].Version).To(BeEquivalentTo("4.12"))
+			Expect(operators[0].Version).To(BeEquivalentTo("4.13"))
 		})
 	})
 
