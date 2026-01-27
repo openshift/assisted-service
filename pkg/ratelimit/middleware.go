@@ -26,6 +26,7 @@ const (
 )
 
 // categoryPatterns defines URL patterns for endpoint categorization.
+// Patterns use (?:/|$) to match paths with or without trailing slashes.
 var categoryPatterns = []struct {
 	category EndpointCategory
 	patterns []*regexp.Regexp
@@ -33,19 +34,19 @@ var categoryPatterns = []struct {
 	{
 		category: CategoryAuth,
 		patterns: []*regexp.Regexp{
-			regexp.MustCompile(`/auth/`),
-			regexp.MustCompile(`/token`),
-			regexp.MustCompile(`/login`),
+			regexp.MustCompile(`/auth(?:/|$)`),
+			regexp.MustCompile(`/token(?:/|$)`),
+			regexp.MustCompile(`/login(?:/|$)`),
 		},
 	},
 	{
 		category: CategoryDownload,
 		patterns: []*regexp.Regexp{
-			regexp.MustCompile(`/downloads?/`),
-			regexp.MustCompile(`/presigned`),
-			regexp.MustCompile(`/iso`),
-			regexp.MustCompile(`/discovery-ignition`),
-			regexp.MustCompile(`/minimal-initrd`),
+			regexp.MustCompile(`/downloads?(?:/|$)`),
+			regexp.MustCompile(`/presigned(?:/|$)`),
+			regexp.MustCompile(`/iso(?:/|$)`),
+			regexp.MustCompile(`/discovery-ignition(?:/|$)`),
+			regexp.MustCompile(`/minimal-initrd(?:/|$)`),
 		},
 	},
 }
@@ -167,13 +168,14 @@ func (m *Middleware) getLimiter(category EndpointCategory) *RateLimiter {
 }
 
 // logRateLimitHit logs when a client is rate limited.
+// Note: We log client_type instead of client_id to avoid exposing PII (user IDs, IP addresses).
 func (m *Middleware) logRateLimitHit(r *http.Request, clientID string, category EndpointCategory) {
 	if m.log != nil {
 		m.log.WithFields(logrus.Fields{
-			"client_id": clientID,
-			"category":  category,
-			"method":    r.Method,
-			"path":      r.URL.Path,
+			"client_type": clientTypeFromID(clientID),
+			"category":    category,
+			"method":      r.Method,
+			"path":        r.URL.Path,
 		}).Warn("Rate limit exceeded")
 	}
 }

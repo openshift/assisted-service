@@ -6,13 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/openshift/assisted-service/restapi"
 	"golang.org/x/time/rate"
 )
 
 // RateLimiter provides per-client rate limiting using a token bucket algorithm.
-// Each client (identified by user ID or IP address) gets their own rate limiter
-// with configurable requests per second and burst capacity.
+// Each client (identified by IP address) gets their own rate limiter with
+// configurable requests per second and burst capacity. Rate limiting runs
+// in the outer middleware chain before authentication for network-edge protection.
 type RateLimiter struct {
 	visitors    map[string]*visitorState
 	mu          sync.RWMutex
@@ -122,27 +122,10 @@ func (rl *RateLimiter) cleanup() {
 }
 
 // GetClientID extracts a unique client identifier from the HTTP request.
-// It prefers authenticated user ID over IP address for more accurate
-// per-user rate limiting.
+// Rate limiting is applied in the outer middleware chain before authentication,
+// so we use IP-based identification for all requests. This provides effective
+// DoS protection at the network edge.
 func GetClientID(r *http.Request) string {
-	// Try to get authenticated user from context
-	if payload := r.Context().Value(restapi.AuthKey); payload != nil {
-		if authPayload, ok := payload.(interface{ GetUsername() string }); ok {
-			if username := authPayload.GetUsername(); username != "" {
-				return "user:" + username
-			}
-		}
-		// Try direct struct access for AuthPayload
-		if ap, ok := payload.(interface {
-			Username() string
-		}); ok {
-			if username := ap.Username(); username != "" {
-				return "user:" + username
-			}
-		}
-	}
-
-	// Fall back to IP address for unauthenticated requests
 	return "ip:" + getClientIP(r)
 }
 
