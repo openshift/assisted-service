@@ -749,6 +749,13 @@ func main() {
 	}
 
 	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db, eventsHandler, clusterApi)
+
+	// Create rate limiting middleware to protect against DoS and brute force attacks.
+	// Rate limiting is applied in the outer middleware chain and uses IP-based limiting
+	// for client identification. This provides protection against DoS attacks and brute
+	// force attempts at the network edge before authentication is processed.
+	rateLimitMiddleware := Options.RateLimitConfig.CreateMiddleware(log.WithField("pkg", "ratelimit"))
+
 	h, api, err := restapi.HandlerAPI(restapi.Config{
 		AuthAgentAuth:       authHandler.AuthAgentAuth,
 		AuthUserAuth:        authHandler.AuthUserAuth,
@@ -778,14 +785,15 @@ func main() {
 		h = app.SetupCORSMiddleware(h, allowedDomains)
 	}
 
+	// Apply rate limiting in outer middleware chain for IP-based DoS protection.
+	// This runs before authentication, using client IP for rate limiting.
+	// Protects against DoS attacks and brute force attempts at the network edge.
+	h = rateLimitMiddleware.Handler(h)
+
 	h = gziphandler.GzipHandler(h)
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
-
-	// Add rate limiting middleware to protect against DoS and brute force attacks
-	rateLimitMiddleware := Options.RateLimitConfig.CreateMiddleware(log.WithField("pkg", "ratelimit"))
-	h = rateLimitMiddleware.Handler(h)
 
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
