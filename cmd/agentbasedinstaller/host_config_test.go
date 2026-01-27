@@ -259,17 +259,19 @@ var _ = Describe("applyFencingCredentials", func() {
 		}
 	})
 
-	Context("when config has no fencing credentials", func() {
+	Context("when config has no fencing credentials (MAC-based config)", func() {
 		It("should return false without modifying updateParams", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				// MAC-based config without fencing credentials
+				// MAC-based config - no hostname means FencingCredentials() returns nil
+				configDir:    tempDir,
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied := applyFencingCredentials(testLogger, host, config, updateParams)
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(applied).To(BeFalse())
 			Expect(updateParams.FencingCredentials).To(BeNil())
 		})
@@ -277,24 +279,28 @@ var _ = Describe("applyFencingCredentials", func() {
 
 	Context("when host already has fencing credentials", func() {
 		It("should return false without modifying updateParams", func() {
+			// Create fencing credentials file
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://example.com
+  username: admin
+  password: password
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
 			testLogger, _ := test.NewNullLogger()
-			address := "redfish+https://example.com"
-			username := "admin"
-			password := "password"
 			host := &models.Host{
 				FencingCredentials: `{"address": "existing"}`,
 			}
 			config := &hostConfig{
-				hostname: "master-0",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address:  &address,
-					Username: &username,
-					Password: &password,
-				},
+				configDir: tempDir,
+				hostname:  "master-0",
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied := applyFencingCredentials(testLogger, host, config, updateParams)
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(applied).To(BeFalse())
 			Expect(updateParams.FencingCredentials).To(BeNil())
 		})
@@ -302,24 +308,27 @@ var _ = Describe("applyFencingCredentials", func() {
 
 	Context("when credentials should be applied", func() {
 		It("should set fencing credentials and return true", func() {
+			// Create fencing credentials file
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password
+  certificateVerification: Disabled
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
 			testLogger, _ := test.NewNullLogger()
-			address := "redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"
-			username := "admin"
-			password := "password"
-			certVerification := "Disabled"
 			host := &models.Host{}
 			config := &hostConfig{
-				hostname: "master-0",
-				fencingCredentials: &models.FencingCredentialsParams{
-					Address:                 &address,
-					Username:                &username,
-					Password:                &password,
-					CertificateVerification: &certVerification,
-				},
+				configDir: tempDir,
+				hostname:  "master-0",
 			}
 			updateParams := &models.HostUpdateParams{}
 
-			applied := applyFencingCredentials(testLogger, host, config, updateParams)
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
 			Expect(applied).To(BeTrue())
 			Expect(updateParams.FencingCredentials).NotTo(BeNil())
 			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
