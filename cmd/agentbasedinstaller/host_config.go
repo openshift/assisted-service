@@ -145,11 +145,11 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 			changed = true
 		}
 
-		role, err := config.Role()
+		applied, err = applyRole(log, host, config, updateParams)
 		if err != nil {
 			return err
 		}
-		if applyRole(log, host, inventory, role, updateParams) {
+		if applied {
 			changed = true
 		}
 
@@ -231,19 +231,22 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 	return true, nil
 }
 
-func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, role *string, updateParams *models.HostUpdateParams) bool {
+func applyRole(log *log.Logger, host *models.Host, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
+	role, err := config.Role()
+	if err != nil {
+		return false, err
+	}
 	if role == nil {
-		log.Info("No role configured")
-		return false
+		return false, nil
 	}
 
 	if host.SuggestedRole == models.HostRole(*role) {
 		log.Infof("Host role %s already configured", *role)
-		return false
+		return false, nil
 	}
 
 	updateParams.HostRole = role
-	return true
+	return true, nil
 }
 
 func applyFencingCredentials(log *log.Logger, host *models.Host, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
