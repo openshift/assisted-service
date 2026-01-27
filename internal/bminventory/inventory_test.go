@@ -22123,3 +22123,101 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 		})
 	})
 })
+
+var _ = Describe("validateHTTPHeader security tests", func() {
+	It("accepts valid header", func() {
+		err := validateHTTPHeader("X-Custom-Header", "some-value")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("accepts header with special characters in value", func() {
+		err := validateHTTPHeader("Authorization-Token", "Bearer abc123=")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("rejects dangerous Host header", func() {
+		err := validateHTTPHeader("Host", "evil.com")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Content-Length header", func() {
+		err := validateHTTPHeader("Content-Length", "9999")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Transfer-Encoding header", func() {
+		err := validateHTTPHeader("Transfer-Encoding", "chunked")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Connection header", func() {
+		err := validateHTTPHeader("Connection", "keep-alive")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Authorization header", func() {
+		err := validateHTTPHeader("Authorization", "Basic abc123")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects CRLF injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\r\nInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects newline injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\nInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects carriage return injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\rInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects null byte injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\x00null")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects CRLF injection in key", func() {
+		err := validateHTTPHeader("X-Header\r\nEvil", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects invalid header key format with space", func() {
+		err := validateHTTPHeader("Invalid Header", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid header key format"))
+	})
+
+	It("rejects header key with colon", func() {
+		err := validateHTTPHeader("Invalid:Header", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid header key format"))
+	})
+
+	It("rejects header key exceeding max length", func() {
+		longKey := strings.Repeat("a", 257)
+		err := validateHTTPHeader(longKey, "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum length"))
+	})
+
+	It("rejects header value exceeding max length", func() {
+		longValue := strings.Repeat("a", 4097)
+		err := validateHTTPHeader("X-Header", longValue)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum length"))
+	})
+})

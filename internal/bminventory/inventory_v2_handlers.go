@@ -16,7 +16,9 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/featuresupport"
@@ -61,8 +63,15 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 
 	log.Infof("Register disconnected cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 
-	if swag.StringValue(params.NewClusterParams.Name) == "" {
+	clusterName := swag.StringValue(params.NewClusterParams.Name)
+	if clusterName == "" {
 		err := errors.New("cluster name is required")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
+	// Validate cluster name format (DNS-compatible hostname)
+	// Use BareMetal platform type for validation as disconnected clusters don't specify a platform
+	if err := validations.ValidateClusterNameFormat(clusterName, string(models.PlatformTypeBaremetal)); err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
 
@@ -77,7 +86,7 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 			Href:             swag.String(url.String()),
 			Kind:             swag.String(models.ClusterKindDisconnectedCluster),
 			Status:           swag.String(models.ClusterStatusUnmonitored),
-			Name:             swag.StringValue(params.NewClusterParams.Name),
+			Name:             clusterName,
 			OpenshiftVersion: swag.StringValue(params.NewClusterParams.OpenshiftVersion),
 			UserName:         ocm.UserNameFromContext(ctx),
 			OrgID:            ocm.OrgIDFromContext(ctx),
@@ -367,6 +376,15 @@ func (b *bareMetalInventory) V2GetPreflightRequirements(ctx context.Context, par
 func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("UploadClusterIngressCert for cluster %s with params %s", params.ClusterID, params.IngressCertParams)
+
+	// Validate the certificate before processing
+	certData := []byte(params.IngressCertParams)
+	if err := pkgvalidations.ValidatePEMCertificateBundle(certData); err != nil {
+		log.WithError(err).Errorf("Invalid ingress certificate for cluster %s", params.ClusterID)
+		return installer.NewV2UploadClusterIngressCertBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Wrap(err, "invalid ingress certificate")))
+	}
+
 	var cluster common.Cluster
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
@@ -808,6 +826,11 @@ func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, p
 
 func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
+
+	// Validate file name and check access permissions (prevents path traversal attacks)
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 
 	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
 		payload := common.GenerateInfraError(http.StatusForbidden, err)
