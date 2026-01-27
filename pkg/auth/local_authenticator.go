@@ -19,10 +19,11 @@ import (
 )
 
 type LocalAuthenticator struct {
-	cache     *cache.Cache
-	db        *gorm.DB
-	log       logrus.FieldLogger
-	publicKey crypto.PublicKey
+	cache          *cache.Cache
+	db             *gorm.DB
+	log            logrus.FieldLogger
+	publicKey      crypto.PublicKey
+	tokenBlacklist *TokenBlacklist
 }
 
 func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*LocalAuthenticator, error) {
@@ -35,14 +36,24 @@ func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*L
 		return nil, err
 	}
 
+	tokenBlacklist := NewTokenBlacklist(db, log)
+	// Start cleanup job to remove expired revoked tokens every hour
+	tokenBlacklist.StartCleanupJob(1 * time.Hour)
+
 	a := &LocalAuthenticator{
-		cache:     cache.New(10*time.Minute, 30*time.Minute),
-		db:        db,
-		log:       log,
-		publicKey: key,
+		cache:          cache.New(10*time.Minute, 30*time.Minute),
+		db:             db,
+		log:            log,
+		publicKey:      key,
+		tokenBlacklist: tokenBlacklist,
 	}
 
 	return a, nil
+}
+
+// GetTokenBlacklist returns the token blacklist instance for use by logout handlers.
+func (a *LocalAuthenticator) GetTokenBlacklist() *TokenBlacklist {
+	return a.tokenBlacklist
 }
 
 var _ Authenticator = &LocalAuthenticator{}
@@ -69,6 +80,19 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		err := errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
+	}
+
+	// Check if the token has been revoked
+	if a.tokenBlacklist != nil {
+		isRevoked, err := a.tokenBlacklist.IsRevoked(token)
+		if err != nil {
+			a.log.WithError(err).Warn("Failed to check token revocation status")
+			// Continue with authentication even if check fails to avoid blocking valid requests
+		} else if isRevoked {
+			err := errors.Errorf("token has been revoked")
+			a.log.Debug(err)
+			return nil, common.NewInfraError(http.StatusUnauthorized, err)
+		}
 	}
 
 	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)

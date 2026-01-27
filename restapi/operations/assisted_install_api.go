@@ -222,6 +222,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2ListClustersHandler: installer.V2ListClustersHandlerFunc(func(params installer.V2ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListClusters has not yet been implemented")
 		}),
+		InstallerV2LogoutHandler: installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2Logout has not yet been implemented")
+		}),
 		VersionsV2ListComponentVersionsHandler: versions.V2ListComponentVersionsHandlerFunc(func(params versions.V2ListComponentVersionsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.V2ListComponentVersions has not yet been implemented")
 		}),
@@ -504,6 +507,8 @@ type AssistedInstallAPI struct {
 	InstallerV2InstallHostHandler installer.V2InstallHostHandler
 	// InstallerV2ListClustersHandler sets the operation handler for the v2 list clusters operation
 	InstallerV2ListClustersHandler installer.V2ListClustersHandler
+	// InstallerV2LogoutHandler sets the operation handler for the v2 logout operation
+	InstallerV2LogoutHandler installer.V2LogoutHandler
 	// VersionsV2ListComponentVersionsHandler sets the operation handler for the v2 list component versions operation
 	VersionsV2ListComponentVersionsHandler versions.V2ListComponentVersionsHandler
 	// EventsV2ListEventsHandler sets the operation handler for the v2 list events operation
@@ -824,6 +829,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2ListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListClustersHandler")
+	}
+	if o.InstallerV2LogoutHandler == nil {
+		unregistered = append(unregistered, "installer.V2LogoutHandler")
 	}
 	if o.VersionsV2ListComponentVersionsHandler == nil {
 		unregistered = append(unregistered, "versions.V2ListComponentVersionsHandler")
@@ -1246,6 +1254,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters"] = installer.NewV2ListClusters(o.context, o.InstallerV2ListClustersHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/logout"] = installer.NewV2Logout(o.context, o.InstallerV2LogoutHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

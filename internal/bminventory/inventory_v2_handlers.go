@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
@@ -190,6 +191,78 @@ func (b *bareMetalInventory) V2ListClusters(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2ListClustersOK().WithPayload(clusters)
+}
+
+func (b *bareMetalInventory) V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+
+	// Extract the token from the Authorization header
+	authHeader := params.HTTPRequest.Header.Get("Authorization")
+	if authHeader == "" {
+		// Try api_key query parameter
+		authHeader = params.HTTPRequest.URL.Query().Get("api_key")
+	}
+	if authHeader == "" {
+		// Try X-Secret-Key header (agent auth)
+		authHeader = params.HTTPRequest.Header.Get("X-Secret-Key")
+	}
+
+	if authHeader == "" {
+		log.Debug("No authentication token found in request")
+		return installer.NewV2LogoutUnauthorized()
+	}
+
+	// Remove "Bearer " prefix if present
+	token := authHeader
+	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
+		token = authHeader[7:]
+	}
+
+	// Get the token blacklist from the authenticator if available
+	localAuth, ok := b.authHandler.(*auth.LocalAuthenticator)
+	if !ok {
+		// For non-local auth (like RHSSO), logout is handled by the identity provider
+		log.Info("Logout requested but token revocation is only supported for local authentication")
+		return installer.NewV2LogoutOK()
+	}
+
+	blacklist := localAuth.GetTokenBlacklist()
+	if blacklist == nil {
+		log.Warn("Token blacklist not available")
+		return installer.NewV2LogoutInternalServerError()
+	}
+
+	// Parse token to get claims for entity info and expiration
+	entityID := ""
+	entityType := ""
+	expiresAt := time.Now().Add(gencrypto.DefaultTokenExpiration) // Default if no exp claim
+
+	// Parse without validation to extract claims (token was already validated by auth middleware)
+	parser := &jwt.Parser{}
+	parsedToken, _, _ := parser.ParseUnverified(token, jwt.MapClaims{})
+	if parsedToken != nil {
+		if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok {
+			if infraEnvID, ok := claims[string(gencrypto.InfraEnvKey)].(string); ok {
+				entityID = infraEnvID
+				entityType = string(gencrypto.InfraEnvKey)
+			} else if clusterID, ok := claims[string(gencrypto.ClusterKey)].(string); ok {
+				entityID = clusterID
+				entityType = string(gencrypto.ClusterKey)
+			}
+			if exp, ok := claims["exp"].(float64); ok {
+				expiresAt = time.Unix(int64(exp), 0)
+			}
+		}
+	}
+
+	// Add token to blacklist
+	if err := blacklist.Revoke(token, expiresAt, entityID, entityType, "user_logout"); err != nil {
+		log.WithError(err).Error("Failed to revoke token")
+		return installer.NewV2LogoutInternalServerError()
+	}
+
+	log.Infof("Token revoked successfully for entity %s/%s", entityType, entityID)
+	return installer.NewV2LogoutOK()
 }
 
 func (b *bareMetalInventory) V2GetCluster(ctx context.Context, params installer.V2GetClusterParams) middleware.Responder {

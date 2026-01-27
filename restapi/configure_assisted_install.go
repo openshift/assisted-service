@@ -181,6 +181,9 @@ type InstallerAPI interface {
 	/* V2ListClusters Retrieves the list of OpenShift clusters. */
 	V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder
 
+	/* V2Logout Logout and revoke the current authentication token. */
+	V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder
+
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
 
@@ -717,6 +720,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ListClusters(ctx, params)
+	})
+	api.InstallerV2LogoutHandler = installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2Logout(ctx, params)
 	})
 	api.VersionsV2ListComponentVersionsHandler = versions.V2ListComponentVersionsHandlerFunc(func(params versions.V2ListComponentVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
