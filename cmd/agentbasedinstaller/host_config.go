@@ -63,6 +63,10 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	credentialsMap := make(map[string]*models.FencingCredentialsParams)
 
 	for _, cred := range fcFile.Credentials {
+		if cred.Hostname == "" {
+			log.Warn("Skipping fencing credential with empty hostname")
+			continue
+		}
 		credentialsMap[cred.Hostname] = &models.FencingCredentialsParams{
 			Address:                 cred.Address,
 			Username:                cred.Username,
@@ -276,8 +280,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			log.Infof("No host configuration directory found %s", hostConfigDir)
 			return nil, nil
 		}
-			return nil, fmt.Errorf("failed to read config directory %s: %w", hostConfigDir, err)
-		}
+		return nil, fmt.Errorf("failed to read config directory %s: %w", hostConfigDir, err)
 	}
 
 	for _, e := range entries {
