@@ -399,6 +399,29 @@ var _ = Describe("findHostConfigs with hostname matching", func() {
 			Expect(results[0].hostID).To(Equal(testHostID))
 		})
 
+		It("should return only MAC config when hostname doesn't match", func() {
+			macConfig := &hostConfig{
+				configDir:    "/mac/path",
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+			hostnameConfig := &hostConfig{
+				hostname: "master-1",
+			}
+			configs := HostConfigs{macConfig, hostnameConfig}
+
+			inventory := &models.Inventory{
+				Hostname: "master-0",
+				Interfaces: []*models.Interface{
+					{MacAddress: "aa:bb:cc:dd:ee:ff"},
+				},
+			}
+
+			results := configs.findHostConfigs(testHostID, inventory)
+			Expect(results).To(HaveLen(1))
+			Expect(results[0]).To(Equal(macConfig))
+			Expect(results[0].hostID).To(Equal(testHostID))
+		})
+
 		It("should return empty slice when neither MAC nor hostname matches", func() {
 			macConfig := &hostConfig{
 				configDir:    "/mac/path",
