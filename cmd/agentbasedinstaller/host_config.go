@@ -137,25 +137,28 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	// Apply all matching configs - each config contributes its attributes
 	for _, config := range configs {
-		applied, err := applyRootDeviceHints(log, host, inventory, config, updateParams)
-		if err != nil {
-			return err
+		var applied bool
+		var applyErr error
+
+		applied, applyErr = applyRootDeviceHints(log, host, inventory, config, updateParams)
+		if applyErr != nil {
+			return applyErr
 		}
 		if applied {
 			changed = true
 		}
 
-		applied, err = applyRole(log, host, config, updateParams)
-		if err != nil {
-			return err
+		applied, applyErr = applyRole(log, host, config, updateParams)
+		if applyErr != nil {
+			return applyErr
 		}
 		if applied {
 			changed = true
 		}
 
-		applied, err = applyFencingCredentials(log, host, config, updateParams)
-		if err != nil {
-			return err
+		applied, applyErr = applyFencingCredentials(log, host, config, updateParams)
+		if applyErr != nil {
+			return applyErr
 		}
 		if applied {
 			changed = true
@@ -350,10 +353,28 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 	return configs, nil
 }
 
+// hostConfig represents configuration for a single host, loaded from disk.
+// There are two types of hostConfig, distinguished by which fields are populated:
+//
+// MAC-based configs (for role and root device hints):
+//   - macAddresses is populated with the host's MAC addresses
+//   - configDir points to a per-host directory (e.g., /hostconfig/host-0/)
+//     containing "role" and "root-device-hints.yaml" files
+//   - hostname is empty
+//
+// Hostname-based configs (for fencing credentials):
+//   - hostname is populated with the host's expected hostname
+//   - configDir points to the parent directory (e.g., /hostconfig/)
+//     containing the shared "fencing-credentials.yaml" file
+//   - macAddresses is empty
+//
+// A single host can match both types of config, receiving attributes from each.
+// The attribute methods (Role, RootDeviceHints, FencingCredentials) use guard
+// clauses to return nil for config types that don't support that attribute.
 type hostConfig struct {
 	configDir    string
 	macAddresses []string
-	hostname     string // For hostname-based matching (fencing)
+	hostname     string
 	hostID       strfmt.UUID
 }
 
@@ -487,12 +508,23 @@ func (configs HostConfigs) findByMAC(inventory *models.Inventory) *hostConfig {
 }
 
 // findByHostname returns the hostConfig that matches the host's hostname.
+// If hostname-based configs exist but none match, logs a warning with available hostnames
+// to help diagnose hostname format mismatches (e.g., FQDN vs short name).
 func (configs HostConfigs) findByHostname(inventory *models.Inventory) *hostConfig {
+	var availableHostnames []string
 	for _, hc := range configs {
-		if hc.hostname != "" && hc.hostname == inventory.Hostname {
+		if hc.hostname == "" {
+			continue
+		}
+		availableHostnames = append(availableHostnames, hc.hostname)
+		if hc.hostname == inventory.Hostname {
 			log.Infof("Found fencing config for hostname %s", hc.hostname)
 			return hc
 		}
+	}
+	if len(availableHostnames) > 0 {
+		log.Warnf("Host %s did not match any fencing credential hostnames. Available hostnames in credentials: %v",
+			inventory.Hostname, availableHostnames)
 	}
 	return nil
 }
