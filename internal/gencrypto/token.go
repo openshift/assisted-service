@@ -47,6 +47,10 @@ func LocalJWTForKey(id string, private_key_pem string, keyType LocalJWTKeyType) 
 
 // LocalJWTForKeyWithExpiration generates a JWT token with a specified expiration using a provided private key.
 func LocalJWTForKeyWithExpiration(id string, private_key_pem string, keyType LocalJWTKeyType, expiration time.Duration) (string, error) {
+	if expiration <= 0 {
+		return "", errors.Errorf("expiration must be > 0")
+	}
+
 	priv, err := jwt.ParseECPrivateKeyFromPEM([]byte(private_key_pem))
 	if err != nil {
 		return "", err

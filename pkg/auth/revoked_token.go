@@ -2,16 +2,15 @@ package auth
 
 import (
 	"time"
-
-	"gorm.io/gorm"
 )
 
 // RevokedToken represents a token that has been revoked and should no longer be valid.
 // Tokens are stored by their SHA-256 hash to avoid storing raw token values.
+// Note: This model uses hard deletes (no DeletedAt field) to ensure revoked tokens
+// cannot be soft-undeleted. Cleanup is performed based on ExpiresAt timestamp.
 type RevokedToken struct {
-	ID        uint           `gorm:"primarykey"`
-	CreatedAt time.Time      `gorm:"index"`
-	DeletedAt gorm.DeletedAt `gorm:"index"`
+	ID        uint      `gorm:"primarykey"`
+	CreatedAt time.Time `gorm:"index"`
 
 	// TokenHash is the SHA-256 hash of the revoked token (hex encoded)
 	TokenHash string `gorm:"type:varchar(64);not null;uniqueIndex:idx_revoked_tokens_hash"`

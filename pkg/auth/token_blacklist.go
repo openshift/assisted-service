@@ -3,6 +3,7 @@ package auth
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
 	"sync"
 	"time"
 
@@ -15,11 +16,11 @@ import (
 // It uses both an in-memory cache for fast lookups and a database
 // for persistence across service restarts.
 type TokenBlacklist struct {
-	db     *gorm.DB
-	log    logrus.FieldLogger
-	cache  *cache.Cache
-	mu     sync.RWMutex
-	stopCh chan struct{}
+	db       *gorm.DB
+	log      logrus.FieldLogger
+	cache    *cache.Cache
+	stopCh   chan struct{}
+	stopOnce sync.Once
 }
 
 // NewTokenBlacklist creates a new TokenBlacklist instance.
@@ -141,8 +142,11 @@ func (b *TokenBlacklist) StartCleanupJob(interval time.Duration) {
 }
 
 // StopCleanupJob stops the background cleanup job.
+// This method is safe to call multiple times.
 func (b *TokenBlacklist) StopCleanupJob() {
-	close(b.stopCh)
+	b.stopOnce.Do(func() {
+		close(b.stopCh)
+	})
 }
 
 // InvalidateCache removes a token from the in-memory cache.
@@ -168,12 +172,8 @@ func isDuplicateKeyError(err error) bool {
 
 func containsAny(s string, substrs ...string) bool {
 	for _, substr := range substrs {
-		if len(s) >= len(substr) {
-			for i := 0; i <= len(s)-len(substr); i++ {
-				if s[i:i+len(substr)] == substr {
-					return true
-				}
-			}
+		if strings.Contains(s, substr) {
+			return true
 		}
 	}
 	return false

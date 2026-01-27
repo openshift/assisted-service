@@ -86,9 +86,11 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	if a.tokenBlacklist != nil {
 		isRevoked, err := a.tokenBlacklist.IsRevoked(token)
 		if err != nil {
-			a.log.WithError(err).Warn("Failed to check token revocation status")
-			// Continue with authentication even if check fails to avoid blocking valid requests
-		} else if isRevoked {
+			// Fail closed: block authentication when blacklist check cannot be performed
+			a.log.WithError(err).Error("Failed to check token revocation status, blocking authentication")
+			return nil, common.NewInfraError(http.StatusInternalServerError, err)
+		}
+		if isRevoked {
 			err := errors.Errorf("token has been revoked")
 			a.log.Debug(err)
 			return nil, common.NewInfraError(http.StatusUnauthorized, err)
