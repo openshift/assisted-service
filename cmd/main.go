@@ -70,6 +70,7 @@ import (
 	logconfig "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/pkg/ratelimit"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -184,6 +185,9 @@ var Options struct {
 
 	// SlowHostMonitorLogThreshold defines the duration after which hosts that take too long to process will be logged
 	SlowHostMonitorLogThreshold time.Duration `envconfig:"SLOW_HOST_MONITOR_LOG_THRESHOLD" default:"1s"`
+
+	// RateLimitConfig holds HTTP API rate limiting configuration
+	RateLimitConfig ratelimit.Config
 }
 
 func InitLogs(logLevel, logFormat string) *logrus.Logger {
@@ -778,6 +782,11 @@ func main() {
 	h = app.WithMetricsResponderMiddleware(h)
 	h = app.WithHealthMiddleware(h, []*thread.Thread{hostStateMonitor, clusterStateMonitor},
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
+
+	// Add rate limiting middleware to protect against DoS and brute force attacks
+	rateLimitMiddleware := Options.RateLimitConfig.CreateMiddleware(log.WithField("pkg", "ratelimit"))
+	h = rateLimitMiddleware.Handler(h)
+
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
 	if Options.GeneratorConfig.InstallInvoker != "agent-installer" {
