@@ -602,10 +602,11 @@ var _ = Describe("ValidatePEMCertificate", func() {
 	})
 
 	It("Wrong PEM block type", func() {
-		privateKeyPEM := `-----BEGIN RSA PRIVATE KEY-----
-MIIBOgIBAAJBALRiMLAHudeSA2ai8DNCX=
------END RSA PRIVATE KEY-----`
-		err := ValidatePEMCertificate([]byte(privateKeyPEM))
+		// Create a valid PEM structure with wrong type
+		wrongTypePEM := `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7
+-----END PRIVATE KEY-----`
+		err := ValidatePEMCertificate([]byte(wrongTypePEM))
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("invalid PEM type"))
 	})
@@ -624,6 +625,45 @@ MIIBOgIBAAJBALRiMLAHudeSA2ai8DNCX=
 		err := ValidatePEMCertificate(largeData)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed size"))
+	})
+
+	It("Valid certificate bundle with multiple certs (recursive validation)", func() {
+		cert1, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		cert2, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundle := cert1 + cert2
+		err = ValidatePEMCertificate([]byte(bundle))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Certificate bundle with trailing whitespace", func() {
+		cert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		certWithWhitespace := cert + "\n\n   \n"
+		err = ValidatePEMCertificate([]byte(certWithWhitespace))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Certificate bundle with expired second cert fails", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		expiredCert, err := generateExpiredCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundle := validCert + expiredCert
+		err = ValidatePEMCertificate([]byte(bundle))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate has expired"))
+	})
+
+	It("Malformed certificate data in PEM block", func() {
+		// Valid PEM structure but invalid certificate data
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		err := ValidatePEMCertificate([]byte(invalidCertPEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse X.509 certificate"))
 	})
 })
 
@@ -662,6 +702,45 @@ var _ = Describe("ValidatePEMCertificateBundle", func() {
 		err := ValidatePEMCertificateBundle(largeData)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed size"))
+	})
+
+	It("Wrong PEM block type in bundle", func() {
+		// Create a valid PEM structure with wrong type
+		wrongTypePEM := `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7
+-----END PRIVATE KEY-----`
+		err := ValidatePEMCertificateBundle([]byte(wrongTypePEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid PEM type"))
+	})
+
+	It("Malformed certificate data in bundle", func() {
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		err := ValidatePEMCertificateBundle([]byte(invalidCertPEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse certificate"))
+	})
+
+	It("Bundle with valid cert followed by invalid cert fails", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		bundle := validCert + invalidCertPEM
+		err = ValidatePEMCertificateBundle([]byte(bundle))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse certificate #2"))
+	})
+
+	It("Bundle allows expired certificates", func() {
+		expiredCert, err := generateExpiredCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		// ValidatePEMCertificateBundle allows expired certs unlike ValidatePEMCertificate
+		err = ValidatePEMCertificateBundle([]byte(expiredCert))
+		Expect(err).ToNot(HaveOccurred())
 	})
 })
 
