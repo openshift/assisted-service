@@ -46,7 +46,7 @@ require (
 	github.com/krishicks/yaml-patch v0.0.10
 	github.com/metal3-io/baremetal-operator/apis v0.2.0
 	github.com/moby/moby v27.2.1+incompatible
-	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
+	github.com/nmstate/nmstate/rust/src/go/nmstate/v2 v2.0.0-20250710121439-6d01ecf6c382
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.35.1
 	github.com/openshift-online/ocm-sdk-go v0.1.205
