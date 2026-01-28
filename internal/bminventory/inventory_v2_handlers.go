@@ -379,7 +379,7 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 
 	// Validate the certificate before processing
 	certData := []byte(params.IngressCertParams)
-	if err := pkgvalidations.ValidatePEMCertificateBundle(certData); err != nil {
+	if err := pkgvalidations.ValidatePEMCertificate(certData); err != nil {
 		log.WithError(err).Errorf("Invalid ingress certificate for cluster %s", params.ClusterID)
 		return installer.NewV2UploadClusterIngressCertBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Wrap(err, "invalid ingress certificate")))
