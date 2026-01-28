@@ -21139,22 +21139,20 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	})
 
 	It("kubeconfig presigned cluster is not in installed state", func() {
-		fullS3Path := fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig)
-
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fullS3Path, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+		// With the new validation, cluster state is checked before making S3 calls.
+		// Cluster without a valid status for kubeconfig download should return 409 Conflict.
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Path).Return(true, nil)
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: clusterID,
 			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 
 	It("presigned cluster credentials  - downloading no-ingress kubeconfig", func() {
-		status := models.ClusterStatusInstalling
+		// Use Finalizing status which is the earliest allowed state for kubeconfig download
+		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
@@ -21192,18 +21190,16 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	})
 
 	It("presigned cluster credentials download with invalid cluster id", func() {
+		// With the new validation, cluster existence is checked before making S3 calls.
+		// A non-existent cluster should return 404 Not Found.
 		clusterId := strToUUID(uuid.New().String())
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fullS3Name := fmt.Sprintf("%s/%s", clusterId.String(), constants.Kubeconfig)
-		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Name).Return(true, nil)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fullS3Name, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: *clusterId,
 			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
 	})
 })
 
