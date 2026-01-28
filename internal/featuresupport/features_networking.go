@@ -595,7 +595,7 @@ func (feature *NoneNetworkTypeFeature) getId() models.FeatureSupportLevelID {
 }
 
 func (feature *NoneNetworkTypeFeature) GetName() string {
-	return "No CNI (Custom)"
+	return "None CNI"
 }
 
 func (feature *NoneNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {

@@ -9,6 +9,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
@@ -708,6 +709,89 @@ var _ = Describe("Network type matches high control plane count", func() {
 	}
 })
 
+var _ = Describe("Third-Party CNI Network Type Validation", func() {
+	var (
+		validator         clusterValidator
+		preprocessContext *clusterPreprocessContext
+		clusterID         strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{log: logrus.New()}
+		preprocessContext = &clusterPreprocessContext{}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	DescribeTable("validates network types",
+		func(networkType string, expectedStatus ValidationStatus, expectedMessage string) {
+			preprocessContext.cluster = &common.Cluster{Cluster: models.Cluster{
+				ID:          &clusterID,
+				NetworkType: &networkType,
+			}}
+			status, message := validator.isNetworkTypeValid(preprocessContext)
+			Expect(status).Should(Equal(expectedStatus))
+			Expect(message).Should(ContainSubstring(expectedMessage))
+		},
+		Entry("Cilium is valid", models.ClusterNetworkTypeCilium, ValidationSuccess, "valid network type"),
+		Entry("Calico is valid", models.ClusterNetworkTypeCalico, ValidationSuccess, "valid network type"),
+		Entry("CiscoACI is valid", models.ClusterNetworkTypeCiscoACI, ValidationSuccess, "valid network type"),
+		Entry("None is valid", models.ClusterNetworkTypeNone, ValidationSuccess, "valid network type"),
+		Entry("Invalid type fails", "InvalidNetworkType", ValidationFailure, "not valid"),
+	)
+})
+
+var _ = Describe("IPv6 Network Type Compatibility", func() {
+	var (
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Allows IPv6 with Cilium network type", func() {
+		networkType := models.ClusterNetworkTypeCilium
+		clusterNetworks := []*models.ClusterNetwork{
+			{Cidr: "2001:db8::/64", ClusterID: clusterID},
+		}
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			NetworkType:     &networkType,
+			ClusterNetworks: clusterNetworks,
+		}}
+		result := hasClusterNetworksUnsupportedByNetworkType(cluster)
+		Expect(result).Should(BeFalse())
+	})
+
+	It("Allows IPv6 with None (custom CNI) network type", func() {
+		networkType := models.ClusterNetworkTypeNone
+		clusterNetworks := []*models.ClusterNetwork{
+			{Cidr: "2001:db8::/64", ClusterID: clusterID},
+		}
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			NetworkType:     &networkType,
+			ClusterNetworks: clusterNetworks,
+		}}
+		result := hasClusterNetworksUnsupportedByNetworkType(cluster)
+		Expect(result).Should(BeFalse())
+	})
+
+	It("Rejects IPv6 with OpenShiftSDN network type", func() {
+		networkType := models.ClusterNetworkTypeOpenShiftSDN
+		clusterNetworks := []*models.ClusterNetwork{
+			{Cidr: "2001:db8::/64", ClusterID: clusterID},
+		}
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:              &clusterID,
+			NetworkType:     &networkType,
+			ClusterNetworks: clusterNetworks,
+		}}
+		result := hasClusterNetworksUnsupportedByNetworkType(cluster)
+		Expect(result).Should(BeTrue())
+	})
+})
+
 var _ = Describe("Validator tests", func() {
 	var (
 		validator         clusterValidator
@@ -887,6 +971,130 @@ var _ = Describe("skipNetworkHostPrefixCheck", func() {
 
 		skipped := validator.skipNetworkHostPrefixCheck(preprocessContext)
 		Expect(skipped).Should(Equal(true))
+	})
+})
+
+var _ = Describe("getEffectiveNetworkType", func() {
+	var (
+		validator clusterValidator
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{log: logrus.New()}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Returns cluster NetworkType when no InstallConfigOverrides are set", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:          &clusterID,
+			NetworkType: &networkType,
+		}}
+
+		result := validator.getEffectiveNetworkType(cluster)
+		Expect(result).Should(Equal(models.ClusterNetworkTypeOVNKubernetes))
+	})
+
+	It("Returns InstallConfigOverrides networkType when set", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		installCfgOverrides := "{\"networking\":{\"networkType\":\"Calico\"}}"
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		result := validator.getEffectiveNetworkType(cluster)
+		Expect(result).Should(Equal("Calico"))
+	})
+
+	It("Returns cluster NetworkType when InstallConfigOverrides has no networkType", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		installCfgOverrides := "{\"baseDomain\":\"example.com\"}"
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		result := validator.getEffectiveNetworkType(cluster)
+		Expect(result).Should(Equal(models.ClusterNetworkTypeOVNKubernetes))
+	})
+
+	It("Returns cluster NetworkType when InstallConfigOverrides is invalid JSON", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		installCfgOverrides := "invalid-json"
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		result := validator.getEffectiveNetworkType(cluster)
+		Expect(result).Should(Equal(models.ClusterNetworkTypeOVNKubernetes))
+	})
+})
+
+var _ = Describe("getCustomManifestRequirements with InstallConfigOverrides", func() {
+	var (
+		validator clusterValidator
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		validator = clusterValidator{log: logrus.New()}
+		clusterID = strfmt.UUID(uuid.New().String())
+	})
+
+	It("Does not require manifests when cluster NetworkType is None but override is OVN", func() {
+		networkType := models.ClusterNetworkTypeNone
+		installCfgOverrides := "{\"networking\":{\"networkType\":\"OVNKubernetes\"}}"
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		requirements := validator.getCustomManifestRequirements(cluster)
+		Expect(requirements).Should(BeEmpty())
+	})
+
+	It("Requires manifests when cluster NetworkType is OVN but override is Calico", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		installCfgOverrides := "{\"networking\":{\"networkType\":\"Calico\"}}"
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterID,
+			NetworkType:            &networkType,
+			InstallConfigOverrides: installCfgOverrides,
+		}}
+
+		requirements := validator.getCustomManifestRequirements(cluster)
+		Expect(requirements).Should(HaveLen(1))
+		Expect(requirements[0]).Should(Equal("Calico network type"))
+	})
+
+	It("Requires manifests when cluster NetworkType is None and no overrides", func() {
+		networkType := models.ClusterNetworkTypeNone
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:          &clusterID,
+			NetworkType: &networkType,
+		}}
+
+		requirements := validator.getCustomManifestRequirements(cluster)
+		Expect(requirements).Should(HaveLen(1))
+		Expect(requirements[0]).Should(Equal("None network type"))
+	})
+
+	It("Does not require manifests when cluster NetworkType is OVN and no overrides", func() {
+		networkType := models.ClusterNetworkTypeOVNKubernetes
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:          &clusterID,
+			NetworkType: &networkType,
+		}}
+
+		requirements := validator.getCustomManifestRequirements(cluster)
+		Expect(requirements).Should(BeEmpty())
 	})
 })
 

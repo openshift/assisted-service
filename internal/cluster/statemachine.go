@@ -126,6 +126,7 @@ func NewClusterStateMachine(th TransitionHandler) stateswitch.StateMachine {
 		If(IsMtvRequirementsSatisfied),
 		If(IsOscRequirementsSatisfied),
 		If(isNetworkTypeValid),
+		If(IsCustomManifestsRequirementsSatisfied),
 		If(NetworksSameAddressFamilies),
 		If(IsNodeFeatureDiscoveryRequirementsSatisfied),
 		If(IsNvidiaGPURequirementsSatisfied),

@@ -317,9 +317,16 @@ func (v *clusterValidator) areApiVipsValid(c *clusterPreprocessContext) (Validat
 }
 
 func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (ValidationStatus, string) {
-	validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
+	validNetworkTypes := []string{
+		models.ClusterNetworkTypeOVNKubernetes,
+		models.ClusterNetworkTypeOpenShiftSDN,
+		models.ClusterNetworkTypeCilium,
+		models.ClusterNetworkTypeCalico,
+		models.ClusterNetworkTypeCiscoACI,
+		models.ClusterNetworkTypeNone,
+	}
 	if !funk.ContainsString(validNetworkTypes, swag.StringValue(c.cluster.NetworkType)) && c.cluster.NetworkType != nil {
-		return ValidationFailure, "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
+		return ValidationFailure, "The network type is not valid; the valid network types are OpenShiftSDN, OVNKubernetes, Cilium, Calico, CiscoACI, or None"
 	}
 	if hasClusterNetworksUnsupportedByNetworkType(c.cluster) {
 		return ValidationFailure, "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
@@ -333,13 +340,74 @@ func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) (Vali
 	return ValidationSuccess, "The cluster has a valid network type"
 }
 
+func (v *clusterValidator) isCustomManifestsRequirementsSatisfied(c *clusterPreprocessContext) (ValidationStatus, string) {
+	requirements := v.getCustomManifestRequirements(c.cluster)
+	if len(requirements) == 0 {
+		return ValidationSuccess, "No custom manifests are required"
+	}
+
+	usages, err := usage.Unmarshal(c.cluster.Cluster.FeatureUsage)
+	if err != nil {
+		v.log.Errorf("Custom manifest validation failure, failed to parse feature usages: %s", err.Error())
+		return ValidationFailure, "Failed to parse feature usages"
+	}
+
+	hasManifests := false
+	for _, usg := range usages {
+		if usg.Name == usage.CustomManifest {
+			hasManifests = true
+			break
+		}
+	}
+
+	if hasManifests {
+		return ValidationSuccess, "Custom manifests are uploaded"
+	}
+
+	return ValidationFailure, fmt.Sprintf("Custom manifests are required for: %s. Please upload manifests via the custom manifests API.", strings.Join(requirements, ", "))
+}
+
+// getEffectiveNetworkType resolves the network type from InstallConfigOverrides if set,
+// otherwise returns the cluster's NetworkType field.
+func (v *clusterValidator) getEffectiveNetworkType(cluster *common.Cluster) string {
+	networkType := swag.StringValue(cluster.NetworkType)
+	if cluster.InstallConfigOverrides != "" {
+		overrideDecoder := json.NewDecoder(strings.NewReader(cluster.InstallConfigOverrides))
+
+		cfg := &installcfg.InstallerConfigBaremetal{}
+		if overrideDecoder.Decode(cfg) == nil && cfg.Networking.NetworkType != "" {
+			networkType = cfg.Networking.NetworkType
+		}
+	}
+	return networkType
+}
+
+// getCustomManifestRequirements returns features requiring custom manifests.
+// Currently, third-party CNIs require custom manifests to be uploaded.
+func (v *clusterValidator) getCustomManifestRequirements(cluster *common.Cluster) []string {
+	var requirements []string
+
+	networkType := v.getEffectiveNetworkType(cluster)
+	thirdPartyCNIs := []string{
+		models.ClusterNetworkTypeCilium,
+		models.ClusterNetworkTypeCalico,
+		models.ClusterNetworkTypeCiscoACI,
+		models.ClusterNetworkTypeNone,
+	}
+	if funk.ContainsString(thirdPartyCNIs, networkType) {
+		requirements = append(requirements, fmt.Sprintf("%s network type", networkType))
+	}
+
+	return requirements
+}
+
 func hasClusterNetworksUnsupportedByNetworkType(cluster *common.Cluster) bool {
 	return funk.Any(funk.Filter(common.GetNetworksCidrs(cluster), func(ip *string) bool {
 		if ip == nil {
 			return false
 		}
 		return network.IsIPv6CIDR(*ip)
-	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes
+	})) && cluster.NetworkType != nil && swag.StringValue(cluster.NetworkType) == models.ClusterNetworkTypeOpenShiftSDN
 }
 
 func isControlPlaneCountUnsupportedByNetworkType(cluster *common.Cluster) bool {
@@ -636,22 +704,7 @@ func (v *clusterValidator) skipNetworkHostPrefixCheck(c *clusterPreprocessContex
 	// list of known plugins that require hostPrefix to be set
 	var pluginsUsingHostPrefix = []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN}
 
-	networkType := swag.StringValue(c.cluster.NetworkType)
-	if c.cluster.InstallConfigOverrides != "" {
-		// use networkType from install-config overrides if set
-		overrideDecoder := json.NewDecoder(strings.NewReader(c.cluster.InstallConfigOverrides))
-		overrideDecoder.DisallowUnknownFields()
-
-		cfg := &installcfg.InstallerConfigBaremetal{}
-		if overrideDecoder.Decode(cfg) != nil {
-			v.log.Infof("could not decode install-config overrides %s", c.cluster.InstallConfigOverrides)
-			return false
-		}
-
-		if cfg.Networking.NetworkType != "" {
-			networkType = cfg.Networking.NetworkType
-		}
-	}
+	networkType := v.getEffectiveNetworkType(c.cluster)
 	if !funk.ContainsString(pluginsUsingHostPrefix, networkType) {
 		v.log.Infof("skipping network prefix check for %s", networkType)
 		return true
