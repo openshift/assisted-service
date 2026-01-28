@@ -16,10 +16,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
-	"github.com/pkg/errors"
-	"github.com/thoas/go-funk"
-	"gorm.io/gorm"
-
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
@@ -37,6 +33,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
+	"gorm.io/gorm"
 )
 
 const clusterOperatorReportKey string = "CLUSTER_OPERATORS_REPORT"
