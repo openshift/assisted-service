@@ -11,7 +11,7 @@ import (
 
 var _ = Describe("GetAuthTokenFromContext", func() {
 	It("returns token when context contains LocalAuthPayload", func() {
-		expectedToken := "test-jwt-token-12345"
+		expectedToken := "test-jwt-token-12345" // #nosec G101 - test data only
 		payload := &LocalAuthPayload{
 			AuthPayload: ocm.AdminPayload(),
 			Token:       expectedToken,

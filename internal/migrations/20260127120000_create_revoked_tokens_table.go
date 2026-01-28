@@ -8,11 +8,11 @@ import (
 func createRevokedTokensTable() *gormigrate.Migration {
 	migrate := func(db *gorm.DB) error {
 		// Create the revoked_tokens table for token blacklisting
+		// Note: No deleted_at column - tokens use hard deletes based on expires_at
 		err := db.Exec(`
 			CREATE TABLE IF NOT EXISTS revoked_tokens (
 				id SERIAL PRIMARY KEY,
 				created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-				deleted_at TIMESTAMP WITH TIME ZONE,
 				token_hash VARCHAR(64) NOT NULL,
 				revoked_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 				expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
