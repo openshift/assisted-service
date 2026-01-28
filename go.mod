@@ -59,7 +59,7 @@ require (
 	github.com/openshift/cluster-baremetal-operator v0.0.0-20240207191432-82df158cd2e9
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
-	github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379
+	github.com/openshift/hive/apis v0.0.0-20260127213836-e33d70397d57
 	github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b
 	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -72,7 +72,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
@@ -233,7 +233,7 @@ require (
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/cobra v1.8.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/testcontainers/testcontainers-go v0.29.1
 	github.com/ulikunitz/xz v0.5.11 // indirect
