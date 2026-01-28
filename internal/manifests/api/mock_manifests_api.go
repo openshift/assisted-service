@@ -97,6 +97,21 @@ func (mr *MockManifestsAPIMockRecorder) ListClusterManifestsInternal(arg0, arg1 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterManifestsInternal", reflect.TypeOf((*MockManifestsAPI)(nil).ListClusterManifestsInternal), arg0, arg1)
 }
 
+// UpdateClusterManifestInternal mocks base method.
+func (m *MockManifestsAPI) UpdateClusterManifestInternal(arg0 context.Context, arg1 manifests.V2UpdateClusterManifestParams) (*models.Manifest, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClusterManifestInternal", arg0, arg1)
+	ret0, _ := ret[0].(*models.Manifest)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateClusterManifestInternal indicates an expected call of UpdateClusterManifestInternal.
+func (mr *MockManifestsAPIMockRecorder) UpdateClusterManifestInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterManifestInternal", reflect.TypeOf((*MockManifestsAPI)(nil).UpdateClusterManifestInternal), arg0, arg1)
+}
+
 // V2CreateClusterManifest mocks base method.
 func (m *MockManifestsAPI) V2CreateClusterManifest(arg0 context.Context, arg1 manifests.V2CreateClusterManifestParams) middleware.Responder {
 	m.ctrl.T.Helper()
