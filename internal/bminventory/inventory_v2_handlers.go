@@ -235,25 +235,38 @@ func (b *bareMetalInventory) V2Logout(ctx context.Context, params installer.V2Lo
 	// Parse token to get claims for entity info and expiration
 	entityID := ""
 	entityType := ""
-	expiresAt := time.Now().Add(gencrypto.DefaultTokenExpiration) // Default if no exp claim
+	var expiresAt time.Time
 
 	// Parse without validation to extract claims (token was already validated by auth middleware)
 	parser := &jwt.Parser{}
-	parsedToken, _, _ := parser.ParseUnverified(token, jwt.MapClaims{})
-	if parsedToken != nil {
-		if claims, ok := parsedToken.Claims.(jwt.MapClaims); ok {
-			if infraEnvID, ok := claims[string(gencrypto.InfraEnvKey)].(string); ok {
-				entityID = infraEnvID
-				entityType = string(gencrypto.InfraEnvKey)
-			} else if clusterID, ok := claims[string(gencrypto.ClusterKey)].(string); ok {
-				entityID = clusterID
-				entityType = string(gencrypto.ClusterKey)
-			}
-			if exp, ok := claims["exp"].(float64); ok {
-				expiresAt = time.Unix(int64(exp), 0)
-			}
-		}
+	parsedToken, _, err := parser.ParseUnverified(token, jwt.MapClaims{})
+	if parsedToken == nil || err != nil {
+		log.WithError(err).Error("Failed to parse token for revocation")
+		return installer.NewV2LogoutInternalServerError()
 	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		log.Error("Failed to extract claims from token")
+		return installer.NewV2LogoutInternalServerError()
+	}
+
+	// Extract entity information
+	if infraEnvID, ok := claims[string(gencrypto.InfraEnvKey)].(string); ok {
+		entityID = infraEnvID
+		entityType = string(gencrypto.InfraEnvKey)
+	} else if clusterID, ok := claims[string(gencrypto.ClusterKey)].(string); ok {
+		entityID = clusterID
+		entityType = string(gencrypto.ClusterKey)
+	}
+
+	// LocalAuthenticator tokens MUST have an exp claim - reject tokens without it
+	exp, hasExp := claims["exp"].(float64)
+	if !hasExp {
+		log.WithField("entity_id", entityID).WithField("entity_type", entityType).Error("Token missing required 'exp' claim - LocalAuthenticator tokens must have expiration")
+		return installer.NewV2LogoutInternalServerError()
+	}
+	expiresAt = time.Unix(int64(exp), 0)
 
 	// Add token to blacklist
 	if err := blacklist.Revoke(token, expiresAt, entityID, entityType, "user_logout"); err != nil {
