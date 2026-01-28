@@ -839,7 +839,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		return c.InstallerAPI.V2UploadClusterIngressCert(ctx, params)
 	})
 	api.ServerShutdown = func() {}
-
 	return api.Serve(c.InnerMiddleware), api, nil
 }
 
