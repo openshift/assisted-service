@@ -181,11 +181,11 @@ type InstallerAPI interface {
 	/* V2ListClusters Retrieves the list of OpenShift clusters. */
 	V2ListClusters(ctx context.Context, params installer.V2ListClustersParams) middleware.Responder
 
-	/* V2Logout Logout and revoke the current authentication token. */
-	V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder
-
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
+
+	/* V2Logout Logout and revoke the current authentication token. */
+	V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder
 
 	/* V2PostStepReply Posts the result of the operations from the host agent. */
 	V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder
@@ -721,6 +721,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.V2ListClusters(ctx, params)
 	})
+	api.InstallerV2ListHostsHandler = installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2ListHosts(ctx, params)
+	})
 	api.InstallerV2LogoutHandler = installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -735,11 +740,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.EventsAPI.V2ListEvents(ctx, params)
-	})
-	api.InstallerV2ListHostsHandler = installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.V2ListHosts(ctx, params)
 	})
 	api.VersionsV2ListReleaseSourcesHandler = versions.V2ListReleaseSourcesHandlerFunc(func(params versions.V2ListReleaseSourcesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

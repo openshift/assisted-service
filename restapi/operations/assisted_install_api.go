@@ -222,6 +222,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerV2ListClustersHandler: installer.V2ListClustersHandlerFunc(func(params installer.V2ListClustersParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2ListClusters has not yet been implemented")
 		}),
+		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
+		}),
 		InstallerV2LogoutHandler: installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2Logout has not yet been implemented")
 		}),
@@ -230,9 +233,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		EventsV2ListEventsHandler: events.V2ListEventsHandlerFunc(func(params events.V2ListEventsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation events.V2ListEvents has not yet been implemented")
-		}),
-		InstallerV2ListHostsHandler: installer.V2ListHostsHandlerFunc(func(params installer.V2ListHostsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.V2ListHosts has not yet been implemented")
 		}),
 		VersionsV2ListReleaseSourcesHandler: versions.V2ListReleaseSourcesHandlerFunc(func(params versions.V2ListReleaseSourcesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.V2ListReleaseSources has not yet been implemented")
@@ -507,14 +507,14 @@ type AssistedInstallAPI struct {
 	InstallerV2InstallHostHandler installer.V2InstallHostHandler
 	// InstallerV2ListClustersHandler sets the operation handler for the v2 list clusters operation
 	InstallerV2ListClustersHandler installer.V2ListClustersHandler
+	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
+	InstallerV2ListHostsHandler installer.V2ListHostsHandler
 	// InstallerV2LogoutHandler sets the operation handler for the v2 logout operation
 	InstallerV2LogoutHandler installer.V2LogoutHandler
 	// VersionsV2ListComponentVersionsHandler sets the operation handler for the v2 list component versions operation
 	VersionsV2ListComponentVersionsHandler versions.V2ListComponentVersionsHandler
 	// EventsV2ListEventsHandler sets the operation handler for the v2 list events operation
 	EventsV2ListEventsHandler events.V2ListEventsHandler
-	// InstallerV2ListHostsHandler sets the operation handler for the v2 list hosts operation
-	InstallerV2ListHostsHandler installer.V2ListHostsHandler
 	// VersionsV2ListReleaseSourcesHandler sets the operation handler for the v2 list release sources operation
 	VersionsV2ListReleaseSourcesHandler versions.V2ListReleaseSourcesHandler
 	// VersionsV2ListSupportedOpenshiftVersionsHandler sets the operation handler for the v2 list supported openshift versions operation
@@ -830,6 +830,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerV2ListClustersHandler == nil {
 		unregistered = append(unregistered, "installer.V2ListClustersHandler")
 	}
+	if o.InstallerV2ListHostsHandler == nil {
+		unregistered = append(unregistered, "installer.V2ListHostsHandler")
+	}
 	if o.InstallerV2LogoutHandler == nil {
 		unregistered = append(unregistered, "installer.V2LogoutHandler")
 	}
@@ -838,9 +841,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.EventsV2ListEventsHandler == nil {
 		unregistered = append(unregistered, "events.V2ListEventsHandler")
-	}
-	if o.InstallerV2ListHostsHandler == nil {
-		unregistered = append(unregistered, "installer.V2ListHostsHandler")
 	}
 	if o.VersionsV2ListReleaseSourcesHandler == nil {
 		unregistered = append(unregistered, "versions.V2ListReleaseSourcesHandler")
@@ -1254,6 +1254,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/clusters"] = installer.NewV2ListClusters(o.context, o.InstallerV2ListClustersHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2ListHosts(o.context, o.InstallerV2ListHostsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1266,10 +1270,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/events"] = events.NewV2ListEvents(o.context, o.EventsV2ListEventsHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2ListHosts(o.context, o.InstallerV2ListHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
