@@ -5728,12 +5728,6 @@ func init() {
               "admin",
               "user"
             ]
-          },
-          {
-            "agentAuth": []
-          },
-          {
-            "urlAuth": []
           }
         ],
         "description": "Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.",
@@ -17231,12 +17225,6 @@ func init() {
               "admin",
               "user"
             ]
-          },
-          {
-            "agentAuth": []
-          },
-          {
-            "urlAuth": []
           }
         ],
         "description": "Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.",

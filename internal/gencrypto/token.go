@@ -18,8 +18,8 @@ const (
 )
 
 // DefaultTokenExpiration is the default expiration time for local JWT tokens.
-// Tokens will be valid for 24 hours from the time of creation.
-const DefaultTokenExpiration = 24 * time.Hour
+// Tokens will be valid for 1 hour from the time of creation.
+const DefaultTokenExpiration = 1 * time.Hour
 
 type CryptoPair struct {
 	JWTKeyType  LocalJWTKeyType

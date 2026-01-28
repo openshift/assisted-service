@@ -50,11 +50,13 @@ func (p *AuthPayload) GetAuthPayload() *AuthPayload {
 	return p
 }
 
-// PayloadFromContext returns auth payload from the specified context
+// PayloadFromContext returns auth payload from the specified context.
+// Returns nil if the context contains an unexpected principal type (e.g., jwt.MapClaims
+// from image auth) to prevent privilege escalation. Callers should handle nil appropriately.
 func PayloadFromContext(ctx context.Context) *AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
 	if payload == nil {
-		// fallback to system-admin
+		// fallback to system-admin for unauthenticated contexts
 		return AdminPayload()
 	}
 
@@ -68,24 +70,38 @@ func PayloadFromContext(ctx context.Context) *AuthPayload {
 		return provider.GetAuthPayload()
 	}
 
-	return AdminPayload()
+	// For any other type (e.g., jwt.MapClaims from image auth), return nil
+	// to prevent privilege escalation. Callers must handle nil appropriately.
+	return nil
 }
 
-// UserNameFromContext returns username from the specified context
+// UserNameFromContext returns username from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func UserNameFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Username
 }
 
-// OrgIDFromContext returns org ID from the specified context
+// OrgIDFromContext returns org ID from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func OrgIDFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Organization
 }
 
-// EmailFromContext returns email from the specified context
+// EmailFromContext returns email from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func EmailFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Email
 }
 
