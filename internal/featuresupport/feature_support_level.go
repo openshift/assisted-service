@@ -29,6 +29,10 @@ var featuresList = map[models.FeatureSupportLevelID]SupportLevelFeature{
 	models.FeatureSupportLevelIDPLATFORMMANAGEDNETWORKING: (&PlatformManagedNetworkingFeature{}).New(),
 	models.FeatureSupportLevelIDSDNNETWORKTYPE:            (&SDNNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDOVNNETWORKTYPE:            (&OVNNetworkTypeFeature{}).New(),
+	models.FeatureSupportLevelIDCILIUMNETWORKTYPE:         (&CiliumNetworkTypeFeature{}).New(),
+	models.FeatureSupportLevelIDCALICONETWORKTYPE:         (&CalicoNetworkTypeFeature{}).New(),
+	models.FeatureSupportLevelIDCISCOACINETWORKTYPE:       (&CiscoACINetworkTypeFeature{}).New(),
+	models.FeatureSupportLevelIDNONENETWORKTYPE:           (&NoneNetworkTypeFeature{}).New(),
 	models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER:   (&UserManagedLoadBalancerFeature{}).New(),
 	models.FeatureSupportLevelIDDUALSTACKPRIMARYIPV6:      (&DualStackPrimaryIPv6Feature{}).New(),
 
