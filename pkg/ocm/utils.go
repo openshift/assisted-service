@@ -38,6 +38,18 @@ func AdminPayload() *AuthPayload {
 	return &AuthPayload{Role: AdminRole, Username: AdminUsername}
 }
 
+// AuthPayloadProvider is an interface for types that can provide an AuthPayload.
+// This allows LocalAuthPayload (which embeds *AuthPayload) to be used interchangeably
+// with *AuthPayload in context-based payload extraction.
+type AuthPayloadProvider interface {
+	GetAuthPayload() *AuthPayload
+}
+
+// GetAuthPayload implements AuthPayloadProvider for *AuthPayload
+func (p *AuthPayload) GetAuthPayload() *AuthPayload {
+	return p
+}
+
 // PayloadFromContext returns auth payload from the specified context
 func PayloadFromContext(ctx context.Context) *AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
@@ -45,11 +57,18 @@ func PayloadFromContext(ctx context.Context) *AuthPayload {
 		// fallback to system-admin
 		return AdminPayload()
 	}
-	authPayload, ok := payload.(*AuthPayload)
-	if !ok {
-		return AdminPayload()
+
+	// Try direct *AuthPayload first
+	if authPayload, ok := payload.(*AuthPayload); ok {
+		return authPayload
 	}
-	return authPayload
+
+	// Try AuthPayloadProvider interface (handles LocalAuthPayload and similar wrappers)
+	if provider, ok := payload.(AuthPayloadProvider); ok {
+		return provider.GetAuthPayload()
+	}
+
+	return AdminPayload()
 }
 
 // UserNameFromContext returns username from the specified context

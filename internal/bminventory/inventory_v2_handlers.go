@@ -204,27 +204,13 @@ func (b *bareMetalInventory) V2Logout(ctx context.Context, params installer.V2Lo
 		return installer.NewV2LogoutOK()
 	}
 
-	// Extract the token from auth sources that LocalAuthenticator supports.
-	// LocalAuthenticator only handles:
-	// - agentAuth: X-Secret-Key header
-	// - urlAuth: api_key query parameter
-	// Note: Authorization header (userAuth) is NOT used by LocalAuthenticator
-	var token string
-
-	// Try X-Secret-Key header (agentAuth)
-	if secretKey := params.HTTPRequest.Header.Get("X-Secret-Key"); secretKey != "" {
-		token = secretKey
-	}
-
-	// Try api_key query parameter (urlAuth)
-	if token == "" {
-		if apiKey := params.HTTPRequest.URL.Query().Get("api_key"); apiKey != "" {
-			token = apiKey
-		}
-	}
-
-	if token == "" {
-		log.Debug("No authentication token found in request (checked X-Secret-Key header and api_key query param)")
+	// Get the authenticated token from context. The auth middleware already validated
+	// the token and stored it in context as part of LocalAuthPayload.
+	// This ensures we revoke exactly the token that was authenticated, not a different
+	// token from another header/query parameter.
+	token, ok := auth.GetAuthTokenFromContext(ctx)
+	if !ok || token == "" {
+		log.Debug("No authenticated token found in context")
 		return installer.NewV2LogoutUnauthorized()
 	}
 

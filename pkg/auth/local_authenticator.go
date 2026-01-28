@@ -129,7 +129,11 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
 	}
 
-	return ocm.AdminPayload(), nil
+	// Return LocalAuthPayload which includes the token for logout support
+	return &LocalAuthPayload{
+		AuthPayload: ocm.AdminPayload(),
+		Token:       token,
+	}, nil
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
