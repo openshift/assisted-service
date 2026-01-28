@@ -196,34 +196,36 @@ func (b *bareMetalInventory) V2ListClusters(ctx context.Context, params installe
 func (b *bareMetalInventory) V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	// Extract the token from the Authorization header
-	authHeader := params.HTTPRequest.Header.Get("Authorization")
-	if authHeader == "" {
-		// Try api_key query parameter
-		authHeader = params.HTTPRequest.URL.Query().Get("api_key")
-	}
-	if authHeader == "" {
-		// Try X-Secret-Key header (agent auth)
-		authHeader = params.HTTPRequest.Header.Get("X-Secret-Key")
-	}
-
-	if authHeader == "" {
-		log.Debug("No authentication token found in request")
-		return installer.NewV2LogoutUnauthorized()
-	}
-
-	// Remove "Bearer " prefix if present
-	token := authHeader
-	if len(authHeader) > 7 && authHeader[:7] == "Bearer " {
-		token = authHeader[7:]
-	}
-
-	// Get the token blacklist from the authenticator if available
+	// Check if we have a LocalAuthenticator - token revocation is only supported for local auth
 	localAuth, ok := b.authHandler.(*auth.LocalAuthenticator)
 	if !ok {
 		// For non-local auth (like RHSSO), logout is handled by the identity provider
 		log.Info("Logout requested but token revocation is only supported for local authentication")
 		return installer.NewV2LogoutOK()
+	}
+
+	// Extract the token from auth sources that LocalAuthenticator supports.
+	// LocalAuthenticator only handles:
+	// - agentAuth: X-Secret-Key header
+	// - urlAuth: api_key query parameter
+	// Note: Authorization header (userAuth) is NOT used by LocalAuthenticator
+	var token string
+
+	// Try X-Secret-Key header (agentAuth)
+	if secretKey := params.HTTPRequest.Header.Get("X-Secret-Key"); secretKey != "" {
+		token = secretKey
+	}
+
+	// Try api_key query parameter (urlAuth)
+	if token == "" {
+		if apiKey := params.HTTPRequest.URL.Query().Get("api_key"); apiKey != "" {
+			token = apiKey
+		}
+	}
+
+	if token == "" {
+		log.Debug("No authentication token found in request (checked X-Secret-Key header and api_key query param)")
+		return installer.NewV2LogoutUnauthorized()
 	}
 
 	blacklist := localAuth.GetTokenBlacklist()
