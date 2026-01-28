@@ -142,11 +142,11 @@ const minimalOpenShiftVersionForNutanix = "4.11.0-0.0"
 
 // Security limits for input validation
 const (
-	maxHTTPHeaders       = 20
-	maxHTTPHeaderKeyLen  = 256
-	maxHTTPHeaderValLen  = 4096
-	maxDiskParams        = 100
-	maxNodeLabels        = 50
+	maxHTTPHeaders      = 20
+	maxHTTPHeaderKeyLen = 256
+	maxHTTPHeaderValLen = 4096
+	maxDiskParams       = 100
+	maxNodeLabels       = 50
 )
 
 // httpHeaderKeyRegex validates HTTP header keys according to RFC 7230
