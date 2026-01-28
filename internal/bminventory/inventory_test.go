@@ -11833,17 +11833,17 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
-	It("V2UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
+	It("V2UploadClusterIngressCert bad ingressCa, certificate validation failure", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
-		objectExists()
-		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil)
+		// With certificate validation, invalid PEM format is rejected early with BadRequest (400)
+		// before any S3 operations occur, so no mock expectations are needed
 		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: "bad format",
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertBadRequest()))
 	})
 
 	It("V2UploadClusterIngressCert push fails", func() {

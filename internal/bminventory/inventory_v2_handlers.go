@@ -828,6 +828,12 @@ func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, p
 func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
+	// Presigned URL only works with AWS S3 because Scality is not exposed
+	// Check this first to fail fast for non-AWS backends
+	if !b.objectHandler.IsAwsS3() {
+		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
+	}
+
 	// Validate file name and check access permissions (prevents path traversal attacks)
 	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
 		return common.GenerateErrorResponder(err)
@@ -836,11 +842,6 @@ func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Con
 	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
 		payload := common.GenerateInfraError(http.StatusForbidden, err)
 		return installer.NewV2GetPresignedForClusterCredentialsForbidden().WithPayload(payload)
-	}
-
-	// Presigned URL only works with AWS S3 because Scality is not exposed
-	if !b.objectHandler.IsAwsS3() {
-		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
 
 	fileName := params.FileName
