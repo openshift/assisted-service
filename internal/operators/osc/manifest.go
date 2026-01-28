@@ -83,7 +83,7 @@ func generateCustomManifests(namespace string) ([]byte, error) {
 		template string
 	}{
 		{map[string]string{"TDX_MC_NAME": "99-enable-intel-tdx"}, "kataccMcManifest", kataccMcManifest},
-		{map[string]string{"NFD_NAMESPACE": "openshift-nfd", "NFD_NAME": "nfd-instance"}, "kataccNfdManifest", kataccNfdManifest},
+		{map[string]string{"NFD_NAME": "nfd-instance", "NFD_NAMESPACE": "openshift-nfd"}, "kataccNfdManifest", kataccNfdManifest},
 		{map[string]string{"OSC_RULES_NAME": "osc-rules", "NFD_NAMESPACE": "openshift-nfd"}, "oscRulesManifest", oscRulesManifest},
 		{map[string]string{"INTEL_NFR_NAME": "intel-dp-devices", "INTE_NFR_NAMESPACE": "openshift-nfd"}, "intelNfrManifest", intelNfrManifest},
 		{map[string]string{"AMD_NFR_NAME": "amd-sev-snp", "AMD_NFR_NAMESPACE": "openshift-nfd"}, "amdNfrManifest", amdNfrManifest},
@@ -135,17 +135,8 @@ spec:
   sourceNamespace: openshift-marketplace
   name: {{.OPERATOR_SOURCE_NAME}}
   installPlanApproval: Automatic
-`
-
-const oscKataconfigManifest = `
-apiVersion: kataconfiguration.openshift.io/v1
-kind: KataConfig
-metadata:
-  name: cluster-kataconfig
-  namespace: {{.OPERATOR_NAMESPACE}}
-spec:
-  enablePeerPods: false
-  logLevel: info
+  channel: stable
+  startingCSV: sandboxed-containers-operator.v1.11.1
 `
 
 const kataccMcManifest = `
@@ -276,4 +267,15 @@ metadata:
 data:
   confidential: "true"
   deploymentMode: MachineConfig
+`
+
+const oscKataconfigManifest = `
+apiVersion: kataconfiguration.openshift.io/v1
+kind: KataConfig
+metadata:
+  name: cluster-kataconfig
+  namespace: {{.OPERATOR_NAMESPACE}}
+spec:
+  enablePeerPods: false
+  logLevel: info
 `
