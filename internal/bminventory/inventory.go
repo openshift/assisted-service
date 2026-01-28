@@ -393,6 +393,7 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
+// TODO: handle defaults for dual-stack clusters with primary IPv6
 func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.V2RegisterClusterParams) (installer.V2RegisterClusterParams, error) {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -615,6 +616,9 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 	}
 	if err := validations.ValidateClusterCreateIPAddresses(b.IPv6Support, id, params.NewClusterParams, primaryIPStack); err != nil {
 		b.log.WithError(err).Error("Cannot register cluster. Failed VIP validations")
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	if err := validations.ValidateNetworkCIDRs(params.NewClusterParams.MachineNetworks, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
@@ -1413,11 +1417,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
-
-	b.orderClusterNetworks(cluster)
-
 	var autoAssigned bool
-
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		var updated bool
@@ -1470,8 +1470,6 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		if cluster, err = common.GetClusterFromDBWithHosts(b.db, params.ClusterID); err != nil {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
-
-		b.orderClusterNetworks(cluster)
 	}
 	// Verify cluster is ready to install
 	if ok, reason := b.clusterApi.IsReadyForInstallation(cluster); !ok {
@@ -1497,8 +1495,6 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return nil, err
 	}
-
-	b.orderClusterNetworks(cluster)
 
 	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
 		b.log.WithError(err).Errorf("Failed to generate additional cluster manifest")
@@ -1835,7 +1831,6 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 			log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 			return err
 		}
-		b.orderClusterNetworks(cluster)
 
 		clusterInfraenvs, err = b.getClusterInfraenvs(cluster)
 		if err != nil {
@@ -2082,6 +2077,11 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name, platform); err != nil {
 			return installer.V2UpdateClusterParams{}, err
 		}
+	}
+
+	if err := validations.ValidateNetworkCIDRs(params.ClusterUpdateParams.MachineNetworks, params.ClusterUpdateParams.ServiceNetworks, params.ClusterUpdateParams.ClusterNetworks); err != nil {
+		b.log.WithError(err).Errorf("Cluster %s failed network CIDR validations", params.ClusterID)
+		return installer.V2UpdateClusterParams{}, err
 	}
 
 	if err := validations.ValidateClusterUpdateVIPAddresses(b.IPv6Support, cluster, params.ClusterUpdateParams, primaryIPStack); err != nil {
@@ -2347,8 +2347,6 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return nil, err
 	}
-
-	b.orderClusterNetworks(cluster)
 
 	if cluster != nil {
 		notifiableCluster := stream.GetNotifiableCluster(cluster)
@@ -3502,8 +3500,6 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 			h.FreeAddresses = ""
 		}
 
-		b.orderClusterNetworks(c)
-
 		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
@@ -3530,8 +3526,6 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	if err != nil {
 		return nil, err
 	}
-
-	b.orderClusterNetworks(cluster)
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
@@ -4431,8 +4425,6 @@ func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, par
 		return nil, err
 	}
 
-	b.orderClusterNetworks(cluster)
-
 	return cluster, nil
 }
 
@@ -4663,8 +4655,6 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 		log.Error(err)
 		return nil, err
 	}
-
-	b.orderClusterNetworks(cluster)
 
 	return cluster, nil
 }
@@ -7089,7 +7079,6 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Contex
 	if err != nil {
 		return err
 	}
-	b.orderClusterNetworks(cluster)
 
 	clusterInfraenvs, err := b.getClusterInfraenvs(cluster)
 	if err != nil {
@@ -7104,17 +7093,6 @@ func (b *bareMetalInventory) generateAgentInstallerKubeconfig(ctx context.Contex
 	b.log.Infof("ignition generated for cluster for agent installer kubeconfig %s", cluster.ID.String())
 
 	return nil
-}
-
-// orderClusterNetworks orders cluster networks according to PrimaryIPStack
-func (b *bareMetalInventory) orderClusterNetworks(cluster *common.Cluster) {
-	if cluster.PrimaryIPStack != nil {
-		cluster.ClusterNetworks = network.OrderNetworksByPrimaryStack(cluster.ClusterNetworks, *cluster.PrimaryIPStack).([]*models.ClusterNetwork)
-		cluster.ServiceNetworks = network.OrderNetworksByPrimaryStack(cluster.ServiceNetworks, *cluster.PrimaryIPStack).([]*models.ServiceNetwork)
-		cluster.MachineNetworks = network.OrderNetworksByPrimaryStack(cluster.MachineNetworks, *cluster.PrimaryIPStack).([]*models.MachineNetwork)
-		cluster.APIVips = network.OrderNetworksByPrimaryStack(cluster.APIVips, *cluster.PrimaryIPStack).([]*models.APIVip)
-		cluster.IngressVips = network.OrderNetworksByPrimaryStack(cluster.IngressVips, *cluster.PrimaryIPStack).([]*models.IngressVip)
-	}
 }
 
 // extractMirroredRegistriesFromConfig takes a MirrorRegistryConfiguration and returns a list of source
