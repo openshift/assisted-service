@@ -941,8 +941,8 @@ github.com/openshift-online/ocm-sdk-go v0.1.467/go.mod h1:EOkylgH0bafd+SlU9YvMrI
 github.com/openshift/api v0.0.0-20200326160804-ecb9283fe820/go.mod h1:RKMJ5CBnljLfnej+BJ/xnOWc3kZDvJUaIAEq2oKSPtE=
 github.com/openshift/api v0.0.0-20200827090112-c05698d102cf/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
 github.com/openshift/api v0.0.0-20200829102639-8a3a835f1acf/go.mod h1:M3xexPhgM8DISzzRpuFUy+jfPjQPIcs9yqEYj17mXV8=
-github.com/openshift/api v0.0.0-20251119073004-138912d4ee99 h1:VGkPn3iO7ZapVYtUd7Lj1tE2ZwRfOOUVFzoA/sWlWDc=
-github.com/openshift/api v0.0.0-20251119073004-138912d4ee99/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
+github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42 h1:Mo2FlDdoCZ+BE2W4C0lNcxEDeIIhfsYFP6vj4Sggp8w=
+github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
 github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf h1:cBRHiPeMKGWX1ml1rLvMm1ILTJQqLC0AVhTDSJIaIDY=
 github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf/go.mod h1:C/h+zRheayk9F6NxH7t2D26p++o4bRpMf/CV4Lovp9E=
 github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e h1:wxkrIEx1lA6vdGAuBAgXmOVDJ+vX+4nhc7Cgu2jszSg=
@@ -962,8 +962,8 @@ github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b2
 github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f/go.mod h1:/CLsleDcQ6AFTGKJe9VL3Y4rB9DqX3fQwQv47q2/ZJc=
 github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d h1:iQfTKBmMcwFTxxVWV7U/C6GqgIIWTKD8l5HXslvn53s=
 github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d/go.mod h1:XYTD2NtWslqkgxebSiOHnXEap4TF09sJSc7H1sXbhtI=
-github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379 h1:XBazcnuEEhbjtmQbk4R1FU9zi2BXTi/aVq54qlbvcBY=
-github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379/go.mod h1:B8r0x5pxVdoVmZNIiiTIonvarlstfasBleqXqpw2nP8=
+github.com/openshift/hive/apis v0.0.0-20260127213836-e33d70397d57 h1:Jk9HVqFTkNNxCB4gaCMaDH4bAYsPuFTwbiPGJy2bKg4=
+github.com/openshift/hive/apis v0.0.0-20260127213836-e33d70397d57/go.mod h1:20tnfMYPSXqVDypUaO2vmxOtFzWj5l2KdZ+zYENpycI=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b h1:SDdbzE3oW2qs7AJj4DT5gk8HDkZYR8DTT1ZfyBhECZ8=
 github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b/go.mod h1:G9yHOogitMOA0R5UWFmFup00E6nik8Sns/tCYYBU7jE=
 github.com/openshift/library-go v0.0.0-20191003152030-97c62d8a2901/go.mod h1:NBttNjZpWwup/nthuLbPAPSYC8Qyo+BBK5bCtFoyYjo=
@@ -1045,8 +1045,8 @@ github.com/rogpeppe/go-internal v1.2.2/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFR
 github.com/rogpeppe/go-internal v1.3.0/go.mod h1:M8bDsm7K2OlrFYOpmOWEs/qY81heoFRclV5y23lUDJ4=
 github.com/rogpeppe/go-internal v1.9.0/go.mod h1:WtVeX8xhTBvf0smdhujwtBcq4Qrzq/fJaraNFVN+nFs=
 github.com/rogpeppe/go-internal v1.10.0/go.mod h1:UQnix2H7Ngw/k4C5ijL5+65zddjncjaFoBhdsK/akog=
-github.com/rogpeppe/go-internal v1.12.0 h1:exVL4IDcn6na9z1rAb56Vxr+CgyK3nn3O+epU5NdKM8=
-github.com/rogpeppe/go-internal v1.12.0/go.mod h1:E+RYuTGaKKdloAfM02xzb0FW3Paa99yedzYV+kq4uf4=
+github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0tI/otEQ=
+github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/rs/cors v1.11.1 h1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=
 github.com/rs/cors v1.11.1/go.mod h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=
 github.com/rs/xid v1.2.1/go.mod h1:+uKXf+4Djp6Md1KODXJxgGQPKngRmWyn10oCKFzNHOQ=
@@ -1117,8 +1117,8 @@ github.com/spf13/pflag v1.0.1/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnIn
 github.com/spf13/pflag v1.0.3/go.mod h1:DYY7MBk1bdzusC3SYhjObp+wFpr4gzcvqqNjLnInEg4=
 github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
-github.com/spf13/pflag v1.0.6 h1:jFzHGLGAlb3ruxLB8MhbI6A8+AQX/2eW4qeyNZXNp2o=
-github.com/spf13/pflag v1.0.6/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
+github.com/spf13/pflag v1.0.10 h1:4EBh2KAYBwaONj6b2Ye1GiHfwjqyROoF4RwYO+vPwFk=
+github.com/spf13/pflag v1.0.10/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An2Bg=
 github.com/spf13/viper v1.0.2/go.mod h1:A8kyI5cUJhb8N+3pkfONlcEcZbueH6nhAm0Fq7SrnBM=
 github.com/spf13/viper v1.4.0/go.mod h1:PTJ7Z/lr49W6bUbkmS1V3by4uWynFiR9p7+dSq/yZzE=
 github.com/stoewer/go-strcase v1.2.0/go.mod h1:IBiWB2sKIp3wVVQ3Y035++gc+knqhUQag1KpM8ahLw8=
