@@ -655,7 +655,7 @@ var _ = Describe("findByHostname logging", func() {
 			}
 
 			// Should return nil (no match) but not error
-			result := configs.findByHostname(inventory)
+			result := configs.findByHostname("test-host-id", inventory)
 			Expect(result).To(BeNil())
 			// The warning "Host worker-0 did not match any fencing credential hostnames.
 			// Available hostnames in credentials: [master-0 master-1]" is logged
@@ -676,7 +676,7 @@ var _ = Describe("findByHostname logging", func() {
 			}
 
 			// Should return nil without logging (no hostname configs to match against)
-			result := configs.findByHostname(inventory)
+			result := configs.findByHostname("test-host-id", inventory)
 			Expect(result).To(BeNil())
 		})
 	})

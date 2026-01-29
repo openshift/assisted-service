@@ -89,7 +89,6 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	failures := []Failure{}
 
 	for _, host := range hostList.Payload {
-		// Apply host configuration (role, disk hints, fencing credentials)
 		if err := applyHostConfig(ctx, log, bmInventory, host, hostConfigs); err != nil {
 			if fail, ok := err.(Failure); ok {
 				failures = append(failures, fail)
@@ -137,32 +136,23 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 
 	// Apply all matching configs - each config contributes its attributes
 	for _, config := range configs {
-		var applied bool
-		var applyErr error
-
-		applied, applyErr = applyRootDeviceHints(log, host, inventory, config, updateParams)
+		applied, applyErr := applyRootDeviceHints(log, host, inventory, config, updateParams)
 		if applyErr != nil {
 			return applyErr
 		}
-		if applied {
-			changed = true
-		}
+		changed = changed || applied
 
 		applied, applyErr = applyRole(log, host, config, updateParams)
 		if applyErr != nil {
 			return applyErr
 		}
-		if applied {
-			changed = true
-		}
+		changed = changed || applied
 
 		applied, applyErr = applyFencingCredentials(log, host, config, updateParams)
 		if applyErr != nil {
 			return applyErr
 		}
-		if applied {
-			changed = true
-		}
+		changed = changed || applied
 	}
 
 	if !changed {
@@ -240,6 +230,7 @@ func applyRole(log *log.Logger, host *models.Host, config *hostConfig, updatePar
 		return false, err
 	}
 	if role == nil {
+		log.Info("No role configured")
 		return false, nil
 	}
 
@@ -293,8 +284,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		hostPath := path.Join(hostConfigDir, e.Name())
 		log.Infof("Reading directory %s", hostPath)
 
-		var macs []byte
-		macs, err = os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
+		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
 		if os.IsNotExist(err) {
 			log.Info("No MAC Addresses file found")
 			continue
@@ -319,8 +309,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			// Filter out the other HostConfig entries because each day-2
 			// node is added in isolation using their own internal assisted-service
 			// instance.
-			var addHostConfig bool
-			addHostConfig, err = currentHostHasMACAddress(addresses)
+			addHostConfig, err := currentHostHasMACAddress(addresses)
 			if err != nil {
 				return nil, err
 			}
@@ -354,28 +343,28 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 }
 
 // hostConfig represents configuration for a single host, loaded from disk.
-// There are two types of hostConfig, distinguished by which fields are populated:
-//
-// MAC-based configs (for role and root device hints):
-//   - macAddresses is populated with the host's MAC addresses
-//   - configDir points to a per-host directory (e.g., /hostconfig/host-0/)
-//     containing "role" and "root-device-hints.yaml" files
-//   - hostname is empty
-//
-// Hostname-based configs (for fencing credentials):
-//   - hostname is populated with the host's expected hostname
-//   - configDir points to the parent directory (e.g., /hostconfig/)
-//     containing the shared "fencing-credentials.yaml" file
-//   - macAddresses is empty
-//
-// A single host can match both types of config, receiving attributes from each.
-// The attribute methods (Role, RootDeviceHints, FencingCredentials) use guard
-// clauses to return nil for config types that don't support that attribute.
+// There are two types of hostConfig: MAC-based (for role and root device hints)
+// and hostname-based (for fencing credentials). A host can match both types,
+// receiving attributes from each. Attribute methods use guard clauses to return
+// nil for config types that don't support that attribute.
 type hostConfig struct {
-	configDir    string
+	// configDir is the path to host configuration files.
+	// For MAC-based configs: per-host directory (e.g., /hostconfig/host-0/)
+	// containing "role" and "root-device-hints.yaml" files.
+	// For hostname-based configs: parent directory (e.g., /hostconfig/)
+	// containing the shared "fencing-credentials.yaml" file.
+	configDir string
+
+	// macAddresses identifies the host for MAC-based configs (role, root device hints).
+	// Empty for hostname-based configs.
 	macAddresses []string
-	hostname     string
-	hostID       strfmt.UUID
+
+	// hostname identifies the host for hostname-based configs (fencing credentials).
+	// Empty for MAC-based configs.
+	hostname string
+
+	// hostID is set when this config is matched to a registered host.
+	hostID strfmt.UUID
 }
 
 // currentHostHasMACAddress returns true if this host has a MAC address in addresses string array.
@@ -470,13 +459,11 @@ func (configs HostConfigs) findHostConfigs(hostID strfmt.UUID, inventory *models
 
 	var matched []*hostConfig
 
-	if macConfig := configs.findByMAC(inventory); macConfig != nil {
-		macConfig.hostID = hostID
+	if macConfig := configs.findByMAC(hostID, inventory); macConfig != nil {
 		matched = append(matched, macConfig)
 	}
 
-	if hostnameConfig := configs.findByHostname(inventory); hostnameConfig != nil {
-		hostnameConfig.hostID = hostID
+	if hostnameConfig := configs.findByHostname(hostID, inventory); hostnameConfig != nil {
 		matched = append(matched, hostnameConfig)
 	}
 
@@ -487,7 +474,7 @@ func (configs HostConfigs) findHostConfigs(hostID strfmt.UUID, inventory *models
 }
 
 // findByMAC returns the first hostConfig that matches any of the host's MAC addresses.
-func (configs HostConfigs) findByMAC(inventory *models.Inventory) *hostConfig {
+func (configs HostConfigs) findByMAC(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
 	for _, hc := range configs {
 		if len(hc.macAddresses) == 0 {
 			continue
@@ -499,6 +486,7 @@ func (configs HostConfigs) findByMAC(inventory *models.Inventory) *hostConfig {
 			for _, mac := range hc.macAddresses {
 				if nic.MacAddress == mac {
 					log.Infof("Found host config in %s (MAC match)", hc.configDir)
+					hc.hostID = hostID
 					return hc
 				}
 			}
@@ -510,7 +498,7 @@ func (configs HostConfigs) findByMAC(inventory *models.Inventory) *hostConfig {
 // findByHostname returns the hostConfig that matches the host's hostname.
 // If hostname-based configs exist but none match, logs a warning with available hostnames
 // to help diagnose hostname format mismatches (e.g., FQDN vs short name).
-func (configs HostConfigs) findByHostname(inventory *models.Inventory) *hostConfig {
+func (configs HostConfigs) findByHostname(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
 	var availableHostnames []string
 	for _, hc := range configs {
 		if hc.hostname == "" {
@@ -519,6 +507,7 @@ func (configs HostConfigs) findByHostname(inventory *models.Inventory) *hostConf
 		availableHostnames = append(availableHostnames, hc.hostname)
 		if hc.hostname == inventory.Hostname {
 			log.Infof("Found fencing config for hostname %s", hc.hostname)
+			hc.hostID = hostID
 			return hc
 		}
 	}
