@@ -2296,6 +2296,7 @@ var _ = Describe("bmac reconcile", func() {
 			agent.Status.Inventory = v1beta1.HostInventory{
 				Interfaces: []v1beta1.HostInterface{{MacAddress: macStr}},
 			}
+			agent.Status.Progress.CurrentStage = models.HostStageDone
 			Expect(c.Create(ctx, agent)).To(BeNil())
 		})
 
@@ -2518,6 +2519,116 @@ var _ = Describe("bmac reconcile", func() {
 
 				// Ensure 'paused' annotation exists
 				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
+			})
+		})
+	})
+
+	Describe("Unbound Agent", func() {
+		Context("when the BMH is provisioned", func() {
+			var (
+				bmh      *bmh_v1alpha1.BareMetalHost
+				agent    *v1beta1.Agent
+				infraEnv *v1beta1.InfraEnv
+			)
+			BeforeEach(func() {
+				macStr := "12-34-56-78-9A-BC"
+				agent = newAgent("bmac-agent", testNamespace, v1beta1.AgentSpec{})
+				agent.Status.Inventory = v1beta1.HostInventory{
+					ReportTime: &metav1.Time{Time: time.Now()},
+					Memory: v1beta1.HostMemory{
+						PhysicalBytes: 2,
+					},
+					Interfaces: []v1beta1.HostInterface{
+						{
+							Name: "eth0",
+							IPV4Addresses: []string{
+								"1.2.3.4",
+							},
+							IPV6Addresses: []string{
+								"1001:db8::10/120",
+							},
+							MacAddress: macStr,
+						},
+					},
+					Hostname: "worker",
+				}
+				infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+				infraEnv.Status.ISODownloadURL = "http://buzz.lightyear.io/discovery-image.iso"
+				infraEnv.Status.CreatedTime = &metav1.Time{Time: time.Now().Add(-1 * time.Hour)}
+				bmh = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{BootMACAddress: macStr})
+				bmh.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+				bmh.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
+				statusJson, err := json.Marshal(bmh.Status)
+				Expect(err).To(BeNil())
+				bmh.ObjectMeta.Labels = map[string]string{BMH_INFRA_ENV_LABEL: infraEnv.Name}
+				bmh.ObjectMeta.Annotations = map[string]string{
+					BMH_DETACHED_ANNOTATION:      "assisted-service-controller",
+					BMH_PAUSED_ANNOTATION:        "assisted-service-controller",
+					BMH_STATUS_ANNOTATION:        string(statusJson),
+					BMH_SPOKE_CREATED_ANNOTATION: time.Now().String(),
+				}
+				bmh.Spec.Image = &bmh_v1alpha1.Image{
+					URL: "http://buzz.lightyear.io/discovery-image.iso",
+				}
+
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   v1beta1.BoundCondition,
+						Status: corev1.ConditionTrue,
+						Reason: v1beta1.UnbindingPendingUserActionReason,
+					},
+				}
+				Expect(c.Create(ctx, bmh)).To(BeNil())
+				Expect(c.Create(ctx, infraEnv)).To(BeNil())
+				Expect(c.Create(ctx, agent)).To(BeNil())
+			})
+			It("should reattach the BMH by removing annotations and clearing the Image field", func() {
+				By("Reconciling the BMH")
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedBMH := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+				By("Checking that the annotations are removed")
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
+				By("Checking that the Image field is cleared")
+				Expect(updatedBMH.Spec.Image).To(BeNil())
+
+				By("Reconciling the BMH again should not re-add the removed annotations")
+				result, err = bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedBMH = &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+
+				By("Checking that the annotations are not re-added")
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).NotTo(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
+				By("Checking that the Image field is not re-added")
+				Expect(updatedBMH.Spec.Image).To(BeNil())
+			})
+			It("should not reattach if the BMH was not detached", func() {
+				delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+				Expect(c.Update(ctx, bmh)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(bmh))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedBMH := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: bmh.Name, Namespace: testNamespace}, updatedBMH)
+				Expect(err).To(BeNil())
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_PAUSED_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_STATUS_ANNOTATION))
+				Expect(updatedBMH.ObjectMeta.Annotations).To(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
+				Expect(updatedBMH.Spec.Image).NotTo(BeNil())
 			})
 		})
 	})
