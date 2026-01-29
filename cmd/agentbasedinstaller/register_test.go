@@ -124,7 +124,7 @@ spec:
 			// Cluster starts with no overrides
 			cluster.InstallConfigOverrides = ""
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedCluster).NotTo(BeNil())
@@ -141,7 +141,7 @@ spec:
 			// Cluster already has the correct overrides
 			cluster.InstallConfigOverrides = `{"fips": true}`
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedCluster).To(BeNil()) // No update needed
@@ -156,7 +156,7 @@ spec:
 			// Cluster has different overrides than manifest
 			cluster.InstallConfigOverrides = `{"fips": false}`
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedCluster).NotTo(BeNil())
@@ -174,7 +174,7 @@ spec:
 
 			cluster.InstallConfigOverrides = ""
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("API error"))
@@ -191,7 +191,7 @@ spec:
 
 			cluster.InstallConfigOverrides = ""
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed to get cluster after applying installConfig overrides"))
@@ -205,7 +205,7 @@ spec:
 			err := os.WriteFile(aciFilePath, []byte(aciNoOverride), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).NotTo(HaveOccurred())
 			Expect(updatedCluster).To(BeNil())
@@ -218,7 +218,7 @@ spec:
 			fakeLogger, _ := test.NewNullLogger()
 			invalidPath := filepath.Join(tempDir, "does-not-exist.yaml")
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, invalidPath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(invalidPath))
 
 			Expect(err).To(HaveOccurred())
 			Expect(updatedCluster).To(BeNil())
@@ -229,7 +229,7 @@ spec:
 			err := os.WriteFile(aciFilePath, []byte("invalid: yaml: content:"), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			Expect(err).To(HaveOccurred())
 			Expect(updatedCluster).To(BeNil())
@@ -245,7 +245,7 @@ spec:
 			// Cluster has invalid JSON in overrides
 			cluster.InstallConfigOverrides = "{invalid json}"
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			// Should succeed and apply the valid overrides
 			Expect(err).NotTo(HaveOccurred())
@@ -271,7 +271,7 @@ spec:
 			err := os.WriteFile(aciFilePath, []byte(invalidACI), 0600)
 			Expect(err).NotTo(HaveOccurred())
 
-			updatedCluster, err := ApplyInstallConfigOverrides(ctx, fakeLogger, bmInventory, cluster, aciFilePath)
+			updatedCluster, err := ApplyInstallConfigOverrides(os.DirFS(tempDir), ctx, fakeLogger, bmInventory, cluster, filepath.Base(aciFilePath))
 
 			// Should fail because new overrides are invalid
 			Expect(err).To(HaveOccurred())

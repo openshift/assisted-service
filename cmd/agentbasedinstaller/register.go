@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"os"
 	"reflect"
 	"regexp"
 
@@ -34,9 +33,9 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func GetPullSecret(pullSecretPath string) (string, error) {
+func GetPullSecret(fsys fs.FS, pullSecretPath string) (string, error) {
 	var secret corev1.Secret
-	if err := getFileData(pullSecretPath, &secret); err != nil {
+	if err := getFileData(fsys, pullSecretPath, &secret); err != nil {
 		return "", err
 	}
 
@@ -44,19 +43,19 @@ func GetPullSecret(pullSecretPath string) (string, error) {
 	return pullSecret, nil
 }
 
-func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
+func RegisterCluster(fsys fs.FS, ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, clusterDeploymentPath string,
 	agentClusterInstallPath string, clusterImageSetPath string, releaseImageMirror string, operatorInstallPath string, forceInsecurePolicyJson bool) (*models.Cluster, error) {
 
 	var result *models.Cluster
 	log.Info("Registering cluster")
 
 	var cd hivev1.ClusterDeployment
-	if cdErr := getFileData(clusterDeploymentPath, &cd); cdErr != nil {
+	if cdErr := getFileData(fsys, clusterDeploymentPath, &cd); cdErr != nil {
 		return nil, cdErr
 	}
 
 	var aci hiveext.AgentClusterInstall
-	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
+	if aciErr := getFileData(fsys, agentClusterInstallPath, &aci); aciErr != nil {
 		return nil, aciErr
 	}
 
@@ -80,7 +79,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	aci.Spec.IngressVIPs = controllers.IngressVipsArrayToStrings(desiredIngressVips)
 	aci.Spec.IngressVIP = ""
 
-	releaseImage, releaseError := getReleaseVersion(clusterImageSetPath)
+	releaseImage, releaseError := getReleaseVersion(fsys, clusterImageSetPath)
 	if releaseError != nil {
 		return nil, releaseError
 	}
@@ -92,13 +91,10 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	log.Infof("releaseImage version %s cpuarch %s", releaseImageVersion, releaseImageCPUArch)
 
 	var operatorInfo []*models.OperatorCreateParams
-	fileInfo, err := os.Stat(operatorInstallPath)
-	if err != nil && !os.IsNotExist(err) {
-		return nil, err
-	}
-	if fileInfo != nil {
+	_, err = fs.Stat(fsys, operatorInstallPath)
+	if err == nil {
 		var operatorList []models.OperatorCreateParams
-		if operatorInfoErr := getFileData(operatorInstallPath, &operatorList); operatorInfoErr != nil {
+		if operatorInfoErr := getFileData(fsys, operatorInstallPath, &operatorList); operatorInfoErr != nil {
 			return nil, operatorInfoErr
 		}
 
@@ -123,7 +119,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 	log.Infof("Registered cluster with id: %s", clusterResult.Payload.ID)
 
 	// Apply installConfig overrides if present
-	updatedCluster, err := ApplyInstallConfigOverrides(ctx, log, bmInventory, result, agentClusterInstallPath)
+	updatedCluster, err := ApplyInstallConfigOverrides(fsys, ctx, log, bmInventory, result, agentClusterInstallPath)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +133,9 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 // ApplyInstallConfigOverrides applies installConfig overrides to an existing cluster
 // if the AgentClusterInstall manifest contains override annotations.
 // Returns the updated cluster if overrides were applied, nil if no overrides present, or error on failure.
-func ApplyInstallConfigOverrides(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, cluster *models.Cluster, agentClusterInstallPath string) (*models.Cluster, error) {
+func ApplyInstallConfigOverrides(fsys fs.FS, ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, cluster *models.Cluster, agentClusterInstallPath string) (*models.Cluster, error) {
 	var aci hiveext.AgentClusterInstall
-	if aciErr := getFileData(agentClusterInstallPath, &aci); aciErr != nil {
+	if aciErr := getFileData(fsys, agentClusterInstallPath, &aci); aciErr != nil {
 		return nil, aciErr
 	}
 
@@ -197,13 +193,13 @@ func ApplyInstallConfigOverrides(ctx context.Context, log *log.Logger, bmInvento
 	return getClusterResult.GetPayload(), nil
 }
 
-func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
+func RegisterInfraEnv(fsys fs.FS, ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, pullSecret string, modelsCluster *models.Cluster,
 	infraEnvPath string, nmStateConfigPath string, imageTypeISO string, additionalTrustBundle string) (*models.InfraEnv, error) {
 
 	log.Info("Registering infraenv")
 
 	var infraEnv aiv1beta1.InfraEnv
-	if infraenvErr := getFileData(infraEnvPath, &infraEnv); infraenvErr != nil {
+	if infraenvErr := getFileData(fsys, infraEnvPath, &infraEnv); infraenvErr != nil {
 		return nil, infraenvErr
 	}
 
@@ -214,23 +210,55 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
 
 	var nmStateConfig aiv1beta1.NMStateConfig
+	var staticNetworkConfig []*models.HostStaticNetworkConfig
 
-	fileInfo, _ := os.Stat(nmStateConfigPath)
-	if fileInfo != nil {
-		if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
+	// Check if nmStateConfig file exists
+	_, err := fs.Stat(fsys, nmStateConfigPath)
+	if err == nil {
+		if nmStateErr := getFileData(fsys, nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
 			return nil, nmStateErr
 		}
 
-		staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
+		var processErr error
+		staticNetworkConfig, processErr = processNMStateConfig(log, infraEnv, nmStateConfig)
 		if processErr != nil {
 			return nil, processErr
 		}
 
 		if len(staticNetworkConfig) > 0 {
 			log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
-			infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 		}
 	}
+
+	// For ABI workflow, check if there are NetworkManager keyfiles in the live
+	// environment. If keyfiles exist (either from NMStateConfig or agent TUI),
+	// set a placeholder StaticNetworkConfig to ensure --copy-network flag is
+	// added to coreos-installer.
+	if len(staticNetworkConfig) == 0 {
+		if hasNetworkManagerKeyfiles(fsys) {
+			log.Info("NetworkManager keyfiles detected, setting placeholder StaticNetworkConfig to enable --copy-network")
+			// Create a minimal valid nmstate config with a dummy interface
+			// This passes validation while allowing the real network config to come from NetworkManager keyfiles
+			dummyNMState := `interfaces:
+  - name: dummy0
+    type: dummy
+    state: down
+    ipv4:
+      enabled: false
+    ipv6:
+      enabled: false
+`
+			staticNetworkConfig = []*models.HostStaticNetworkConfig{
+				{
+					MacInterfaceMap: models.MacInterfaceMap{
+						{LogicalNicName: "dummy0", MacAddress: "00:00:00:00:00:00"},
+					},
+					NetworkYaml: dummyNMState,
+				},
+			}
+		}
+	}
+	infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 
 	clientInfraEnvParams := &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: infraEnvParams.InfraenvCreateParams,
@@ -361,10 +389,10 @@ func GetInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.Assis
 	return infraEnvList[0], nil
 }
 
-// Read a Yaml file and unmarshal the contents
-func getFileData(filePath string, output interface{}) error {
+// Read a Yaml file from a filesystem and unmarshal the contents
+func getFileData(fsys fs.FS, filePath string, output interface{}) error {
 
-	contents, err := os.ReadFile(filePath)
+	contents, err := fs.ReadFile(fsys, filePath)
 	if err != nil {
 		err = fmt.Errorf("error reading file %s: %w", filePath, err)
 	} else if err = yaml.Unmarshal(contents, output); err != nil {
@@ -374,9 +402,9 @@ func getFileData(filePath string, output interface{}) error {
 	return err
 }
 
-func getReleaseVersion(clusterImageSetPath string) (string, error) {
+func getReleaseVersion(fsys fs.FS, clusterImageSetPath string) (string, error) {
 	var clusterImageSet hivev1.ClusterImageSet
-	if err := getFileData(clusterImageSetPath, &clusterImageSet); err != nil {
+	if err := getFileData(fsys, clusterImageSetPath, &clusterImageSet); err != nil {
 		return "", err
 	}
 	return clusterImageSet.Spec.ReleaseImage, nil
@@ -470,4 +498,25 @@ func normalizeJSON(jsonStr string) (string, error) {
 	}
 
 	return string(normalized), nil
+}
+
+// hasNetworkManagerKeyfiles checks if NetworkManager keyfiles exist in the system-connections directory.
+// These keyfiles are created when users configure static networking via NMStateConfig or the agent TUI.
+func hasNetworkManagerKeyfiles(fsys fs.FS) bool {
+	nmConnectionsDir := "etc/NetworkManager/system-connections"
+
+	entries, err := fs.ReadDir(fsys, nmConnectionsDir)
+	if err != nil {
+		// Directory doesn't exist or isn't readable
+		return false
+	}
+
+	// Check if there are any files in the directory
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			return true
+		}
+	}
+
+	return false
 }
