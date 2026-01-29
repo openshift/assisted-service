@@ -136,7 +136,6 @@ spec:
   name: {{.OPERATOR_SOURCE_NAME}}
   installPlanApproval: Automatic
   channel: stable
-  startingCSV: sandboxed-containers-operator.v1.11.1
 `
 
 const kataccMcManifest = `
