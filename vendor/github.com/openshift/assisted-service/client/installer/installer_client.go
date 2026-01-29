@@ -161,7 +161,7 @@ type API interface {
 	   V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.*/
 	V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error)
 	/*
-	   V2Logout Logout and revoke the current authentication token.*/
+	   V2Logout Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.*/
 	V2Logout(ctx context.Context, params *V2LogoutParams) (*V2LogoutOK, error)
 	/*
 	   V2PostStepReply Posts the result of the operations from the host agent.*/
@@ -1418,7 +1418,7 @@ func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V
 }
 
 /*
-V2Logout Logout and revoke the current authentication token.
+V2Logout Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.
 */
 func (a *Client) V2Logout(ctx context.Context, params *V2LogoutParams) (*V2LogoutOK, error) {
 
