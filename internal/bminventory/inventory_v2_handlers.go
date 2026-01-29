@@ -69,6 +69,12 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
 
+	// Enforce 253-character limit for DNS-compatible names (RFC 1035)
+	if len(clusterName) > 253 {
+		err := errors.New("cluster name must be 253 characters or fewer")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
 	// Validate cluster name format (DNS-compatible hostname)
 	// Use BareMetal platform type for validation as disconnected clusters don't specify a platform
 	if err := validations.ValidateClusterNameFormat(clusterName, string(models.PlatformTypeBaremetal)); err != nil {
@@ -377,16 +383,9 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("UploadClusterIngressCert for cluster %s with params %s", params.ClusterID, params.IngressCertParams)
 
-	// Validate the certificate before processing
-	certData := []byte(params.IngressCertParams)
-	if err := pkgvalidations.ValidatePEMCertificate(certData); err != nil {
-		log.WithError(err).Errorf("Invalid ingress certificate for cluster %s", params.ClusterID)
-		return installer.NewV2UploadClusterIngressCertBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Wrap(err, "invalid ingress certificate")))
-	}
-
 	var cluster common.Cluster
 
+	// Check if cluster exists first (return 404 if not found)
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -397,9 +396,18 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 		}
 	}
 
+	// Check cluster state for upload permission
 	if err := b.clusterApi.UploadIngressCert(&cluster); err != nil {
 		return installer.NewV2UploadClusterIngressCertBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	// Validate the certificate format and expiration
+	certData := []byte(params.IngressCertParams)
+	if err := pkgvalidations.ValidatePEMCertificate(certData); err != nil {
+		log.WithError(err).Errorf("Invalid ingress certificate for cluster %s", params.ClusterID)
+		return installer.NewV2UploadClusterIngressCertBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Wrap(err, "invalid ingress certificate")))
 	}
 
 	objectName := fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)
