@@ -73,11 +73,11 @@ var _ = Describe("Cluster with Platform", func() {
 	ctx := context.Background()
 
 	Context("vSphere", func() {
-		It("vSphere cluster on OCP 4.12 - Success", func() {
+		It("vSphere cluster on OCP 4.13 - Success", func() {
 			cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.12"),
+					OpenshiftVersion:  swag.String("4.13"),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
