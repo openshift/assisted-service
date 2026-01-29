@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2UpdateClusterInstallConfigReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UpdateClusterInstallConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2UpdateClusterInstallConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2UpdateClusterInstallConfigCreated()
@@ -66,7 +68,7 @@ func (o *V2UpdateClusterInstallConfigReader) ReadResponse(response runtime.Clien
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[PATCH /v2/clusters/{cluster_id}/install-config] v2UpdateClusterInstallConfig", response, response.Code())
 	}
 }
 
@@ -108,12 +110,17 @@ func (o *V2UpdateClusterInstallConfigCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the v2 update cluster install config created response
+func (o *V2UpdateClusterInstallConfigCreated) Code() int {
+	return 201
+}
+
 func (o *V2UpdateClusterInstallConfigCreated) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigCreated ", 201)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigCreated", 201)
 }
 
 func (o *V2UpdateClusterInstallConfigCreated) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigCreated ", 201)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigCreated", 201)
 }
 
 func (o *V2UpdateClusterInstallConfigCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -160,12 +167,19 @@ func (o *V2UpdateClusterInstallConfigBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 update cluster install config bad request response
+func (o *V2UpdateClusterInstallConfigBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2UpdateClusterInstallConfigBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigBadRequest %s", 400, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigBadRequest) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigBadRequest %s", 400, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigBadRequest) GetPayload() *models.Error {
@@ -177,7 +191,7 @@ func (o *V2UpdateClusterInstallConfigBadRequest) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -223,12 +237,19 @@ func (o *V2UpdateClusterInstallConfigUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 update cluster install config unauthorized response
+func (o *V2UpdateClusterInstallConfigUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2UpdateClusterInstallConfigUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigUnauthorized) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
@@ -240,7 +261,7 @@ func (o *V2UpdateClusterInstallConfigUnauthorized) readResponse(response runtime
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -286,12 +307,19 @@ func (o *V2UpdateClusterInstallConfigForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 update cluster install config forbidden response
+func (o *V2UpdateClusterInstallConfigForbidden) Code() int {
+	return 403
+}
+
 func (o *V2UpdateClusterInstallConfigForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigForbidden) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigForbidden) GetPayload() *models.InfraError {
@@ -303,7 +331,7 @@ func (o *V2UpdateClusterInstallConfigForbidden) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -349,12 +377,19 @@ func (o *V2UpdateClusterInstallConfigNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 update cluster install config not found response
+func (o *V2UpdateClusterInstallConfigNotFound) Code() int {
+	return 404
+}
+
 func (o *V2UpdateClusterInstallConfigNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigNotFound) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigNotFound) GetPayload() *models.Error {
@@ -366,7 +401,7 @@ func (o *V2UpdateClusterInstallConfigNotFound) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -412,12 +447,19 @@ func (o *V2UpdateClusterInstallConfigMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 update cluster install config method not allowed response
+func (o *V2UpdateClusterInstallConfigMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2UpdateClusterInstallConfigMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigMethodNotAllowed) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigMethodNotAllowed) GetPayload() *models.Error {
@@ -429,7 +471,7 @@ func (o *V2UpdateClusterInstallConfigMethodNotAllowed) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -475,12 +517,19 @@ func (o *V2UpdateClusterInstallConfigInternalServerError) IsCode(code int) bool 
 	return code == 500
 }
 
+// Code gets the status code for the v2 update cluster install config internal server error response
+func (o *V2UpdateClusterInstallConfigInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2UpdateClusterInstallConfigInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigInternalServerError) String() string {
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/install-config][%d] v2UpdateClusterInstallConfigInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateClusterInstallConfigInternalServerError) GetPayload() *models.Error {
@@ -492,7 +541,7 @@ func (o *V2UpdateClusterInstallConfigInternalServerError) readResponse(response 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

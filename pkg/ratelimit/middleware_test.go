@@ -91,14 +91,17 @@ var _ = Describe("Middleware", func() {
 				Expect(recorder.Code).To(Equal(http.StatusTooManyRequests))
 			})
 
-			It("should set rate limit headers", func() {
+			It("should set rate limit headers with requests per minute", func() {
 				req := httptest.NewRequest(http.MethodGet, "/v2/clusters", nil)
 				req.RemoteAddr = "192.168.1.1:1234"
 
 				middleware.Handler(handler).ServeHTTP(recorder, req)
 
-				Expect(recorder.Header().Get("X-RateLimit-Limit")).NotTo(BeEmpty())
-				Expect(recorder.Header().Get("X-RateLimit-Remaining")).NotTo(BeEmpty())
+				// CategoryRead has 1.0 RPS = 60 requests/minute
+				Expect(recorder.Header().Get("X-RateLimit-Limit")).To(Equal("60"))
+				// Headers are set before Allow() consumes a token.
+				// With burst of 2 and fresh limiter, Tokens() returns 2.0, so 2 * 60 = 120 req/min.
+				Expect(recorder.Header().Get("X-RateLimit-Remaining")).To(Equal("120"))
 			})
 
 			It("should set Retry-After header when rate limited", func() {
@@ -132,6 +135,29 @@ var _ = Describe("Middleware", func() {
 				recorder = httptest.NewRecorder()
 				middleware.Handler(handler).ServeHTTP(recorder, req2)
 				Expect(recorder.Code).To(Equal(http.StatusOK))
+			})
+
+			It("should convert sub-1 RPS to meaningful requests per minute", func() {
+				// Create middleware with sub-1 RPS limiter (0.5 RPS = 30 req/min)
+				subRPSLimiters := map[EndpointCategory]*RateLimiter{
+					CategoryDefault: NewRateLimiter(0.5, 5, time.Hour),
+					CategoryRead:    NewRateLimiter(0.1, 5, time.Hour), // 0.1 RPS = 6 req/min
+				}
+				subRPSMiddleware := NewMiddleware(MiddlewareConfig{
+					Enabled:  true,
+					Limiters: subRPSLimiters,
+					Log:      logrus.New(),
+				})
+				defer StopLimiters(subRPSMiddleware.limiters)
+
+				req := httptest.NewRequest(http.MethodGet, "/v2/clusters", nil)
+				req.RemoteAddr = "192.168.1.100:1234"
+				recorder = httptest.NewRecorder()
+
+				subRPSMiddleware.Handler(handler).ServeHTTP(recorder, req)
+
+				// 0.1 RPS * 60 = 6 requests per minute
+				Expect(recorder.Header().Get("X-RateLimit-Limit")).To(Equal("6"))
 			})
 		})
 
@@ -272,6 +298,22 @@ var _ = Describe("Config", func() {
 
 			Expect(middleware).NotTo(BeNil())
 			Expect(middleware.enabled).To(BeTrue())
+			Expect(middleware.limiters).NotTo(BeNil())
+		})
+
+		It("should not create limiters when disabled", func() {
+			config := Config{
+				Enabled:         false,
+				DefaultRPS:      1.0,
+				DefaultBurst:    10,
+				CleanupInterval: time.Hour,
+			}
+
+			middleware := config.CreateMiddleware(logrus.New())
+
+			Expect(middleware).NotTo(BeNil())
+			Expect(middleware.enabled).To(BeFalse())
+			Expect(middleware.limiters).To(BeNil())
 		})
 	})
 })

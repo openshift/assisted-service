@@ -12,16 +12,16 @@ import (
 )
 
 // V2RegisterDisconnectedClusterHandlerFunc turns a function with the right signature into a v2 register disconnected cluster handler
-type V2RegisterDisconnectedClusterHandlerFunc func(V2RegisterDisconnectedClusterParams, interface{}) middleware.Responder
+type V2RegisterDisconnectedClusterHandlerFunc func(V2RegisterDisconnectedClusterParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2RegisterDisconnectedClusterHandlerFunc) Handle(params V2RegisterDisconnectedClusterParams, principal interface{}) middleware.Responder {
+func (fn V2RegisterDisconnectedClusterHandlerFunc) Handle(params V2RegisterDisconnectedClusterParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2RegisterDisconnectedClusterHandler interface for that can handle valid v2 register disconnected cluster params
 type V2RegisterDisconnectedClusterHandler interface {
-	Handle(V2RegisterDisconnectedClusterParams, interface{}) middleware.Responder
+	Handle(V2RegisterDisconnectedClusterParams, any) middleware.Responder
 }
 
 // NewV2RegisterDisconnectedCluster creates a new http.Handler for the v2 register disconnected cluster operation
@@ -53,9 +53,9 @@ func (o *V2RegisterDisconnectedCluster) ServeHTTP(rw http.ResponseWriter, r *htt
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2RegisterDisconnectedCluster) ServeHTTP(rw http.ResponseWriter, r *htt
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

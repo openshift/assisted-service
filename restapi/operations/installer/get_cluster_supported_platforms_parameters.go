@@ -27,7 +27,6 @@ func NewGetClusterSupportedPlatformsParams() GetClusterSupportedPlatformsParams 
 //
 // swagger:parameters GetClusterSupportedPlatforms
 type GetClusterSupportedPlatformsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *GetClusterSupportedPlatformsParams) bindClusterID(rawData []string, has
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *GetClusterSupportedPlatformsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

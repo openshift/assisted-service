@@ -27,7 +27,6 @@ func NewV2GetIgnoredValidationsParams() V2GetIgnoredValidationsParams {
 //
 // swagger:parameters v2GetIgnoredValidations
 type V2GetIgnoredValidationsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *V2GetIgnoredValidationsParams) bindClusterID(rawData []string, hasKey b
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2GetIgnoredValidationsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

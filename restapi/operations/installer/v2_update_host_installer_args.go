@@ -12,16 +12,16 @@ import (
 )
 
 // V2UpdateHostInstallerArgsHandlerFunc turns a function with the right signature into a v2 update host installer args handler
-type V2UpdateHostInstallerArgsHandlerFunc func(V2UpdateHostInstallerArgsParams, interface{}) middleware.Responder
+type V2UpdateHostInstallerArgsHandlerFunc func(V2UpdateHostInstallerArgsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UpdateHostInstallerArgsHandlerFunc) Handle(params V2UpdateHostInstallerArgsParams, principal interface{}) middleware.Responder {
+func (fn V2UpdateHostInstallerArgsHandlerFunc) Handle(params V2UpdateHostInstallerArgsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UpdateHostInstallerArgsHandler interface for that can handle valid v2 update host installer args params
 type V2UpdateHostInstallerArgsHandler interface {
-	Handle(V2UpdateHostInstallerArgsParams, interface{}) middleware.Responder
+	Handle(V2UpdateHostInstallerArgsParams, any) middleware.Responder
 }
 
 // NewV2UpdateHostInstallerArgs creates a new http.Handler for the v2 update host installer args operation
@@ -53,9 +53,9 @@ func (o *V2UpdateHostInstallerArgs) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2UpdateHostInstallerArgs) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

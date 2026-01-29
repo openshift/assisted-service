@@ -324,12 +324,12 @@ metadata:
     capabilities: Basic Install
     categories: OpenShift Optional
     containerImage: quay.io/edge-infrastructure/assisted-service:latest
-    createdAt: ""
+    createdAt: "2026-01-29T22:26:47Z"
     description: The Infrastructure Operator for Red Hat OpenShift is responsible
       for managing the deployment of the Assisted Service.
     olm.skipRange: '>=0.0.1 <99.0.0-unreleased'
     operatorframework.io/suggested-namespace: assisted-installer
-    operators.operatorframework.io/builder: operator-sdk-v1.10.0+git
+    operators.operatorframework.io/builder: operator-sdk-v1.36.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
@@ -352,9 +352,10 @@ spec:
       kind: Agent
       name: agents.agent-install.openshift.io
       version: v1beta1
-    - description: AgentServiceConfig represents an Assisted Service deployment. Only
-        an AgentServiceConfig with name="agent" will be reconciled. All other names
-        will be rejected.
+    - description: |-
+        AgentServiceConfig represents an Assisted Service deployment.
+        Only an AgentServiceConfig with name="agent" will be reconciled. All other
+        names will be rejected.
       displayName: Agent Service Config
       kind: AgentServiceConfig
       name: agentserviceconfigs.agent-install.openshift.io
@@ -363,75 +364,84 @@ spec:
           a headers and query parameters to be used during OS image fetch.
         displayName: OS Images additional parameters reference
         path: OSImageAdditionalParamsRef
-      - description: OSImageCACertRef is a reference to a config map containing a
-          certificate authority certificate this is an optional certificate to allow
-          a user to add a certificate authority for a HTTPS source of images this
-          certificate will be used by the assisted-image-service when pulling OS images.
+      - description: |-
+          OSImageCACertRef is a reference to a config map containing a certificate authority certificate
+          this is an optional certificate to allow a user to add a certificate authority for a HTTPS source of images
+          this certificate will be used by the assisted-image-service when pulling OS images.
         displayName: OS Image CA Cert ConfigMap reference
         path: OSImageCACertRef
-      - description: DatabaseStorage defines the spec of the PersistentVolumeClaim
-          to be created for the database's filesystem. With respect to the resource
-          requests, minimum 10GiB is recommended.
+      - description: |-
+          DatabaseStorage defines the spec of the PersistentVolumeClaim to be
+          created for the database's filesystem.
+          With respect to the resource requests, minimum 10GiB is recommended.
         displayName: Storage for database
         path: databaseStorage
-      - description: FileSystemStorage defines the spec of the PersistentVolumeClaim
-          to be created for the assisted-service's filesystem (logs, etc). With respect
-          to the resource requests, the amount of filesystem storage consumed will
-          depend largely on the number of clusters created (~200MB per cluster and
-          ~2-3GiB per supported OpenShift version). Minimum 100GiB recommended.
+      - description: |-
+          FileSystemStorage defines the spec of the PersistentVolumeClaim to be
+          created for the assisted-service's filesystem (logs, etc).
+          With respect to the resource requests, the amount of filesystem storage
+          consumed will depend largely on the number of clusters created (~200MB
+          per cluster and ~2-3GiB per supported OpenShift version). Minimum 100GiB
+          recommended.
         displayName: Storage for service filesystem
         path: filesystemStorage
-      - description: 'IPXEHTTPRoute is controlling whether the operator is creating
-          plain HTTP routes iPXE hosts may not work with router cyphers and may access
-          artifacts via HTTP only This setting accepts "enabled,disabled", defaults
-          to disabled. Empty value defaults to disabled The following endpoints would
-          be exposed via http: * api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script
-          in assisted-service * boot-artifacts/ and images/<infra-enf id>/pxe-initrd
-          in -image-service'
+      - description: |-
+          IPXEHTTPRoute is controlling whether the operator is creating plain HTTP routes
+          iPXE hosts may not work with router cyphers and may access artifacts via HTTP only
+          This setting accepts "enabled,disabled", defaults to disabled. Empty value defaults to disabled
+          The following endpoints would be exposed via http:
+          * api/assisted-installer/v2/infra-envs/<id>/downloads/files?file_name=ipxe-script in assisted-service
+          * boot-artifacts/ and images/<infra-enf id>/pxe-initrd in -image-service
         displayName: Expose IPXE HTTP route
         path: iPXEHTTPRoute
-      - description: ImageStorage defines the spec of the PersistentVolumeClaim to
-          be created for each replica of the image service. If a PersistentVolumeClaim
-          is provided 2GiB per OSImage entry is required
+      - description: |-
+          ImageStorage defines the spec of the PersistentVolumeClaim to be
+          created for each replica of the image service.
+          If a PersistentVolumeClaim is provided 2GiB per OSImage entry is required
         displayName: Storage for images
         path: imageStorage
-      - description: Ingress contains configuration for the ingress resources. Has
-          no effect when running on an OpenShift cluster.
+      - description: |-
+          Ingress contains configuration for the ingress resources.
+          Has no effect when running on an OpenShift cluster.
         displayName: Ingress
         path: ingress
-      - description: AssistedServiceHostname is the hostname to be assigned to the
-          assisted-service ingress. Has no effect when running on an OpenShift cluster.
+      - description: |-
+          AssistedServiceHostname is the hostname to be assigned to the assisted-service ingress.
+          Has no effect when running on an OpenShift cluster.
         displayName: Assisted Service hostname
         path: ingress.assistedServiceHostname
-      - description: ClassName is the name of the ingress class to be used when configuring
-          ingress resources. Has no effect when running on an OpenShift cluster.
+      - description: |-
+          ClassName is the name of the ingress class to be used when configuring ingress resources.
+          Has no effect when running on an OpenShift cluster.
         displayName: Class Name
         path: ingress.className
-      - description: ImageServiceHostname is the hostname to be assigned to the assisted-image-service
-          ingress. Has no effect when running on an OpenShift cluster.
+      - description: |-
+          ImageServiceHostname is the hostname to be assigned to the assisted-image-service ingress.
+          Has no effect when running on an OpenShift cluster.
         displayName: Assisted Image Service hostname
         path: ingress.imageServiceHostname
-      - description: 'MirrorRegistryRef is the reference to the configmap that contains
-          mirror registry configuration In case no configuration is need, this field
-          will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the
-          contents of mirror registry certificate/s registries.conf - holds the content
-          of registries.conf file configured with mirror registries'
+      - description: |-
+          MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration
+          In case no configuration is need, this field will be nil. ConfigMap must contain to entries:
+          ca-bundle.crt - hold the contents of mirror registry certificate/s
+          registries.conf - holds the content of registries.conf file configured with mirror registries
         displayName: Mirror Registry and Certificate ConfigMap Name
         path: mirrorRegistryRef
-      - description: MustGatherImages defines a collection of operator related must-gather
-          images that are used if one the operators fails to be successfully deployed
+      - description: |-
+          MustGatherImages defines a collection of operator related must-gather images
+          that are used if one the operators fails to be successfully deployed
         displayName: Must-Gather Images
         path: mustGatherImages
-      - description: OSImages defines a collection of Operating System images (ie.
-          RHCOS images) that the assisted-service should use as the base when generating
-          discovery ISOs.
+      - description: |-
+          OSImages defines a collection of Operating System images (ie. RHCOS images)
+          that the assisted-service should use as the base when generating discovery ISOs.
         displayName: Operating System Images
         path: osImages
-      - description: UnauthenticatedRegistries is a list of registries from which
-          container images can be pulled without authentication. They will be appended
-          to the default list (quay.io, registry.ci.openshift.org). Any registry on
-          this list will not require credentials to be in the pull secret validated
-          by the assisted-service.
+      - description: |-
+          UnauthenticatedRegistries is a list of registries from which container images can be pulled
+          without authentication. They will be appended to the default list (quay.io,
+          registry.ci.openshift.org). Any registry on this list will not require credentials
+          to be in the pull secret validated by the assisted-service.
         displayName: List of container registries without authentication
         path: unauthenticatedRegistries
       version: v1beta1
@@ -856,7 +866,9 @@ spec:
           - watch
         serviceAccountName: assisted-service
       deployments:
-      - name: infrastructure-operator
+      - label:
+          control-plane: infrastructure-operator
+        name: infrastructure-operator
         spec:
           replicas: 1
           selector:
@@ -1013,17 +1025,4 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
-  relatedImages:
-  - image: quay.io/edge-infrastructure/assisted-service:latest
-    name: controller
-  - image: quay.io/edge-infrastructure/assisted-image-service:latest
-    name: image-service
-  - image: quay.io/sclorg/postgresql-13-c9s:latest
-    name: postgresql
-  - image: quay.io/edge-infrastructure/assisted-installer:latest
-    name: installer
-  - image: quay.io/edge-infrastructure/assisted-installer-agent:latest
-    name: agent
-  - image: quay.io/edge-infrastructure/assisted-installer-controller:latest
-    name: reporter
   version: 99.0.0-unreleased

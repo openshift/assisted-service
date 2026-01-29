@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -62,7 +63,7 @@ type V2ClusterUpdateParams struct {
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
 	// Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
-	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
+	// Enum: ["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]
 	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// Explicit ignition endpoint overrides the default ignition endpoint.
@@ -96,7 +97,7 @@ type V2ClusterUpdateParams struct {
 	// Note: Third-party CNIs (CiscoACI, Cilium, Calico, None) require uploading
 	// CNI manifests via the custom manifests API before installation.
 	//
-	// Enum: [OpenShiftSDN OVNKubernetes CiscoACI Cilium Calico None]
+	// Enum: ["OpenShiftSDN","OVNKubernetes","CiscoACI","Cilium","Calico","None"]
 	NetworkType *string `json:"network_type,omitempty"`
 
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
@@ -226,11 +227,15 @@ func (m *V2ClusterUpdateParams) validateAPIVips(formats strfmt.Registry) error {
 
 		if m.APIVips[i] != nil {
 			if err := m.APIVips[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("api_vips" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("api_vips" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -280,11 +285,15 @@ func (m *V2ClusterUpdateParams) validateClusterNetworks(formats strfmt.Registry)
 
 		if m.ClusterNetworks[i] != nil {
 			if err := m.ClusterNetworks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -301,11 +310,15 @@ func (m *V2ClusterUpdateParams) validateDiskEncryption(formats strfmt.Registry) 
 
 	if m.DiskEncryption != nil {
 		if err := m.DiskEncryption.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("disk_encryption")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("disk_encryption")
 			}
+
 			return err
 		}
 	}
@@ -313,7 +326,7 @@ func (m *V2ClusterUpdateParams) validateDiskEncryption(formats strfmt.Registry) 
 	return nil
 }
 
-var v2ClusterUpdateParamsTypeHyperthreadingPropEnum []interface{}
+var v2ClusterUpdateParamsTypeHyperthreadingPropEnum []any
 
 func init() {
 	var res []string
@@ -383,11 +396,15 @@ func (m *V2ClusterUpdateParams) validateIgnitionEndpoint(formats strfmt.Registry
 
 	if m.IgnitionEndpoint != nil {
 		if err := m.IgnitionEndpoint.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("ignition_endpoint")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("ignition_endpoint")
 			}
+
 			return err
 		}
 	}
@@ -407,11 +424,15 @@ func (m *V2ClusterUpdateParams) validateIngressVips(formats strfmt.Registry) err
 
 		if m.IngressVips[i] != nil {
 			if err := m.IngressVips[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -428,11 +449,15 @@ func (m *V2ClusterUpdateParams) validateLoadBalancer(formats strfmt.Registry) er
 
 	if m.LoadBalancer != nil {
 		if err := m.LoadBalancer.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("load_balancer")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("load_balancer")
 			}
+
 			return err
 		}
 	}
@@ -464,11 +489,15 @@ func (m *V2ClusterUpdateParams) validateMachineNetworks(formats strfmt.Registry)
 
 		if m.MachineNetworks[i] != nil {
 			if err := m.MachineNetworks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("machine_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("machine_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -494,7 +523,7 @@ func (m *V2ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-var v2ClusterUpdateParamsTypeNetworkTypePropEnum []interface{}
+var v2ClusterUpdateParamsTypeNetworkTypePropEnum []any
 
 func init() {
 	var res []string
@@ -560,11 +589,15 @@ func (m *V2ClusterUpdateParams) validateOlmOperators(formats strfmt.Registry) er
 
 		if m.OlmOperators[i] != nil {
 			if err := m.OlmOperators[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("olm_operators" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("olm_operators" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -581,11 +614,15 @@ func (m *V2ClusterUpdateParams) validatePlatform(formats strfmt.Registry) error 
 
 	if m.Platform != nil {
 		if err := m.Platform.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("platform")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("platform")
 			}
+
 			return err
 		}
 	}
@@ -617,11 +654,15 @@ func (m *V2ClusterUpdateParams) validateServiceNetworks(formats strfmt.Registry)
 
 		if m.ServiceNetworks[i] != nil {
 			if err := m.ServiceNetworks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("service_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("service_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -686,12 +727,21 @@ func (m *V2ClusterUpdateParams) contextValidateAPIVips(ctx context.Context, form
 	for i := 0; i < len(m.APIVips); i++ {
 
 		if m.APIVips[i] != nil {
+
+			if swag.IsZero(m.APIVips[i]) { // not required
+				return nil
+			}
+
 			if err := m.APIVips[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("api_vips" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("api_vips" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -706,12 +756,21 @@ func (m *V2ClusterUpdateParams) contextValidateClusterNetworks(ctx context.Conte
 	for i := 0; i < len(m.ClusterNetworks); i++ {
 
 		if m.ClusterNetworks[i] != nil {
+
+			if swag.IsZero(m.ClusterNetworks[i]) { // not required
+				return nil
+			}
+
 			if err := m.ClusterNetworks[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -724,12 +783,21 @@ func (m *V2ClusterUpdateParams) contextValidateClusterNetworks(ctx context.Conte
 func (m *V2ClusterUpdateParams) contextValidateDiskEncryption(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.DiskEncryption != nil {
+
+		if swag.IsZero(m.DiskEncryption) { // not required
+			return nil
+		}
+
 		if err := m.DiskEncryption.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("disk_encryption")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("disk_encryption")
 			}
+
 			return err
 		}
 	}
@@ -740,12 +808,21 @@ func (m *V2ClusterUpdateParams) contextValidateDiskEncryption(ctx context.Contex
 func (m *V2ClusterUpdateParams) contextValidateIgnitionEndpoint(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.IgnitionEndpoint != nil {
+
+		if swag.IsZero(m.IgnitionEndpoint) { // not required
+			return nil
+		}
+
 		if err := m.IgnitionEndpoint.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("ignition_endpoint")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("ignition_endpoint")
 			}
+
 			return err
 		}
 	}
@@ -758,12 +835,21 @@ func (m *V2ClusterUpdateParams) contextValidateIngressVips(ctx context.Context, 
 	for i := 0; i < len(m.IngressVips); i++ {
 
 		if m.IngressVips[i] != nil {
+
+			if swag.IsZero(m.IngressVips[i]) { // not required
+				return nil
+			}
+
 			if err := m.IngressVips[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -776,12 +862,21 @@ func (m *V2ClusterUpdateParams) contextValidateIngressVips(ctx context.Context, 
 func (m *V2ClusterUpdateParams) contextValidateLoadBalancer(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.LoadBalancer != nil {
+
+		if swag.IsZero(m.LoadBalancer) { // not required
+			return nil
+		}
+
 		if err := m.LoadBalancer.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("load_balancer")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("load_balancer")
 			}
+
 			return err
 		}
 	}
@@ -794,12 +889,21 @@ func (m *V2ClusterUpdateParams) contextValidateMachineNetworks(ctx context.Conte
 	for i := 0; i < len(m.MachineNetworks); i++ {
 
 		if m.MachineNetworks[i] != nil {
+
+			if swag.IsZero(m.MachineNetworks[i]) { // not required
+				return nil
+			}
+
 			if err := m.MachineNetworks[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("machine_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("machine_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -814,12 +918,21 @@ func (m *V2ClusterUpdateParams) contextValidateOlmOperators(ctx context.Context,
 	for i := 0; i < len(m.OlmOperators); i++ {
 
 		if m.OlmOperators[i] != nil {
+
+			if swag.IsZero(m.OlmOperators[i]) { // not required
+				return nil
+			}
+
 			if err := m.OlmOperators[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("olm_operators" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("olm_operators" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -832,12 +945,21 @@ func (m *V2ClusterUpdateParams) contextValidateOlmOperators(ctx context.Context,
 func (m *V2ClusterUpdateParams) contextValidatePlatform(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Platform != nil {
+
+		if swag.IsZero(m.Platform) { // not required
+			return nil
+		}
+
 		if err := m.Platform.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("platform")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("platform")
 			}
+
 			return err
 		}
 	}
@@ -850,12 +972,21 @@ func (m *V2ClusterUpdateParams) contextValidateServiceNetworks(ctx context.Conte
 	for i := 0; i < len(m.ServiceNetworks); i++ {
 
 		if m.ServiceNetworks[i] != nil {
+
+			if swag.IsZero(m.ServiceNetworks[i]) { // not required
+				return nil
+			}
+
 			if err := m.ServiceNetworks[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("service_networks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("service_networks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

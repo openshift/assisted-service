@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -55,11 +56,15 @@ func (m *DiskInfo) validateDiskSpeed(formats strfmt.Registry) error {
 
 	if m.DiskSpeed != nil {
 		if err := m.DiskSpeed.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("disk_speed")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("disk_speed")
 			}
+
 			return err
 		}
 	}
@@ -96,12 +101,21 @@ func (m *DiskInfo) ContextValidate(ctx context.Context, formats strfmt.Registry)
 func (m *DiskInfo) contextValidateDiskSpeed(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.DiskSpeed != nil {
+
+		if swag.IsZero(m.DiskSpeed) { // not required
+			return nil
+		}
+
 		if err := m.DiskSpeed.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("disk_speed")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("disk_speed")
 			}
+
 			return err
 		}
 	}

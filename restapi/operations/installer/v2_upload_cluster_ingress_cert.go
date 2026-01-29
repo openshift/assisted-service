@@ -12,16 +12,16 @@ import (
 )
 
 // V2UploadClusterIngressCertHandlerFunc turns a function with the right signature into a v2 upload cluster ingress cert handler
-type V2UploadClusterIngressCertHandlerFunc func(V2UploadClusterIngressCertParams, interface{}) middleware.Responder
+type V2UploadClusterIngressCertHandlerFunc func(V2UploadClusterIngressCertParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UploadClusterIngressCertHandlerFunc) Handle(params V2UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
+func (fn V2UploadClusterIngressCertHandlerFunc) Handle(params V2UploadClusterIngressCertParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UploadClusterIngressCertHandler interface for that can handle valid v2 upload cluster ingress cert params
 type V2UploadClusterIngressCertHandler interface {
-	Handle(V2UploadClusterIngressCertParams, interface{}) middleware.Responder
+	Handle(V2UploadClusterIngressCertParams, any) middleware.Responder
 }
 
 // NewV2UploadClusterIngressCert creates a new http.Handler for the v2 upload cluster ingress cert operation
@@ -53,9 +53,9 @@ func (o *V2UploadClusterIngressCert) ServeHTTP(rw http.ResponseWriter, r *http.R
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2UploadClusterIngressCert) ServeHTTP(rw http.ResponseWriter, r *http.R
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

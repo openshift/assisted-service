@@ -44,7 +44,7 @@ func (o *V2ListOperatorPropertiesURL) Build() (*url.URL, error) {
 
 	operatorName := o.OperatorName
 	if operatorName != "" {
-		_path = strings.Replace(_path, "{operator_name}", operatorName, -1)
+		_path = strings.ReplaceAll(_path, "{operator_name}", operatorName)
 	} else {
 		return nil, errors.New("operatorName is required on V2ListOperatorPropertiesURL")
 	}

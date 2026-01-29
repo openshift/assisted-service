@@ -36,7 +36,6 @@ func NewV2ListBundlesParams() V2ListBundlesParams {
 //
 // swagger:parameters V2ListBundles
 type V2ListBundlesParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -45,19 +44,23 @@ type V2ListBundlesParams struct {
 	  Default: "x86_64"
 	*/
 	CPUArchitecture *string
+
 	/*External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external or if openshift_version is not set.
 	  In: query
 	*/
 	ExternalPlatformName *string
+
 	/*Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
 	  In: query
 	  Collection Format: multi
 	*/
 	FeatureIds []string
+
 	/*Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.
 	  In: query
 	*/
 	OpenshiftVersion *string
+
 	/*The provider platform type. openshift_version must be set.
 	  In: query
 	*/
@@ -72,7 +75,6 @@ func (o *V2ListBundlesParams) BindRequest(r *http.Request, route *middleware.Mat
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
@@ -128,10 +130,10 @@ func (o *V2ListBundlesParams) bindCPUArchitecture(rawData []string, hasKey bool,
 	return nil
 }
 
-// validateCPUArchitecture carries on validations for parameter CPUArchitecture
+// validateCPUArchitecture carries out validations for parameter CPUArchitecture
 func (o *V2ListBundlesParams) validateCPUArchitecture(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []interface{}{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
+	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []any{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
 		return err
 	}
 
@@ -170,7 +172,7 @@ func (o *V2ListBundlesParams) bindFeatureIds(rawData []string, hasKey bool, form
 	for i, featureIdsIV := range featureIdsIC {
 		featureIdsI := featureIdsIV
 
-		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []interface{}{"SNO"}, true); err != nil {
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []any{"SNO"}, true); err != nil {
 			return err
 		}
 
@@ -222,10 +224,10 @@ func (o *V2ListBundlesParams) bindPlatformType(rawData []string, hasKey bool, fo
 	return nil
 }
 
-// validatePlatformType carries on validations for parameter PlatformType
+// validatePlatformType carries out validations for parameter PlatformType
 func (o *V2ListBundlesParams) validatePlatformType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "external"}, true); err != nil {
+	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []any{"baremetal", "none", "nutanix", "vsphere", "external"}, true); err != nil {
 		return err
 	}
 

@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadHostIgnitionHandlerFunc turns a function with the right signature into a v2 download host ignition handler
-type V2DownloadHostIgnitionHandlerFunc func(V2DownloadHostIgnitionParams, interface{}) middleware.Responder
+type V2DownloadHostIgnitionHandlerFunc func(V2DownloadHostIgnitionParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadHostIgnitionHandlerFunc) Handle(params V2DownloadHostIgnitionParams, principal interface{}) middleware.Responder {
+func (fn V2DownloadHostIgnitionHandlerFunc) Handle(params V2DownloadHostIgnitionParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadHostIgnitionHandler interface for that can handle valid v2 download host ignition params
 type V2DownloadHostIgnitionHandler interface {
-	Handle(V2DownloadHostIgnitionParams, interface{}) middleware.Responder
+	Handle(V2DownloadHostIgnitionParams, any) middleware.Responder
 }
 
 // NewV2DownloadHostIgnition creates a new http.Handler for the v2 download host ignition operation
@@ -53,9 +53,9 @@ func (o *V2DownloadHostIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2DownloadHostIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

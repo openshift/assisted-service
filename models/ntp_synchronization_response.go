@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -49,11 +50,15 @@ func (m *NtpSynchronizationResponse) validateNtpSources(formats strfmt.Registry)
 
 		if m.NtpSources[i] != nil {
 			if err := m.NtpSources[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -82,12 +87,21 @@ func (m *NtpSynchronizationResponse) contextValidateNtpSources(ctx context.Conte
 	for i := 0; i < len(m.NtpSources); i++ {
 
 		if m.NtpSources[i] != nil {
+
+			if swag.IsZero(m.NtpSources[i]) { // not required
+				return nil
+			}
+
 			if err := m.NtpSources[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ntp_sources" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

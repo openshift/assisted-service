@@ -46,7 +46,7 @@ func (o *V2GetClusterInstallConfigURL) Build() (*url.URL, error) {
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
-		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
+		_path = strings.ReplaceAll(_path, "{cluster_id}", clusterID)
 	} else {
 		return nil, errors.New("clusterId is required on V2GetClusterInstallConfigURL")
 	}

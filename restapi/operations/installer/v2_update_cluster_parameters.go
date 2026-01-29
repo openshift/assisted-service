@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2UpdateClusterParams() V2UpdateClusterParams {
 //
 // swagger:parameters V2UpdateCluster
 type V2UpdateClusterParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,6 +40,7 @@ type V2UpdateClusterParams struct {
 	  In: body
 	*/
 	ClusterUpdateParams *models.V2ClusterUpdateParams
+
 	/*The cluster to be updated.
 	  Required: true
 	  In: path
@@ -57,10 +58,12 @@ func (o *V2UpdateClusterParams) BindRequest(r *http.Request, route *middleware.M
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.V2ClusterUpdateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("clusterUpdateParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("clusterUpdateParams", "body", "", err))
@@ -118,7 +121,7 @@ func (o *V2UpdateClusterParams) bindClusterID(rawData []string, hasKey bool, for
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2UpdateClusterParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

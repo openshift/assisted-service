@@ -28,7 +28,6 @@ func NewV2DownloadClusterFilesParams() V2DownloadClusterFilesParams {
 //
 // swagger:parameters V2DownloadClusterFiles
 type V2DownloadClusterFilesParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,10 +36,12 @@ type V2DownloadClusterFilesParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*The software version of the discovery agent that is downloading the file.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
@@ -56,7 +57,6 @@ func (o *V2DownloadClusterFilesParams) BindRequest(r *http.Request, route *middl
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -102,7 +102,7 @@ func (o *V2DownloadClusterFilesParams) bindClusterID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2DownloadClusterFilesParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -153,10 +153,10 @@ func (o *V2DownloadClusterFilesParams) bindFileName(rawData []string, hasKey boo
 	return nil
 }
 
-// validateFileName carries on validations for parameter FileName
+// validateFileName carries out validations for parameter FileName
 func (o *V2DownloadClusterFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "install-config.yaml", "custom_manifests.json", "custom_manifests.yaml", "arbiter.ign"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []any{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "install-config.yaml", "custom_manifests.json", "custom_manifests.yaml", "arbiter.ign"}, true); err != nil {
 		return err
 	}
 

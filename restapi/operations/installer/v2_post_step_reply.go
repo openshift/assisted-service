@@ -12,16 +12,16 @@ import (
 )
 
 // V2PostStepReplyHandlerFunc turns a function with the right signature into a v2 post step reply handler
-type V2PostStepReplyHandlerFunc func(V2PostStepReplyParams, interface{}) middleware.Responder
+type V2PostStepReplyHandlerFunc func(V2PostStepReplyParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2PostStepReplyHandlerFunc) Handle(params V2PostStepReplyParams, principal interface{}) middleware.Responder {
+func (fn V2PostStepReplyHandlerFunc) Handle(params V2PostStepReplyParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2PostStepReplyHandler interface for that can handle valid v2 post step reply params
 type V2PostStepReplyHandler interface {
-	Handle(V2PostStepReplyParams, interface{}) middleware.Responder
+	Handle(V2PostStepReplyParams, any) middleware.Responder
 }
 
 // NewV2PostStepReply creates a new http.Handler for the v2 post step reply operation
@@ -53,9 +53,9 @@ func (o *V2PostStepReply) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2PostStepReply) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

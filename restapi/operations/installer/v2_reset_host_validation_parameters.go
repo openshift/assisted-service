@@ -27,7 +27,6 @@ func NewV2ResetHostValidationParams() V2ResetHostValidationParams {
 //
 // swagger:parameters v2ResetHostValidation
 type V2ResetHostValidationParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,11 +35,13 @@ type V2ResetHostValidationParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env of the host that its validation is being reset.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
+
 	/*The id of the validation being reset.
 	  Required: true
 	  In: path
@@ -101,7 +102,7 @@ func (o *V2ResetHostValidationParams) bindHostID(rawData []string, hasKey bool, 
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2ResetHostValidationParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -134,7 +135,7 @@ func (o *V2ResetHostValidationParams) bindInfraEnvID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2ResetHostValidationParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

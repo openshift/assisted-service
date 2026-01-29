@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2GetClusterInstallConfigReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetClusterInstallConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2GetClusterInstallConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetClusterInstallConfigOK()
@@ -60,7 +62,7 @@ func (o *V2GetClusterInstallConfigReader) ReadResponse(response runtime.ClientRe
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/install-config] v2GetClusterInstallConfig", response, response.Code())
 	}
 }
 
@@ -103,12 +105,19 @@ func (o *V2GetClusterInstallConfigOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 get cluster install config o k response
+func (o *V2GetClusterInstallConfigOK) Code() int {
+	return 200
+}
+
 func (o *V2GetClusterInstallConfigOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigOK %s", 200, payload)
 }
 
 func (o *V2GetClusterInstallConfigOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigOK %s", 200, payload)
 }
 
 func (o *V2GetClusterInstallConfigOK) GetPayload() string {
@@ -118,7 +127,7 @@ func (o *V2GetClusterInstallConfigOK) GetPayload() string {
 func (o *V2GetClusterInstallConfigOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -164,12 +173,19 @@ func (o *V2GetClusterInstallConfigUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 get cluster install config unauthorized response
+func (o *V2GetClusterInstallConfigUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2GetClusterInstallConfigUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetClusterInstallConfigUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
@@ -181,7 +197,7 @@ func (o *V2GetClusterInstallConfigUnauthorized) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -227,12 +243,19 @@ func (o *V2GetClusterInstallConfigForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 get cluster install config forbidden response
+func (o *V2GetClusterInstallConfigForbidden) Code() int {
+	return 403
+}
+
 func (o *V2GetClusterInstallConfigForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigForbidden %s", 403, payload)
 }
 
 func (o *V2GetClusterInstallConfigForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigForbidden %s", 403, payload)
 }
 
 func (o *V2GetClusterInstallConfigForbidden) GetPayload() *models.InfraError {
@@ -244,7 +267,7 @@ func (o *V2GetClusterInstallConfigForbidden) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -290,12 +313,19 @@ func (o *V2GetClusterInstallConfigNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 get cluster install config not found response
+func (o *V2GetClusterInstallConfigNotFound) Code() int {
+	return 404
+}
+
 func (o *V2GetClusterInstallConfigNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigNotFound %s", 404, payload)
 }
 
 func (o *V2GetClusterInstallConfigNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigNotFound %s", 404, payload)
 }
 
 func (o *V2GetClusterInstallConfigNotFound) GetPayload() *models.Error {
@@ -307,7 +337,7 @@ func (o *V2GetClusterInstallConfigNotFound) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -353,12 +383,19 @@ func (o *V2GetClusterInstallConfigMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 get cluster install config method not allowed response
+func (o *V2GetClusterInstallConfigMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2GetClusterInstallConfigMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetClusterInstallConfigMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetClusterInstallConfigMethodNotAllowed) GetPayload() *models.Error {
@@ -370,7 +407,7 @@ func (o *V2GetClusterInstallConfigMethodNotAllowed) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -416,12 +453,19 @@ func (o *V2GetClusterInstallConfigInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 get cluster install config internal server error response
+func (o *V2GetClusterInstallConfigInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2GetClusterInstallConfigInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetClusterInstallConfigInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/install-config][%d] v2GetClusterInstallConfigInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetClusterInstallConfigInternalServerError) GetPayload() *models.Error {
@@ -433,7 +477,7 @@ func (o *V2GetClusterInstallConfigInternalServerError) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -95,11 +96,15 @@ func (m *HostRegistrationResponse) validateNextStepRunnerCommand(formats strfmt.
 
 	if m.NextStepRunnerCommand != nil {
 		if err := m.NextStepRunnerCommand.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("next_step_runner_command")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("next_step_runner_command")
 			}
+
 			return err
 		}
 	}
@@ -129,12 +134,21 @@ func (m *HostRegistrationResponse) ContextValidate(ctx context.Context, formats 
 func (m *HostRegistrationResponse) contextValidateNextStepRunnerCommand(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.NextStepRunnerCommand != nil {
+
+		if swag.IsZero(m.NextStepRunnerCommand) { // not required
+			return nil
+		}
+
 		if err := m.NextStepRunnerCommand.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("next_step_runner_command")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("next_step_runner_command")
 			}
+
 			return err
 		}
 	}

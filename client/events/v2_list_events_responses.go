@@ -6,6 +6,8 @@ package events
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +25,7 @@ type V2ListEventsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListEventsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2ListEventsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListEventsOK()
@@ -62,7 +64,7 @@ func (o *V2ListEventsReader) ReadResponse(response runtime.ClientResponse, consu
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/events] v2ListEvents", response, response.Code())
 	}
 }
 
@@ -126,12 +128,19 @@ func (o *V2ListEventsOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 list events o k response
+func (o *V2ListEventsOK) Code() int {
+	return 200
+}
+
 func (o *V2ListEventsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsOK %s", 200, payload)
 }
 
 func (o *V2ListEventsOK) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsOK %s", 200, payload)
 }
 
 func (o *V2ListEventsOK) GetPayload() models.EventList {
@@ -196,7 +205,7 @@ func (o *V2ListEventsOK) readResponse(response runtime.ClientResponse, consumer 
 	}
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -242,12 +251,19 @@ func (o *V2ListEventsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 list events unauthorized response
+func (o *V2ListEventsUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2ListEventsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsUnauthorized %s", 401, payload)
 }
 
 func (o *V2ListEventsUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsUnauthorized %s", 401, payload)
 }
 
 func (o *V2ListEventsUnauthorized) GetPayload() *models.InfraError {
@@ -259,7 +275,7 @@ func (o *V2ListEventsUnauthorized) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -305,12 +321,19 @@ func (o *V2ListEventsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 list events forbidden response
+func (o *V2ListEventsForbidden) Code() int {
+	return 403
+}
+
 func (o *V2ListEventsForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsForbidden %s", 403, payload)
 }
 
 func (o *V2ListEventsForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsForbidden %s", 403, payload)
 }
 
 func (o *V2ListEventsForbidden) GetPayload() *models.InfraError {
@@ -322,7 +345,7 @@ func (o *V2ListEventsForbidden) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -368,12 +391,19 @@ func (o *V2ListEventsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 list events not found response
+func (o *V2ListEventsNotFound) Code() int {
+	return 404
+}
+
 func (o *V2ListEventsNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsNotFound %s", 404, payload)
 }
 
 func (o *V2ListEventsNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsNotFound %s", 404, payload)
 }
 
 func (o *V2ListEventsNotFound) GetPayload() *models.Error {
@@ -385,7 +415,7 @@ func (o *V2ListEventsNotFound) readResponse(response runtime.ClientResponse, con
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -431,12 +461,19 @@ func (o *V2ListEventsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 list events method not allowed response
+func (o *V2ListEventsMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2ListEventsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2ListEventsMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2ListEventsMethodNotAllowed) GetPayload() *models.Error {
@@ -448,7 +485,7 @@ func (o *V2ListEventsMethodNotAllowed) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -494,12 +531,19 @@ func (o *V2ListEventsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 list events internal server error response
+func (o *V2ListEventsInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2ListEventsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListEventsInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/events][%d] v2ListEventsInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListEventsInternalServerError) GetPayload() *models.Error {
@@ -511,7 +555,7 @@ func (o *V2ListEventsInternalServerError) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

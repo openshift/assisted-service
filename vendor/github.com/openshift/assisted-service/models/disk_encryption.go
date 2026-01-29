@@ -21,11 +21,11 @@ import (
 type DiskEncryption struct {
 
 	// Enable/disable disk encryption on master nodes, arbiter nodes, worker nodes, or a combination of them.
-	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
+	// Enum: ["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]
 	EnableOn *string `json:"enable_on,omitempty"`
 
 	// The disk encryption mode to use.
-	// Enum: [tpmv2 tang]
+	// Enum: ["tpmv2","tang"]
 	Mode *string `json:"mode,omitempty"`
 
 	// JSON-formatted string containing additional information regarding tang's configuration
@@ -51,7 +51,7 @@ func (m *DiskEncryption) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var diskEncryptionTypeEnableOnPropEnum []interface{}
+var diskEncryptionTypeEnableOnPropEnum []any
 
 func init() {
 	var res []string
@@ -114,7 +114,7 @@ func (m *DiskEncryption) validateEnableOn(formats strfmt.Registry) error {
 	return nil
 }
 
-var diskEncryptionTypeModePropEnum []interface{}
+var diskEncryptionTypeModePropEnum []any
 
 func init() {
 	var res []string

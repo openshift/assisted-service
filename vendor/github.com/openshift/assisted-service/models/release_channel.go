@@ -44,7 +44,7 @@ const (
 )
 
 // for schema
-var releaseChannelEnum []interface{}
+var releaseChannelEnum []any
 
 func init() {
 	var res []ReleaseChannel

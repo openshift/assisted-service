@@ -38,7 +38,7 @@ const (
 )
 
 // for schema
-var upgradeAgentResultEnum []interface{}
+var upgradeAgentResultEnum []any
 
 func init() {
 	var res []UpgradeAgentResult

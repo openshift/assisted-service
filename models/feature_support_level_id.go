@@ -200,7 +200,7 @@ const (
 )
 
 // for schema
-var featureSupportLevelIdEnum []interface{}
+var featureSupportLevelIdEnum []any
 
 func init() {
 	var res []FeatureSupportLevelID

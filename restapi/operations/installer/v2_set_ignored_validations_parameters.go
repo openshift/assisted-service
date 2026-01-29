@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2SetIgnoredValidationsParams() V2SetIgnoredValidationsParams {
 //
 // swagger:parameters v2SetIgnoredValidations
 type V2SetIgnoredValidationsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,6 +40,7 @@ type V2SetIgnoredValidationsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*The validations to be ignored.
 	  Required: true
 	  In: body
@@ -62,10 +63,12 @@ func (o *V2SetIgnoredValidationsParams) BindRequest(r *http.Request, route *midd
 	}
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.IgnoredValidations
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("ignoredValidations", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("ignoredValidations", "body", "", err))
@@ -118,7 +121,7 @@ func (o *V2SetIgnoredValidationsParams) bindClusterID(rawData []string, hasKey b
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2SetIgnoredValidationsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

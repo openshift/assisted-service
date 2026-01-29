@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -64,16 +65,20 @@ func (m *Feature) Validate(formats strfmt.Registry) error {
 
 func (m *Feature) validateFeatureSupportLevelID(formats strfmt.Registry) error {
 
-	if err := validate.Required("feature-support-level-id", "body", FeatureSupportLevelID(m.FeatureSupportLevelID)); err != nil {
+	if err := validate.Required("feature-support-level-id", "body", m.FeatureSupportLevelID); err != nil {
 		return err
 	}
 
 	if err := m.FeatureSupportLevelID.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("feature-support-level-id")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("feature-support-level-id")
 		}
+
 		return err
 	}
 
@@ -89,11 +94,15 @@ func (m *Feature) validateIncompatibilities(formats strfmt.Registry) error {
 	for i := 0; i < len(m.Incompatibilities); i++ {
 
 		if err := m.Incompatibilities[i].Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
 			}
+
 			return err
 		}
 
@@ -108,11 +117,15 @@ func (m *Feature) validateReason(formats strfmt.Registry) error {
 	}
 
 	if err := m.Reason.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("reason")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("reason")
 		}
+
 		return err
 	}
 
@@ -121,16 +134,20 @@ func (m *Feature) validateReason(formats strfmt.Registry) error {
 
 func (m *Feature) validateSupportLevel(formats strfmt.Registry) error {
 
-	if err := validate.Required("support_level", "body", SupportLevel(m.SupportLevel)); err != nil {
+	if err := validate.Required("support_level", "body", m.SupportLevel); err != nil {
 		return err
 	}
 
 	if err := m.SupportLevel.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("support_level")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("support_level")
 		}
+
 		return err
 	}
 
@@ -166,11 +183,15 @@ func (m *Feature) ContextValidate(ctx context.Context, formats strfmt.Registry) 
 func (m *Feature) contextValidateFeatureSupportLevelID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.FeatureSupportLevelID.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("feature-support-level-id")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("feature-support-level-id")
 		}
+
 		return err
 	}
 
@@ -181,12 +202,20 @@ func (m *Feature) contextValidateIncompatibilities(ctx context.Context, formats 
 
 	for i := 0; i < len(m.Incompatibilities); i++ {
 
+		if swag.IsZero(m.Incompatibilities[i]) { // not required
+			return nil
+		}
+
 		if err := m.Incompatibilities[i].ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
 			}
+
 			return err
 		}
 
@@ -197,12 +226,20 @@ func (m *Feature) contextValidateIncompatibilities(ctx context.Context, formats 
 
 func (m *Feature) contextValidateReason(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.Reason) { // not required
+		return nil
+	}
+
 	if err := m.Reason.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("reason")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("reason")
 		}
+
 		return err
 	}
 
@@ -212,11 +249,15 @@ func (m *Feature) contextValidateReason(ctx context.Context, formats strfmt.Regi
 func (m *Feature) contextValidateSupportLevel(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.SupportLevel.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("support_level")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("support_level")
 		}
+
 		return err
 	}
 

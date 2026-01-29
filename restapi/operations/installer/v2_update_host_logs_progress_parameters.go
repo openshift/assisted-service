@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2UpdateHostLogsProgressParams() V2UpdateHostLogsProgressParams {
 //
 // swagger:parameters v2UpdateHostLogsProgress
 type V2UpdateHostLogsProgressParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,11 +40,13 @@ type V2UpdateHostLogsProgressParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env whose log progress is being updated.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
+
 	/*Parameters for updating log progress.
 	  Required: true
 	  In: body
@@ -72,10 +74,12 @@ func (o *V2UpdateHostLogsProgressParams) BindRequest(r *http.Request, route *mid
 	}
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.LogsProgressParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("logsProgressParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("logsProgressParams", "body", "", err))
@@ -128,7 +132,7 @@ func (o *V2UpdateHostLogsProgressParams) bindHostID(rawData []string, hasKey boo
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2UpdateHostLogsProgressParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -161,7 +165,7 @@ func (o *V2UpdateHostLogsProgressParams) bindInfraEnvID(rawData []string, hasKey
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2UpdateHostLogsProgressParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

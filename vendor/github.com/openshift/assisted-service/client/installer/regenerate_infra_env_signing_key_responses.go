@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type RegenerateInfraEnvSigningKeyReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *RegenerateInfraEnvSigningKeyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *RegenerateInfraEnvSigningKeyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 204:
 		result := NewRegenerateInfraEnvSigningKeyNoContent()
@@ -60,7 +62,7 @@ func (o *RegenerateInfraEnvSigningKeyReader) ReadResponse(response runtime.Clien
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key] RegenerateInfraEnvSigningKey", response, response.Code())
 	}
 }
 
@@ -102,12 +104,17 @@ func (o *RegenerateInfraEnvSigningKeyNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
+// Code gets the status code for the regenerate infra env signing key no content response
+func (o *RegenerateInfraEnvSigningKeyNoContent) Code() int {
+	return 204
+}
+
 func (o *RegenerateInfraEnvSigningKeyNoContent) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNoContent ", 204)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNoContent", 204)
 }
 
 func (o *RegenerateInfraEnvSigningKeyNoContent) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNoContent ", 204)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNoContent", 204)
 }
 
 func (o *RegenerateInfraEnvSigningKeyNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -154,12 +161,19 @@ func (o *RegenerateInfraEnvSigningKeyUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the regenerate infra env signing key unauthorized response
+func (o *RegenerateInfraEnvSigningKeyUnauthorized) Code() int {
+	return 401
+}
+
 func (o *RegenerateInfraEnvSigningKeyUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyUnauthorized %s", 401, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyUnauthorized %s", 401, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyUnauthorized) GetPayload() *models.InfraError {
@@ -171,7 +185,7 @@ func (o *RegenerateInfraEnvSigningKeyUnauthorized) readResponse(response runtime
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -217,12 +231,19 @@ func (o *RegenerateInfraEnvSigningKeyForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the regenerate infra env signing key forbidden response
+func (o *RegenerateInfraEnvSigningKeyForbidden) Code() int {
+	return 403
+}
+
 func (o *RegenerateInfraEnvSigningKeyForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyForbidden %s", 403, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyForbidden %s", 403, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyForbidden) GetPayload() *models.InfraError {
@@ -234,7 +255,7 @@ func (o *RegenerateInfraEnvSigningKeyForbidden) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -280,12 +301,19 @@ func (o *RegenerateInfraEnvSigningKeyNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the regenerate infra env signing key not found response
+func (o *RegenerateInfraEnvSigningKeyNotFound) Code() int {
+	return 404
+}
+
 func (o *RegenerateInfraEnvSigningKeyNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNotFound %s", 404, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyNotFound %s", 404, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyNotFound) GetPayload() *models.Error {
@@ -297,7 +325,7 @@ func (o *RegenerateInfraEnvSigningKeyNotFound) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -343,12 +371,19 @@ func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the regenerate infra env signing key method not allowed response
+func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyMethodNotAllowed %s", 405, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyMethodNotAllowed %s", 405, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) GetPayload() *models.Error {
@@ -360,7 +395,7 @@ func (o *RegenerateInfraEnvSigningKeyMethodNotAllowed) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -406,12 +441,19 @@ func (o *RegenerateInfraEnvSigningKeyInternalServerError) IsCode(code int) bool 
 	return code == 500
 }
 
+// Code gets the status code for the regenerate infra env signing key internal server error response
+func (o *RegenerateInfraEnvSigningKeyInternalServerError) Code() int {
+	return 500
+}
+
 func (o *RegenerateInfraEnvSigningKeyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyInternalServerError %s", 500, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/regenerate-signing-key][%d] regenerateInfraEnvSigningKeyInternalServerError %s", 500, payload)
 }
 
 func (o *RegenerateInfraEnvSigningKeyInternalServerError) GetPayload() *models.Error {
@@ -423,7 +465,7 @@ func (o *RegenerateInfraEnvSigningKeyInternalServerError) readResponse(response 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

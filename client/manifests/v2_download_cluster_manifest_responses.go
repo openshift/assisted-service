@@ -6,6 +6,8 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -22,7 +24,7 @@ type V2DownloadClusterManifestReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DownloadClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2DownloadClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2DownloadClusterManifestOK(o.writer)
@@ -67,7 +69,7 @@ func (o *V2DownloadClusterManifestReader) ReadResponse(response runtime.ClientRe
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/manifests/files] v2DownloadClusterManifest", response, response.Code())
 	}
 }
 
@@ -113,12 +115,17 @@ func (o *V2DownloadClusterManifestOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 download cluster manifest o k response
+func (o *V2DownloadClusterManifestOK) Code() int {
+	return 200
+}
+
 func (o *V2DownloadClusterManifestOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestOK", 200)
 }
 
 func (o *V2DownloadClusterManifestOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestOK", 200)
 }
 
 func (o *V2DownloadClusterManifestOK) GetPayload() io.Writer {
@@ -128,7 +135,7 @@ func (o *V2DownloadClusterManifestOK) GetPayload() io.Writer {
 func (o *V2DownloadClusterManifestOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -174,12 +181,19 @@ func (o *V2DownloadClusterManifestUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 download cluster manifest unauthorized response
+func (o *V2DownloadClusterManifestUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2DownloadClusterManifestUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestUnauthorized %s", 401, payload)
 }
 
 func (o *V2DownloadClusterManifestUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestUnauthorized %s", 401, payload)
 }
 
 func (o *V2DownloadClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -191,7 +205,7 @@ func (o *V2DownloadClusterManifestUnauthorized) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -237,12 +251,19 @@ func (o *V2DownloadClusterManifestForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 download cluster manifest forbidden response
+func (o *V2DownloadClusterManifestForbidden) Code() int {
+	return 403
+}
+
 func (o *V2DownloadClusterManifestForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestForbidden %s", 403, payload)
 }
 
 func (o *V2DownloadClusterManifestForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestForbidden %s", 403, payload)
 }
 
 func (o *V2DownloadClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -254,7 +275,7 @@ func (o *V2DownloadClusterManifestForbidden) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -300,12 +321,19 @@ func (o *V2DownloadClusterManifestNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 download cluster manifest not found response
+func (o *V2DownloadClusterManifestNotFound) Code() int {
+	return 404
+}
+
 func (o *V2DownloadClusterManifestNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestNotFound %s", 404, payload)
 }
 
 func (o *V2DownloadClusterManifestNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestNotFound %s", 404, payload)
 }
 
 func (o *V2DownloadClusterManifestNotFound) GetPayload() *models.Error {
@@ -317,7 +345,7 @@ func (o *V2DownloadClusterManifestNotFound) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -363,12 +391,19 @@ func (o *V2DownloadClusterManifestMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 download cluster manifest method not allowed response
+func (o *V2DownloadClusterManifestMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2DownloadClusterManifestMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2DownloadClusterManifestMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2DownloadClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -380,7 +415,7 @@ func (o *V2DownloadClusterManifestMethodNotAllowed) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -426,12 +461,19 @@ func (o *V2DownloadClusterManifestConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the v2 download cluster manifest conflict response
+func (o *V2DownloadClusterManifestConflict) Code() int {
+	return 409
+}
+
 func (o *V2DownloadClusterManifestConflict) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestConflict %s", 409, payload)
 }
 
 func (o *V2DownloadClusterManifestConflict) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestConflict %s", 409, payload)
 }
 
 func (o *V2DownloadClusterManifestConflict) GetPayload() *models.Error {
@@ -443,7 +485,7 @@ func (o *V2DownloadClusterManifestConflict) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -489,12 +531,19 @@ func (o *V2DownloadClusterManifestInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 download cluster manifest internal server error response
+func (o *V2DownloadClusterManifestInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2DownloadClusterManifestInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestInternalServerError %s", 500, payload)
 }
 
 func (o *V2DownloadClusterManifestInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/manifests/files][%d] v2DownloadClusterManifestInternalServerError %s", 500, payload)
 }
 
 func (o *V2DownloadClusterManifestInternalServerError) GetPayload() *models.Error {
@@ -506,7 +555,7 @@ func (o *V2DownloadClusterManifestInternalServerError) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

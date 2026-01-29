@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -34,7 +35,7 @@ type HostUpdateParams struct {
 	HostName *string `json:"host_name,omitempty"`
 
 	// host role
-	// Enum: [auto-assign master arbiter worker]
+	// Enum: ["auto-assign","master","arbiter","worker"]
 	HostRole *string `json:"host_role,omitempty"`
 
 	// JSON-formatted string of additional HTTP headers when fetching the ignition.
@@ -96,11 +97,15 @@ func (m *HostUpdateParams) validateDisksSelectedConfig(formats strfmt.Registry) 
 
 		if m.DisksSelectedConfig[i] != nil {
 			if err := m.DisksSelectedConfig[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -122,11 +127,15 @@ func (m *HostUpdateParams) validateDisksSkipFormatting(formats strfmt.Registry) 
 
 		if m.DisksSkipFormatting[i] != nil {
 			if err := m.DisksSkipFormatting[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -143,11 +152,15 @@ func (m *HostUpdateParams) validateFencingCredentials(formats strfmt.Registry) e
 
 	if m.FencingCredentials != nil {
 		if err := m.FencingCredentials.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("fencing_credentials")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("fencing_credentials")
 			}
+
 			return err
 		}
 	}
@@ -155,7 +168,7 @@ func (m *HostUpdateParams) validateFencingCredentials(formats strfmt.Registry) e
 	return nil
 }
 
-var hostUpdateParamsTypeHostRolePropEnum []interface{}
+var hostUpdateParamsTypeHostRolePropEnum []any
 
 func init() {
 	var res []string
@@ -215,11 +228,15 @@ func (m *HostUpdateParams) validateIgnitionEndpointHTTPHeaders(formats strfmt.Re
 
 		if m.IgnitionEndpointHTTPHeaders[i] != nil {
 			if err := m.IgnitionEndpointHTTPHeaders[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ignition_endpoint_http_headers" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ignition_endpoint_http_headers" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -241,11 +258,15 @@ func (m *HostUpdateParams) validateNodeLabels(formats strfmt.Registry) error {
 
 		if m.NodeLabels[i] != nil {
 			if err := m.NodeLabels[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("node_labels" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("node_labels" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -290,12 +311,21 @@ func (m *HostUpdateParams) contextValidateDisksSelectedConfig(ctx context.Contex
 	for i := 0; i < len(m.DisksSelectedConfig); i++ {
 
 		if m.DisksSelectedConfig[i] != nil {
+
+			if swag.IsZero(m.DisksSelectedConfig[i]) { // not required
+				return nil
+			}
+
 			if err := m.DisksSelectedConfig[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks_selected_config" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -310,12 +340,21 @@ func (m *HostUpdateParams) contextValidateDisksSkipFormatting(ctx context.Contex
 	for i := 0; i < len(m.DisksSkipFormatting); i++ {
 
 		if m.DisksSkipFormatting[i] != nil {
+
+			if swag.IsZero(m.DisksSkipFormatting[i]) { // not required
+				return nil
+			}
+
 			if err := m.DisksSkipFormatting[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks_skip_formatting" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -328,12 +367,21 @@ func (m *HostUpdateParams) contextValidateDisksSkipFormatting(ctx context.Contex
 func (m *HostUpdateParams) contextValidateFencingCredentials(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.FencingCredentials != nil {
+
+		if swag.IsZero(m.FencingCredentials) { // not required
+			return nil
+		}
+
 		if err := m.FencingCredentials.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("fencing_credentials")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("fencing_credentials")
 			}
+
 			return err
 		}
 	}
@@ -346,12 +394,21 @@ func (m *HostUpdateParams) contextValidateIgnitionEndpointHTTPHeaders(ctx contex
 	for i := 0; i < len(m.IgnitionEndpointHTTPHeaders); i++ {
 
 		if m.IgnitionEndpointHTTPHeaders[i] != nil {
+
+			if swag.IsZero(m.IgnitionEndpointHTTPHeaders[i]) { // not required
+				return nil
+			}
+
 			if err := m.IgnitionEndpointHTTPHeaders[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("ignition_endpoint_http_headers" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("ignition_endpoint_http_headers" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -366,12 +423,21 @@ func (m *HostUpdateParams) contextValidateNodeLabels(ctx context.Context, format
 	for i := 0; i < len(m.NodeLabels); i++ {
 
 		if m.NodeLabels[i] != nil {
+
+			if swag.IsZero(m.NodeLabels[i]) { // not required
+				return nil
+			}
+
 			if err := m.NodeLabels[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("node_labels" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("node_labels" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

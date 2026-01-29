@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type BindHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *BindHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *BindHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewBindHostOK()
@@ -78,7 +80,7 @@ func (o *BindHostReader) ReadResponse(response runtime.ClientResponse, consumer 
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind] BindHost", response, response.Code())
 	}
 }
 
@@ -121,12 +123,19 @@ func (o *BindHostOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the bind host o k response
+func (o *BindHostOK) Code() int {
+	return 200
+}
+
 func (o *BindHostOK) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostOK %s", 200, payload)
 }
 
 func (o *BindHostOK) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostOK %s", 200, payload)
 }
 
 func (o *BindHostOK) GetPayload() *models.Host {
@@ -138,7 +147,7 @@ func (o *BindHostOK) readResponse(response runtime.ClientResponse, consumer runt
 	o.Payload = new(models.Host)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -184,12 +193,19 @@ func (o *BindHostBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the bind host bad request response
+func (o *BindHostBadRequest) Code() int {
+	return 400
+}
+
 func (o *BindHostBadRequest) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostBadRequest %s", 400, payload)
 }
 
 func (o *BindHostBadRequest) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostBadRequest %s", 400, payload)
 }
 
 func (o *BindHostBadRequest) GetPayload() *models.Error {
@@ -201,7 +217,7 @@ func (o *BindHostBadRequest) readResponse(response runtime.ClientResponse, consu
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -247,12 +263,19 @@ func (o *BindHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the bind host unauthorized response
+func (o *BindHostUnauthorized) Code() int {
+	return 401
+}
+
 func (o *BindHostUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostUnauthorized %s", 401, payload)
 }
 
 func (o *BindHostUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostUnauthorized %s", 401, payload)
 }
 
 func (o *BindHostUnauthorized) GetPayload() *models.InfraError {
@@ -264,7 +287,7 @@ func (o *BindHostUnauthorized) readResponse(response runtime.ClientResponse, con
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -310,12 +333,19 @@ func (o *BindHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the bind host forbidden response
+func (o *BindHostForbidden) Code() int {
+	return 403
+}
+
 func (o *BindHostForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostForbidden %s", 403, payload)
 }
 
 func (o *BindHostForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostForbidden %s", 403, payload)
 }
 
 func (o *BindHostForbidden) GetPayload() *models.InfraError {
@@ -327,7 +357,7 @@ func (o *BindHostForbidden) readResponse(response runtime.ClientResponse, consum
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -373,12 +403,19 @@ func (o *BindHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the bind host not found response
+func (o *BindHostNotFound) Code() int {
+	return 404
+}
+
 func (o *BindHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotFound %s", 404, payload)
 }
 
 func (o *BindHostNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotFound %s", 404, payload)
 }
 
 func (o *BindHostNotFound) GetPayload() *models.Error {
@@ -390,7 +427,7 @@ func (o *BindHostNotFound) readResponse(response runtime.ClientResponse, consume
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -436,12 +473,19 @@ func (o *BindHostMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the bind host method not allowed response
+func (o *BindHostMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *BindHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostMethodNotAllowed %s", 405, payload)
 }
 
 func (o *BindHostMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostMethodNotAllowed %s", 405, payload)
 }
 
 func (o *BindHostMethodNotAllowed) GetPayload() *models.Error {
@@ -453,7 +497,7 @@ func (o *BindHostMethodNotAllowed) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -499,12 +543,19 @@ func (o *BindHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the bind host internal server error response
+func (o *BindHostInternalServerError) Code() int {
+	return 500
+}
+
 func (o *BindHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostInternalServerError %s", 500, payload)
 }
 
 func (o *BindHostInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostInternalServerError %s", 500, payload)
 }
 
 func (o *BindHostInternalServerError) GetPayload() *models.Error {
@@ -516,7 +567,7 @@ func (o *BindHostInternalServerError) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -562,12 +613,19 @@ func (o *BindHostNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the bind host not implemented response
+func (o *BindHostNotImplemented) Code() int {
+	return 501
+}
+
 func (o *BindHostNotImplemented) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotImplemented %s", 501, payload)
 }
 
 func (o *BindHostNotImplemented) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostNotImplemented %s", 501, payload)
 }
 
 func (o *BindHostNotImplemented) GetPayload() *models.Error {
@@ -579,7 +637,7 @@ func (o *BindHostNotImplemented) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -625,12 +683,19 @@ func (o *BindHostServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the bind host service unavailable response
+func (o *BindHostServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *BindHostServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostServiceUnavailable %s", 503, payload)
 }
 
 func (o *BindHostServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind][%d] bindHostServiceUnavailable %s", 503, payload)
 }
 
 func (o *BindHostServiceUnavailable) GetPayload() *models.Error {
@@ -642,7 +707,7 @@ func (o *BindHostServiceUnavailable) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -6,6 +6,8 @@ package managed_domains
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2ListManagedDomainsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListManagedDomainsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2ListManagedDomainsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListManagedDomainsOK()
@@ -36,7 +38,7 @@ func (o *V2ListManagedDomainsReader) ReadResponse(response runtime.ClientRespons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/domains] V2ListManagedDomains", response, response.Code())
 	}
 }
 
@@ -79,12 +81,19 @@ func (o *V2ListManagedDomainsOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 list managed domains o k response
+func (o *V2ListManagedDomainsOK) Code() int {
+	return 200
+}
+
 func (o *V2ListManagedDomainsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsOK %s", 200, payload)
 }
 
 func (o *V2ListManagedDomainsOK) String() string {
-	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsOK %s", 200, payload)
 }
 
 func (o *V2ListManagedDomainsOK) GetPayload() models.ListManagedDomains {
@@ -94,7 +103,7 @@ func (o *V2ListManagedDomainsOK) GetPayload() models.ListManagedDomains {
 func (o *V2ListManagedDomainsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -140,12 +149,19 @@ func (o *V2ListManagedDomainsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 list managed domains internal server error response
+func (o *V2ListManagedDomainsInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2ListManagedDomainsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListManagedDomainsInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/domains][%d] v2ListManagedDomainsInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListManagedDomainsInternalServerError) GetPayload() *models.Error {
@@ -157,7 +173,7 @@ func (o *V2ListManagedDomainsInternalServerError) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

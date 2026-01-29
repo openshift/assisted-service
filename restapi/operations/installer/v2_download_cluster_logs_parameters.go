@@ -28,7 +28,6 @@ func NewV2DownloadClusterLogsParams() V2DownloadClusterLogsParams {
 //
 // swagger:parameters V2DownloadClusterLogs
 type V2DownloadClusterLogsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,10 +36,12 @@ type V2DownloadClusterLogsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*A specific host in the cluster whose logs should be downloaded.
 	  In: query
 	*/
 	HostID *strfmt.UUID
+
 	/*The type of logs to be downloaded.
 	  In: query
 	*/
@@ -55,7 +56,6 @@ func (o *V2DownloadClusterLogsParams) BindRequest(r *http.Request, route *middle
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -102,7 +102,7 @@ func (o *V2DownloadClusterLogsParams) bindClusterID(rawData []string, hasKey boo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2DownloadClusterLogsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -139,7 +139,7 @@ func (o *V2DownloadClusterLogsParams) bindHostID(rawData []string, hasKey bool, 
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2DownloadClusterLogsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
@@ -170,10 +170,10 @@ func (o *V2DownloadClusterLogsParams) bindLogsType(rawData []string, hasKey bool
 	return nil
 }
 
-// validateLogsType carries on validations for parameter LogsType
+// validateLogsType carries out validations for parameter LogsType
 func (o *V2DownloadClusterLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []any{"host", "controller", "all"}, true); err != nil {
 		return err
 	}
 

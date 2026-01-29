@@ -40,7 +40,6 @@ func NewV2ListClustersParams() V2ListClustersParams {
 //
 // swagger:parameters v2ListClusters
 type V2ListClustersParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -48,19 +47,23 @@ type V2ListClustersParams struct {
 	  In: query
 	*/
 	AmsSubscriptionIds []string
+
 	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
 	*/
 	GetUnregisteredClusters *bool
+
 	/*A specific cluster to retrieve.
 	  In: query
 	*/
 	OpenshiftClusterID *strfmt.UUID
+
 	/*If provided, returns only clusters that are owned by the specified user.
 	  In: query
 	*/
 	Owner *string
+
 	/*Include hosts in the returned list.
 	  In: query
 	  Default: false
@@ -76,7 +79,6 @@ func (o *V2ListClustersParams) BindRequest(r *http.Request, route *middleware.Ma
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	qAmsSubscriptionIds, qhkAmsSubscriptionIds, _ := qs.GetOK("ams_subscription_ids")
@@ -186,7 +188,7 @@ func (o *V2ListClustersParams) bindOpenshiftClusterID(rawData []string, hasKey b
 	return nil
 }
 
-// validateOpenshiftClusterID carries on validations for parameter OpenshiftClusterID
+// validateOpenshiftClusterID carries out validations for parameter OpenshiftClusterID
 func (o *V2ListClustersParams) validateOpenshiftClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("openshift_cluster_id", "query", "uuid", o.OpenshiftClusterID.String(), formats); err != nil {

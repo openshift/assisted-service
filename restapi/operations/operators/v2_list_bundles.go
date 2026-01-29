@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListBundlesHandlerFunc turns a function with the right signature into a v2 list bundles handler
-type V2ListBundlesHandlerFunc func(V2ListBundlesParams, interface{}) middleware.Responder
+type V2ListBundlesHandlerFunc func(V2ListBundlesParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListBundlesHandlerFunc) Handle(params V2ListBundlesParams, principal interface{}) middleware.Responder {
+func (fn V2ListBundlesHandlerFunc) Handle(params V2ListBundlesParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListBundlesHandler interface for that can handle valid v2 list bundles params
 type V2ListBundlesHandler interface {
-	Handle(V2ListBundlesParams, interface{}) middleware.Responder
+	Handle(V2ListBundlesParams, any) middleware.Responder
 }
 
 // NewV2ListBundles creates a new http.Handler for the v2 list bundles operation
@@ -55,9 +55,9 @@ func (o *V2ListBundles) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -66,6 +66,7 @@ func (o *V2ListBundles) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2UpdateHostParams() V2UpdateHostParams {
 //
 // swagger:parameters v2UpdateHost
 type V2UpdateHostParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,11 +40,13 @@ type V2UpdateHostParams struct {
 	  In: body
 	*/
 	HostUpdateParams *models.HostUpdateParams
+
 	/*The host that should be updated.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env ID of the host to be updated.
 	  Required: true
 	  In: path
@@ -62,10 +64,12 @@ func (o *V2UpdateHostParams) BindRequest(r *http.Request, route *middleware.Matc
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.HostUpdateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("hostUpdateParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("hostUpdateParams", "body", "", err))
@@ -128,7 +132,7 @@ func (o *V2UpdateHostParams) bindHostID(rawData []string, hasKey bool, formats s
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2UpdateHostParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -161,7 +165,7 @@ func (o *V2UpdateHostParams) bindInfraEnvID(rawData []string, hasKey bool, forma
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2UpdateHostParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

@@ -27,7 +27,6 @@ func NewV2GetHostIgnitionParams() V2GetHostIgnitionParams {
 //
 // swagger:parameters v2GetHostIgnition
 type V2GetHostIgnitionParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,6 +35,7 @@ type V2GetHostIgnitionParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env of the host whose ignition file should be obtained.
 	  Required: true
 	  In: path
@@ -91,7 +91,7 @@ func (o *V2GetHostIgnitionParams) bindHostID(rawData []string, hasKey bool, form
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2GetHostIgnitionParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -124,7 +124,7 @@ func (o *V2GetHostIgnitionParams) bindInfraEnvID(rawData []string, hasKey bool, 
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2GetHostIgnitionParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

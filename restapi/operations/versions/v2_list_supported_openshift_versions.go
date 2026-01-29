@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListSupportedOpenshiftVersionsHandlerFunc turns a function with the right signature into a v2 list supported openshift versions handler
-type V2ListSupportedOpenshiftVersionsHandlerFunc func(V2ListSupportedOpenshiftVersionsParams, interface{}) middleware.Responder
+type V2ListSupportedOpenshiftVersionsHandlerFunc func(V2ListSupportedOpenshiftVersionsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListSupportedOpenshiftVersionsHandlerFunc) Handle(params V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
+func (fn V2ListSupportedOpenshiftVersionsHandlerFunc) Handle(params V2ListSupportedOpenshiftVersionsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListSupportedOpenshiftVersionsHandler interface for that can handle valid v2 list supported openshift versions params
 type V2ListSupportedOpenshiftVersionsHandler interface {
-	Handle(V2ListSupportedOpenshiftVersionsParams, interface{}) middleware.Responder
+	Handle(V2ListSupportedOpenshiftVersionsParams, any) middleware.Responder
 }
 
 // NewV2ListSupportedOpenshiftVersions creates a new http.Handler for the v2 list supported openshift versions operation
@@ -53,9 +53,9 @@ func (o *V2ListSupportedOpenshiftVersions) ServeHTTP(rw http.ResponseWriter, r *
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListSupportedOpenshiftVersions) ServeHTTP(rw http.ResponseWriter, r *
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

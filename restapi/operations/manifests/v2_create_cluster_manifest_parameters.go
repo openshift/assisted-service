@@ -6,6 +6,7 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2CreateClusterManifestParams() V2CreateClusterManifestParams {
 //
 // swagger:parameters V2CreateClusterManifest
 type V2CreateClusterManifestParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,6 +40,7 @@ type V2CreateClusterManifestParams struct {
 	  In: body
 	*/
 	CreateManifestParams *models.CreateManifestParams
+
 	/*The cluster for which a new manifest should be created.
 	  Required: true
 	  In: path
@@ -57,10 +58,12 @@ func (o *V2CreateClusterManifestParams) BindRequest(r *http.Request, route *midd
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.CreateManifestParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("createManifestParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("createManifestParams", "body", "", err))
@@ -118,7 +121,7 @@ func (o *V2CreateClusterManifestParams) bindClusterID(rawData []string, hasKey b
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2CreateClusterManifestParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

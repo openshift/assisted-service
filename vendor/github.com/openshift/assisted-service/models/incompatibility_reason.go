@@ -44,7 +44,7 @@ const (
 )
 
 // for schema
-var incompatibilityReasonEnum []interface{}
+var incompatibilityReasonEnum []any
 
 func init() {
 	var res []IncompatibilityReason

@@ -47,7 +47,7 @@ const (
 )
 
 // for schema
-var architectureSupportLevelIdEnum []interface{}
+var architectureSupportLevelIdEnum []any
 
 func init() {
 	var res []ArchitectureSupportLevelID

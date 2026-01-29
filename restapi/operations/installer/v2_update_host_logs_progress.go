@@ -12,16 +12,16 @@ import (
 )
 
 // V2UpdateHostLogsProgressHandlerFunc turns a function with the right signature into a v2 update host logs progress handler
-type V2UpdateHostLogsProgressHandlerFunc func(V2UpdateHostLogsProgressParams, interface{}) middleware.Responder
+type V2UpdateHostLogsProgressHandlerFunc func(V2UpdateHostLogsProgressParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UpdateHostLogsProgressHandlerFunc) Handle(params V2UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
+func (fn V2UpdateHostLogsProgressHandlerFunc) Handle(params V2UpdateHostLogsProgressParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UpdateHostLogsProgressHandler interface for that can handle valid v2 update host logs progress params
 type V2UpdateHostLogsProgressHandler interface {
-	Handle(V2UpdateHostLogsProgressParams, interface{}) middleware.Responder
+	Handle(V2UpdateHostLogsProgressParams, any) middleware.Responder
 }
 
 // NewV2UpdateHostLogsProgress creates a new http.Handler for the v2 update host logs progress operation
@@ -53,9 +53,9 @@ func (o *V2UpdateHostLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2UpdateHostLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

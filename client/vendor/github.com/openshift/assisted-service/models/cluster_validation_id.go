@@ -176,7 +176,7 @@ const (
 )
 
 // for schema
-var clusterValidationIdEnum []interface{}
+var clusterValidationIdEnum []any
 
 func init() {
 	var res []ClusterValidationID

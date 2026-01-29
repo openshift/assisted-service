@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListClustersHandlerFunc turns a function with the right signature into a v2 list clusters handler
-type V2ListClustersHandlerFunc func(V2ListClustersParams, interface{}) middleware.Responder
+type V2ListClustersHandlerFunc func(V2ListClustersParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListClustersHandlerFunc) Handle(params V2ListClustersParams, principal interface{}) middleware.Responder {
+func (fn V2ListClustersHandlerFunc) Handle(params V2ListClustersParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListClustersHandler interface for that can handle valid v2 list clusters params
 type V2ListClustersHandler interface {
-	Handle(V2ListClustersParams, interface{}) middleware.Responder
+	Handle(V2ListClustersParams, any) middleware.Responder
 }
 
 // NewV2ListClusters creates a new http.Handler for the v2 list clusters operation
@@ -53,9 +53,9 @@ func (o *V2ListClusters) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListClusters) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

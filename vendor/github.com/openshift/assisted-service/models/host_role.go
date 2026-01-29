@@ -47,7 +47,7 @@ const (
 )
 
 // for schema
-var hostRoleEnum []interface{}
+var hostRoleEnum []any
 
 func init() {
 	var res []HostRole

@@ -12,16 +12,16 @@ import (
 )
 
 // UnbindHostHandlerFunc turns a function with the right signature into a unbind host handler
-type UnbindHostHandlerFunc func(UnbindHostParams, interface{}) middleware.Responder
+type UnbindHostHandlerFunc func(UnbindHostParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn UnbindHostHandlerFunc) Handle(params UnbindHostParams, principal interface{}) middleware.Responder {
+func (fn UnbindHostHandlerFunc) Handle(params UnbindHostParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // UnbindHostHandler interface for that can handle valid unbind host params
 type UnbindHostHandler interface {
-	Handle(UnbindHostParams, interface{}) middleware.Responder
+	Handle(UnbindHostParams, any) middleware.Responder
 }
 
 // NewUnbindHost creates a new http.Handler for the unbind host operation
@@ -53,9 +53,9 @@ func (o *UnbindHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *UnbindHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

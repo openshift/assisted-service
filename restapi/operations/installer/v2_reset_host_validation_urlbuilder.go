@@ -48,21 +48,21 @@ func (o *V2ResetHostValidationURL) Build() (*url.URL, error) {
 
 	hostID := o.HostID.String()
 	if hostID != "" {
-		_path = strings.Replace(_path, "{host_id}", hostID, -1)
+		_path = strings.ReplaceAll(_path, "{host_id}", hostID)
 	} else {
 		return nil, errors.New("hostId is required on V2ResetHostValidationURL")
 	}
 
 	infraEnvID := o.InfraEnvID.String()
 	if infraEnvID != "" {
-		_path = strings.Replace(_path, "{infra_env_id}", infraEnvID, -1)
+		_path = strings.ReplaceAll(_path, "{infra_env_id}", infraEnvID)
 	} else {
 		return nil, errors.New("infraEnvId is required on V2ResetHostValidationURL")
 	}
 
 	validationID := o.ValidationID
 	if validationID != "" {
-		_path = strings.Replace(_path, "{validation_id}", validationID, -1)
+		_path = strings.ReplaceAll(_path, "{validation_id}", validationID)
 	} else {
 		return nil, errors.New("validationId is required on V2ResetHostValidationURL")
 	}

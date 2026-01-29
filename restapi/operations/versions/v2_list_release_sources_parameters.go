@@ -25,7 +25,6 @@ func NewV2ListReleaseSourcesParams() V2ListReleaseSourcesParams {
 //
 // swagger:parameters v2ListReleaseSources
 type V2ListReleaseSourcesParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

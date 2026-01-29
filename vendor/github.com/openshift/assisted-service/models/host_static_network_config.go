@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -45,11 +46,15 @@ func (m *HostStaticNetworkConfig) validateMacInterfaceMap(formats strfmt.Registr
 	}
 
 	if err := m.MacInterfaceMap.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("mac_interface_map")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("mac_interface_map")
 		}
+
 		return err
 	}
 
@@ -73,11 +78,15 @@ func (m *HostStaticNetworkConfig) ContextValidate(ctx context.Context, formats s
 func (m *HostStaticNetworkConfig) contextValidateMacInterfaceMap(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.MacInterfaceMap.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("mac_interface_map")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("mac_interface_map")
 		}
+
 		return err
 	}
 

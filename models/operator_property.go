@@ -21,7 +21,7 @@ import (
 type OperatorProperty struct {
 
 	// Type of the property
-	// Enum: [boolean string integer float]
+	// Enum: ["boolean","string","integer","float"]
 	DataType string `json:"data_type,omitempty"`
 
 	// Default value for the property
@@ -54,7 +54,7 @@ func (m *OperatorProperty) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var operatorPropertyTypeDataTypePropEnum []interface{}
+var operatorPropertyTypeDataTypePropEnum []any
 
 func init() {
 	var res []string

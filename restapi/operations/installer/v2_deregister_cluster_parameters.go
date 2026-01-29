@@ -27,7 +27,6 @@ func NewV2DeregisterClusterParams() V2DeregisterClusterParams {
 //
 // swagger:parameters v2DeregisterCluster
 type V2DeregisterClusterParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *V2DeregisterClusterParams) bindClusterID(rawData []string, hasKey bool,
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2DeregisterClusterParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

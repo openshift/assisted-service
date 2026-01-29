@@ -36,7 +36,6 @@ func NewV2ListClusterManifestsParams() V2ListClusterManifestsParams {
 //
 // swagger:parameters V2ListClusterManifests
 type V2ListClusterManifestsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -45,6 +44,7 @@ type V2ListClusterManifestsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*Include system generated manifests in results? Default is false.
 	  In: query
 	  Default: false
@@ -60,7 +60,6 @@ func (o *V2ListClusterManifestsParams) BindRequest(r *http.Request, route *middl
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -102,7 +101,7 @@ func (o *V2ListClusterManifestsParams) bindClusterID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2ListClusterManifestsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

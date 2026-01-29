@@ -12,16 +12,16 @@ import (
 )
 
 // TransformClusterToDay2HandlerFunc turns a function with the right signature into a transform cluster to day2 handler
-type TransformClusterToDay2HandlerFunc func(TransformClusterToDay2Params, interface{}) middleware.Responder
+type TransformClusterToDay2HandlerFunc func(TransformClusterToDay2Params, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn TransformClusterToDay2HandlerFunc) Handle(params TransformClusterToDay2Params, principal interface{}) middleware.Responder {
+func (fn TransformClusterToDay2HandlerFunc) Handle(params TransformClusterToDay2Params, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // TransformClusterToDay2Handler interface for that can handle valid transform cluster to day2 params
 type TransformClusterToDay2Handler interface {
-	Handle(TransformClusterToDay2Params, interface{}) middleware.Responder
+	Handle(TransformClusterToDay2Params, any) middleware.Responder
 }
 
 // NewTransformClusterToDay2 creates a new http.Handler for the transform cluster to day2 operation
@@ -53,9 +53,9 @@ func (o *TransformClusterToDay2) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *TransformClusterToDay2) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

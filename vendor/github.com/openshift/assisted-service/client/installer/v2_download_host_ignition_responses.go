@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -22,7 +24,7 @@ type V2DownloadHostIgnitionReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DownloadHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2DownloadHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2DownloadHostIgnitionOK(o.writer)
@@ -73,7 +75,7 @@ func (o *V2DownloadHostIgnitionReader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition] v2DownloadHostIgnition", response, response.Code())
 	}
 }
 
@@ -119,12 +121,17 @@ func (o *V2DownloadHostIgnitionOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 download host ignition o k response
+func (o *V2DownloadHostIgnitionOK) Code() int {
+	return 200
+}
+
 func (o *V2DownloadHostIgnitionOK) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionOK", 200)
 }
 
 func (o *V2DownloadHostIgnitionOK) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionOK", 200)
 }
 
 func (o *V2DownloadHostIgnitionOK) GetPayload() io.Writer {
@@ -134,7 +141,7 @@ func (o *V2DownloadHostIgnitionOK) GetPayload() io.Writer {
 func (o *V2DownloadHostIgnitionOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -180,12 +187,19 @@ func (o *V2DownloadHostIgnitionUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 download host ignition unauthorized response
+func (o *V2DownloadHostIgnitionUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2DownloadHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2DownloadHostIgnitionUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2DownloadHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -197,7 +211,7 @@ func (o *V2DownloadHostIgnitionUnauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -243,12 +257,19 @@ func (o *V2DownloadHostIgnitionForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 download host ignition forbidden response
+func (o *V2DownloadHostIgnitionForbidden) Code() int {
+	return 403
+}
+
 func (o *V2DownloadHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2DownloadHostIgnitionForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2DownloadHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -260,7 +281,7 @@ func (o *V2DownloadHostIgnitionForbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -306,12 +327,19 @@ func (o *V2DownloadHostIgnitionNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 download host ignition not found response
+func (o *V2DownloadHostIgnitionNotFound) Code() int {
+	return 404
+}
+
 func (o *V2DownloadHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2DownloadHostIgnitionNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2DownloadHostIgnitionNotFound) GetPayload() *models.Error {
@@ -323,7 +351,7 @@ func (o *V2DownloadHostIgnitionNotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -369,12 +397,19 @@ func (o *V2DownloadHostIgnitionMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 download host ignition method not allowed response
+func (o *V2DownloadHostIgnitionMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2DownloadHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2DownloadHostIgnitionMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2DownloadHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -386,7 +421,7 @@ func (o *V2DownloadHostIgnitionMethodNotAllowed) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -432,12 +467,19 @@ func (o *V2DownloadHostIgnitionConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the v2 download host ignition conflict response
+func (o *V2DownloadHostIgnitionConflict) Code() int {
+	return 409
+}
+
 func (o *V2DownloadHostIgnitionConflict) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionConflict %s", 409, payload)
 }
 
 func (o *V2DownloadHostIgnitionConflict) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionConflict %s", 409, payload)
 }
 
 func (o *V2DownloadHostIgnitionConflict) GetPayload() *models.Error {
@@ -449,7 +491,7 @@ func (o *V2DownloadHostIgnitionConflict) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -495,12 +537,19 @@ func (o *V2DownloadHostIgnitionInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 download host ignition internal server error response
+func (o *V2DownloadHostIgnitionInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2DownloadHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2DownloadHostIgnitionInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2DownloadHostIgnitionInternalServerError) GetPayload() *models.Error {
@@ -512,7 +561,7 @@ func (o *V2DownloadHostIgnitionInternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -558,12 +607,19 @@ func (o *V2DownloadHostIgnitionServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 download host ignition service unavailable response
+func (o *V2DownloadHostIgnitionServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2DownloadHostIgnitionServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2DownloadHostIgnitionServiceUnavailable) String() string {
-	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-env/{infra_env_id}/hosts/{host_id}/downloads/ignition][%d] v2DownloadHostIgnitionServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2DownloadHostIgnitionServiceUnavailable) GetPayload() *models.Error {
@@ -575,7 +631,7 @@ func (o *V2DownloadHostIgnitionServiceUnavailable) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

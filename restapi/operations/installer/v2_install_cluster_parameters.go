@@ -27,7 +27,6 @@ func NewV2InstallClusterParams() V2InstallClusterParams {
 //
 // swagger:parameters v2InstallCluster
 type V2InstallClusterParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *V2InstallClusterParams) bindClusterID(rawData []string, hasKey bool, fo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2InstallClusterParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

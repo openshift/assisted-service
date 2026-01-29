@@ -12,16 +12,16 @@ import (
 )
 
 // V2UpdateHostIgnitionHandlerFunc turns a function with the right signature into a v2 update host ignition handler
-type V2UpdateHostIgnitionHandlerFunc func(V2UpdateHostIgnitionParams, interface{}) middleware.Responder
+type V2UpdateHostIgnitionHandlerFunc func(V2UpdateHostIgnitionParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UpdateHostIgnitionHandlerFunc) Handle(params V2UpdateHostIgnitionParams, principal interface{}) middleware.Responder {
+func (fn V2UpdateHostIgnitionHandlerFunc) Handle(params V2UpdateHostIgnitionParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UpdateHostIgnitionHandler interface for that can handle valid v2 update host ignition params
 type V2UpdateHostIgnitionHandler interface {
-	Handle(V2UpdateHostIgnitionParams, interface{}) middleware.Responder
+	Handle(V2UpdateHostIgnitionParams, any) middleware.Responder
 }
 
 // NewV2UpdateHostIgnition creates a new http.Handler for the v2 update host ignition operation
@@ -53,9 +53,9 @@ func (o *V2UpdateHostIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2UpdateHostIgnition) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

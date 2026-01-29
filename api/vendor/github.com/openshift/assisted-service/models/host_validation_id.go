@@ -230,7 +230,7 @@ const (
 )
 
 // for schema
-var hostValidationIdEnum []interface{}
+var hostValidationIdEnum []any
 
 func init() {
 	var res []HostValidationID

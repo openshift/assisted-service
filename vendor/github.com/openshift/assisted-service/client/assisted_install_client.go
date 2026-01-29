@@ -74,11 +74,11 @@ func New(c Config) *AssistedInstall {
 
 // AssistedInstall is a client for assisted install
 type AssistedInstall struct {
-	Events         *events.Client
-	Installer      *installer.Client
-	ManagedDomains *managed_domains.Client
-	Manifests      *manifests.Client
-	Operators      *operators.Client
-	Versions       *versions.Client
+	Events         events.API
+	Installer      installer.API
+	ManagedDomains managed_domains.API
+	Manifests      manifests.API
+	Operators      operators.API
+	Versions       versions.API
 	Transport      runtime.ClientTransport
 }

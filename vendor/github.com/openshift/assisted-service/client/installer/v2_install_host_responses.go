@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2InstallHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2InstallHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2InstallHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 202:
 		result := NewV2InstallHostAccepted()
@@ -60,7 +62,7 @@ func (o *V2InstallHostReader) ReadResponse(response runtime.ClientResponse, cons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install] v2InstallHost", response, response.Code())
 	}
 }
 
@@ -103,12 +105,19 @@ func (o *V2InstallHostAccepted) IsCode(code int) bool {
 	return code == 202
 }
 
+// Code gets the status code for the v2 install host accepted response
+func (o *V2InstallHostAccepted) Code() int {
+	return 202
+}
+
 func (o *V2InstallHostAccepted) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostAccepted  %+v", 202, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostAccepted %s", 202, payload)
 }
 
 func (o *V2InstallHostAccepted) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostAccepted  %+v", 202, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostAccepted %s", 202, payload)
 }
 
 func (o *V2InstallHostAccepted) GetPayload() *models.Host {
@@ -120,7 +129,7 @@ func (o *V2InstallHostAccepted) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.Host)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -166,12 +175,19 @@ func (o *V2InstallHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 install host unauthorized response
+func (o *V2InstallHostUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2InstallHostUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostUnauthorized %s", 401, payload)
 }
 
 func (o *V2InstallHostUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostUnauthorized %s", 401, payload)
 }
 
 func (o *V2InstallHostUnauthorized) GetPayload() *models.InfraError {
@@ -183,7 +199,7 @@ func (o *V2InstallHostUnauthorized) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -229,12 +245,19 @@ func (o *V2InstallHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 install host forbidden response
+func (o *V2InstallHostForbidden) Code() int {
+	return 403
+}
+
 func (o *V2InstallHostForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostForbidden %s", 403, payload)
 }
 
 func (o *V2InstallHostForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostForbidden %s", 403, payload)
 }
 
 func (o *V2InstallHostForbidden) GetPayload() *models.InfraError {
@@ -246,7 +269,7 @@ func (o *V2InstallHostForbidden) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -292,12 +315,19 @@ func (o *V2InstallHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 install host not found response
+func (o *V2InstallHostNotFound) Code() int {
+	return 404
+}
+
 func (o *V2InstallHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostNotFound %s", 404, payload)
 }
 
 func (o *V2InstallHostNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostNotFound %s", 404, payload)
 }
 
 func (o *V2InstallHostNotFound) GetPayload() *models.Error {
@@ -309,7 +339,7 @@ func (o *V2InstallHostNotFound) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -355,12 +385,19 @@ func (o *V2InstallHostConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the v2 install host conflict response
+func (o *V2InstallHostConflict) Code() int {
+	return 409
+}
+
 func (o *V2InstallHostConflict) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostConflict %s", 409, payload)
 }
 
 func (o *V2InstallHostConflict) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostConflict %s", 409, payload)
 }
 
 func (o *V2InstallHostConflict) GetPayload() *models.Error {
@@ -372,7 +409,7 @@ func (o *V2InstallHostConflict) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -418,12 +455,19 @@ func (o *V2InstallHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 install host internal server error response
+func (o *V2InstallHostInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2InstallHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostInternalServerError %s", 500, payload)
 }
 
 func (o *V2InstallHostInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install][%d] v2InstallHostInternalServerError %s", 500, payload)
 }
 
 func (o *V2InstallHostInternalServerError) GetPayload() *models.Error {
@@ -435,7 +479,7 @@ func (o *V2InstallHostInternalServerError) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

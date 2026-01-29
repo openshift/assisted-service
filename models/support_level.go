@@ -47,7 +47,7 @@ const (
 )
 
 // for schema
-var supportLevelEnum []interface{}
+var supportLevelEnum []any
 
 func init() {
 	var res []SupportLevel

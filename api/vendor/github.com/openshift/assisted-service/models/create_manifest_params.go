@@ -30,7 +30,7 @@ type CreateManifestParams struct {
 	FileName *string `json:"file_name"`
 
 	// The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
-	// Enum: [manifests openshift]
+	// Enum: ["manifests","openshift"]
 	Folder *string `json:"folder,omitempty"`
 }
 
@@ -78,7 +78,7 @@ func (m *CreateManifestParams) validateFileName(formats strfmt.Registry) error {
 	return nil
 }
 
-var createManifestParamsTypeFolderPropEnum []interface{}
+var createManifestParamsTypeFolderPropEnum []any
 
 func init() {
 	var res []string

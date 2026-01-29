@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -45,11 +46,15 @@ func (m *HostProgress) validateCurrentStage(formats strfmt.Registry) error {
 	}
 
 	if err := m.CurrentStage.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("current_stage")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("current_stage")
 		}
+
 		return err
 	}
 
@@ -72,12 +77,20 @@ func (m *HostProgress) ContextValidate(ctx context.Context, formats strfmt.Regis
 
 func (m *HostProgress) contextValidateCurrentStage(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.CurrentStage) { // not required
+		return nil
+	}
+
 	if err := m.CurrentStage.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("current_stage")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("current_stage")
 		}
+
 		return err
 	}
 

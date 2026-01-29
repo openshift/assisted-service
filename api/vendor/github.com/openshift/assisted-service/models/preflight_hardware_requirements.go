@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -51,11 +52,15 @@ func (m *PreflightHardwareRequirements) validateOcp(formats strfmt.Registry) err
 
 	if m.Ocp != nil {
 		if err := m.Ocp.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("ocp")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("ocp")
 			}
+
 			return err
 		}
 	}
@@ -75,11 +80,15 @@ func (m *PreflightHardwareRequirements) validateOperators(formats strfmt.Registr
 
 		if m.Operators[i] != nil {
 			if err := m.Operators[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -110,12 +119,21 @@ func (m *PreflightHardwareRequirements) ContextValidate(ctx context.Context, for
 func (m *PreflightHardwareRequirements) contextValidateOcp(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Ocp != nil {
+
+		if swag.IsZero(m.Ocp) { // not required
+			return nil
+		}
+
 		if err := m.Ocp.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("ocp")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("ocp")
 			}
+
 			return err
 		}
 	}
@@ -128,12 +146,21 @@ func (m *PreflightHardwareRequirements) contextValidateOperators(ctx context.Con
 	for i := 0; i < len(m.Operators); i++ {
 
 		if m.Operators[i] != nil {
+
+			if swag.IsZero(m.Operators[i]) { // not required
+				return nil
+			}
+
 			if err := m.Operators[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

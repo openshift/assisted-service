@@ -36,7 +36,7 @@ type Error struct {
 
 	// Indicates the type of this object. Will always be 'Error'.
 	// Required: true
-	// Enum: [Error]
+	// Enum: ["Error"]
 	Kind *string `json:"kind"`
 
 	// Human-readable description of the error.
@@ -109,7 +109,7 @@ func (m *Error) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-var errorTypeKindPropEnum []interface{}
+var errorTypeKindPropEnum []any
 
 func init() {
 	var res []string

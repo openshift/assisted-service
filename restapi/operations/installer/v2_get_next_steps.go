@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetNextStepsHandlerFunc turns a function with the right signature into a v2 get next steps handler
-type V2GetNextStepsHandlerFunc func(V2GetNextStepsParams, interface{}) middleware.Responder
+type V2GetNextStepsHandlerFunc func(V2GetNextStepsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetNextStepsHandlerFunc) Handle(params V2GetNextStepsParams, principal interface{}) middleware.Responder {
+func (fn V2GetNextStepsHandlerFunc) Handle(params V2GetNextStepsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetNextStepsHandler interface for that can handle valid v2 get next steps params
 type V2GetNextStepsHandler interface {
-	Handle(V2GetNextStepsParams, interface{}) middleware.Responder
+	Handle(V2GetNextStepsParams, any) middleware.Responder
 }
 
 // NewV2GetNextSteps creates a new http.Handler for the v2 get next steps operation
@@ -53,9 +53,9 @@ func (o *V2GetNextSteps) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2GetNextSteps) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

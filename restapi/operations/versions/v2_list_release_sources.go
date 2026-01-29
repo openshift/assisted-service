@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListReleaseSourcesHandlerFunc turns a function with the right signature into a v2 list release sources handler
-type V2ListReleaseSourcesHandlerFunc func(V2ListReleaseSourcesParams, interface{}) middleware.Responder
+type V2ListReleaseSourcesHandlerFunc func(V2ListReleaseSourcesParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListReleaseSourcesHandlerFunc) Handle(params V2ListReleaseSourcesParams, principal interface{}) middleware.Responder {
+func (fn V2ListReleaseSourcesHandlerFunc) Handle(params V2ListReleaseSourcesParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListReleaseSourcesHandler interface for that can handle valid v2 list release sources params
 type V2ListReleaseSourcesHandler interface {
-	Handle(V2ListReleaseSourcesParams, interface{}) middleware.Responder
+	Handle(V2ListReleaseSourcesParams, any) middleware.Responder
 }
 
 // NewV2ListReleaseSources creates a new http.Handler for the v2 list release sources operation
@@ -53,9 +53,9 @@ func (o *V2ListReleaseSources) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListReleaseSources) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

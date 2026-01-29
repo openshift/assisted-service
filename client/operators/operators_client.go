@@ -7,13 +7,14 @@ package operators
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery -name API -inpkg
+//go:generate mockery --name API --keeptree --with-expecter --case underscore
 
 // API is the interface of the operators client
 type API interface {
@@ -65,7 +66,6 @@ V2GetBundle gets operator properties for a bundle
 Retrieves an array of operator properties for the specified bundle when some features are activated.
 */
 func (a *Client) V2GetBundle(ctx context.Context, params *V2GetBundleParams) (*V2GetBundleOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetBundle",
 		Method:             "GET",
@@ -82,8 +82,25 @@ func (a *Client) V2GetBundle(ctx context.Context, params *V2GetBundleParams) (*V
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetBundleOK), nil
 
+	switch value := result.(type) {
+	case *V2GetBundleOK:
+		return value, nil
+	case *V2GetBundleBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetBundleNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetBundleInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetBundle: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -92,7 +109,6 @@ V2ListBundles gets list of available bundles
 Retrieves a list of available bundles filtered by support level.
 */
 func (a *Client) V2ListBundles(ctx context.Context, params *V2ListBundlesParams) (*V2ListBundlesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListBundles",
 		Method:             "GET",
@@ -109,15 +125,29 @@ func (a *Client) V2ListBundles(ctx context.Context, params *V2ListBundlesParams)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListBundlesOK), nil
 
+	switch value := result.(type) {
+	case *V2ListBundlesOK:
+		return value, nil
+	case *V2ListBundlesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListBundlesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2ListBundles: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListOfClusterOperators Lists operators to be monitored for a cluster.
 */
 func (a *Client) V2ListOfClusterOperators(ctx context.Context, params *V2ListOfClusterOperatorsParams) (*V2ListOfClusterOperatorsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListOfClusterOperators",
 		Method:             "GET",
@@ -134,15 +164,35 @@ func (a *Client) V2ListOfClusterOperators(ctx context.Context, params *V2ListOfC
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListOfClusterOperatorsOK), nil
 
+	switch value := result.(type) {
+	case *V2ListOfClusterOperatorsOK:
+		return value, nil
+	case *V2ListOfClusterOperatorsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOfClusterOperatorsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOfClusterOperatorsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOfClusterOperatorsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOfClusterOperatorsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2ListOfClusterOperators: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListOperatorProperties Lists properties for an operator.
 */
 func (a *Client) V2ListOperatorProperties(ctx context.Context, params *V2ListOperatorPropertiesParams) (*V2ListOperatorPropertiesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListOperatorProperties",
 		Method:             "GET",
@@ -159,15 +209,33 @@ func (a *Client) V2ListOperatorProperties(ctx context.Context, params *V2ListOpe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListOperatorPropertiesOK), nil
 
+	switch value := result.(type) {
+	case *V2ListOperatorPropertiesOK:
+		return value, nil
+	case *V2ListOperatorPropertiesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOperatorPropertiesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOperatorPropertiesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListOperatorPropertiesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2ListOperatorProperties: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListSupportedOperators Retrieves the list of supported operators.
 */
 func (a *Client) V2ListSupportedOperators(ctx context.Context, params *V2ListSupportedOperatorsParams) (*V2ListSupportedOperatorsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListSupportedOperators",
 		Method:             "GET",
@@ -184,15 +252,31 @@ func (a *Client) V2ListSupportedOperators(ctx context.Context, params *V2ListSup
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListSupportedOperatorsOK), nil
 
+	switch value := result.(type) {
+	case *V2ListSupportedOperatorsOK:
+		return value, nil
+	case *V2ListSupportedOperatorsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListSupportedOperatorsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListSupportedOperatorsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2ListSupportedOperators: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 */
 func (a *Client) V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2ReportMonitoredOperatorStatusParams) (*V2ReportMonitoredOperatorStatusOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ReportMonitoredOperatorStatus",
 		Method:             "PUT",
@@ -209,6 +293,33 @@ func (a *Client) V2ReportMonitoredOperatorStatus(ctx context.Context, params *V2
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ReportMonitoredOperatorStatusOK), nil
 
+	switch value := result.(type) {
+	case *V2ReportMonitoredOperatorStatusOK:
+		return value, nil
+	case *V2ReportMonitoredOperatorStatusBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ReportMonitoredOperatorStatusServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ReportMonitoredOperatorStatus: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }

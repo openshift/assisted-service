@@ -24,11 +24,11 @@ type Manifest struct {
 	FileName string `json:"file_name,omitempty"`
 
 	// The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
-	// Enum: [manifests openshift]
+	// Enum: ["manifests","openshift"]
 	Folder string `json:"folder,omitempty"`
 
 	// Describes whether manifest is sourced from a user or created by the system.
-	// Enum: [user system]
+	// Enum: ["user","system"]
 	ManifestSource string `json:"manifest_source,omitempty"`
 }
 
@@ -50,7 +50,7 @@ func (m *Manifest) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var manifestTypeFolderPropEnum []interface{}
+var manifestTypeFolderPropEnum []any
 
 func init() {
 	var res []string
@@ -92,7 +92,7 @@ func (m *Manifest) validateFolder(formats strfmt.Registry) error {
 	return nil
 }
 
-var manifestTypeManifestSourcePropEnum []interface{}
+var manifestTypeManifestSourcePropEnum []any
 
 func init() {
 	var res []string

@@ -7,6 +7,7 @@ package manifests
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
@@ -14,7 +15,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery -name API -inpkg
+//go:generate mockery --name API --keeptree --with-expecter --case underscore
 
 // API is the interface of the manifests client
 type API interface {
@@ -57,7 +58,6 @@ type Client struct {
 V2CreateClusterManifest Creates a manifest for customizing cluster installation.
 */
 func (a *Client) V2CreateClusterManifest(ctx context.Context, params *V2CreateClusterManifestParams) (*V2CreateClusterManifestCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2CreateClusterManifest",
 		Method:             "POST",
@@ -74,15 +74,39 @@ func (a *Client) V2CreateClusterManifest(ctx context.Context, params *V2CreateCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2CreateClusterManifestCreated), nil
 
+	switch value := result.(type) {
+	case *V2CreateClusterManifestCreated:
+		return value, nil
+	case *V2CreateClusterManifestBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CreateClusterManifestInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2CreateClusterManifest: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DeleteClusterManifest Deletes a manifest from the cluster.
 */
 func (a *Client) V2DeleteClusterManifest(ctx context.Context, params *V2DeleteClusterManifestParams) (*V2DeleteClusterManifestOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2DeleteClusterManifest",
 		Method:             "DELETE",
@@ -99,15 +123,37 @@ func (a *Client) V2DeleteClusterManifest(ctx context.Context, params *V2DeleteCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DeleteClusterManifestOK), nil
 
+	switch value := result.(type) {
+	case *V2DeleteClusterManifestOK:
+		return value, nil
+	case *V2DeleteClusterManifestUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeleteClusterManifestForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeleteClusterManifestNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeleteClusterManifestMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeleteClusterManifestConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeleteClusterManifestInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2DeleteClusterManifest: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListClusterManifests Lists manifests for customizing cluster installation.
 */
 func (a *Client) V2ListClusterManifests(ctx context.Context, params *V2ListClusterManifestsParams) (*V2ListClusterManifestsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListClusterManifests",
 		Method:             "GET",
@@ -124,15 +170,37 @@ func (a *Client) V2ListClusterManifests(ctx context.Context, params *V2ListClust
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListClusterManifestsOK), nil
 
+	switch value := result.(type) {
+	case *V2ListClusterManifestsOK:
+		return value, nil
+	case *V2ListClusterManifestsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClusterManifestsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClusterManifestsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClusterManifestsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClusterManifestsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClusterManifestsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2ListClusterManifests: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateClusterManifest Updates a manifest for customizing cluster installation.
 */
 func (a *Client) V2UpdateClusterManifest(ctx context.Context, params *V2UpdateClusterManifestParams) (*V2UpdateClusterManifestOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2UpdateClusterManifest",
 		Method:             "PATCH",
@@ -149,15 +217,39 @@ func (a *Client) V2UpdateClusterManifest(ctx context.Context, params *V2UpdateCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterManifestOK), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterManifestOK:
+		return value, nil
+	case *V2UpdateClusterManifestBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterManifestInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2UpdateClusterManifest: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadClusterManifest Downloads cluster manifest.
 */
 func (a *Client) V2DownloadClusterManifest(ctx context.Context, params *V2DownloadClusterManifestParams, writer io.Writer) (*V2DownloadClusterManifestOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2DownloadClusterManifest",
 		Method:             "GET",
@@ -174,6 +266,29 @@ func (a *Client) V2DownloadClusterManifest(ctx context.Context, params *V2Downlo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadClusterManifestOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadClusterManifestOK:
+		return value, nil
+	case *V2DownloadClusterManifestUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterManifestForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterManifestNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterManifestMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterManifestConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterManifestInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2DownloadClusterManifest: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }

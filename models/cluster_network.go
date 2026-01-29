@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -60,11 +61,15 @@ func (m *ClusterNetwork) validateCidr(formats strfmt.Registry) error {
 	}
 
 	if err := m.Cidr.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("cidr")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("cidr")
 		}
+
 		return err
 	}
 
@@ -115,12 +120,20 @@ func (m *ClusterNetwork) ContextValidate(ctx context.Context, formats strfmt.Reg
 
 func (m *ClusterNetwork) contextValidateCidr(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.Cidr) { // not required
+		return nil
+	}
+
 	if err := m.Cidr.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("cidr")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("cidr")
 		}
+
 		return err
 	}
 

@@ -8,7 +8,7 @@ function mirror_package() {
   # e.g. "local-storage-operator"
   package="${1}"
 
-  # e.g. "registry.redhat.io/redhat/redhat-operator-index:v4.8"
+  # e.g. "registry.redhat.io/redhat/redhat-operator-index:v4.17"
   remote_index="${2}"
 
   # e.g. "virthost.ostest.test.metalkube.org:5000"

@@ -6,6 +6,8 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2ListOperatorPropertiesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListOperatorPropertiesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2ListOperatorPropertiesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListOperatorPropertiesOK()
@@ -54,7 +56,7 @@ func (o *V2ListOperatorPropertiesReader) ReadResponse(response runtime.ClientRes
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/supported-operators/{operator_name}] V2ListOperatorProperties", response, response.Code())
 	}
 }
 
@@ -97,12 +99,19 @@ func (o *V2ListOperatorPropertiesOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 list operator properties o k response
+func (o *V2ListOperatorPropertiesOK) Code() int {
+	return 200
+}
+
 func (o *V2ListOperatorPropertiesOK) Error() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesOK %s", 200, payload)
 }
 
 func (o *V2ListOperatorPropertiesOK) String() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesOK %s", 200, payload)
 }
 
 func (o *V2ListOperatorPropertiesOK) GetPayload() models.OperatorProperties {
@@ -112,7 +121,7 @@ func (o *V2ListOperatorPropertiesOK) GetPayload() models.OperatorProperties {
 func (o *V2ListOperatorPropertiesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -158,12 +167,19 @@ func (o *V2ListOperatorPropertiesUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 list operator properties unauthorized response
+func (o *V2ListOperatorPropertiesUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2ListOperatorPropertiesUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesUnauthorized %s", 401, payload)
 }
 
 func (o *V2ListOperatorPropertiesUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesUnauthorized %s", 401, payload)
 }
 
 func (o *V2ListOperatorPropertiesUnauthorized) GetPayload() *models.InfraError {
@@ -175,7 +191,7 @@ func (o *V2ListOperatorPropertiesUnauthorized) readResponse(response runtime.Cli
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -221,12 +237,19 @@ func (o *V2ListOperatorPropertiesForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 list operator properties forbidden response
+func (o *V2ListOperatorPropertiesForbidden) Code() int {
+	return 403
+}
+
 func (o *V2ListOperatorPropertiesForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesForbidden %s", 403, payload)
 }
 
 func (o *V2ListOperatorPropertiesForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesForbidden %s", 403, payload)
 }
 
 func (o *V2ListOperatorPropertiesForbidden) GetPayload() *models.InfraError {
@@ -238,7 +261,7 @@ func (o *V2ListOperatorPropertiesForbidden) readResponse(response runtime.Client
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -284,12 +307,19 @@ func (o *V2ListOperatorPropertiesNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 list operator properties not found response
+func (o *V2ListOperatorPropertiesNotFound) Code() int {
+	return 404
+}
+
 func (o *V2ListOperatorPropertiesNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesNotFound %s", 404, payload)
 }
 
 func (o *V2ListOperatorPropertiesNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesNotFound %s", 404, payload)
 }
 
 func (o *V2ListOperatorPropertiesNotFound) GetPayload() *models.Error {
@@ -301,7 +331,7 @@ func (o *V2ListOperatorPropertiesNotFound) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -347,12 +377,19 @@ func (o *V2ListOperatorPropertiesInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 list operator properties internal server error response
+func (o *V2ListOperatorPropertiesInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2ListOperatorPropertiesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListOperatorPropertiesInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/supported-operators/{operator_name}][%d] v2ListOperatorPropertiesInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListOperatorPropertiesInternalServerError) GetPayload() *models.Error {
@@ -364,7 +401,7 @@ func (o *V2ListOperatorPropertiesInternalServerError) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type ListClusterHostsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListClusterHostsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *ListClusterHostsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewListClusterHostsOK()
@@ -54,7 +56,7 @@ func (o *ListClusterHostsReader) ReadResponse(response runtime.ClientResponse, c
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/hosts] ListClusterHosts", response, response.Code())
 	}
 }
 
@@ -97,12 +99,19 @@ func (o *ListClusterHostsOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the list cluster hosts o k response
+func (o *ListClusterHostsOK) Code() int {
+	return 200
+}
+
 func (o *ListClusterHostsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsOK %s", 200, payload)
 }
 
 func (o *ListClusterHostsOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsOK %s", 200, payload)
 }
 
 func (o *ListClusterHostsOK) GetPayload() models.HostList {
@@ -112,7 +121,7 @@ func (o *ListClusterHostsOK) GetPayload() models.HostList {
 func (o *ListClusterHostsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -158,12 +167,19 @@ func (o *ListClusterHostsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the list cluster hosts unauthorized response
+func (o *ListClusterHostsUnauthorized) Code() int {
+	return 401
+}
+
 func (o *ListClusterHostsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsUnauthorized %s", 401, payload)
 }
 
 func (o *ListClusterHostsUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsUnauthorized %s", 401, payload)
 }
 
 func (o *ListClusterHostsUnauthorized) GetPayload() *models.InfraError {
@@ -175,7 +191,7 @@ func (o *ListClusterHostsUnauthorized) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -221,12 +237,19 @@ func (o *ListClusterHostsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the list cluster hosts forbidden response
+func (o *ListClusterHostsForbidden) Code() int {
+	return 403
+}
+
 func (o *ListClusterHostsForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsForbidden %s", 403, payload)
 }
 
 func (o *ListClusterHostsForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsForbidden %s", 403, payload)
 }
 
 func (o *ListClusterHostsForbidden) GetPayload() *models.InfraError {
@@ -238,7 +261,7 @@ func (o *ListClusterHostsForbidden) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -284,12 +307,19 @@ func (o *ListClusterHostsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the list cluster hosts not found response
+func (o *ListClusterHostsNotFound) Code() int {
+	return 404
+}
+
 func (o *ListClusterHostsNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsNotFound %s", 404, payload)
 }
 
 func (o *ListClusterHostsNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsNotFound %s", 404, payload)
 }
 
 func (o *ListClusterHostsNotFound) GetPayload() *models.Error {
@@ -301,7 +331,7 @@ func (o *ListClusterHostsNotFound) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -347,12 +377,19 @@ func (o *ListClusterHostsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the list cluster hosts internal server error response
+func (o *ListClusterHostsInternalServerError) Code() int {
+	return 500
+}
+
 func (o *ListClusterHostsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsInternalServerError %s", 500, payload)
 }
 
 func (o *ListClusterHostsInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/hosts][%d] listClusterHostsInternalServerError %s", 500, payload)
 }
 
 func (o *ListClusterHostsInternalServerError) GetPayload() *models.Error {
@@ -364,7 +401,7 @@ func (o *ListClusterHostsInternalServerError) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

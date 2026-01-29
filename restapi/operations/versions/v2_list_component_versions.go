@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListComponentVersionsHandlerFunc turns a function with the right signature into a v2 list component versions handler
-type V2ListComponentVersionsHandlerFunc func(V2ListComponentVersionsParams, interface{}) middleware.Responder
+type V2ListComponentVersionsHandlerFunc func(V2ListComponentVersionsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListComponentVersionsHandlerFunc) Handle(params V2ListComponentVersionsParams, principal interface{}) middleware.Responder {
+func (fn V2ListComponentVersionsHandlerFunc) Handle(params V2ListComponentVersionsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListComponentVersionsHandler interface for that can handle valid v2 list component versions params
 type V2ListComponentVersionsHandler interface {
-	Handle(V2ListComponentVersionsParams, interface{}) middleware.Responder
+	Handle(V2ListComponentVersionsParams, any) middleware.Responder
 }
 
 // NewV2ListComponentVersions creates a new http.Handler for the v2 list component versions operation
@@ -53,9 +53,9 @@ func (o *V2ListComponentVersions) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListComponentVersions) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

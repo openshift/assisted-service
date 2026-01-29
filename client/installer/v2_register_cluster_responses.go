@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2RegisterClusterReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2RegisterClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2RegisterClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2RegisterClusterCreated()
@@ -60,7 +62,7 @@ func (o *V2RegisterClusterReader) ReadResponse(response runtime.ClientResponse, 
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/clusters] v2RegisterCluster", response, response.Code())
 	}
 }
 
@@ -103,12 +105,19 @@ func (o *V2RegisterClusterCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the v2 register cluster created response
+func (o *V2RegisterClusterCreated) Code() int {
+	return 201
+}
+
 func (o *V2RegisterClusterCreated) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterCreated %s", 201, payload)
 }
 
 func (o *V2RegisterClusterCreated) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterCreated %s", 201, payload)
 }
 
 func (o *V2RegisterClusterCreated) GetPayload() *models.Cluster {
@@ -120,7 +129,7 @@ func (o *V2RegisterClusterCreated) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -166,12 +175,19 @@ func (o *V2RegisterClusterBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 register cluster bad request response
+func (o *V2RegisterClusterBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2RegisterClusterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterBadRequest %s", 400, payload)
 }
 
 func (o *V2RegisterClusterBadRequest) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterBadRequest %s", 400, payload)
 }
 
 func (o *V2RegisterClusterBadRequest) GetPayload() *models.Error {
@@ -183,7 +199,7 @@ func (o *V2RegisterClusterBadRequest) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -229,12 +245,19 @@ func (o *V2RegisterClusterUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 register cluster unauthorized response
+func (o *V2RegisterClusterUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2RegisterClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterUnauthorized %s", 401, payload)
 }
 
 func (o *V2RegisterClusterUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterUnauthorized %s", 401, payload)
 }
 
 func (o *V2RegisterClusterUnauthorized) GetPayload() *models.InfraError {
@@ -246,7 +269,7 @@ func (o *V2RegisterClusterUnauthorized) readResponse(response runtime.ClientResp
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -292,12 +315,19 @@ func (o *V2RegisterClusterForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 register cluster forbidden response
+func (o *V2RegisterClusterForbidden) Code() int {
+	return 403
+}
+
 func (o *V2RegisterClusterForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterForbidden %s", 403, payload)
 }
 
 func (o *V2RegisterClusterForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterForbidden %s", 403, payload)
 }
 
 func (o *V2RegisterClusterForbidden) GetPayload() *models.InfraError {
@@ -309,7 +339,7 @@ func (o *V2RegisterClusterForbidden) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -355,12 +385,19 @@ func (o *V2RegisterClusterMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 register cluster method not allowed response
+func (o *V2RegisterClusterMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2RegisterClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2RegisterClusterMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2RegisterClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -372,7 +409,7 @@ func (o *V2RegisterClusterMethodNotAllowed) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -418,12 +455,19 @@ func (o *V2RegisterClusterInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 register cluster internal server error response
+func (o *V2RegisterClusterInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2RegisterClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterInternalServerError %s", 500, payload)
 }
 
 func (o *V2RegisterClusterInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters][%d] v2RegisterClusterInternalServerError %s", 500, payload)
 }
 
 func (o *V2RegisterClusterInternalServerError) GetPayload() *models.Error {
@@ -435,7 +479,7 @@ func (o *V2RegisterClusterInternalServerError) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

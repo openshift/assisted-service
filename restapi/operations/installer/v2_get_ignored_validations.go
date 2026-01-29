@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetIgnoredValidationsHandlerFunc turns a function with the right signature into a v2 get ignored validations handler
-type V2GetIgnoredValidationsHandlerFunc func(V2GetIgnoredValidationsParams, interface{}) middleware.Responder
+type V2GetIgnoredValidationsHandlerFunc func(V2GetIgnoredValidationsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetIgnoredValidationsHandlerFunc) Handle(params V2GetIgnoredValidationsParams, principal interface{}) middleware.Responder {
+func (fn V2GetIgnoredValidationsHandlerFunc) Handle(params V2GetIgnoredValidationsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetIgnoredValidationsHandler interface for that can handle valid v2 get ignored validations params
 type V2GetIgnoredValidationsHandler interface {
-	Handle(V2GetIgnoredValidationsParams, interface{}) middleware.Responder
+	Handle(V2GetIgnoredValidationsParams, any) middleware.Responder
 }
 
 // NewV2GetIgnoredValidations creates a new http.Handler for the v2 get ignored validations operation
@@ -53,9 +53,9 @@ func (o *V2GetIgnoredValidations) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2GetIgnoredValidations) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

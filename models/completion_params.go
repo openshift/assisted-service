@@ -20,7 +20,7 @@ import (
 type CompletionParams struct {
 
 	// additional data from the cluster
-	Data map[string]interface{} `json:"data,omitempty"`
+	Data map[string]any `json:"data,omitempty"`
 
 	// error info
 	ErrorInfo string `json:"error_info,omitempty"`

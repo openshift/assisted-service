@@ -28,7 +28,6 @@ func NewGetInfraEnvPresignedFileURLParams() GetInfraEnvPresignedFileURLParams {
 //
 // swagger:parameters GetInfraEnvPresignedFileURL
 type GetInfraEnvPresignedFileURLParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,11 +36,13 @@ type GetInfraEnvPresignedFileURLParams struct {
 	  In: query
 	*/
 	FileName string
+
 	/*The file's infra-env.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
+
 	/*Specify the script type to be served for iPXE.
 	  In: query
 	*/
@@ -56,7 +57,6 @@ func (o *GetInfraEnvPresignedFileURLParams) BindRequest(r *http.Request, route *
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	qFileName, qhkFileName, _ := qs.GetOK("file_name")
@@ -104,10 +104,10 @@ func (o *GetInfraEnvPresignedFileURLParams) bindFileName(rawData []string, hasKe
 	return nil
 }
 
-// validateFileName carries on validations for parameter FileName
+// validateFileName carries out validations for parameter FileName
 func (o *GetInfraEnvPresignedFileURLParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign", "ipxe-script"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []any{"discovery.ign", "ipxe-script"}, true); err != nil {
 		return err
 	}
 
@@ -138,7 +138,7 @@ func (o *GetInfraEnvPresignedFileURLParams) bindInfraEnvID(rawData []string, has
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *GetInfraEnvPresignedFileURLParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {
@@ -169,10 +169,10 @@ func (o *GetInfraEnvPresignedFileURLParams) bindIpxeScriptType(rawData []string,
 	return nil
 }
 
-// validateIpxeScriptType carries on validations for parameter IpxeScriptType
+// validateIpxeScriptType carries out validations for parameter IpxeScriptType
 func (o *GetInfraEnvPresignedFileURLParams) validateIpxeScriptType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("ipxe_script_type", "query", *o.IpxeScriptType, []interface{}{"discovery-image-always", "boot-order-control"}, true); err != nil {
+	if err := validate.EnumCase("ipxe_script_type", "query", *o.IpxeScriptType, []any{"discovery-image-always", "boot-order-control"}, true); err != nil {
 		return err
 	}
 

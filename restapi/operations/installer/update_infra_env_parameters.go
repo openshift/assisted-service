@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewUpdateInfraEnvParams() UpdateInfraEnvParams {
 //
 // swagger:parameters UpdateInfraEnv
 type UpdateInfraEnvParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,6 +40,7 @@ type UpdateInfraEnvParams struct {
 	  In: body
 	*/
 	InfraEnvUpdateParams *models.InfraEnvUpdateParams
+
 	/*The infra-env to be updated.
 	  Required: true
 	  In: path
@@ -57,10 +58,12 @@ func (o *UpdateInfraEnvParams) BindRequest(r *http.Request, route *middleware.Ma
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.InfraEnvUpdateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("infraEnvUpdateParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("infraEnvUpdateParams", "body", "", err))
@@ -118,7 +121,7 @@ func (o *UpdateInfraEnvParams) bindInfraEnvID(rawData []string, hasKey bool, for
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *UpdateInfraEnvParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

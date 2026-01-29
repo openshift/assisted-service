@@ -27,7 +27,6 @@ func NewDownloadMinimalInitrdParams() DownloadMinimalInitrdParams {
 //
 // swagger:parameters DownloadMinimalInitrd
 type DownloadMinimalInitrdParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *DownloadMinimalInitrdParams) bindInfraEnvID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *DownloadMinimalInitrdParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

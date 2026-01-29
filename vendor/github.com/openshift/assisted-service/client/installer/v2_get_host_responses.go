@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2GetHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2GetHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetHostOK()
@@ -66,7 +68,7 @@ func (o *V2GetHostReader) ReadResponse(response runtime.ClientResponse, consumer
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}] v2GetHost", response, response.Code())
 	}
 }
 
@@ -109,12 +111,19 @@ func (o *V2GetHostOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 get host o k response
+func (o *V2GetHostOK) Code() int {
+	return 200
+}
+
 func (o *V2GetHostOK) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostOK %s", 200, payload)
 }
 
 func (o *V2GetHostOK) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostOK %s", 200, payload)
 }
 
 func (o *V2GetHostOK) GetPayload() *models.Host {
@@ -126,7 +135,7 @@ func (o *V2GetHostOK) readResponse(response runtime.ClientResponse, consumer run
 	o.Payload = new(models.Host)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -172,12 +181,19 @@ func (o *V2GetHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 get host unauthorized response
+func (o *V2GetHostUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2GetHostUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetHostUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetHostUnauthorized) GetPayload() *models.InfraError {
@@ -189,7 +205,7 @@ func (o *V2GetHostUnauthorized) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -235,12 +251,19 @@ func (o *V2GetHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 get host forbidden response
+func (o *V2GetHostForbidden) Code() int {
+	return 403
+}
+
 func (o *V2GetHostForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostForbidden %s", 403, payload)
 }
 
 func (o *V2GetHostForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostForbidden %s", 403, payload)
 }
 
 func (o *V2GetHostForbidden) GetPayload() *models.InfraError {
@@ -252,7 +275,7 @@ func (o *V2GetHostForbidden) readResponse(response runtime.ClientResponse, consu
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -298,12 +321,19 @@ func (o *V2GetHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 get host not found response
+func (o *V2GetHostNotFound) Code() int {
+	return 404
+}
+
 func (o *V2GetHostNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotFound %s", 404, payload)
 }
 
 func (o *V2GetHostNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotFound %s", 404, payload)
 }
 
 func (o *V2GetHostNotFound) GetPayload() *models.Error {
@@ -315,7 +345,7 @@ func (o *V2GetHostNotFound) readResponse(response runtime.ClientResponse, consum
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -361,12 +391,19 @@ func (o *V2GetHostMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 get host method not allowed response
+func (o *V2GetHostMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2GetHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetHostMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetHostMethodNotAllowed) GetPayload() *models.Error {
@@ -378,7 +415,7 @@ func (o *V2GetHostMethodNotAllowed) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -424,12 +461,19 @@ func (o *V2GetHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 get host internal server error response
+func (o *V2GetHostInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2GetHostInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetHostInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetHostInternalServerError) GetPayload() *models.Error {
@@ -441,7 +485,7 @@ func (o *V2GetHostInternalServerError) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -487,12 +531,19 @@ func (o *V2GetHostNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the v2 get host not implemented response
+func (o *V2GetHostNotImplemented) Code() int {
+	return 501
+}
+
 func (o *V2GetHostNotImplemented) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotImplemented %s", 501, payload)
 }
 
 func (o *V2GetHostNotImplemented) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2GetHostNotImplemented %s", 501, payload)
 }
 
 func (o *V2GetHostNotImplemented) GetPayload() *models.Error {
@@ -504,7 +555,7 @@ func (o *V2GetHostNotImplemented) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

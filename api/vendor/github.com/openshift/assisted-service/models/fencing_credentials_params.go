@@ -25,7 +25,7 @@ type FencingCredentialsParams struct {
 	Address *string `json:"address"`
 
 	// Whether to enable or disable certificate verification when connecting to the host's BMC.
-	// Enum: [Enabled Disabled]
+	// Enum: ["Enabled","Disabled"]
 	CertificateVerification *string `json:"certificate_verification,omitempty"`
 
 	// The password to connect to the host's BMC.
@@ -72,7 +72,7 @@ func (m *FencingCredentialsParams) validateAddress(formats strfmt.Registry) erro
 	return nil
 }
 
-var fencingCredentialsParamsTypeCertificateVerificationPropEnum []interface{}
+var fencingCredentialsParamsTypeCertificateVerificationPropEnum []any
 
 func init() {
 	var res []string

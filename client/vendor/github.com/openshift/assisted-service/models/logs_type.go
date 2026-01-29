@@ -44,7 +44,7 @@ const (
 )
 
 // for schema
-var logsTypeEnum []interface{}
+var logsTypeEnum []any
 
 func init() {
 	var res []LogsType

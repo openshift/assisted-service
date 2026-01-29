@@ -12,16 +12,16 @@ import (
 )
 
 // V2DeregisterClusterHandlerFunc turns a function with the right signature into a v2 deregister cluster handler
-type V2DeregisterClusterHandlerFunc func(V2DeregisterClusterParams, interface{}) middleware.Responder
+type V2DeregisterClusterHandlerFunc func(V2DeregisterClusterParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DeregisterClusterHandlerFunc) Handle(params V2DeregisterClusterParams, principal interface{}) middleware.Responder {
+func (fn V2DeregisterClusterHandlerFunc) Handle(params V2DeregisterClusterParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DeregisterClusterHandler interface for that can handle valid v2 deregister cluster params
 type V2DeregisterClusterHandler interface {
-	Handle(V2DeregisterClusterParams, interface{}) middleware.Responder
+	Handle(V2DeregisterClusterParams, any) middleware.Responder
 }
 
 // NewV2DeregisterCluster creates a new http.Handler for the v2 deregister cluster operation
@@ -53,9 +53,9 @@ func (o *V2DeregisterCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request)
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2DeregisterCluster) ServeHTTP(rw http.ResponseWriter, r *http.Request)
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

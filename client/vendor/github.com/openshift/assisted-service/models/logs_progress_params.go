@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -50,11 +51,15 @@ func (m *LogsProgressParams) validateLogsState(formats strfmt.Registry) error {
 
 	if m.LogsState != nil {
 		if err := m.LogsState.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("logs_state")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("logs_state")
 			}
+
 			return err
 		}
 	}
@@ -79,12 +84,17 @@ func (m *LogsProgressParams) ContextValidate(ctx context.Context, formats strfmt
 func (m *LogsProgressParams) contextValidateLogsState(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.LogsState != nil {
+
 		if err := m.LogsState.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("logs_state")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("logs_state")
 			}
+
 			return err
 		}
 	}

@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -49,11 +50,15 @@ func (m *ConnectivityReport) validateRemoteHosts(formats strfmt.Registry) error 
 
 		if m.RemoteHosts[i] != nil {
 			if err := m.RemoteHosts[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("remote_hosts" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("remote_hosts" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -82,12 +87,21 @@ func (m *ConnectivityReport) contextValidateRemoteHosts(ctx context.Context, for
 	for i := 0; i < len(m.RemoteHosts); i++ {
 
 		if m.RemoteHosts[i] != nil {
+
+			if swag.IsZero(m.RemoteHosts[i]) { // not required
+				return nil
+			}
+
 			if err := m.RemoteHosts[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("remote_hosts" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("remote_hosts" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

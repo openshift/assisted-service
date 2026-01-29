@@ -27,7 +27,6 @@ func NewV2GetPreflightRequirementsParams() V2GetPreflightRequirementsParams {
 //
 // swagger:parameters v2GetPreflightRequirements
 type V2GetPreflightRequirementsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *V2GetPreflightRequirementsParams) bindClusterID(rawData []string, hasKe
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2GetPreflightRequirementsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

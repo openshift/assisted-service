@@ -33,7 +33,7 @@ func NewV2UpdateClusterInstallConfigCreated() *V2UpdateClusterInstallConfigCreat
 // WriteResponse to the client
 func (o *V2UpdateClusterInstallConfigCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
+	rw.Header().Del(runtime.HeaderContentType) // Remove Content-Type on empty responses
 
 	rw.WriteHeader(201)
 }

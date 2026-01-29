@@ -12,16 +12,16 @@ import (
 )
 
 // DownloadMinimalInitrdHandlerFunc turns a function with the right signature into a download minimal initrd handler
-type DownloadMinimalInitrdHandlerFunc func(DownloadMinimalInitrdParams, interface{}) middleware.Responder
+type DownloadMinimalInitrdHandlerFunc func(DownloadMinimalInitrdParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn DownloadMinimalInitrdHandlerFunc) Handle(params DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
+func (fn DownloadMinimalInitrdHandlerFunc) Handle(params DownloadMinimalInitrdParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // DownloadMinimalInitrdHandler interface for that can handle valid download minimal initrd params
 type DownloadMinimalInitrdHandler interface {
-	Handle(DownloadMinimalInitrdParams, interface{}) middleware.Responder
+	Handle(DownloadMinimalInitrdParams, any) middleware.Responder
 }
 
 // NewDownloadMinimalInitrd creates a new http.Handler for the download minimal initrd operation
@@ -53,9 +53,9 @@ func (o *DownloadMinimalInitrd) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *DownloadMinimalInitrd) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

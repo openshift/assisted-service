@@ -74,7 +74,7 @@ const (
 )
 
 // for schema
-var driveTypeEnum []interface{}
+var driveTypeEnum []any
 
 func init() {
 	var res []DriveType

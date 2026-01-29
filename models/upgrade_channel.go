@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -27,7 +28,7 @@ type UpgradeChannel struct {
 
 	// The CPU architecture of the image.
 	// Required: true
-	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
+	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x","multi"]
 	CPUArchitecture *string `json:"cpu_architecture"`
 }
 
@@ -58,11 +59,15 @@ func (m *UpgradeChannel) validateChannels(formats strfmt.Registry) error {
 	for i := 0; i < len(m.Channels); i++ {
 
 		if err := m.Channels[i].Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("channels" + "." + strconv.Itoa(i))
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("channels" + "." + strconv.Itoa(i))
 			}
+
 			return err
 		}
 
@@ -71,7 +76,7 @@ func (m *UpgradeChannel) validateChannels(formats strfmt.Registry) error {
 	return nil
 }
 
-var upgradeChannelTypeCPUArchitecturePropEnum []interface{}
+var upgradeChannelTypeCPUArchitecturePropEnum []any
 
 func init() {
 	var res []string
@@ -144,12 +149,20 @@ func (m *UpgradeChannel) contextValidateChannels(ctx context.Context, formats st
 
 	for i := 0; i < len(m.Channels); i++ {
 
+		if swag.IsZero(m.Channels[i]) { // not required
+			return nil
+		}
+
 		if err := m.Channels[i].ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("channels" + "." + strconv.Itoa(i))
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("channels" + "." + strconv.Itoa(i))
 			}
+
 			return err
 		}
 

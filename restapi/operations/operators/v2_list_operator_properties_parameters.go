@@ -26,7 +26,6 @@ func NewV2ListOperatorPropertiesParams() V2ListOperatorPropertiesParams {
 //
 // swagger:parameters V2ListOperatorProperties
 type V2ListOperatorPropertiesParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 

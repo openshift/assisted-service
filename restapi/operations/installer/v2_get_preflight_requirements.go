@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetPreflightRequirementsHandlerFunc turns a function with the right signature into a v2 get preflight requirements handler
-type V2GetPreflightRequirementsHandlerFunc func(V2GetPreflightRequirementsParams, interface{}) middleware.Responder
+type V2GetPreflightRequirementsHandlerFunc func(V2GetPreflightRequirementsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetPreflightRequirementsHandlerFunc) Handle(params V2GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
+func (fn V2GetPreflightRequirementsHandlerFunc) Handle(params V2GetPreflightRequirementsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetPreflightRequirementsHandler interface for that can handle valid v2 get preflight requirements params
 type V2GetPreflightRequirementsHandler interface {
-	Handle(V2GetPreflightRequirementsParams, interface{}) middleware.Responder
+	Handle(V2GetPreflightRequirementsParams, any) middleware.Responder
 }
 
 // NewV2GetPreflightRequirements creates a new http.Handler for the v2 get preflight requirements operation
@@ -53,9 +53,9 @@ func (o *V2GetPreflightRequirements) ServeHTTP(rw http.ResponseWriter, r *http.R
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2GetPreflightRequirements) ServeHTTP(rw http.ResponseWriter, r *http.R
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

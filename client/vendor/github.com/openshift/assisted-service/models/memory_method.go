@@ -41,7 +41,7 @@ const (
 )
 
 // for schema
-var memoryMethodEnum []interface{}
+var memoryMethodEnum []any
 
 func init() {
 	var res []MemoryMethod

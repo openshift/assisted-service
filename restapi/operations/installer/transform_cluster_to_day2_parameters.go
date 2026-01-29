@@ -27,7 +27,6 @@ func NewTransformClusterToDay2Params() TransformClusterToDay2Params {
 //
 // swagger:parameters TransformClusterToDay2
 type TransformClusterToDay2Params struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *TransformClusterToDay2Params) bindClusterID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *TransformClusterToDay2Params) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

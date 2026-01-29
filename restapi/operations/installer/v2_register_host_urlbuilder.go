@@ -46,7 +46,7 @@ func (o *V2RegisterHostURL) Build() (*url.URL, error) {
 
 	infraEnvID := o.InfraEnvID.String()
 	if infraEnvID != "" {
-		_path = strings.Replace(_path, "{infra_env_id}", infraEnvID, -1)
+		_path = strings.ReplaceAll(_path, "{infra_env_id}", infraEnvID)
 	} else {
 		return nil, errors.New("infraEnvId is required on V2RegisterHostURL")
 	}

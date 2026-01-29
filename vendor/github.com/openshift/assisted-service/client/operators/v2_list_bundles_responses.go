@@ -6,6 +6,8 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2ListBundlesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListBundlesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2ListBundlesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListBundlesOK()
@@ -42,7 +44,7 @@ func (o *V2ListBundlesReader) ReadResponse(response runtime.ClientResponse, cons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/operators/bundles] V2ListBundles", response, response.Code())
 	}
 }
 
@@ -85,12 +87,19 @@ func (o *V2ListBundlesOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 list bundles o k response
+func (o *V2ListBundlesOK) Code() int {
+	return 200
+}
+
 func (o *V2ListBundlesOK) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesOK %s", 200, payload)
 }
 
 func (o *V2ListBundlesOK) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesOK %s", 200, payload)
 }
 
 func (o *V2ListBundlesOK) GetPayload() []*models.Bundle {
@@ -100,7 +109,7 @@ func (o *V2ListBundlesOK) GetPayload() []*models.Bundle {
 func (o *V2ListBundlesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -146,12 +155,19 @@ func (o *V2ListBundlesBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 list bundles bad request response
+func (o *V2ListBundlesBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2ListBundlesBadRequest) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesBadRequest %s", 400, payload)
 }
 
 func (o *V2ListBundlesBadRequest) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesBadRequest %s", 400, payload)
 }
 
 func (o *V2ListBundlesBadRequest) GetPayload() *models.Error {
@@ -163,7 +179,7 @@ func (o *V2ListBundlesBadRequest) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -209,12 +225,19 @@ func (o *V2ListBundlesInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 list bundles internal server error response
+func (o *V2ListBundlesInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2ListBundlesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListBundlesInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles][%d] v2ListBundlesInternalServerError %s", 500, payload)
 }
 
 func (o *V2ListBundlesInternalServerError) GetPayload() *models.Error {
@@ -226,7 +249,7 @@ func (o *V2ListBundlesInternalServerError) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

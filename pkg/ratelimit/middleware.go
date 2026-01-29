@@ -2,6 +2,7 @@ package ratelimit
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -54,24 +55,27 @@ var categoryPatterns = []struct {
 // Middleware creates HTTP middleware that applies rate limiting.
 // It uses the appropriate rate limiter based on the endpoint category.
 type Middleware struct {
-	limiters map[EndpointCategory]*RateLimiter
-	log      logrus.FieldLogger
-	enabled  bool
+	limiters         map[EndpointCategory]*RateLimiter
+	log              logrus.FieldLogger
+	enabled          bool
+	proxyTrustConfig ProxyTrustConfig
 }
 
 // MiddlewareConfig holds configuration for the rate limiting middleware.
 type MiddlewareConfig struct {
-	Enabled  bool
-	Limiters map[EndpointCategory]*RateLimiter
-	Log      logrus.FieldLogger
+	Enabled          bool
+	Limiters         map[EndpointCategory]*RateLimiter
+	Log              logrus.FieldLogger
+	ProxyTrustConfig ProxyTrustConfig
 }
 
 // NewMiddleware creates a new rate limiting middleware with the given configuration.
 func NewMiddleware(cfg MiddlewareConfig) *Middleware {
 	return &Middleware{
-		limiters: cfg.Limiters,
-		log:      cfg.Log,
-		enabled:  cfg.Enabled,
+		limiters:         cfg.Limiters,
+		log:              cfg.Log,
+		enabled:          cfg.Enabled,
+		proxyTrustConfig: cfg.ProxyTrustConfig,
 	}
 }
 
@@ -99,12 +103,16 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 			return
 		}
 
-		// Get client identifier
-		clientID := GetClientID(r)
+		// Get client identifier using configured proxy trust settings
+		clientID := GetClientIDWithConfig(r, m.proxyTrustConfig)
 
-		// Add rate limit headers (RFC 6585 compliant)
-		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%.0f", float64(limiter.Rate())))
-		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%.0f", limiter.Tokens(clientID)))
+		// Add rate limit headers expressing quota as requests per minute.
+		// This provides meaningful integer values even for sub-1 RPS configurations
+		// (e.g., 0.1 RPS becomes 6 requests/minute).
+		requestsPerMinute := int(math.Round(float64(limiter.Rate()) * 60))
+		remainingPerMinute := int(math.Round(limiter.Tokens(clientID) * 60))
+		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", requestsPerMinute))
+		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remainingPerMinute))
 
 		// Check rate limit
 		if !limiter.Allow(clientID) {

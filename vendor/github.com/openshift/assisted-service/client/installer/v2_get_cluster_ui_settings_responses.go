@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2GetClusterUISettingsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetClusterUISettingsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2GetClusterUISettingsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetClusterUISettingsOK()
@@ -60,7 +62,7 @@ func (o *V2GetClusterUISettingsReader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/ui-settings] V2GetClusterUISettings", response, response.Code())
 	}
 }
 
@@ -103,12 +105,19 @@ func (o *V2GetClusterUISettingsOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 get cluster Ui settings o k response
+func (o *V2GetClusterUISettingsOK) Code() int {
+	return 200
+}
+
 func (o *V2GetClusterUISettingsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsOK %s", 200, payload)
 }
 
 func (o *V2GetClusterUISettingsOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsOK %s", 200, payload)
 }
 
 func (o *V2GetClusterUISettingsOK) GetPayload() string {
@@ -118,7 +127,7 @@ func (o *V2GetClusterUISettingsOK) GetPayload() string {
 func (o *V2GetClusterUISettingsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -164,12 +173,19 @@ func (o *V2GetClusterUISettingsBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 get cluster Ui settings bad request response
+func (o *V2GetClusterUISettingsBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2GetClusterUISettingsBadRequest) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsBadRequest %s", 400, payload)
 }
 
 func (o *V2GetClusterUISettingsBadRequest) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsBadRequest %s", 400, payload)
 }
 
 func (o *V2GetClusterUISettingsBadRequest) GetPayload() *models.Error {
@@ -181,7 +197,7 @@ func (o *V2GetClusterUISettingsBadRequest) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -227,12 +243,19 @@ func (o *V2GetClusterUISettingsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 get cluster Ui settings unauthorized response
+func (o *V2GetClusterUISettingsUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2GetClusterUISettingsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetClusterUISettingsUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetClusterUISettingsUnauthorized) GetPayload() *models.InfraError {
@@ -244,7 +267,7 @@ func (o *V2GetClusterUISettingsUnauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -290,12 +313,19 @@ func (o *V2GetClusterUISettingsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 get cluster Ui settings forbidden response
+func (o *V2GetClusterUISettingsForbidden) Code() int {
+	return 403
+}
+
 func (o *V2GetClusterUISettingsForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsForbidden %s", 403, payload)
 }
 
 func (o *V2GetClusterUISettingsForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsForbidden %s", 403, payload)
 }
 
 func (o *V2GetClusterUISettingsForbidden) GetPayload() *models.InfraError {
@@ -307,7 +337,7 @@ func (o *V2GetClusterUISettingsForbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -353,12 +383,19 @@ func (o *V2GetClusterUISettingsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 get cluster Ui settings not found response
+func (o *V2GetClusterUISettingsNotFound) Code() int {
+	return 404
+}
+
 func (o *V2GetClusterUISettingsNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsNotFound %s", 404, payload)
 }
 
 func (o *V2GetClusterUISettingsNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsNotFound %s", 404, payload)
 }
 
 func (o *V2GetClusterUISettingsNotFound) GetPayload() *models.Error {
@@ -370,7 +407,7 @@ func (o *V2GetClusterUISettingsNotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -416,12 +453,19 @@ func (o *V2GetClusterUISettingsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 get cluster Ui settings internal server error response
+func (o *V2GetClusterUISettingsInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2GetClusterUISettingsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetClusterUISettingsInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ui-settings][%d] v2GetClusterUiSettingsInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetClusterUISettingsInternalServerError) GetPayload() *models.Error {
@@ -433,7 +477,7 @@ func (o *V2GetClusterUISettingsInternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

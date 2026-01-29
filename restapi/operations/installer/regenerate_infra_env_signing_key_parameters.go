@@ -27,7 +27,6 @@ func NewRegenerateInfraEnvSigningKeyParams() RegenerateInfraEnvSigningKeyParams 
 //
 // swagger:parameters RegenerateInfraEnvSigningKey
 type RegenerateInfraEnvSigningKeyParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -81,7 +80,7 @@ func (o *RegenerateInfraEnvSigningKeyParams) bindInfraEnvID(rawData []string, ha
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *RegenerateInfraEnvSigningKeyParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

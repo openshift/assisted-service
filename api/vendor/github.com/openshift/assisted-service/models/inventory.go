@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -55,7 +56,7 @@ type Inventory struct {
 	SystemVendor *SystemVendor `json:"system_vendor,omitempty"`
 
 	// tpm version
-	// Enum: [none 1.2 2.0]
+	// Enum: ["none","1.2","2.0"]
 	TpmVersion string `json:"tpm_version,omitempty"`
 }
 
@@ -112,11 +113,15 @@ func (m *Inventory) validateBoot(formats strfmt.Registry) error {
 
 	if m.Boot != nil {
 		if err := m.Boot.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("boot")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("boot")
 			}
+
 			return err
 		}
 	}
@@ -131,11 +136,15 @@ func (m *Inventory) validateCPU(formats strfmt.Registry) error {
 
 	if m.CPU != nil {
 		if err := m.CPU.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("cpu")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("cpu")
 			}
+
 			return err
 		}
 	}
@@ -155,11 +164,15 @@ func (m *Inventory) validateDisks(formats strfmt.Registry) error {
 
 		if m.Disks[i] != nil {
 			if err := m.Disks[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -181,11 +194,15 @@ func (m *Inventory) validateGpus(formats strfmt.Registry) error {
 
 		if m.Gpus[i] != nil {
 			if err := m.Gpus[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("gpus" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("gpus" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -207,11 +224,15 @@ func (m *Inventory) validateInterfaces(formats strfmt.Registry) error {
 
 		if m.Interfaces[i] != nil {
 			if err := m.Interfaces[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("interfaces" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("interfaces" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -228,11 +249,15 @@ func (m *Inventory) validateMemory(formats strfmt.Registry) error {
 
 	if m.Memory != nil {
 		if err := m.Memory.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("memory")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("memory")
 			}
+
 			return err
 		}
 	}
@@ -252,11 +277,15 @@ func (m *Inventory) validateRoutes(formats strfmt.Registry) error {
 
 		if m.Routes[i] != nil {
 			if err := m.Routes[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("routes" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("routes" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -273,11 +302,15 @@ func (m *Inventory) validateSystemVendor(formats strfmt.Registry) error {
 
 	if m.SystemVendor != nil {
 		if err := m.SystemVendor.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("system_vendor")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("system_vendor")
 			}
+
 			return err
 		}
 	}
@@ -285,7 +318,7 @@ func (m *Inventory) validateSystemVendor(formats strfmt.Registry) error {
 	return nil
 }
 
-var inventoryTypeTpmVersionPropEnum []interface{}
+var inventoryTypeTpmVersionPropEnum []any
 
 func init() {
 	var res []string
@@ -375,12 +408,21 @@ func (m *Inventory) ContextValidate(ctx context.Context, formats strfmt.Registry
 func (m *Inventory) contextValidateBoot(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Boot != nil {
+
+		if swag.IsZero(m.Boot) { // not required
+			return nil
+		}
+
 		if err := m.Boot.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("boot")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("boot")
 			}
+
 			return err
 		}
 	}
@@ -391,12 +433,21 @@ func (m *Inventory) contextValidateBoot(ctx context.Context, formats strfmt.Regi
 func (m *Inventory) contextValidateCPU(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.CPU != nil {
+
+		if swag.IsZero(m.CPU) { // not required
+			return nil
+		}
+
 		if err := m.CPU.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("cpu")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("cpu")
 			}
+
 			return err
 		}
 	}
@@ -409,12 +460,21 @@ func (m *Inventory) contextValidateDisks(ctx context.Context, formats strfmt.Reg
 	for i := 0; i < len(m.Disks); i++ {
 
 		if m.Disks[i] != nil {
+
+			if swag.IsZero(m.Disks[i]) { // not required
+				return nil
+			}
+
 			if err := m.Disks[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("disks" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("disks" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -429,12 +489,21 @@ func (m *Inventory) contextValidateGpus(ctx context.Context, formats strfmt.Regi
 	for i := 0; i < len(m.Gpus); i++ {
 
 		if m.Gpus[i] != nil {
+
+			if swag.IsZero(m.Gpus[i]) { // not required
+				return nil
+			}
+
 			if err := m.Gpus[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("gpus" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("gpus" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -449,12 +518,21 @@ func (m *Inventory) contextValidateInterfaces(ctx context.Context, formats strfm
 	for i := 0; i < len(m.Interfaces); i++ {
 
 		if m.Interfaces[i] != nil {
+
+			if swag.IsZero(m.Interfaces[i]) { // not required
+				return nil
+			}
+
 			if err := m.Interfaces[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("interfaces" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("interfaces" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -467,12 +545,21 @@ func (m *Inventory) contextValidateInterfaces(ctx context.Context, formats strfm
 func (m *Inventory) contextValidateMemory(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Memory != nil {
+
+		if swag.IsZero(m.Memory) { // not required
+			return nil
+		}
+
 		if err := m.Memory.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("memory")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("memory")
 			}
+
 			return err
 		}
 	}
@@ -485,12 +572,21 @@ func (m *Inventory) contextValidateRoutes(ctx context.Context, formats strfmt.Re
 	for i := 0; i < len(m.Routes); i++ {
 
 		if m.Routes[i] != nil {
+
+			if swag.IsZero(m.Routes[i]) { // not required
+				return nil
+			}
+
 			if err := m.Routes[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("routes" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("routes" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -503,12 +599,21 @@ func (m *Inventory) contextValidateRoutes(ctx context.Context, formats strfmt.Re
 func (m *Inventory) contextValidateSystemVendor(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.SystemVendor != nil {
+
+		if swag.IsZero(m.SystemVendor) { // not required
+			return nil
+		}
+
 		if err := m.SystemVendor.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("system_vendor")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("system_vendor")
 			}
+
 			return err
 		}
 	}

@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -36,7 +37,7 @@ type InfraEnvCreateParams struct {
 	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
-	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
+	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x"]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// JSON formatted string containing the user overrides for the initial ignition config.
@@ -149,7 +150,7 @@ func (m *InfraEnvCreateParams) validateClusterID(formats strfmt.Registry) error 
 	return nil
 }
 
-var infraEnvCreateParamsTypeCPUArchitecturePropEnum []interface{}
+var infraEnvCreateParamsTypeCPUArchitecturePropEnum []any
 
 func init() {
 	var res []string
@@ -206,11 +207,15 @@ func (m *InfraEnvCreateParams) validateImageType(formats strfmt.Registry) error 
 	}
 
 	if err := m.ImageType.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("image_type")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("image_type")
 		}
+
 		return err
 	}
 
@@ -223,11 +228,15 @@ func (m *InfraEnvCreateParams) validateKernelArguments(formats strfmt.Registry) 
 	}
 
 	if err := m.KernelArguments.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("kernel_arguments")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("kernel_arguments")
 		}
+
 		return err
 	}
 
@@ -250,11 +259,15 @@ func (m *InfraEnvCreateParams) validateProxy(formats strfmt.Registry) error {
 
 	if m.Proxy != nil {
 		if err := m.Proxy.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("proxy")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("proxy")
 			}
+
 			return err
 		}
 	}
@@ -295,11 +308,15 @@ func (m *InfraEnvCreateParams) validateStaticNetworkConfig(formats strfmt.Regist
 
 		if m.StaticNetworkConfig[i] != nil {
 			if err := m.StaticNetworkConfig[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -337,12 +354,20 @@ func (m *InfraEnvCreateParams) ContextValidate(ctx context.Context, formats strf
 
 func (m *InfraEnvCreateParams) contextValidateImageType(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.ImageType) { // not required
+		return nil
+	}
+
 	if err := m.ImageType.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("image_type")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("image_type")
 		}
+
 		return err
 	}
 
@@ -352,11 +377,15 @@ func (m *InfraEnvCreateParams) contextValidateImageType(ctx context.Context, for
 func (m *InfraEnvCreateParams) contextValidateKernelArguments(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.KernelArguments.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("kernel_arguments")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("kernel_arguments")
 		}
+
 		return err
 	}
 
@@ -366,12 +395,21 @@ func (m *InfraEnvCreateParams) contextValidateKernelArguments(ctx context.Contex
 func (m *InfraEnvCreateParams) contextValidateProxy(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Proxy != nil {
+
+		if swag.IsZero(m.Proxy) { // not required
+			return nil
+		}
+
 		if err := m.Proxy.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("proxy")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("proxy")
 			}
+
 			return err
 		}
 	}
@@ -384,12 +422,21 @@ func (m *InfraEnvCreateParams) contextValidateStaticNetworkConfig(ctx context.Co
 	for i := 0; i < len(m.StaticNetworkConfig); i++ {
 
 		if m.StaticNetworkConfig[i] != nil {
+
+			if swag.IsZero(m.StaticNetworkConfig[i]) { // not required
+				return nil
+			}
+
 			if err := m.StaticNetworkConfig[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

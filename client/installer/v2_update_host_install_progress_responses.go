@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2UpdateHostInstallProgressReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UpdateHostInstallProgressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2UpdateHostInstallProgressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2UpdateHostInstallProgressOK()
@@ -66,7 +68,7 @@ func (o *V2UpdateHostInstallProgressReader) ReadResponse(response runtime.Client
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress] v2UpdateHostInstallProgress", response, response.Code())
 	}
 }
 
@@ -108,12 +110,17 @@ func (o *V2UpdateHostInstallProgressOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 update host install progress o k response
+func (o *V2UpdateHostInstallProgressOK) Code() int {
+	return 200
+}
+
 func (o *V2UpdateHostInstallProgressOK) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressOK ", 200)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressOK", 200)
 }
 
 func (o *V2UpdateHostInstallProgressOK) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressOK ", 200)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressOK", 200)
 }
 
 func (o *V2UpdateHostInstallProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -160,12 +167,19 @@ func (o *V2UpdateHostInstallProgressUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 update host install progress unauthorized response
+func (o *V2UpdateHostInstallProgressUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2UpdateHostInstallProgressUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateHostInstallProgressUnauthorized) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateHostInstallProgressUnauthorized) GetPayload() *models.InfraError {
@@ -177,7 +191,7 @@ func (o *V2UpdateHostInstallProgressUnauthorized) readResponse(response runtime.
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -223,12 +237,19 @@ func (o *V2UpdateHostInstallProgressForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 update host install progress forbidden response
+func (o *V2UpdateHostInstallProgressForbidden) Code() int {
+	return 403
+}
+
 func (o *V2UpdateHostInstallProgressForbidden) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateHostInstallProgressForbidden) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateHostInstallProgressForbidden) GetPayload() *models.InfraError {
@@ -240,7 +261,7 @@ func (o *V2UpdateHostInstallProgressForbidden) readResponse(response runtime.Cli
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -286,12 +307,19 @@ func (o *V2UpdateHostInstallProgressNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 update host install progress not found response
+func (o *V2UpdateHostInstallProgressNotFound) Code() int {
+	return 404
+}
+
 func (o *V2UpdateHostInstallProgressNotFound) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateHostInstallProgressNotFound) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateHostInstallProgressNotFound) GetPayload() *models.Error {
@@ -303,7 +331,7 @@ func (o *V2UpdateHostInstallProgressNotFound) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -349,12 +377,19 @@ func (o *V2UpdateHostInstallProgressMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 update host install progress method not allowed response
+func (o *V2UpdateHostInstallProgressMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2UpdateHostInstallProgressMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateHostInstallProgressMethodNotAllowed) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateHostInstallProgressMethodNotAllowed) GetPayload() *models.Error {
@@ -366,7 +401,7 @@ func (o *V2UpdateHostInstallProgressMethodNotAllowed) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -412,12 +447,19 @@ func (o *V2UpdateHostInstallProgressInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 update host install progress internal server error response
+func (o *V2UpdateHostInstallProgressInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2UpdateHostInstallProgressInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateHostInstallProgressInternalServerError) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateHostInstallProgressInternalServerError) GetPayload() *models.Error {
@@ -429,7 +471,7 @@ func (o *V2UpdateHostInstallProgressInternalServerError) readResponse(response r
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -475,12 +517,19 @@ func (o *V2UpdateHostInstallProgressServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 update host install progress service unavailable response
+func (o *V2UpdateHostInstallProgressServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2UpdateHostInstallProgressServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2UpdateHostInstallProgressServiceUnavailable) String() string {
-	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/infra-envs/{infra_env_id}/hosts/{host_id}/progress][%d] v2UpdateHostInstallProgressServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2UpdateHostInstallProgressServiceUnavailable) GetPayload() *models.Error {
@@ -492,7 +541,7 @@ func (o *V2UpdateHostInstallProgressServiceUnavailable) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

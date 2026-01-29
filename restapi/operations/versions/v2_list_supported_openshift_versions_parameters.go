@@ -28,7 +28,6 @@ func NewV2ListSupportedOpenshiftVersionsParams() V2ListSupportedOpenshiftVersion
 //
 // swagger:parameters v2ListSupportedOpenshiftVersions
 type V2ListSupportedOpenshiftVersionsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,6 +35,7 @@ type V2ListSupportedOpenshiftVersionsParams struct {
 	  In: query
 	*/
 	OnlyLatest *bool
+
 	/*Retrieves only the versions that contain the specified substring in their display name.
 	  In: query
 	*/
@@ -50,7 +50,6 @@ func (o *V2ListSupportedOpenshiftVersionsParams) BindRequest(r *http.Request, ro
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	qOnlyLatest, qhkOnlyLatest, _ := qs.GetOK("only_latest")

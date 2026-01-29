@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2UpdateHostInstallProgressParams() V2UpdateHostInstallProgressParams {
 //
 // swagger:parameters v2UpdateHostInstallProgress
 type V2UpdateHostInstallProgressParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -39,16 +39,19 @@ type V2UpdateHostInstallProgressParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+
 	/*New progress value.
 	  Required: true
 	  In: body
 	*/
 	HostProgress *models.HostProgress
+
 	/*The ID of the host to update.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env of the host being updated.
 	  Required: true
 	  In: path
@@ -70,10 +73,12 @@ func (o *V2UpdateHostInstallProgressParams) BindRequest(r *http.Request, route *
 	}
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.HostProgress
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("hostProgress", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("hostProgress", "body", "", err))
@@ -153,7 +158,7 @@ func (o *V2UpdateHostInstallProgressParams) bindHostID(rawData []string, hasKey 
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2UpdateHostInstallProgressParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -186,7 +191,7 @@ func (o *V2UpdateHostInstallProgressParams) bindInfraEnvID(rawData []string, has
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2UpdateHostInstallProgressParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

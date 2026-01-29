@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -70,11 +71,15 @@ func (m *APIVip) validateIP(formats strfmt.Registry) error {
 	}
 
 	if err := m.IP.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("ip")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("ip")
 		}
+
 		return err
 	}
 
@@ -88,11 +93,15 @@ func (m *APIVip) validateVerification(formats strfmt.Registry) error {
 
 	if m.Verification != nil {
 		if err := m.Verification.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("verification")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("verification")
 			}
+
 			return err
 		}
 	}
@@ -120,12 +129,20 @@ func (m *APIVip) ContextValidate(ctx context.Context, formats strfmt.Registry) e
 
 func (m *APIVip) contextValidateIP(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.IP) { // not required
+		return nil
+	}
+
 	if err := m.IP.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("ip")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("ip")
 		}
+
 		return err
 	}
 
@@ -135,12 +152,21 @@ func (m *APIVip) contextValidateIP(ctx context.Context, formats strfmt.Registry)
 func (m *APIVip) contextValidateVerification(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Verification != nil {
+
+		if swag.IsZero(m.Verification) { // not required
+			return nil
+		}
+
 		if err := m.Verification.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("verification")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("verification")
 			}
+
 			return err
 		}
 	}

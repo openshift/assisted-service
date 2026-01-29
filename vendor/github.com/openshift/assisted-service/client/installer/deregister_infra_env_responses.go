@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type DeregisterInfraEnvReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *DeregisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *DeregisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 204:
 		result := NewDeregisterInfraEnvNoContent()
@@ -72,7 +74,7 @@ func (o *DeregisterInfraEnvReader) ReadResponse(response runtime.ClientResponse,
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[DELETE /v2/infra-envs/{infra_env_id}] DeregisterInfraEnv", response, response.Code())
 	}
 }
 
@@ -114,12 +116,17 @@ func (o *DeregisterInfraEnvNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
+// Code gets the status code for the deregister infra env no content response
+func (o *DeregisterInfraEnvNoContent) Code() int {
+	return 204
+}
+
 func (o *DeregisterInfraEnvNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNoContent ", 204)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNoContent", 204)
 }
 
 func (o *DeregisterInfraEnvNoContent) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNoContent ", 204)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNoContent", 204)
 }
 
 func (o *DeregisterInfraEnvNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -166,12 +173,19 @@ func (o *DeregisterInfraEnvUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the deregister infra env unauthorized response
+func (o *DeregisterInfraEnvUnauthorized) Code() int {
+	return 401
+}
+
 func (o *DeregisterInfraEnvUnauthorized) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvUnauthorized %s", 401, payload)
 }
 
 func (o *DeregisterInfraEnvUnauthorized) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvUnauthorized %s", 401, payload)
 }
 
 func (o *DeregisterInfraEnvUnauthorized) GetPayload() *models.InfraError {
@@ -183,7 +197,7 @@ func (o *DeregisterInfraEnvUnauthorized) readResponse(response runtime.ClientRes
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -229,12 +243,19 @@ func (o *DeregisterInfraEnvForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the deregister infra env forbidden response
+func (o *DeregisterInfraEnvForbidden) Code() int {
+	return 403
+}
+
 func (o *DeregisterInfraEnvForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvForbidden %s", 403, payload)
 }
 
 func (o *DeregisterInfraEnvForbidden) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvForbidden %s", 403, payload)
 }
 
 func (o *DeregisterInfraEnvForbidden) GetPayload() *models.InfraError {
@@ -246,7 +267,7 @@ func (o *DeregisterInfraEnvForbidden) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -292,12 +313,19 @@ func (o *DeregisterInfraEnvNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the deregister infra env not found response
+func (o *DeregisterInfraEnvNotFound) Code() int {
+	return 404
+}
+
 func (o *DeregisterInfraEnvNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotFound %s", 404, payload)
 }
 
 func (o *DeregisterInfraEnvNotFound) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotFound %s", 404, payload)
 }
 
 func (o *DeregisterInfraEnvNotFound) GetPayload() *models.Error {
@@ -309,7 +337,7 @@ func (o *DeregisterInfraEnvNotFound) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -355,12 +383,19 @@ func (o *DeregisterInfraEnvMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the deregister infra env method not allowed response
+func (o *DeregisterInfraEnvMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *DeregisterInfraEnvMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvMethodNotAllowed %s", 405, payload)
 }
 
 func (o *DeregisterInfraEnvMethodNotAllowed) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvMethodNotAllowed %s", 405, payload)
 }
 
 func (o *DeregisterInfraEnvMethodNotAllowed) GetPayload() *models.Error {
@@ -372,7 +407,7 @@ func (o *DeregisterInfraEnvMethodNotAllowed) readResponse(response runtime.Clien
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -418,12 +453,19 @@ func (o *DeregisterInfraEnvConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the deregister infra env conflict response
+func (o *DeregisterInfraEnvConflict) Code() int {
+	return 409
+}
+
 func (o *DeregisterInfraEnvConflict) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvConflict %s", 409, payload)
 }
 
 func (o *DeregisterInfraEnvConflict) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvConflict %s", 409, payload)
 }
 
 func (o *DeregisterInfraEnvConflict) GetPayload() *models.Error {
@@ -435,7 +477,7 @@ func (o *DeregisterInfraEnvConflict) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -481,12 +523,19 @@ func (o *DeregisterInfraEnvInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the deregister infra env internal server error response
+func (o *DeregisterInfraEnvInternalServerError) Code() int {
+	return 500
+}
+
 func (o *DeregisterInfraEnvInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvInternalServerError %s", 500, payload)
 }
 
 func (o *DeregisterInfraEnvInternalServerError) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvInternalServerError %s", 500, payload)
 }
 
 func (o *DeregisterInfraEnvInternalServerError) GetPayload() *models.Error {
@@ -498,7 +547,7 @@ func (o *DeregisterInfraEnvInternalServerError) readResponse(response runtime.Cl
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -544,12 +593,19 @@ func (o *DeregisterInfraEnvNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the deregister infra env not implemented response
+func (o *DeregisterInfraEnvNotImplemented) Code() int {
+	return 501
+}
+
 func (o *DeregisterInfraEnvNotImplemented) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotImplemented %s", 501, payload)
 }
 
 func (o *DeregisterInfraEnvNotImplemented) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}][%d] deregisterInfraEnvNotImplemented %s", 501, payload)
 }
 
 func (o *DeregisterInfraEnvNotImplemented) GetPayload() *models.Error {
@@ -561,7 +617,7 @@ func (o *DeregisterInfraEnvNotImplemented) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

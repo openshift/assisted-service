@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -50,11 +51,15 @@ func (m *HostTypeHardwareRequirementsWrapper) validateMaster(formats strfmt.Regi
 
 	if m.Master != nil {
 		if err := m.Master.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("master")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("master")
 			}
+
 			return err
 		}
 	}
@@ -69,11 +74,15 @@ func (m *HostTypeHardwareRequirementsWrapper) validateWorker(formats strfmt.Regi
 
 	if m.Worker != nil {
 		if err := m.Worker.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("worker")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("worker")
 			}
+
 			return err
 		}
 	}
@@ -102,12 +111,21 @@ func (m *HostTypeHardwareRequirementsWrapper) ContextValidate(ctx context.Contex
 func (m *HostTypeHardwareRequirementsWrapper) contextValidateMaster(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Master != nil {
+
+		if swag.IsZero(m.Master) { // not required
+			return nil
+		}
+
 		if err := m.Master.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("master")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("master")
 			}
+
 			return err
 		}
 	}
@@ -118,12 +136,21 @@ func (m *HostTypeHardwareRequirementsWrapper) contextValidateMaster(ctx context.
 func (m *HostTypeHardwareRequirementsWrapper) contextValidateWorker(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Worker != nil {
+
+		if swag.IsZero(m.Worker) { // not required
+			return nil
+		}
+
 		if err := m.Worker.ContextValidate(ctx, formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("worker")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("worker")
 			}
+
 			return err
 		}
 	}

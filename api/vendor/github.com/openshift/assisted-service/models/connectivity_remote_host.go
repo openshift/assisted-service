@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -84,11 +85,15 @@ func (m *ConnectivityRemoteHost) validateL2Connectivity(formats strfmt.Registry)
 
 		if m.L2Connectivity[i] != nil {
 			if err := m.L2Connectivity[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -110,11 +115,15 @@ func (m *ConnectivityRemoteHost) validateL3Connectivity(formats strfmt.Registry)
 
 		if m.L3Connectivity[i] != nil {
 			if err := m.L3Connectivity[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -136,11 +145,15 @@ func (m *ConnectivityRemoteHost) validateMtuReport(formats strfmt.Registry) erro
 
 		if m.MtuReport[i] != nil {
 			if err := m.MtuReport[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("mtu_report" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("mtu_report" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -177,12 +190,21 @@ func (m *ConnectivityRemoteHost) contextValidateL2Connectivity(ctx context.Conte
 	for i := 0; i < len(m.L2Connectivity); i++ {
 
 		if m.L2Connectivity[i] != nil {
+
+			if swag.IsZero(m.L2Connectivity[i]) { // not required
+				return nil
+			}
+
 			if err := m.L2Connectivity[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("l2_connectivity" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -197,12 +219,21 @@ func (m *ConnectivityRemoteHost) contextValidateL3Connectivity(ctx context.Conte
 	for i := 0; i < len(m.L3Connectivity); i++ {
 
 		if m.L3Connectivity[i] != nil {
+
+			if swag.IsZero(m.L3Connectivity[i]) { // not required
+				return nil
+			}
+
 			if err := m.L3Connectivity[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("l3_connectivity" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -217,12 +248,21 @@ func (m *ConnectivityRemoteHost) contextValidateMtuReport(ctx context.Context, f
 	for i := 0; i < len(m.MtuReport); i++ {
 
 		if m.MtuReport[i] != nil {
+
+			if swag.IsZero(m.MtuReport[i]) { // not required
+				return nil
+			}
+
 			if err := m.MtuReport[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("mtu_report" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("mtu_report" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

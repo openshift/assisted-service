@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadClusterFilesHandlerFunc turns a function with the right signature into a v2 download cluster files handler
-type V2DownloadClusterFilesHandlerFunc func(V2DownloadClusterFilesParams, interface{}) middleware.Responder
+type V2DownloadClusterFilesHandlerFunc func(V2DownloadClusterFilesParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadClusterFilesHandlerFunc) Handle(params V2DownloadClusterFilesParams, principal interface{}) middleware.Responder {
+func (fn V2DownloadClusterFilesHandlerFunc) Handle(params V2DownloadClusterFilesParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadClusterFilesHandler interface for that can handle valid v2 download cluster files params
 type V2DownloadClusterFilesHandler interface {
-	Handle(V2DownloadClusterFilesParams, interface{}) middleware.Responder
+	Handle(V2DownloadClusterFilesParams, any) middleware.Responder
 }
 
 // NewV2DownloadClusterFiles creates a new http.Handler for the v2 download cluster files operation
@@ -53,9 +53,9 @@ func (o *V2DownloadClusterFiles) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2DownloadClusterFiles) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

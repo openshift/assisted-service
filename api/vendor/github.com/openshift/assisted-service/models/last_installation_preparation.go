@@ -24,7 +24,7 @@ type LastInstallationPreparation struct {
 	Reason string `json:"reason,omitempty"`
 
 	// The last installation preparation status
-	// Enum: [not_started failed success]
+	// Enum: ["not_started","failed","success"]
 	Status string `json:"status,omitempty"`
 }
 
@@ -42,7 +42,7 @@ func (m *LastInstallationPreparation) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var lastInstallationPreparationTypeStatusPropEnum []interface{}
+var lastInstallationPreparationTypeStatusPropEnum []any
 
 func init() {
 	var res []string

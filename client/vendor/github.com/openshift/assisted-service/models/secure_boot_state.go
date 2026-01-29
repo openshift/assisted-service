@@ -44,7 +44,7 @@ const (
 )
 
 // for schema
-var secureBootStateEnum []interface{}
+var secureBootStateEnum []any
 
 func init() {
 	var res []SecureBootState

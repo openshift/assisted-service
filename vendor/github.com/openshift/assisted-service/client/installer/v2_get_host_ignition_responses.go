@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2GetHostIgnitionReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2GetHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetHostIgnitionOK()
@@ -72,7 +74,7 @@ func (o *V2GetHostIgnitionReader) ReadResponse(response runtime.ClientResponse, 
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition] v2GetHostIgnition", response, response.Code())
 	}
 }
 
@@ -115,12 +117,19 @@ func (o *V2GetHostIgnitionOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 get host ignition o k response
+func (o *V2GetHostIgnitionOK) Code() int {
+	return 200
+}
+
 func (o *V2GetHostIgnitionOK) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionOK %s", 200, payload)
 }
 
 func (o *V2GetHostIgnitionOK) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionOK %s", 200, payload)
 }
 
 func (o *V2GetHostIgnitionOK) GetPayload() *models.HostIgnitionParams {
@@ -132,7 +141,7 @@ func (o *V2GetHostIgnitionOK) readResponse(response runtime.ClientResponse, cons
 	o.Payload = new(models.HostIgnitionParams)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -178,12 +187,19 @@ func (o *V2GetHostIgnitionUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 get host ignition unauthorized response
+func (o *V2GetHostIgnitionUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2GetHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetHostIgnitionUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2GetHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -195,7 +211,7 @@ func (o *V2GetHostIgnitionUnauthorized) readResponse(response runtime.ClientResp
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -241,12 +257,19 @@ func (o *V2GetHostIgnitionForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 get host ignition forbidden response
+func (o *V2GetHostIgnitionForbidden) Code() int {
+	return 403
+}
+
 func (o *V2GetHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2GetHostIgnitionForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2GetHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -258,7 +281,7 @@ func (o *V2GetHostIgnitionForbidden) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -304,12 +327,19 @@ func (o *V2GetHostIgnitionNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 get host ignition not found response
+func (o *V2GetHostIgnitionNotFound) Code() int {
+	return 404
+}
+
 func (o *V2GetHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2GetHostIgnitionNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2GetHostIgnitionNotFound) GetPayload() *models.Error {
@@ -321,7 +351,7 @@ func (o *V2GetHostIgnitionNotFound) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -367,12 +397,19 @@ func (o *V2GetHostIgnitionMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 get host ignition method not allowed response
+func (o *V2GetHostIgnitionMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2GetHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetHostIgnitionMethodNotAllowed) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2GetHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -384,7 +421,7 @@ func (o *V2GetHostIgnitionMethodNotAllowed) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -430,12 +467,19 @@ func (o *V2GetHostIgnitionInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 get host ignition internal server error response
+func (o *V2GetHostIgnitionInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2GetHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetHostIgnitionInternalServerError) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2GetHostIgnitionInternalServerError) GetPayload() *models.Error {
@@ -447,7 +491,7 @@ func (o *V2GetHostIgnitionInternalServerError) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -493,12 +537,19 @@ func (o *V2GetHostIgnitionNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the v2 get host ignition not implemented response
+func (o *V2GetHostIgnitionNotImplemented) Code() int {
+	return 501
+}
+
 func (o *V2GetHostIgnitionNotImplemented) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotImplemented %s", 501, payload)
 }
 
 func (o *V2GetHostIgnitionNotImplemented) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionNotImplemented %s", 501, payload)
 }
 
 func (o *V2GetHostIgnitionNotImplemented) GetPayload() *models.Error {
@@ -510,7 +561,7 @@ func (o *V2GetHostIgnitionNotImplemented) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -556,12 +607,19 @@ func (o *V2GetHostIgnitionServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 get host ignition service unavailable response
+func (o *V2GetHostIgnitionServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2GetHostIgnitionServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2GetHostIgnitionServiceUnavailable) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2GetHostIgnitionServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2GetHostIgnitionServiceUnavailable) GetPayload() *models.Error {
@@ -573,7 +631,7 @@ func (o *V2GetHostIgnitionServiceUnavailable) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

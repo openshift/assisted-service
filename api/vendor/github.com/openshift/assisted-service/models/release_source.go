@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -57,7 +58,7 @@ func (m *ReleaseSource) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var releaseSourceMultiCPUArchitecturesItemsEnum []interface{}
+var releaseSourceMultiCPUArchitecturesItemsEnum []any
 
 func init() {
 	var res []string
@@ -116,11 +117,15 @@ func (m *ReleaseSource) validateUpgradeChannels(formats strfmt.Registry) error {
 
 		if m.UpgradeChannels[i] != nil {
 			if err := m.UpgradeChannels[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("upgrade_channels" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("upgrade_channels" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}
@@ -149,12 +154,21 @@ func (m *ReleaseSource) contextValidateUpgradeChannels(ctx context.Context, form
 	for i := 0; i < len(m.UpgradeChannels); i++ {
 
 		if m.UpgradeChannels[i] != nil {
+
+			if swag.IsZero(m.UpgradeChannels[i]) { // not required
+				return nil
+			}
+
 			if err := m.UpgradeChannels[i].ContextValidate(ctx, formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
+				ve := new(errors.Validation)
+				if stderrors.As(err, &ve) {
 					return ve.ValidateName("upgrade_channels" + "." + strconv.Itoa(i))
-				} else if ce, ok := err.(*errors.CompositeError); ok {
+				}
+				ce := new(errors.CompositeError)
+				if stderrors.As(err, &ce) {
 					return ce.ValidateName("upgrade_channels" + "." + strconv.Itoa(i))
 				}
+
 				return err
 			}
 		}

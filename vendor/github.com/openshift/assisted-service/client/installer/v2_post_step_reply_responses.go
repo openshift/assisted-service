@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2PostStepReplyReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2PostStepReplyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2PostStepReplyReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 204:
 		result := NewV2PostStepReplyNoContent()
@@ -78,7 +80,7 @@ func (o *V2PostStepReplyReader) ReadResponse(response runtime.ClientResponse, co
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions] v2PostStepReply", response, response.Code())
 	}
 }
 
@@ -120,12 +122,17 @@ func (o *V2PostStepReplyNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
+// Code gets the status code for the v2 post step reply no content response
+func (o *V2PostStepReplyNoContent) Code() int {
+	return 204
+}
+
 func (o *V2PostStepReplyNoContent) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNoContent ", 204)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNoContent", 204)
 }
 
 func (o *V2PostStepReplyNoContent) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNoContent ", 204)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNoContent", 204)
 }
 
 func (o *V2PostStepReplyNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -172,12 +179,19 @@ func (o *V2PostStepReplyBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 post step reply bad request response
+func (o *V2PostStepReplyBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2PostStepReplyBadRequest) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyBadRequest %s", 400, payload)
 }
 
 func (o *V2PostStepReplyBadRequest) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyBadRequest %s", 400, payload)
 }
 
 func (o *V2PostStepReplyBadRequest) GetPayload() *models.Error {
@@ -189,7 +203,7 @@ func (o *V2PostStepReplyBadRequest) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -235,12 +249,19 @@ func (o *V2PostStepReplyUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 post step reply unauthorized response
+func (o *V2PostStepReplyUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2PostStepReplyUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyUnauthorized %s", 401, payload)
 }
 
 func (o *V2PostStepReplyUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyUnauthorized %s", 401, payload)
 }
 
 func (o *V2PostStepReplyUnauthorized) GetPayload() *models.InfraError {
@@ -252,7 +273,7 @@ func (o *V2PostStepReplyUnauthorized) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -298,12 +319,19 @@ func (o *V2PostStepReplyForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 post step reply forbidden response
+func (o *V2PostStepReplyForbidden) Code() int {
+	return 403
+}
+
 func (o *V2PostStepReplyForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyForbidden %s", 403, payload)
 }
 
 func (o *V2PostStepReplyForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyForbidden %s", 403, payload)
 }
 
 func (o *V2PostStepReplyForbidden) GetPayload() *models.InfraError {
@@ -315,7 +343,7 @@ func (o *V2PostStepReplyForbidden) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -361,12 +389,19 @@ func (o *V2PostStepReplyNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 post step reply not found response
+func (o *V2PostStepReplyNotFound) Code() int {
+	return 404
+}
+
 func (o *V2PostStepReplyNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotFound %s", 404, payload)
 }
 
 func (o *V2PostStepReplyNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotFound %s", 404, payload)
 }
 
 func (o *V2PostStepReplyNotFound) GetPayload() *models.Error {
@@ -378,7 +413,7 @@ func (o *V2PostStepReplyNotFound) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -424,12 +459,19 @@ func (o *V2PostStepReplyMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 post step reply method not allowed response
+func (o *V2PostStepReplyMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2PostStepReplyMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2PostStepReplyMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2PostStepReplyMethodNotAllowed) GetPayload() *models.Error {
@@ -441,7 +483,7 @@ func (o *V2PostStepReplyMethodNotAllowed) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -487,12 +529,19 @@ func (o *V2PostStepReplyInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 post step reply internal server error response
+func (o *V2PostStepReplyInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2PostStepReplyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyInternalServerError %s", 500, payload)
 }
 
 func (o *V2PostStepReplyInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyInternalServerError %s", 500, payload)
 }
 
 func (o *V2PostStepReplyInternalServerError) GetPayload() *models.Error {
@@ -504,7 +553,7 @@ func (o *V2PostStepReplyInternalServerError) readResponse(response runtime.Clien
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -550,12 +599,19 @@ func (o *V2PostStepReplyNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the v2 post step reply not implemented response
+func (o *V2PostStepReplyNotImplemented) Code() int {
+	return 501
+}
+
 func (o *V2PostStepReplyNotImplemented) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotImplemented %s", 501, payload)
 }
 
 func (o *V2PostStepReplyNotImplemented) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyNotImplemented %s", 501, payload)
 }
 
 func (o *V2PostStepReplyNotImplemented) GetPayload() *models.Error {
@@ -567,7 +623,7 @@ func (o *V2PostStepReplyNotImplemented) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -613,12 +669,19 @@ func (o *V2PostStepReplyServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 post step reply service unavailable response
+func (o *V2PostStepReplyServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2PostStepReplyServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2PostStepReplyServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2PostStepReplyServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2PostStepReplyServiceUnavailable) GetPayload() *models.Error {
@@ -630,7 +693,7 @@ func (o *V2PostStepReplyServiceUnavailable) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -112,7 +112,12 @@ var _ = Describe("RateLimiter", func() {
 
 			// Create a visitor
 			limiter.GetLimiter("client1")
-			Expect(limiter.visitors).To(HaveLen(1))
+
+			// Check initial count with proper locking
+			limiter.mu.RLock()
+			initialCount := len(limiter.visitors)
+			limiter.mu.RUnlock()
+			Expect(initialCount).To(Equal(1))
 
 			// Wait for cleanup (3x cleanup frequency = 30ms, plus some buffer)
 			time.Sleep(50 * time.Millisecond)
@@ -123,33 +128,132 @@ var _ = Describe("RateLimiter", func() {
 
 			Expect(count).To(Equal(0))
 		})
+
+		It("should not panic with zero cleanup interval", func() {
+			// This should not panic - cleanup loop should just return early
+			limiter = NewRateLimiter(10.0, 5, 0)
+			Expect(limiter).NotTo(BeNil())
+
+			// Create a visitor to verify the limiter works normally
+			Expect(limiter.Allow("client1")).To(BeTrue())
+		})
+
+		It("should not panic with negative cleanup interval", func() {
+			// This should not panic - cleanup loop should just return early
+			limiter = NewRateLimiter(10.0, 5, -time.Minute)
+			Expect(limiter).NotTo(BeNil())
+
+			// Create a visitor to verify the limiter works normally
+			Expect(limiter.Allow("client1")).To(BeTrue())
+		})
 	})
 })
 
 var _ = Describe("GetClientID", func() {
-	It("should extract IP from RemoteAddr", func() {
+	It("should extract IP from RemoteAddr when proxy headers not trusted", func() {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 
+		// GetClientID defaults to not trusting proxy headers
 		clientID := GetClientID(req)
 		Expect(clientID).To(Equal("ip:192.168.1.100"))
 	})
 
-	It("should prefer X-Forwarded-For header", func() {
+	It("should ignore X-Forwarded-For header when proxy headers not trusted", func() {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		req.Header.Set("X-Forwarded-For", "10.0.0.1, 10.0.0.2")
 
+		// GetClientID defaults to not trusting proxy headers for security
 		clientID := GetClientID(req)
-		Expect(clientID).To(Equal("ip:10.0.0.1"))
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
 	})
 
-	It("should use X-Real-IP when X-Forwarded-For is not present", func() {
+	It("should ignore X-Real-IP header when proxy headers not trusted", func() {
 		req := httptest.NewRequest(http.MethodGet, "/test", nil)
 		req.RemoteAddr = "192.168.1.100:12345"
 		req.Header.Set("X-Real-IP", "10.0.0.5")
 
+		// GetClientID defaults to not trusting proxy headers for security
 		clientID := GetClientID(req)
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
+	})
+})
+
+var _ = Describe("GetClientIDWithConfig", func() {
+	var trustedConfig ProxyTrustConfig
+
+	BeforeEach(func() {
+		trustedConfig = ProxyTrustConfig{TrustProxyHeaders: true}
+	})
+
+	It("should use authenticated user ID when present in context", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+
+		// Set authenticated user in context
+		ctx := SetAuthenticatedUser(req.Context(), "user-123")
+		req = req.WithContext(ctx)
+
+		clientID := GetClientIDWithConfig(req, trustedConfig)
+		Expect(clientID).To(Equal("user:user-123"))
+	})
+
+	It("should fall back to IP when no authenticated user in context", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+
+		clientID := GetClientIDWithConfig(req, trustedConfig)
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
+	})
+
+	It("should extract IP from RemoteAddr", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+
+		clientID := GetClientIDWithConfig(req, trustedConfig)
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
+	})
+
+	It("should prefer X-Forwarded-For header when proxy is trusted", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+		req.Header.Set("X-Forwarded-For", "10.0.0.1, 10.0.0.2")
+
+		clientID := GetClientIDWithConfig(req, trustedConfig)
+		Expect(clientID).To(Equal("ip:10.0.0.1"))
+	})
+
+	It("should use X-Real-IP when X-Forwarded-For is not present and proxy is trusted", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+		req.Header.Set("X-Real-IP", "10.0.0.5")
+
+		clientID := GetClientIDWithConfig(req, trustedConfig)
 		Expect(clientID).To(Equal("ip:10.0.0.5"))
+	})
+
+	It("should not trust headers when peer is not in trusted proxy list", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+		req.Header.Set("X-Forwarded-For", "10.0.0.1")
+
+		// Configure to only trust specific proxies
+		cfg := ParseTrustedProxies(true, "10.0.0.0/8")
+		clientID := GetClientIDWithConfig(req, cfg)
+		// 192.168.1.100 is not in 10.0.0.0/8, so headers should not be trusted
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
+	})
+
+	It("should trust headers when peer is in trusted proxy list", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "10.0.0.50:12345"
+		req.Header.Set("X-Forwarded-For", "203.0.113.1")
+
+		// Configure to trust 10.0.0.0/8 proxies
+		cfg := ParseTrustedProxies(true, "10.0.0.0/8")
+		clientID := GetClientIDWithConfig(req, cfg)
+		// 10.0.0.50 is in 10.0.0.0/8, so headers should be trusted
+		Expect(clientID).To(Equal("ip:203.0.113.1"))
 	})
 })

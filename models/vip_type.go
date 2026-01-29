@@ -38,7 +38,7 @@ const (
 )
 
 // for schema
-var vipTypeEnum []interface{}
+var vipTypeEnum []any
 
 func init() {
 	var res []VipType

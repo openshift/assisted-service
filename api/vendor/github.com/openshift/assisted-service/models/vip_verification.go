@@ -41,7 +41,7 @@ const (
 )
 
 // for schema
-var vipVerificationEnum []interface{}
+var vipVerificationEnum []any
 
 func init() {
 	var res []VipVerification

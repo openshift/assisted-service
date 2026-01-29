@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2CompleteInstallationReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2CompleteInstallationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2CompleteInstallationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 202:
 		result := NewV2CompleteInstallationAccepted()
@@ -72,7 +74,7 @@ func (o *V2CompleteInstallationReader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/actions/complete-installation] v2CompleteInstallation", response, response.Code())
 	}
 }
 
@@ -115,12 +117,19 @@ func (o *V2CompleteInstallationAccepted) IsCode(code int) bool {
 	return code == 202
 }
 
+// Code gets the status code for the v2 complete installation accepted response
+func (o *V2CompleteInstallationAccepted) Code() int {
+	return 202
+}
+
 func (o *V2CompleteInstallationAccepted) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationAccepted  %+v", 202, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationAccepted %s", 202, payload)
 }
 
 func (o *V2CompleteInstallationAccepted) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationAccepted  %+v", 202, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationAccepted %s", 202, payload)
 }
 
 func (o *V2CompleteInstallationAccepted) GetPayload() *models.Cluster {
@@ -132,7 +141,7 @@ func (o *V2CompleteInstallationAccepted) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -178,12 +187,19 @@ func (o *V2CompleteInstallationUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 complete installation unauthorized response
+func (o *V2CompleteInstallationUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2CompleteInstallationUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationUnauthorized %s", 401, payload)
 }
 
 func (o *V2CompleteInstallationUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationUnauthorized %s", 401, payload)
 }
 
 func (o *V2CompleteInstallationUnauthorized) GetPayload() *models.InfraError {
@@ -195,7 +211,7 @@ func (o *V2CompleteInstallationUnauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -241,12 +257,19 @@ func (o *V2CompleteInstallationForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 complete installation forbidden response
+func (o *V2CompleteInstallationForbidden) Code() int {
+	return 403
+}
+
 func (o *V2CompleteInstallationForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationForbidden %s", 403, payload)
 }
 
 func (o *V2CompleteInstallationForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationForbidden %s", 403, payload)
 }
 
 func (o *V2CompleteInstallationForbidden) GetPayload() *models.InfraError {
@@ -258,7 +281,7 @@ func (o *V2CompleteInstallationForbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -304,12 +327,19 @@ func (o *V2CompleteInstallationNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 complete installation not found response
+func (o *V2CompleteInstallationNotFound) Code() int {
+	return 404
+}
+
 func (o *V2CompleteInstallationNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationNotFound %s", 404, payload)
 }
 
 func (o *V2CompleteInstallationNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationNotFound %s", 404, payload)
 }
 
 func (o *V2CompleteInstallationNotFound) GetPayload() *models.Error {
@@ -321,7 +351,7 @@ func (o *V2CompleteInstallationNotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -367,12 +397,19 @@ func (o *V2CompleteInstallationMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 complete installation method not allowed response
+func (o *V2CompleteInstallationMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2CompleteInstallationMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2CompleteInstallationMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2CompleteInstallationMethodNotAllowed) GetPayload() *models.Error {
@@ -384,7 +421,7 @@ func (o *V2CompleteInstallationMethodNotAllowed) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -430,12 +467,19 @@ func (o *V2CompleteInstallationConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the v2 complete installation conflict response
+func (o *V2CompleteInstallationConflict) Code() int {
+	return 409
+}
+
 func (o *V2CompleteInstallationConflict) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationConflict %s", 409, payload)
 }
 
 func (o *V2CompleteInstallationConflict) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationConflict %s", 409, payload)
 }
 
 func (o *V2CompleteInstallationConflict) GetPayload() *models.Error {
@@ -447,7 +491,7 @@ func (o *V2CompleteInstallationConflict) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -493,12 +537,19 @@ func (o *V2CompleteInstallationInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 complete installation internal server error response
+func (o *V2CompleteInstallationInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2CompleteInstallationInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationInternalServerError %s", 500, payload)
 }
 
 func (o *V2CompleteInstallationInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationInternalServerError %s", 500, payload)
 }
 
 func (o *V2CompleteInstallationInternalServerError) GetPayload() *models.Error {
@@ -510,7 +561,7 @@ func (o *V2CompleteInstallationInternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -556,12 +607,19 @@ func (o *V2CompleteInstallationServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 complete installation service unavailable response
+func (o *V2CompleteInstallationServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2CompleteInstallationServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2CompleteInstallationServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/complete-installation][%d] v2CompleteInstallationServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2CompleteInstallationServiceUnavailable) GetPayload() *models.Error {
@@ -573,7 +631,7 @@ func (o *V2CompleteInstallationServiceUnavailable) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

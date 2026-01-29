@@ -21,7 +21,7 @@ import (
 type KernelArgument struct {
 
 	// The operation to apply on the kernel argument.
-	// Enum: [append replace delete]
+	// Enum: ["append","replace","delete"]
 	Operation string `json:"operation,omitempty"`
 
 	// Kernel argument can have the form <parameter> or <parameter>=<value>. The following examples should
@@ -53,7 +53,7 @@ func (m *KernelArgument) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var kernelArgumentTypeOperationPropEnum []interface{}
+var kernelArgumentTypeOperationPropEnum []any
 
 func init() {
 	var res []string

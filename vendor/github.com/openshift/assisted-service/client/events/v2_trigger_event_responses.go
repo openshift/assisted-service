@@ -6,6 +6,8 @@ package events
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2TriggerEventReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2TriggerEventReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2TriggerEventReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2TriggerEventCreated()
@@ -84,7 +86,7 @@ func (o *V2TriggerEventReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[POST /v2/events] v2TriggerEvent", response, response.Code())
 	}
 }
 
@@ -126,12 +128,17 @@ func (o *V2TriggerEventCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the v2 trigger event created response
+func (o *V2TriggerEventCreated) Code() int {
+	return 201
+}
+
 func (o *V2TriggerEventCreated) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventCreated ", 201)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventCreated", 201)
 }
 
 func (o *V2TriggerEventCreated) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventCreated ", 201)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventCreated", 201)
 }
 
 func (o *V2TriggerEventCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -178,12 +185,19 @@ func (o *V2TriggerEventBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 trigger event bad request response
+func (o *V2TriggerEventBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2TriggerEventBadRequest) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventBadRequest %s", 400, payload)
 }
 
 func (o *V2TriggerEventBadRequest) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventBadRequest %s", 400, payload)
 }
 
 func (o *V2TriggerEventBadRequest) GetPayload() *models.Error {
@@ -195,7 +209,7 @@ func (o *V2TriggerEventBadRequest) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -241,12 +255,19 @@ func (o *V2TriggerEventUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 trigger event unauthorized response
+func (o *V2TriggerEventUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2TriggerEventUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventUnauthorized %s", 401, payload)
 }
 
 func (o *V2TriggerEventUnauthorized) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventUnauthorized %s", 401, payload)
 }
 
 func (o *V2TriggerEventUnauthorized) GetPayload() *models.InfraError {
@@ -258,7 +279,7 @@ func (o *V2TriggerEventUnauthorized) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -304,12 +325,19 @@ func (o *V2TriggerEventForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 trigger event forbidden response
+func (o *V2TriggerEventForbidden) Code() int {
+	return 403
+}
+
 func (o *V2TriggerEventForbidden) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventForbidden %s", 403, payload)
 }
 
 func (o *V2TriggerEventForbidden) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventForbidden %s", 403, payload)
 }
 
 func (o *V2TriggerEventForbidden) GetPayload() *models.InfraError {
@@ -321,7 +349,7 @@ func (o *V2TriggerEventForbidden) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -367,12 +395,19 @@ func (o *V2TriggerEventNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 trigger event not found response
+func (o *V2TriggerEventNotFound) Code() int {
+	return 404
+}
+
 func (o *V2TriggerEventNotFound) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotFound %s", 404, payload)
 }
 
 func (o *V2TriggerEventNotFound) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotFound %s", 404, payload)
 }
 
 func (o *V2TriggerEventNotFound) GetPayload() *models.Error {
@@ -384,7 +419,7 @@ func (o *V2TriggerEventNotFound) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -430,12 +465,19 @@ func (o *V2TriggerEventMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 trigger event method not allowed response
+func (o *V2TriggerEventMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2TriggerEventMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2TriggerEventMethodNotAllowed) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2TriggerEventMethodNotAllowed) GetPayload() *models.Error {
@@ -447,7 +489,7 @@ func (o *V2TriggerEventMethodNotAllowed) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -493,12 +535,19 @@ func (o *V2TriggerEventConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the v2 trigger event conflict response
+func (o *V2TriggerEventConflict) Code() int {
+	return 409
+}
+
 func (o *V2TriggerEventConflict) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventConflict %s", 409, payload)
 }
 
 func (o *V2TriggerEventConflict) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventConflict %s", 409, payload)
 }
 
 func (o *V2TriggerEventConflict) GetPayload() *models.Error {
@@ -510,7 +559,7 @@ func (o *V2TriggerEventConflict) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -556,12 +605,19 @@ func (o *V2TriggerEventInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 trigger event internal server error response
+func (o *V2TriggerEventInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2TriggerEventInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventInternalServerError %s", 500, payload)
 }
 
 func (o *V2TriggerEventInternalServerError) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventInternalServerError %s", 500, payload)
 }
 
 func (o *V2TriggerEventInternalServerError) GetPayload() *models.Error {
@@ -573,7 +629,7 @@ func (o *V2TriggerEventInternalServerError) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -619,12 +675,19 @@ func (o *V2TriggerEventNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the v2 trigger event not implemented response
+func (o *V2TriggerEventNotImplemented) Code() int {
+	return 501
+}
+
 func (o *V2TriggerEventNotImplemented) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotImplemented %s", 501, payload)
 }
 
 func (o *V2TriggerEventNotImplemented) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventNotImplemented %s", 501, payload)
 }
 
 func (o *V2TriggerEventNotImplemented) GetPayload() *models.Error {
@@ -636,7 +699,7 @@ func (o *V2TriggerEventNotImplemented) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -682,12 +745,19 @@ func (o *V2TriggerEventServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the v2 trigger event service unavailable response
+func (o *V2TriggerEventServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2TriggerEventServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2TriggerEventServiceUnavailable) String() string {
-	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[POST /v2/events][%d] v2TriggerEventServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2TriggerEventServiceUnavailable) GetPayload() *models.Error {
@@ -699,7 +769,7 @@ func (o *V2TriggerEventServiceUnavailable) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2UpdateClusterFinalizingProgressReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UpdateClusterFinalizingProgressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2UpdateClusterFinalizingProgressReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2UpdateClusterFinalizingProgressOK()
@@ -66,7 +68,7 @@ func (o *V2UpdateClusterFinalizingProgressReader) ReadResponse(response runtime.
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[PUT /v2/clusters/{cluster_id}/progress] v2UpdateClusterFinalizingProgress", response, response.Code())
 	}
 }
 
@@ -108,12 +110,17 @@ func (o *V2UpdateClusterFinalizingProgressOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress o k response
+func (o *V2UpdateClusterFinalizingProgressOK) Code() int {
+	return 200
+}
+
 func (o *V2UpdateClusterFinalizingProgressOK) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressOK ", 200)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressOK", 200)
 }
 
 func (o *V2UpdateClusterFinalizingProgressOK) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressOK ", 200)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressOK", 200)
 }
 
 func (o *V2UpdateClusterFinalizingProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -160,12 +167,19 @@ func (o *V2UpdateClusterFinalizingProgressUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress unauthorized response
+func (o *V2UpdateClusterFinalizingProgressUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2UpdateClusterFinalizingProgressUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressUnauthorized) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressUnauthorized) GetPayload() *models.InfraError {
@@ -177,7 +191,7 @@ func (o *V2UpdateClusterFinalizingProgressUnauthorized) readResponse(response ru
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -223,12 +237,19 @@ func (o *V2UpdateClusterFinalizingProgressForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress forbidden response
+func (o *V2UpdateClusterFinalizingProgressForbidden) Code() int {
+	return 403
+}
+
 func (o *V2UpdateClusterFinalizingProgressForbidden) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressForbidden) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressForbidden) GetPayload() *models.InfraError {
@@ -240,7 +261,7 @@ func (o *V2UpdateClusterFinalizingProgressForbidden) readResponse(response runti
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -286,12 +307,19 @@ func (o *V2UpdateClusterFinalizingProgressNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress not found response
+func (o *V2UpdateClusterFinalizingProgressNotFound) Code() int {
+	return 404
+}
+
 func (o *V2UpdateClusterFinalizingProgressNotFound) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressNotFound) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressNotFound) GetPayload() *models.Error {
@@ -303,7 +331,7 @@ func (o *V2UpdateClusterFinalizingProgressNotFound) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -349,12 +377,19 @@ func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) IsCode(code int) boo
 	return code == 405
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress method not allowed response
+func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) GetPayload() *models.Error {
@@ -366,7 +401,7 @@ func (o *V2UpdateClusterFinalizingProgressMethodNotAllowed) readResponse(respons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -412,12 +447,19 @@ func (o *V2UpdateClusterFinalizingProgressInternalServerError) IsCode(code int) 
 	return code == 500
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress internal server error response
+func (o *V2UpdateClusterFinalizingProgressInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2UpdateClusterFinalizingProgressInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressInternalServerError) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressInternalServerError) GetPayload() *models.Error {
@@ -429,7 +471,7 @@ func (o *V2UpdateClusterFinalizingProgressInternalServerError) readResponse(resp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -475,12 +517,19 @@ func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) IsCode(code int) b
 	return code == 503
 }
 
+// Code gets the status code for the v2 update cluster finalizing progress service unavailable response
+func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/progress][%d] v2UpdateClusterFinalizingProgressServiceUnavailable %s", 503, payload)
 }
 
 func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) GetPayload() *models.Error {
@@ -492,7 +541,7 @@ func (o *V2UpdateClusterFinalizingProgressServiceUnavailable) readResponse(respo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

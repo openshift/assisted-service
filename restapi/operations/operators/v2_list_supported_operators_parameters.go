@@ -25,7 +25,6 @@ func NewV2ListSupportedOperatorsParams() V2ListSupportedOperatorsParams {
 //
 // swagger:parameters V2ListSupportedOperators
 type V2ListSupportedOperatorsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

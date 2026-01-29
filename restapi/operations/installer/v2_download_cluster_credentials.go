@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadClusterCredentialsHandlerFunc turns a function with the right signature into a v2 download cluster credentials handler
-type V2DownloadClusterCredentialsHandlerFunc func(V2DownloadClusterCredentialsParams, interface{}) middleware.Responder
+type V2DownloadClusterCredentialsHandlerFunc func(V2DownloadClusterCredentialsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadClusterCredentialsHandlerFunc) Handle(params V2DownloadClusterCredentialsParams, principal interface{}) middleware.Responder {
+func (fn V2DownloadClusterCredentialsHandlerFunc) Handle(params V2DownloadClusterCredentialsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadClusterCredentialsHandler interface for that can handle valid v2 download cluster credentials params
 type V2DownloadClusterCredentialsHandler interface {
-	Handle(V2DownloadClusterCredentialsParams, interface{}) middleware.Responder
+	Handle(V2DownloadClusterCredentialsParams, any) middleware.Responder
 }
 
 // NewV2DownloadClusterCredentials creates a new http.Handler for the v2 download cluster credentials operation
@@ -53,9 +53,9 @@ func (o *V2DownloadClusterCredentials) ServeHTTP(rw http.ResponseWriter, r *http
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2DownloadClusterCredentials) ServeHTTP(rw http.ResponseWriter, r *http
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

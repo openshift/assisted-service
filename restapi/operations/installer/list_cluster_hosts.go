@@ -12,16 +12,16 @@ import (
 )
 
 // ListClusterHostsHandlerFunc turns a function with the right signature into a list cluster hosts handler
-type ListClusterHostsHandlerFunc func(ListClusterHostsParams, interface{}) middleware.Responder
+type ListClusterHostsHandlerFunc func(ListClusterHostsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ListClusterHostsHandlerFunc) Handle(params ListClusterHostsParams, principal interface{}) middleware.Responder {
+func (fn ListClusterHostsHandlerFunc) Handle(params ListClusterHostsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // ListClusterHostsHandler interface for that can handle valid list cluster hosts params
 type ListClusterHostsHandler interface {
-	Handle(ListClusterHostsParams, interface{}) middleware.Responder
+	Handle(ListClusterHostsParams, any) middleware.Responder
 }
 
 // NewListClusterHosts creates a new http.Handler for the list cluster hosts operation
@@ -53,9 +53,9 @@ func (o *ListClusterHosts) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *ListClusterHosts) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

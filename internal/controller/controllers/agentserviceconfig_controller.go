@@ -1362,6 +1362,9 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			"SKIP_CERT_VERIFICATION": "False",
 			"HOST_STAGE_WAITING_FOR_CONTROL_PLANE_TIMEOUT": getWaitingForControlPlaneHostStageTimeout(),
 			"EVENT_RATE_LIMITS":                            "",
+			// Rate limiting is disabled by default in Kube-API mode (on-prem deployments)
+			// It should only be enabled in SaaS/multi-tenant environments
+			"RATE_LIMIT_ENABLED": "false",
 		}
 		// serve https only on OCP
 		if asc.rec.IsOpenShift {

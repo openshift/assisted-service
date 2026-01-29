@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type V2UpdateHostIgnitionReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UpdateHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *V2UpdateHostIgnitionReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2UpdateHostIgnitionCreated()
@@ -72,7 +74,7 @@ func (o *V2UpdateHostIgnitionReader) ReadResponse(response runtime.ClientRespons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition] v2UpdateHostIgnition", response, response.Code())
 	}
 }
 
@@ -114,12 +116,17 @@ func (o *V2UpdateHostIgnitionCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the v2 update host ignition created response
+func (o *V2UpdateHostIgnitionCreated) Code() int {
+	return 201
+}
+
 func (o *V2UpdateHostIgnitionCreated) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionCreated ", 201)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionCreated", 201)
 }
 
 func (o *V2UpdateHostIgnitionCreated) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionCreated ", 201)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionCreated", 201)
 }
 
 func (o *V2UpdateHostIgnitionCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -166,12 +173,19 @@ func (o *V2UpdateHostIgnitionBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the v2 update host ignition bad request response
+func (o *V2UpdateHostIgnitionBadRequest) Code() int {
+	return 400
+}
+
 func (o *V2UpdateHostIgnitionBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionBadRequest %s", 400, payload)
 }
 
 func (o *V2UpdateHostIgnitionBadRequest) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionBadRequest %s", 400, payload)
 }
 
 func (o *V2UpdateHostIgnitionBadRequest) GetPayload() *models.Error {
@@ -183,7 +197,7 @@ func (o *V2UpdateHostIgnitionBadRequest) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -229,12 +243,19 @@ func (o *V2UpdateHostIgnitionUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the v2 update host ignition unauthorized response
+func (o *V2UpdateHostIgnitionUnauthorized) Code() int {
+	return 401
+}
+
 func (o *V2UpdateHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateHostIgnitionUnauthorized) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionUnauthorized %s", 401, payload)
 }
 
 func (o *V2UpdateHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -246,7 +267,7 @@ func (o *V2UpdateHostIgnitionUnauthorized) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -292,12 +313,19 @@ func (o *V2UpdateHostIgnitionForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the v2 update host ignition forbidden response
+func (o *V2UpdateHostIgnitionForbidden) Code() int {
+	return 403
+}
+
 func (o *V2UpdateHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateHostIgnitionForbidden) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionForbidden %s", 403, payload)
 }
 
 func (o *V2UpdateHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -309,7 +337,7 @@ func (o *V2UpdateHostIgnitionForbidden) readResponse(response runtime.ClientResp
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -355,12 +383,19 @@ func (o *V2UpdateHostIgnitionNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the v2 update host ignition not found response
+func (o *V2UpdateHostIgnitionNotFound) Code() int {
+	return 404
+}
+
 func (o *V2UpdateHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateHostIgnitionNotFound) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotFound %s", 404, payload)
 }
 
 func (o *V2UpdateHostIgnitionNotFound) GetPayload() *models.Error {
@@ -372,7 +407,7 @@ func (o *V2UpdateHostIgnitionNotFound) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -418,12 +453,19 @@ func (o *V2UpdateHostIgnitionMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the v2 update host ignition method not allowed response
+func (o *V2UpdateHostIgnitionMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *V2UpdateHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateHostIgnitionMethodNotAllowed) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionMethodNotAllowed %s", 405, payload)
 }
 
 func (o *V2UpdateHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -435,7 +477,7 @@ func (o *V2UpdateHostIgnitionMethodNotAllowed) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -481,12 +523,19 @@ func (o *V2UpdateHostIgnitionInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the v2 update host ignition internal server error response
+func (o *V2UpdateHostIgnitionInternalServerError) Code() int {
+	return 500
+}
+
 func (o *V2UpdateHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateHostIgnitionInternalServerError) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionInternalServerError %s", 500, payload)
 }
 
 func (o *V2UpdateHostIgnitionInternalServerError) GetPayload() *models.Error {
@@ -498,7 +547,7 @@ func (o *V2UpdateHostIgnitionInternalServerError) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -544,12 +593,19 @@ func (o *V2UpdateHostIgnitionNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the v2 update host ignition not implemented response
+func (o *V2UpdateHostIgnitionNotImplemented) Code() int {
+	return 501
+}
+
 func (o *V2UpdateHostIgnitionNotImplemented) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotImplemented %s", 501, payload)
 }
 
 func (o *V2UpdateHostIgnitionNotImplemented) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition][%d] v2UpdateHostIgnitionNotImplemented %s", 501, payload)
 }
 
 func (o *V2UpdateHostIgnitionNotImplemented) GetPayload() *models.Error {
@@ -561,7 +617,7 @@ func (o *V2UpdateHostIgnitionNotImplemented) readResponse(response runtime.Clien
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 

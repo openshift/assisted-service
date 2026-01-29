@@ -12,16 +12,16 @@ import (
 )
 
 // TransformClusterToAddingHostsHandlerFunc turns a function with the right signature into a transform cluster to adding hosts handler
-type TransformClusterToAddingHostsHandlerFunc func(TransformClusterToAddingHostsParams, interface{}) middleware.Responder
+type TransformClusterToAddingHostsHandlerFunc func(TransformClusterToAddingHostsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn TransformClusterToAddingHostsHandlerFunc) Handle(params TransformClusterToAddingHostsParams, principal interface{}) middleware.Responder {
+func (fn TransformClusterToAddingHostsHandlerFunc) Handle(params TransformClusterToAddingHostsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // TransformClusterToAddingHostsHandler interface for that can handle valid transform cluster to adding hosts params
 type TransformClusterToAddingHostsHandler interface {
-	Handle(TransformClusterToAddingHostsParams, interface{}) middleware.Responder
+	Handle(TransformClusterToAddingHostsParams, any) middleware.Responder
 }
 
 // NewTransformClusterToAddingHosts creates a new http.Handler for the transform cluster to adding hosts operation
@@ -53,9 +53,9 @@ func (o *TransformClusterToAddingHosts) ServeHTTP(rw http.ResponseWriter, r *htt
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *TransformClusterToAddingHosts) ServeHTTP(rw http.ResponseWriter, r *htt
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

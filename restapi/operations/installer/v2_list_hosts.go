@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListHostsHandlerFunc turns a function with the right signature into a v2 list hosts handler
-type V2ListHostsHandlerFunc func(V2ListHostsParams, interface{}) middleware.Responder
+type V2ListHostsHandlerFunc func(V2ListHostsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListHostsHandlerFunc) Handle(params V2ListHostsParams, principal interface{}) middleware.Responder {
+func (fn V2ListHostsHandlerFunc) Handle(params V2ListHostsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListHostsHandler interface for that can handle valid v2 list hosts params
 type V2ListHostsHandler interface {
-	Handle(V2ListHostsParams, interface{}) middleware.Responder
+	Handle(V2ListHostsParams, any) middleware.Responder
 }
 
 // NewV2ListHosts creates a new http.Handler for the v2 list hosts operation
@@ -53,9 +53,9 @@ func (o *V2ListHosts) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListHosts) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

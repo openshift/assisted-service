@@ -7,6 +7,7 @@ package installer
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/go-openapi/runtime"
@@ -14,7 +15,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery -name API -inpkg
+//go:generate mockery --name API --keeptree --with-expecter --case underscore
 
 // API is the interface of the installer client
 type API interface {
@@ -237,7 +238,6 @@ type Client struct {
 BindHost Bind host to a cluster
 */
 func (a *Client) BindHost(ctx context.Context, params *BindHostParams) (*BindHostOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "BindHost",
 		Method:             "POST",
@@ -254,15 +254,41 @@ func (a *Client) BindHost(ctx context.Context, params *BindHostParams) (*BindHos
 	if err != nil {
 		return nil, err
 	}
-	return result.(*BindHostOK), nil
 
+	switch value := result.(type) {
+	case *BindHostOK:
+		return value, nil
+	case *BindHostBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *BindHostServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for BindHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 DeregisterInfraEnv Deletes an infra-env.
 */
 func (a *Client) DeregisterInfraEnv(ctx context.Context, params *DeregisterInfraEnvParams) (*DeregisterInfraEnvNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeregisterInfraEnv",
 		Method:             "DELETE",
@@ -279,15 +305,39 @@ func (a *Client) DeregisterInfraEnv(ctx context.Context, params *DeregisterInfra
 	if err != nil {
 		return nil, err
 	}
-	return result.(*DeregisterInfraEnvNoContent), nil
 
+	switch value := result.(type) {
+	case *DeregisterInfraEnvNoContent:
+		return value, nil
+	case *DeregisterInfraEnvUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DeregisterInfraEnvNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for DeregisterInfraEnv: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 DownloadMinimalInitrd Get the initial ramdisk for minimal ISO based installations.
 */
 func (a *Client) DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadMinimalInitrd",
 		Method:             "GET",
@@ -304,21 +354,39 @@ func (a *Client) DownloadMinimalInitrd(ctx context.Context, params *DownloadMini
 	if err != nil {
 		return nil, nil, err
 	}
+
 	switch value := result.(type) {
 	case *DownloadMinimalInitrdOK:
 		return value, nil, nil
 	case *DownloadMinimalInitrdNoContent:
 		return nil, value, nil
+	case *DownloadMinimalInitrdUnauthorized:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DownloadMinimalInitrdForbidden:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DownloadMinimalInitrdNotFound:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DownloadMinimalInitrdMethodNotAllowed:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DownloadMinimalInitrdConflict:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *DownloadMinimalInitrdInternalServerError:
+		return nil, nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
 	}
-	return nil, nil, nil
 
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for DownloadMinimalInitrd: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.
 */
 func (a *Client) GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetClusterSupportedPlatforms",
 		Method:             "GET",
@@ -335,15 +403,33 @@ func (a *Client) GetClusterSupportedPlatforms(ctx context.Context, params *GetCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetClusterSupportedPlatformsOK), nil
 
+	switch value := result.(type) {
+	case *GetClusterSupportedPlatformsOK:
+		return value, nil
+	case *GetClusterSupportedPlatformsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetClusterSupportedPlatformsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetClusterSupportedPlatformsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetClusterSupportedPlatformsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetClusterSupportedPlatforms: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies.
 */
 func (a *Client) GetDetailedSupportedFeatures(ctx context.Context, params *GetDetailedSupportedFeaturesParams) (*GetDetailedSupportedFeaturesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetDetailedSupportedFeatures",
 		Method:             "GET",
@@ -360,15 +446,33 @@ func (a *Client) GetDetailedSupportedFeatures(ctx context.Context, params *GetDe
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetDetailedSupportedFeaturesOK), nil
 
+	switch value := result.(type) {
+	case *GetDetailedSupportedFeaturesOK:
+		return value, nil
+	case *GetDetailedSupportedFeaturesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetDetailedSupportedFeaturesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetDetailedSupportedFeaturesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetDetailedSupportedFeaturesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetDetailedSupportedFeatures: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetInfraEnv Retrieves the details of the infra-env.
 */
 func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetInfraEnv",
 		Method:             "GET",
@@ -385,15 +489,39 @@ func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*G
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetInfraEnvOK), nil
 
+	switch value := result.(type) {
+	case *GetInfraEnvOK:
+		return value, nil
+	case *GetInfraEnvUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetInfraEnv: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetInfraEnvDownloadURL Creates a new pre-signed image download URL for the infra-env.
 */
 func (a *Client) GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnvDownloadURLParams) (*GetInfraEnvDownloadURLOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetInfraEnvDownloadURL",
 		Method:             "GET",
@@ -410,15 +538,41 @@ func (a *Client) GetInfraEnvDownloadURL(ctx context.Context, params *GetInfraEnv
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetInfraEnvDownloadURLOK), nil
 
+	switch value := result.(type) {
+	case *GetInfraEnvDownloadURLOK:
+		return value, nil
+	case *GetInfraEnvDownloadURLBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvDownloadURLServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetInfraEnvDownloadURL: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetInfraEnvPresignedFileURL Creates a new pre-signed download URL for the infra-env.
 */
 func (a *Client) GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInfraEnvPresignedFileURLParams) (*GetInfraEnvPresignedFileURLOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetInfraEnvPresignedFileURL",
 		Method:             "GET",
@@ -435,15 +589,39 @@ func (a *Client) GetInfraEnvPresignedFileURL(ctx context.Context, params *GetInf
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetInfraEnvPresignedFileURLOK), nil
 
+	switch value := result.(type) {
+	case *GetInfraEnvPresignedFileURLOK:
+		return value, nil
+	case *GetInfraEnvPresignedFileURLUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetInfraEnvPresignedFileURLServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetInfraEnvPresignedFileURL: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetSupportedArchitectures Retrieves the architecture support-levels for each OpenShift version.
 */
 func (a *Client) GetSupportedArchitectures(ctx context.Context, params *GetSupportedArchitecturesParams) (*GetSupportedArchitecturesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetSupportedArchitectures",
 		Method:             "GET",
@@ -460,15 +638,35 @@ func (a *Client) GetSupportedArchitectures(ctx context.Context, params *GetSuppo
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetSupportedArchitecturesOK), nil
 
+	switch value := result.(type) {
+	case *GetSupportedArchitecturesOK:
+		return value, nil
+	case *GetSupportedArchitecturesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedArchitecturesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedArchitecturesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedArchitecturesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedArchitecturesServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetSupportedArchitectures: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 GetSupportedFeatures Retrieves the features support levels for each OpenShift version.
 */
 func (a *Client) GetSupportedFeatures(ctx context.Context, params *GetSupportedFeaturesParams) (*GetSupportedFeaturesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetSupportedFeatures",
 		Method:             "GET",
@@ -485,15 +683,35 @@ func (a *Client) GetSupportedFeatures(ctx context.Context, params *GetSupportedF
 	if err != nil {
 		return nil, err
 	}
-	return result.(*GetSupportedFeaturesOK), nil
 
+	switch value := result.(type) {
+	case *GetSupportedFeaturesOK:
+		return value, nil
+	case *GetSupportedFeaturesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedFeaturesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedFeaturesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedFeaturesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *GetSupportedFeaturesServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for GetSupportedFeatures: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 ListClusterHosts Get a list of cluster hosts according to supplied filters.
 */
 func (a *Client) ListClusterHosts(ctx context.Context, params *ListClusterHostsParams) (*ListClusterHostsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListClusterHosts",
 		Method:             "GET",
@@ -510,15 +728,33 @@ func (a *Client) ListClusterHosts(ctx context.Context, params *ListClusterHostsP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListClusterHostsOK), nil
 
+	switch value := result.(type) {
+	case *ListClusterHostsOK:
+		return value, nil
+	case *ListClusterHostsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListClusterHostsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListClusterHostsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListClusterHostsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ListClusterHosts: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 ListInfraEnvs Retrieves the list of infra-envs.
 */
 func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListInfraEnvs",
 		Method:             "GET",
@@ -535,15 +771,37 @@ func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListInfraEnvsOK), nil
 
+	switch value := result.(type) {
+	case *ListInfraEnvsOK:
+		return value, nil
+	case *ListInfraEnvsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListInfraEnvsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListInfraEnvsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListInfraEnvsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListInfraEnvsNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *ListInfraEnvsServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for ListInfraEnvs: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 RegenerateInfraEnvSigningKey Regenerate InfraEnv token signing key.
 */
 func (a *Client) RegenerateInfraEnvSigningKey(ctx context.Context, params *RegenerateInfraEnvSigningKeyParams) (*RegenerateInfraEnvSigningKeyNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "RegenerateInfraEnvSigningKey",
 		Method:             "POST",
@@ -560,15 +818,35 @@ func (a *Client) RegenerateInfraEnvSigningKey(ctx context.Context, params *Regen
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RegenerateInfraEnvSigningKeyNoContent), nil
 
+	switch value := result.(type) {
+	case *RegenerateInfraEnvSigningKeyNoContent:
+		return value, nil
+	case *RegenerateInfraEnvSigningKeyUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegenerateInfraEnvSigningKeyForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegenerateInfraEnvSigningKeyNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegenerateInfraEnvSigningKeyMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegenerateInfraEnvSigningKeyInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for RegenerateInfraEnvSigningKey: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 RegisterInfraEnv Creates a new OpenShift Discovery ISO.
 */
 func (a *Client) RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvParams) (*RegisterInfraEnvCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "RegisterInfraEnv",
 		Method:             "POST",
@@ -585,15 +863,41 @@ func (a *Client) RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*RegisterInfraEnvCreated), nil
 
+	switch value := result.(type) {
+	case *RegisterInfraEnvCreated:
+		return value, nil
+	case *RegisterInfraEnvBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *RegisterInfraEnvNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for RegisterInfraEnv: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 TransformClusterToAddingHosts Transforms installed cluster to a state which allows adding hosts.
 */
 func (a *Client) TransformClusterToAddingHosts(ctx context.Context, params *TransformClusterToAddingHostsParams) (*TransformClusterToAddingHostsAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "TransformClusterToAddingHosts",
 		Method:             "POST",
@@ -610,15 +914,37 @@ func (a *Client) TransformClusterToAddingHosts(ctx context.Context, params *Tran
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TransformClusterToAddingHostsAccepted), nil
 
+	switch value := result.(type) {
+	case *TransformClusterToAddingHostsAccepted:
+		return value, nil
+	case *TransformClusterToAddingHostsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToAddingHostsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToAddingHostsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToAddingHostsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToAddingHostsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToAddingHostsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for TransformClusterToAddingHosts: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 TransformClusterToDay2 Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
 */
 func (a *Client) TransformClusterToDay2(ctx context.Context, params *TransformClusterToDay2Params) (*TransformClusterToDay2Accepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "TransformClusterToDay2",
 		Method:             "POST",
@@ -635,15 +961,37 @@ func (a *Client) TransformClusterToDay2(ctx context.Context, params *TransformCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*TransformClusterToDay2Accepted), nil
 
+	switch value := result.(type) {
+	case *TransformClusterToDay2Accepted:
+		return value, nil
+	case *TransformClusterToDay2Unauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToDay2Forbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToDay2NotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToDay2MethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToDay2Conflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *TransformClusterToDay2InternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for TransformClusterToDay2: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 UnbindHost Unbind host to a cluster
 */
 func (a *Client) UnbindHost(ctx context.Context, params *UnbindHostParams) (*UnbindHostOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UnbindHost",
 		Method:             "POST",
@@ -660,15 +1008,43 @@ func (a *Client) UnbindHost(ctx context.Context, params *UnbindHostParams) (*Unb
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UnbindHostOK), nil
 
+	switch value := result.(type) {
+	case *UnbindHostOK:
+		return value, nil
+	case *UnbindHostBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UnbindHostServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for UnbindHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 UpdateInfraEnv Updates an infra-env.
 */
 func (a *Client) UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParams) (*UpdateInfraEnvCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "UpdateInfraEnv",
 		Method:             "PATCH",
@@ -685,15 +1061,41 @@ func (a *Client) UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpdateInfraEnvCreated), nil
 
+	switch value := result.(type) {
+	case *UpdateInfraEnvCreated:
+		return value, nil
+	case *UpdateInfraEnvBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *UpdateInfraEnvNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for UpdateInfraEnv: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2CancelInstallation Cancels an ongoing installation.
 */
 func (a *Client) V2CancelInstallation(ctx context.Context, params *V2CancelInstallationParams) (*V2CancelInstallationAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2CancelInstallation",
 		Method:             "POST",
@@ -710,15 +1112,37 @@ func (a *Client) V2CancelInstallation(ctx context.Context, params *V2CancelInsta
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2CancelInstallationAccepted), nil
 
+	switch value := result.(type) {
+	case *V2CancelInstallationAccepted:
+		return value, nil
+	case *V2CancelInstallationUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CancelInstallationForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CancelInstallationNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CancelInstallationMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CancelInstallationConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CancelInstallationInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2CancelInstallation: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadClusterCredentials Downloads credentials relating to the installed/installing cluster.
 */
 func (a *Client) V2DownloadClusterCredentials(ctx context.Context, params *V2DownloadClusterCredentialsParams, writer io.Writer) (*V2DownloadClusterCredentialsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2DownloadClusterCredentials",
 		Method:             "GET",
@@ -735,15 +1159,39 @@ func (a *Client) V2DownloadClusterCredentials(ctx context.Context, params *V2Dow
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadClusterCredentialsOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadClusterCredentialsOK:
+		return value, nil
+	case *V2DownloadClusterCredentialsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterCredentialsServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2DownloadClusterCredentials: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadClusterFiles Downloads files relating to the installed/installing cluster.
 */
 func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadClusterFilesParams, writer io.Writer) (*V2DownloadClusterFilesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2DownloadClusterFiles",
 		Method:             "GET",
@@ -760,15 +1208,39 @@ func (a *Client) V2DownloadClusterFiles(ctx context.Context, params *V2DownloadC
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadClusterFilesOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadClusterFilesOK:
+		return value, nil
+	case *V2DownloadClusterFilesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterFilesServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2DownloadClusterFiles: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadClusterLogs Download cluster logs.
 */
 func (a *Client) V2DownloadClusterLogs(ctx context.Context, params *V2DownloadClusterLogsParams, writer io.Writer) (*V2DownloadClusterLogsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2DownloadClusterLogs",
 		Method:             "GET",
@@ -785,15 +1257,37 @@ func (a *Client) V2DownloadClusterLogs(ctx context.Context, params *V2DownloadCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadClusterLogsOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadClusterLogsOK:
+		return value, nil
+	case *V2DownloadClusterLogsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterLogsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterLogsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterLogsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterLogsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadClusterLogsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2DownloadClusterLogs: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetClusterDefaultConfig Get the default values for various cluster properties.
 */
 func (a *Client) V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClusterDefaultConfigParams) (*V2GetClusterDefaultConfigOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetClusterDefaultConfig",
 		Method:             "GET",
@@ -810,15 +1304,31 @@ func (a *Client) V2GetClusterDefaultConfig(ctx context.Context, params *V2GetClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetClusterDefaultConfigOK), nil
 
+	switch value := result.(type) {
+	case *V2GetClusterDefaultConfigOK:
+		return value, nil
+	case *V2GetClusterDefaultConfigUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterDefaultConfigForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterDefaultConfigInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetClusterDefaultConfig: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetClusterUISettings Fetch cluster specific UI settings.
 */
 func (a *Client) V2GetClusterUISettings(ctx context.Context, params *V2GetClusterUISettingsParams) (*V2GetClusterUISettingsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetClusterUISettings",
 		Method:             "GET",
@@ -835,15 +1345,35 @@ func (a *Client) V2GetClusterUISettings(ctx context.Context, params *V2GetCluste
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetClusterUISettingsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetClusterUISettingsOK:
+		return value, nil
+	case *V2GetClusterUISettingsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterUISettingsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterUISettingsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterUISettingsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterUISettingsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetClusterUISettings: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetCredentials Get the cluster admin credentials.
 */
 func (a *Client) V2GetCredentials(ctx context.Context, params *V2GetCredentialsParams) (*V2GetCredentialsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetCredentials",
 		Method:             "GET",
@@ -860,15 +1390,37 @@ func (a *Client) V2GetCredentials(ctx context.Context, params *V2GetCredentialsP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetCredentialsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetCredentialsOK:
+		return value, nil
+	case *V2GetCredentialsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetCredentialsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetCredentialsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetCredentialsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetCredentialsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetCredentialsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetCredentials: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetPresignedForClusterCredentials Get the cluster admin credentials.
 */
 func (a *Client) V2GetPresignedForClusterCredentials(ctx context.Context, params *V2GetPresignedForClusterCredentialsParams) (*V2GetPresignedForClusterCredentialsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetPresignedForClusterCredentials",
 		Method:             "GET",
@@ -885,15 +1437,39 @@ func (a *Client) V2GetPresignedForClusterCredentials(ctx context.Context, params
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetPresignedForClusterCredentialsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetPresignedForClusterCredentialsOK:
+		return value, nil
+	case *V2GetPresignedForClusterCredentialsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterCredentialsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetPresignedForClusterCredentials: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.
 */
 func (a *Client) V2GetPresignedForClusterFiles(ctx context.Context, params *V2GetPresignedForClusterFilesParams) (*V2GetPresignedForClusterFilesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2GetPresignedForClusterFiles",
 		Method:             "GET",
@@ -910,15 +1486,39 @@ func (a *Client) V2GetPresignedForClusterFiles(ctx context.Context, params *V2Ge
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetPresignedForClusterFilesOK), nil
 
+	switch value := result.(type) {
+	case *V2GetPresignedForClusterFilesOK:
+		return value, nil
+	case *V2GetPresignedForClusterFilesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPresignedForClusterFilesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2GetPresignedForClusterFiles: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateCluster Updates an OpenShift cluster definition.
 */
 func (a *Client) V2UpdateCluster(ctx context.Context, params *V2UpdateClusterParams) (*V2UpdateClusterCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2UpdateCluster",
 		Method:             "PATCH",
@@ -935,15 +1535,39 @@ func (a *Client) V2UpdateCluster(ctx context.Context, params *V2UpdateClusterPar
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterCreated), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterCreated:
+		return value, nil
+	case *V2UpdateClusterBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2UpdateCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateClusterUISettings Update cluster specific UI settings.
 */
 func (a *Client) V2UpdateClusterUISettings(ctx context.Context, params *V2UpdateClusterUISettingsParams) (*V2UpdateClusterUISettingsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2UpdateClusterUISettings",
 		Method:             "PUT",
@@ -960,15 +1584,35 @@ func (a *Client) V2UpdateClusterUISettings(ctx context.Context, params *V2Update
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterUISettingsOK), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterUISettingsOK:
+		return value, nil
+	case *V2UpdateClusterUISettingsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterUISettingsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterUISettingsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterUISettingsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterUISettingsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2UpdateClusterUISettings: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UploadLogs Agent API to upload logs.
 */
 func (a *Client) V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (*V2UploadLogsNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2UploadLogs",
 		Method:             "POST",
@@ -985,15 +1629,41 @@ func (a *Client) V2UploadLogs(ctx context.Context, params *V2UploadLogsParams) (
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UploadLogsNoContent), nil
 
+	switch value := result.(type) {
+	case *V2UploadLogsNoContent:
+		return value, nil
+	case *V2UploadLogsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadLogsServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for V2UploadLogs: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2CompleteInstallation Agent API to mark a finalizing installation as complete and progress to 100%.
 */
 func (a *Client) V2CompleteInstallation(ctx context.Context, params *V2CompleteInstallationParams) (*V2CompleteInstallationAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2CompleteInstallation",
 		Method:             "POST",
@@ -1010,15 +1680,39 @@ func (a *Client) V2CompleteInstallation(ctx context.Context, params *V2CompleteI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2CompleteInstallationAccepted), nil
 
+	switch value := result.(type) {
+	case *V2CompleteInstallationAccepted:
+		return value, nil
+	case *V2CompleteInstallationUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2CompleteInstallationServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2CompleteInstallation: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DeregisterCluster Deletes an OpenShift cluster definition.
 */
 func (a *Client) V2DeregisterCluster(ctx context.Context, params *V2DeregisterClusterParams) (*V2DeregisterClusterNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2DeregisterCluster",
 		Method:             "DELETE",
@@ -1035,15 +1729,37 @@ func (a *Client) V2DeregisterCluster(ctx context.Context, params *V2DeregisterCl
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DeregisterClusterNoContent), nil
 
+	switch value := result.(type) {
+	case *V2DeregisterClusterNoContent:
+		return value, nil
+	case *V2DeregisterClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterClusterNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterClusterConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2DeregisterCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DeregisterHost Deregisters an OpenShift host.
 */
 func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostParams) (*V2DeregisterHostNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2DeregisterHost",
 		Method:             "DELETE",
@@ -1060,15 +1776,37 @@ func (a *Client) V2DeregisterHost(ctx context.Context, params *V2DeregisterHostP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DeregisterHostNoContent), nil
 
+	switch value := result.(type) {
+	case *V2DeregisterHostNoContent:
+		return value, nil
+	case *V2DeregisterHostBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DeregisterHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2DeregisterHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadHostIgnition Downloads the customized ignition file for this bound host, produces octet stream. For unbound host - error is returned
 */
 func (a *Client) V2DownloadHostIgnition(ctx context.Context, params *V2DownloadHostIgnitionParams, writer io.Writer) (*V2DownloadHostIgnitionOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2DownloadHostIgnition",
 		Method:             "GET",
@@ -1085,15 +1823,39 @@ func (a *Client) V2DownloadHostIgnition(ctx context.Context, params *V2DownloadH
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadHostIgnitionOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadHostIgnitionOK:
+		return value, nil
+	case *V2DownloadHostIgnitionUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadHostIgnitionServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2DownloadHostIgnition: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2DownloadInfraEnvFiles Downloads the customized ignition file for this host
 */
 func (a *Client) V2DownloadInfraEnvFiles(ctx context.Context, params *V2DownloadInfraEnvFilesParams, writer io.Writer) (*V2DownloadInfraEnvFilesOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2DownloadInfraEnvFiles",
 		Method:             "GET",
@@ -1110,15 +1872,43 @@ func (a *Client) V2DownloadInfraEnvFiles(ctx context.Context, params *V2Download
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2DownloadInfraEnvFilesOK), nil
 
+	switch value := result.(type) {
+	case *V2DownloadInfraEnvFilesOK:
+		return value, nil
+	case *V2DownloadInfraEnvFilesBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2DownloadInfraEnvFilesServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2DownloadInfraEnvFiles: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetCluster Retrieves the details of the OpenShift cluster.
 */
 func (a *Client) V2GetCluster(ctx context.Context, params *V2GetClusterParams) (*V2GetClusterOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetCluster",
 		Method:             "GET",
@@ -1135,15 +1925,37 @@ func (a *Client) V2GetCluster(ctx context.Context, params *V2GetClusterParams) (
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetClusterOK), nil
 
+	switch value := result.(type) {
+	case *V2GetClusterOK:
+		return value, nil
+	case *V2GetClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetClusterInstallConfig Get the cluster's install config YAML.
 */
 func (a *Client) V2GetClusterInstallConfig(ctx context.Context, params *V2GetClusterInstallConfigParams) (*V2GetClusterInstallConfigOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetClusterInstallConfig",
 		Method:             "GET",
@@ -1160,15 +1972,35 @@ func (a *Client) V2GetClusterInstallConfig(ctx context.Context, params *V2GetClu
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetClusterInstallConfigOK), nil
 
+	switch value := result.(type) {
+	case *V2GetClusterInstallConfigOK:
+		return value, nil
+	case *V2GetClusterInstallConfigUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterInstallConfigForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterInstallConfigNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterInstallConfigMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetClusterInstallConfigInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetClusterInstallConfig: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetHost Retrieves the details of the OpenShift host.
 */
 func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2GetHostOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetHost",
 		Method:             "GET",
@@ -1185,15 +2017,37 @@ func (a *Client) V2GetHost(ctx context.Context, params *V2GetHostParams) (*V2Get
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetHostOK), nil
 
+	switch value := result.(type) {
+	case *V2GetHostOK:
+		return value, nil
+	case *V2GetHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetHostIgnition Fetch the ignition file for this host as a string. In case of unbound host produces an error
 */
 func (a *Client) V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitionParams) (*V2GetHostIgnitionOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetHostIgnition",
 		Method:             "GET",
@@ -1210,15 +2064,39 @@ func (a *Client) V2GetHostIgnition(ctx context.Context, params *V2GetHostIgnitio
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetHostIgnitionOK), nil
 
+	switch value := result.(type) {
+	case *V2GetHostIgnitionOK:
+		return value, nil
+	case *V2GetHostIgnitionUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetHostIgnitionServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetHostIgnition: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetIgnoredValidations Fetch the validations which are to be ignored for this cluster.
 */
 func (a *Client) V2GetIgnoredValidations(ctx context.Context, params *V2GetIgnoredValidationsParams) (*V2GetIgnoredValidationsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetIgnoredValidations",
 		Method:             "GET",
@@ -1235,15 +2113,29 @@ func (a *Client) V2GetIgnoredValidations(ctx context.Context, params *V2GetIgnor
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetIgnoredValidationsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetIgnoredValidationsOK:
+		return value, nil
+	case *V2GetIgnoredValidationsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetIgnoredValidationsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetIgnoredValidations: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetNextSteps Retrieves the next operations that the host agent needs to perform.
 */
 func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParams) (*V2GetNextStepsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetNextSteps",
 		Method:             "GET",
@@ -1260,15 +2152,39 @@ func (a *Client) V2GetNextSteps(ctx context.Context, params *V2GetNextStepsParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetNextStepsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetNextStepsOK:
+		return value, nil
+	case *V2GetNextStepsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetNextStepsServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetNextSteps: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2GetPreflightRequirements Get preflight requirements for a cluster.
 */
 func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPreflightRequirementsParams) (*V2GetPreflightRequirementsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2GetPreflightRequirements",
 		Method:             "GET",
@@ -1285,15 +2201,35 @@ func (a *Client) V2GetPreflightRequirements(ctx context.Context, params *V2GetPr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2GetPreflightRequirementsOK), nil
 
+	switch value := result.(type) {
+	case *V2GetPreflightRequirementsOK:
+		return value, nil
+	case *V2GetPreflightRequirementsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPreflightRequirementsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPreflightRequirementsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPreflightRequirementsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2GetPreflightRequirementsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2GetPreflightRequirements: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ImportCluster Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
 */
 func (a *Client) V2ImportCluster(ctx context.Context, params *V2ImportClusterParams) (*V2ImportClusterCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ImportCluster",
 		Method:             "POST",
@@ -1310,15 +2246,33 @@ func (a *Client) V2ImportCluster(ctx context.Context, params *V2ImportClusterPar
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ImportClusterCreated), nil
 
+	switch value := result.(type) {
+	case *V2ImportClusterCreated:
+		return value, nil
+	case *V2ImportClusterBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ImportClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ImportClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ImportClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ImportCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2InstallCluster Installs the OpenShift cluster.
 */
 func (a *Client) V2InstallCluster(ctx context.Context, params *V2InstallClusterParams) (*V2InstallClusterAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2InstallCluster",
 		Method:             "POST",
@@ -1335,15 +2289,39 @@ func (a *Client) V2InstallCluster(ctx context.Context, params *V2InstallClusterP
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2InstallClusterAccepted), nil
 
+	switch value := result.(type) {
+	case *V2InstallClusterAccepted:
+		return value, nil
+	case *V2InstallClusterBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2InstallCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2InstallHost install specific host for day2 cluster.
 */
 func (a *Client) V2InstallHost(ctx context.Context, params *V2InstallHostParams) (*V2InstallHostAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2InstallHost",
 		Method:             "POST",
@@ -1360,15 +2338,35 @@ func (a *Client) V2InstallHost(ctx context.Context, params *V2InstallHostParams)
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2InstallHostAccepted), nil
 
+	switch value := result.(type) {
+	case *V2InstallHostAccepted:
+		return value, nil
+	case *V2InstallHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallHostConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2InstallHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2InstallHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListClusters Retrieves the list of OpenShift clusters.
 */
 func (a *Client) V2ListClusters(ctx context.Context, params *V2ListClustersParams) (*V2ListClustersOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListClusters",
 		Method:             "GET",
@@ -1385,15 +2383,35 @@ func (a *Client) V2ListClusters(ctx context.Context, params *V2ListClustersParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListClustersOK), nil
 
+	switch value := result.(type) {
+	case *V2ListClustersOK:
+		return value, nil
+	case *V2ListClustersUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClustersForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClustersMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClustersInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListClustersServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ListClusters: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.
 */
 func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListHosts",
 		Method:             "GET",
@@ -1410,15 +2428,37 @@ func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ListHostsOK), nil
 
+	switch value := result.(type) {
+	case *V2ListHostsOK:
+		return value, nil
+	case *V2ListHostsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListHostsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListHostsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListHostsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListHostsNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ListHostsServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ListHosts: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2PostStepReply Posts the result of the operations from the host agent.
 */
 func (a *Client) V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2PostStepReply",
 		Method:             "POST",
@@ -1435,15 +2475,41 @@ func (a *Client) V2PostStepReply(ctx context.Context, params *V2PostStepReplyPar
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2PostStepReplyNoContent), nil
 
+	switch value := result.(type) {
+	case *V2PostStepReplyNoContent:
+		return value, nil
+	case *V2PostStepReplyBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2PostStepReplyServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2PostStepReply: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2RegisterCluster Creates a new OpenShift cluster definition.
 */
 func (a *Client) V2RegisterCluster(ctx context.Context, params *V2RegisterClusterParams) (*V2RegisterClusterCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2RegisterCluster",
 		Method:             "POST",
@@ -1460,15 +2526,35 @@ func (a *Client) V2RegisterCluster(ctx context.Context, params *V2RegisterCluste
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2RegisterClusterCreated), nil
 
+	switch value := result.(type) {
+	case *V2RegisterClusterCreated:
+		return value, nil
+	case *V2RegisterClusterBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2RegisterCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2RegisterDisconnectedCluster Create a disconnected OpenShift cluster for offline installation with embedded ignition
 */
 func (a *Client) V2RegisterDisconnectedCluster(ctx context.Context, params *V2RegisterDisconnectedClusterParams) (*V2RegisterDisconnectedClusterCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2RegisterDisconnectedCluster",
 		Method:             "POST",
@@ -1485,15 +2571,33 @@ func (a *Client) V2RegisterDisconnectedCluster(ctx context.Context, params *V2Re
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2RegisterDisconnectedClusterCreated), nil
 
+	switch value := result.(type) {
+	case *V2RegisterDisconnectedClusterCreated:
+		return value, nil
+	case *V2RegisterDisconnectedClusterBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterDisconnectedClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterDisconnectedClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterDisconnectedClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2RegisterDisconnectedCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2RegisterHost Registers a new OpenShift agent.
 */
 func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2RegisterHost",
 		Method:             "POST",
@@ -1510,15 +2614,43 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2RegisterHostCreated), nil
 
+	switch value := result.(type) {
+	case *V2RegisterHostCreated:
+		return value, nil
+	case *V2RegisterHostBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2RegisterHostServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2RegisterHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ResetCluster Resets a failed installation.
 */
 func (a *Client) V2ResetCluster(ctx context.Context, params *V2ResetClusterParams) (*V2ResetClusterAccepted, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ResetCluster",
 		Method:             "POST",
@@ -1535,15 +2667,37 @@ func (a *Client) V2ResetCluster(ctx context.Context, params *V2ResetClusterParam
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ResetClusterAccepted), nil
 
+	switch value := result.(type) {
+	case *V2ResetClusterAccepted:
+		return value, nil
+	case *V2ResetClusterUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetClusterForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetClusterNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetClusterMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetClusterConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetClusterInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ResetCluster: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2ResetHost reset a failed host for day2 cluster.
 */
 func (a *Client) V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V2ResetHostOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ResetHost",
 		Method:             "POST",
@@ -1560,8 +2714,29 @@ func (a *Client) V2ResetHost(ctx context.Context, params *V2ResetHostParams) (*V
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ResetHostOK), nil
 
+	switch value := result.(type) {
+	case *V2ResetHostOK:
+		return value, nil
+	case *V2ResetHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ResetHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
@@ -1570,7 +2745,6 @@ V2ResetHostValidation resets failed host validation
 Reset failed host validation. It may be performed on any host validation with persistent validation result.
 */
 func (a *Client) V2ResetHostValidation(ctx context.Context, params *V2ResetHostValidationParams) (*V2ResetHostValidationOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ResetHostValidation",
 		Method:             "PATCH",
@@ -1587,15 +2761,37 @@ func (a *Client) V2ResetHostValidation(ctx context.Context, params *V2ResetHostV
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2ResetHostValidationOK), nil
 
+	switch value := result.(type) {
+	case *V2ResetHostValidationOK:
+		return value, nil
+	case *V2ResetHostValidationBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostValidationUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostValidationForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostValidationNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostValidationConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2ResetHostValidationInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2ResetHostValidation: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2SetIgnoredValidations Register the validations which are to be ignored for this cluster.
 */
 func (a *Client) V2SetIgnoredValidations(ctx context.Context, params *V2SetIgnoredValidationsParams) (*V2SetIgnoredValidationsCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2SetIgnoredValidations",
 		Method:             "PUT",
@@ -1612,15 +2808,35 @@ func (a *Client) V2SetIgnoredValidations(ctx context.Context, params *V2SetIgnor
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2SetIgnoredValidationsCreated), nil
 
+	switch value := result.(type) {
+	case *V2SetIgnoredValidationsCreated:
+		return value, nil
+	case *V2SetIgnoredValidationsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2SetIgnoredValidationsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2SetIgnoredValidationsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2SetIgnoredValidationsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2SetIgnoredValidationsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2SetIgnoredValidations: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateClusterFinalizingProgress Update installation finalizing progress.
 */
 func (a *Client) V2UpdateClusterFinalizingProgress(ctx context.Context, params *V2UpdateClusterFinalizingProgressParams) (*V2UpdateClusterFinalizingProgressOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateClusterFinalizingProgress",
 		Method:             "PUT",
@@ -1637,15 +2853,37 @@ func (a *Client) V2UpdateClusterFinalizingProgress(ctx context.Context, params *
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterFinalizingProgressOK), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterFinalizingProgressOK:
+		return value, nil
+	case *V2UpdateClusterFinalizingProgressUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterFinalizingProgressForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterFinalizingProgressNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterFinalizingProgressMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterFinalizingProgressInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterFinalizingProgressServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateClusterFinalizingProgress: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateClusterInstallConfig Override values in the install config.
 */
 func (a *Client) V2UpdateClusterInstallConfig(ctx context.Context, params *V2UpdateClusterInstallConfigParams) (*V2UpdateClusterInstallConfigCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateClusterInstallConfig",
 		Method:             "PATCH",
@@ -1662,15 +2900,37 @@ func (a *Client) V2UpdateClusterInstallConfig(ctx context.Context, params *V2Upd
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterInstallConfigCreated), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterInstallConfigCreated:
+		return value, nil
+	case *V2UpdateClusterInstallConfigBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInstallConfigUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInstallConfigForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInstallConfigNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInstallConfigMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterInstallConfigInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateClusterInstallConfig: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateClusterLogsProgress Update log collection state and progress.
 */
 func (a *Client) V2UpdateClusterLogsProgress(ctx context.Context, params *V2UpdateClusterLogsProgressParams) (*V2UpdateClusterLogsProgressNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateClusterLogsProgress",
 		Method:             "PUT",
@@ -1687,15 +2947,39 @@ func (a *Client) V2UpdateClusterLogsProgress(ctx context.Context, params *V2Upda
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateClusterLogsProgressNoContent), nil
 
+	switch value := result.(type) {
+	case *V2UpdateClusterLogsProgressNoContent:
+		return value, nil
+	case *V2UpdateClusterLogsProgressUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateClusterLogsProgressServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateClusterLogsProgress: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateHost Update an Openshift host
 */
 func (a *Client) V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (*V2UpdateHostCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateHost",
 		Method:             "PATCH",
@@ -1712,15 +2996,39 @@ func (a *Client) V2UpdateHost(ctx context.Context, params *V2UpdateHostParams) (
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateHostCreated), nil
 
+	switch value := result.(type) {
+	case *V2UpdateHostCreated:
+		return value, nil
+	case *V2UpdateHostBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateHost: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateHostIgnition Patch the ignition file for this host
 */
 func (a *Client) V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostIgnitionParams) (*V2UpdateHostIgnitionCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateHostIgnition",
 		Method:             "PATCH",
@@ -1737,15 +3045,39 @@ func (a *Client) V2UpdateHostIgnition(ctx context.Context, params *V2UpdateHostI
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateHostIgnitionCreated), nil
 
+	switch value := result.(type) {
+	case *V2UpdateHostIgnitionCreated:
+		return value, nil
+	case *V2UpdateHostIgnitionBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostIgnitionNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateHostIgnition: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateHostInstallProgress Update installation progress.
 */
 func (a *Client) V2UpdateHostInstallProgress(ctx context.Context, params *V2UpdateHostInstallProgressParams) (*V2UpdateHostInstallProgressOK, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateHostInstallProgress",
 		Method:             "PUT",
@@ -1762,15 +3094,37 @@ func (a *Client) V2UpdateHostInstallProgress(ctx context.Context, params *V2Upda
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateHostInstallProgressOK), nil
 
+	switch value := result.(type) {
+	case *V2UpdateHostInstallProgressOK:
+		return value, nil
+	case *V2UpdateHostInstallProgressUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallProgressForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallProgressNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallProgressMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallProgressInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallProgressServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateHostInstallProgress: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateHostInstallerArgs Updates a host's installer arguments.
 */
 func (a *Client) V2UpdateHostInstallerArgs(ctx context.Context, params *V2UpdateHostInstallerArgsParams) (*V2UpdateHostInstallerArgsCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateHostInstallerArgs",
 		Method:             "PATCH",
@@ -1787,15 +3141,41 @@ func (a *Client) V2UpdateHostInstallerArgs(ctx context.Context, params *V2Update
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateHostInstallerArgsCreated), nil
 
+	switch value := result.(type) {
+	case *V2UpdateHostInstallerArgsCreated:
+		return value, nil
+	case *V2UpdateHostInstallerArgsBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostInstallerArgsNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateHostInstallerArgs: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UpdateHostLogsProgress Update log collection state and progress.
 */
 func (a *Client) V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateHostLogsProgressParams) (*V2UpdateHostLogsProgressNoContent, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UpdateHostLogsProgress",
 		Method:             "PUT",
@@ -1812,15 +3192,41 @@ func (a *Client) V2UpdateHostLogsProgress(ctx context.Context, params *V2UpdateH
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UpdateHostLogsProgressNoContent), nil
 
+	switch value := result.(type) {
+	case *V2UpdateHostLogsProgressNoContent:
+		return value, nil
+	case *V2UpdateHostLogsProgressUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressConflict:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressNotImplemented:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UpdateHostLogsProgressServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UpdateHostLogsProgress: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }
 
 /*
 V2UploadClusterIngressCert Transfer the ingress certificate for the cluster.
 */
 func (a *Client) V2UploadClusterIngressCert(ctx context.Context, params *V2UploadClusterIngressCertParams) (*V2UploadClusterIngressCertCreated, error) {
-
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2UploadClusterIngressCert",
 		Method:             "POST",
@@ -1837,6 +3243,31 @@ func (a *Client) V2UploadClusterIngressCert(ctx context.Context, params *V2Uploa
 	if err != nil {
 		return nil, err
 	}
-	return result.(*V2UploadClusterIngressCertCreated), nil
 
+	switch value := result.(type) {
+	case *V2UploadClusterIngressCertCreated:
+		return value, nil
+	case *V2UploadClusterIngressCertBadRequest:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertUnauthorized:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertForbidden:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertNotFound:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertMethodNotAllowed:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertInternalServerError:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	case *V2UploadClusterIngressCertServiceUnavailable:
+		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
+	}
+
+	// unexpected response.
+
+	// no default response is defined.
+	//
+	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
+	msg := fmt.Sprintf("unexpected success response for v2UploadClusterIngressCert: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	panic(msg)
 }

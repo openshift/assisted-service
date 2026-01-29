@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListClusterManifestsHandlerFunc turns a function with the right signature into a v2 list cluster manifests handler
-type V2ListClusterManifestsHandlerFunc func(V2ListClusterManifestsParams, interface{}) middleware.Responder
+type V2ListClusterManifestsHandlerFunc func(V2ListClusterManifestsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListClusterManifestsHandlerFunc) Handle(params V2ListClusterManifestsParams, principal interface{}) middleware.Responder {
+func (fn V2ListClusterManifestsHandlerFunc) Handle(params V2ListClusterManifestsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListClusterManifestsHandler interface for that can handle valid v2 list cluster manifests params
 type V2ListClusterManifestsHandler interface {
-	Handle(V2ListClusterManifestsParams, interface{}) middleware.Responder
+	Handle(V2ListClusterManifestsParams, any) middleware.Responder
 }
 
 // NewV2ListClusterManifests creates a new http.Handler for the v2 list cluster manifests operation
@@ -53,9 +53,9 @@ func (o *V2ListClusterManifests) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2ListClusterManifests) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

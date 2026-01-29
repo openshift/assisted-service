@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetCredentialsHandlerFunc turns a function with the right signature into a v2 get credentials handler
-type V2GetCredentialsHandlerFunc func(V2GetCredentialsParams, interface{}) middleware.Responder
+type V2GetCredentialsHandlerFunc func(V2GetCredentialsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetCredentialsHandlerFunc) Handle(params V2GetCredentialsParams, principal interface{}) middleware.Responder {
+func (fn V2GetCredentialsHandlerFunc) Handle(params V2GetCredentialsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetCredentialsHandler interface for that can handle valid v2 get credentials params
 type V2GetCredentialsHandler interface {
-	Handle(V2GetCredentialsParams, interface{}) middleware.Responder
+	Handle(V2GetCredentialsParams, any) middleware.Responder
 }
 
 // NewV2GetCredentials creates a new http.Handler for the v2 get credentials operation
@@ -53,9 +53,9 @@ func (o *V2GetCredentials) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2GetCredentials) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

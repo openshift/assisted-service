@@ -7,6 +7,7 @@ package installer
 
 import (
 	"context"
+	stderrors "errors"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -18,16 +19,16 @@ import (
 )
 
 // GetSupportedArchitecturesHandlerFunc turns a function with the right signature into a get supported architectures handler
-type GetSupportedArchitecturesHandlerFunc func(GetSupportedArchitecturesParams, interface{}) middleware.Responder
+type GetSupportedArchitecturesHandlerFunc func(GetSupportedArchitecturesParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetSupportedArchitecturesHandlerFunc) Handle(params GetSupportedArchitecturesParams, principal interface{}) middleware.Responder {
+func (fn GetSupportedArchitecturesHandlerFunc) Handle(params GetSupportedArchitecturesParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetSupportedArchitecturesHandler interface for that can handle valid get supported architectures params
 type GetSupportedArchitecturesHandler interface {
-	Handle(GetSupportedArchitecturesParams, interface{}) middleware.Responder
+	Handle(GetSupportedArchitecturesParams, any) middleware.Responder
 }
 
 // NewGetSupportedArchitectures creates a new http.Handler for the get supported architectures operation
@@ -59,9 +60,9 @@ func (o *GetSupportedArchitectures) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -70,6 +71,7 @@ func (o *GetSupportedArchitectures) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -104,11 +106,15 @@ func (o *GetSupportedArchitecturesOKBody) validateArchitectures(formats strfmt.R
 
 	if o.Architectures != nil {
 		if err := o.Architectures.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
 			}
+
 			return err
 		}
 	}
@@ -132,12 +138,20 @@ func (o *GetSupportedArchitecturesOKBody) ContextValidate(ctx context.Context, f
 
 func (o *GetSupportedArchitecturesOKBody) contextValidateArchitectures(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(o.Architectures) { // not required
+		return nil
+	}
+
 	if err := o.Architectures.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
 		}
+
 		return err
 	}
 

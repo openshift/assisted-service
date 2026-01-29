@@ -24,7 +24,7 @@ type ManagedDomain struct {
 	Domain string `json:"domain,omitempty"`
 
 	// provider
-	// Enum: [route53]
+	// Enum: ["route53"]
 	Provider string `json:"provider,omitempty"`
 }
 
@@ -42,7 +42,7 @@ func (m *ManagedDomain) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var managedDomainTypeProviderPropEnum []interface{}
+var managedDomainTypeProviderPropEnum []any
 
 func init() {
 	var res []string

@@ -8,6 +8,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -27,7 +28,7 @@ type Boot struct {
 	CurrentBootMode string `json:"current_boot_mode,omitempty"`
 
 	// device type
-	// Enum: [persistent ephemeral]
+	// Enum: ["persistent","ephemeral"]
 	DeviceType string `json:"device_type,omitempty"`
 
 	// pxe interface
@@ -55,7 +56,7 @@ func (m *Boot) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var bootTypeDeviceTypePropEnum []interface{}
+var bootTypeDeviceTypePropEnum []any
 
 func init() {
 	var res []string
@@ -103,11 +104,15 @@ func (m *Boot) validateSecureBootState(formats strfmt.Registry) error {
 	}
 
 	if err := m.SecureBootState.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("secure_boot_state")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("secure_boot_state")
 		}
+
 		return err
 	}
 
@@ -130,12 +135,20 @@ func (m *Boot) ContextValidate(ctx context.Context, formats strfmt.Registry) err
 
 func (m *Boot) contextValidateSecureBootState(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.SecureBootState) { // not required
+		return nil
+	}
+
 	if err := m.SecureBootState.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("secure_boot_state")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("secure_boot_state")
 		}
+
 		return err
 	}
 

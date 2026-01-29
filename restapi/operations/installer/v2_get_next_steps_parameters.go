@@ -29,7 +29,6 @@ func NewV2GetNextStepsParams() V2GetNextStepsParams {
 //
 // swagger:parameters v2GetNextSteps
 type V2GetNextStepsParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,16 +36,19 @@ type V2GetNextStepsParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+
 	/*The host that is retrieving instructions.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
+
 	/*The infra-env of the host that is retrieving instructions.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
+
 	/*The time on the host as seconds since the Unix epoch.
 	  In: query
 	*/
@@ -61,7 +63,6 @@ func (o *V2GetNextStepsParams) BindRequest(r *http.Request, route *middleware.Ma
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	if err := o.bindDiscoveryAgentVersion(r.Header[http.CanonicalHeaderKey("discovery_agent_version")], true, route.Formats); err != nil {
@@ -129,7 +130,7 @@ func (o *V2GetNextStepsParams) bindHostID(rawData []string, hasKey bool, formats
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2GetNextStepsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -162,7 +163,7 @@ func (o *V2GetNextStepsParams) bindInfraEnvID(rawData []string, hasKey bool, for
 	return nil
 }
 
-// validateInfraEnvID carries on validations for parameter InfraEnvID
+// validateInfraEnvID carries out validations for parameter InfraEnvID
 func (o *V2GetNextStepsParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

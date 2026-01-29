@@ -28,7 +28,6 @@ func NewV2GetPresignedForClusterFilesParams() V2GetPresignedForClusterFilesParam
 //
 // swagger:parameters V2GetPresignedForClusterFiles
 type V2GetPresignedForClusterFilesParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,20 +35,24 @@ type V2GetPresignedForClusterFilesParams struct {
 	  In: query
 	*/
 	AdditionalName *string
+
 	/*The cluster that owns the file that should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
 	*/
 	FileName string
+
 	/*If downloading a file related to a host, the relevant host.
 	  In: query
 	*/
 	HostID *strfmt.UUID
+
 	/*If downloading logs, the type of logs to download.
 	  In: query
 	*/
@@ -64,7 +67,6 @@ func (o *V2GetPresignedForClusterFilesParams) BindRequest(r *http.Request, route
 	var res []error
 
 	o.HTTPRequest = r
-
 	qs := runtime.Values(r.URL.Query())
 
 	qAdditionalName, qhkAdditionalName, _ := qs.GetOK("additional_name")
@@ -139,7 +141,7 @@ func (o *V2GetPresignedForClusterFilesParams) bindClusterID(rawData []string, ha
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2GetPresignedForClusterFilesParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -173,10 +175,10 @@ func (o *V2GetPresignedForClusterFilesParams) bindFileName(rawData []string, has
 	return nil
 }
 
-// validateFileName carries on validations for parameter FileName
+// validateFileName carries out validations for parameter FileName
 func (o *V2GetPresignedForClusterFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "install-config.yaml", "logs", "manifests"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []any{"bootstrap.ign", "master.ign", "metadata.json", "worker.ign", "install-config.yaml", "logs", "manifests"}, true); err != nil {
 		return err
 	}
 
@@ -211,7 +213,7 @@ func (o *V2GetPresignedForClusterFilesParams) bindHostID(rawData []string, hasKe
 	return nil
 }
 
-// validateHostID carries on validations for parameter HostID
+// validateHostID carries out validations for parameter HostID
 func (o *V2GetPresignedForClusterFilesParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
@@ -242,10 +244,10 @@ func (o *V2GetPresignedForClusterFilesParams) bindLogsType(rawData []string, has
 	return nil
 }
 
-// validateLogsType carries on validations for parameter LogsType
+// validateLogsType carries out validations for parameter LogsType
 func (o *V2GetPresignedForClusterFilesParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []interface{}{"host", "controller", "all"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", *o.LogsType, []any{"host", "controller", "all"}, true); err != nil {
 		return err
 	}
 

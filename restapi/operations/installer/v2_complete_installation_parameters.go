@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2CompleteInstallationParams() V2CompleteInstallationParams {
 //
 // swagger:parameters v2CompleteInstallation
 type V2CompleteInstallationParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,11 +40,13 @@ type V2CompleteInstallationParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*The final status of the cluster installation.
 	  Required: true
 	  In: body
 	*/
 	CompletionParams *models.CompletionParams
+
 	/*The software version of the discovery agent that is completing the installation.
 	  In: header
 	*/
@@ -66,10 +68,12 @@ func (o *V2CompleteInstallationParams) BindRequest(r *http.Request, route *middl
 	}
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.CompletionParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("completionParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("completionParams", "body", "", err))
@@ -126,7 +130,7 @@ func (o *V2CompleteInstallationParams) bindClusterID(rawData []string, hasKey bo
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2CompleteInstallationParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -46,11 +47,15 @@ func (m *ListVersions) validateVersions(formats strfmt.Registry) error {
 
 	if m.Versions != nil {
 		if err := m.Versions.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("versions")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("versions")
 			}
+
 			return err
 		}
 	}
@@ -74,12 +79,20 @@ func (m *ListVersions) ContextValidate(ctx context.Context, formats strfmt.Regis
 
 func (m *ListVersions) contextValidateVersions(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.Versions) { // not required
+		return nil
+	}
+
 	if err := m.Versions.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("versions")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("versions")
 		}
+
 		return err
 	}
 

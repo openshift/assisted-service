@@ -7,6 +7,8 @@ package installer
 
 import (
 	"context"
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -24,7 +26,7 @@ type GetSupportedFeaturesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetSupportedFeaturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *GetSupportedFeaturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetSupportedFeaturesOK()
@@ -63,7 +65,7 @@ func (o *GetSupportedFeaturesReader) ReadResponse(response runtime.ClientRespons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[GET /v2/support-levels/features] GetSupportedFeatures", response, response.Code())
 	}
 }
 
@@ -106,12 +108,19 @@ func (o *GetSupportedFeaturesOK) IsCode(code int) bool {
 	return code == 200
 }
 
+// Code gets the status code for the get supported features o k response
+func (o *GetSupportedFeaturesOK) Code() int {
+	return 200
+}
+
 func (o *GetSupportedFeaturesOK) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesOK %s", 200, payload)
 }
 
 func (o *GetSupportedFeaturesOK) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesOK  %+v", 200, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesOK %s", 200, payload)
 }
 
 func (o *GetSupportedFeaturesOK) GetPayload() *GetSupportedFeaturesOKBody {
@@ -123,7 +132,7 @@ func (o *GetSupportedFeaturesOK) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(GetSupportedFeaturesOKBody)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -169,12 +178,19 @@ func (o *GetSupportedFeaturesBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the get supported features bad request response
+func (o *GetSupportedFeaturesBadRequest) Code() int {
+	return 400
+}
+
 func (o *GetSupportedFeaturesBadRequest) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesBadRequest %s", 400, payload)
 }
 
 func (o *GetSupportedFeaturesBadRequest) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesBadRequest %s", 400, payload)
 }
 
 func (o *GetSupportedFeaturesBadRequest) GetPayload() *models.Error {
@@ -186,7 +202,7 @@ func (o *GetSupportedFeaturesBadRequest) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -232,12 +248,19 @@ func (o *GetSupportedFeaturesUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the get supported features unauthorized response
+func (o *GetSupportedFeaturesUnauthorized) Code() int {
+	return 401
+}
+
 func (o *GetSupportedFeaturesUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesUnauthorized %s", 401, payload)
 }
 
 func (o *GetSupportedFeaturesUnauthorized) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesUnauthorized %s", 401, payload)
 }
 
 func (o *GetSupportedFeaturesUnauthorized) GetPayload() *models.InfraError {
@@ -249,7 +272,7 @@ func (o *GetSupportedFeaturesUnauthorized) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -295,12 +318,19 @@ func (o *GetSupportedFeaturesForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the get supported features forbidden response
+func (o *GetSupportedFeaturesForbidden) Code() int {
+	return 403
+}
+
 func (o *GetSupportedFeaturesForbidden) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesForbidden %s", 403, payload)
 }
 
 func (o *GetSupportedFeaturesForbidden) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesForbidden %s", 403, payload)
 }
 
 func (o *GetSupportedFeaturesForbidden) GetPayload() *models.InfraError {
@@ -312,7 +342,7 @@ func (o *GetSupportedFeaturesForbidden) readResponse(response runtime.ClientResp
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -358,12 +388,19 @@ func (o *GetSupportedFeaturesNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the get supported features not found response
+func (o *GetSupportedFeaturesNotFound) Code() int {
+	return 404
+}
+
 func (o *GetSupportedFeaturesNotFound) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesNotFound %s", 404, payload)
 }
 
 func (o *GetSupportedFeaturesNotFound) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesNotFound %s", 404, payload)
 }
 
 func (o *GetSupportedFeaturesNotFound) GetPayload() *models.Error {
@@ -375,7 +412,7 @@ func (o *GetSupportedFeaturesNotFound) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -421,12 +458,19 @@ func (o *GetSupportedFeaturesServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
+// Code gets the status code for the get supported features service unavailable response
+func (o *GetSupportedFeaturesServiceUnavailable) Code() int {
+	return 503
+}
+
 func (o *GetSupportedFeaturesServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetSupportedFeaturesServiceUnavailable) String() string {
-	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesServiceUnavailable  %+v", 503, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features][%d] getSupportedFeaturesServiceUnavailable %s", 503, payload)
 }
 
 func (o *GetSupportedFeaturesServiceUnavailable) GetPayload() *models.Error {
@@ -438,7 +482,7 @@ func (o *GetSupportedFeaturesServiceUnavailable) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -476,11 +520,15 @@ func (o *GetSupportedFeaturesOKBody) validateFeatures(formats strfmt.Registry) e
 
 	if o.Features != nil {
 		if err := o.Features.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
+			ve := new(errors.Validation)
+			if stderrors.As(err, &ve) {
 				return ve.ValidateName("getSupportedFeaturesOK" + "." + "features")
-			} else if ce, ok := err.(*errors.CompositeError); ok {
+			}
+			ce := new(errors.CompositeError)
+			if stderrors.As(err, &ce) {
 				return ce.ValidateName("getSupportedFeaturesOK" + "." + "features")
 			}
+
 			return err
 		}
 	}
@@ -504,12 +552,20 @@ func (o *GetSupportedFeaturesOKBody) ContextValidate(ctx context.Context, format
 
 func (o *GetSupportedFeaturesOKBody) contextValidateFeatures(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(o.Features) { // not required
+		return nil
+	}
+
 	if err := o.Features.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("getSupportedFeaturesOK" + "." + "features")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("getSupportedFeaturesOK" + "." + "features")
 		}
+
 		return err
 	}
 

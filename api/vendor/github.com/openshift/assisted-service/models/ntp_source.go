@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -45,11 +46,15 @@ func (m *NtpSource) validateSourceState(formats strfmt.Registry) error {
 	}
 
 	if err := m.SourceState.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("source_state")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("source_state")
 		}
+
 		return err
 	}
 
@@ -72,12 +77,20 @@ func (m *NtpSource) ContextValidate(ctx context.Context, formats strfmt.Registry
 
 func (m *NtpSource) contextValidateSourceState(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.SourceState) { // not required
+		return nil
+	}
+
 	if err := m.SourceState.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("source_state")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("source_state")
 		}
+
 		return err
 	}
 

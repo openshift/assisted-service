@@ -7,6 +7,7 @@ package models
 
 import (
 	"context"
+	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -54,11 +55,15 @@ func (m *ContainerImageAvailability) validateResult(formats strfmt.Registry) err
 	}
 
 	if err := m.Result.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("result")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("result")
 		}
+
 		return err
 	}
 
@@ -81,12 +86,20 @@ func (m *ContainerImageAvailability) ContextValidate(ctx context.Context, format
 
 func (m *ContainerImageAvailability) contextValidateResult(ctx context.Context, formats strfmt.Registry) error {
 
+	if swag.IsZero(m.Result) { // not required
+		return nil
+	}
+
 	if err := m.Result.ContextValidate(ctx, formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
+		ve := new(errors.Validation)
+		if stderrors.As(err, &ve) {
 			return ve.ValidateName("result")
-		} else if ce, ok := err.(*errors.CompositeError); ok {
+		}
+		ce := new(errors.CompositeError)
+		if stderrors.As(err, &ce) {
 			return ce.ValidateName("result")
 		}
+
 		return err
 	}
 

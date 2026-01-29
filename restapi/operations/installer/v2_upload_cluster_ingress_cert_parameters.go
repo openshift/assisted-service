@@ -6,6 +6,7 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,7 +32,6 @@ func NewV2UploadClusterIngressCertParams() V2UploadClusterIngressCertParams {
 //
 // swagger:parameters v2UploadClusterIngressCert
 type V2UploadClusterIngressCertParams struct {
-
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,10 +40,12 @@ type V2UploadClusterIngressCertParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
+
 	/*The software version of the discovery agent that is uploading the ingress certificate.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
+
 	/*The ingress certificate.
 	  Required: true
 	  In: body
@@ -70,10 +72,12 @@ func (o *V2UploadClusterIngressCertParams) BindRequest(r *http.Request, route *m
 	}
 
 	if runtime.HasBody(r) {
-		defer r.Body.Close()
+		defer func() {
+			_ = r.Body.Close()
+		}()
 		var body models.IngressCertParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if err == io.EOF {
+			if stderrors.Is(err, io.EOF) {
 				res = append(res, errors.Required("ingressCertParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("ingressCertParams", "body", "", err))
@@ -126,7 +130,7 @@ func (o *V2UploadClusterIngressCertParams) bindClusterID(rawData []string, hasKe
 	return nil
 }
 
-// validateClusterID carries on validations for parameter ClusterID
+// validateClusterID carries out validations for parameter ClusterID
 func (o *V2UploadClusterIngressCertParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

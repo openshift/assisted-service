@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetClusterUISettingsHandlerFunc turns a function with the right signature into a v2 get cluster UI settings handler
-type V2GetClusterUISettingsHandlerFunc func(V2GetClusterUISettingsParams, interface{}) middleware.Responder
+type V2GetClusterUISettingsHandlerFunc func(V2GetClusterUISettingsParams, any) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetClusterUISettingsHandlerFunc) Handle(params V2GetClusterUISettingsParams, principal interface{}) middleware.Responder {
+func (fn V2GetClusterUISettingsHandlerFunc) Handle(params V2GetClusterUISettingsParams, principal any) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetClusterUISettingsHandler interface for that can handle valid v2 get cluster UI settings params
 type V2GetClusterUISettingsHandler interface {
-	Handle(V2GetClusterUISettingsParams, interface{}) middleware.Responder
+	Handle(V2GetClusterUISettingsParams, any) middleware.Responder
 }
 
 // NewV2GetClusterUISettings creates a new http.Handler for the v2 get cluster UI settings operation
@@ -53,9 +53,9 @@ func (o *V2GetClusterUISettings) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal interface{}
+	var principal any
 	if uprinc != nil {
-		principal = uprinc.(interface{}) // this is really a interface{}, I promise
+		principal = uprinc
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,6 +64,7 @@ func (o *V2GetClusterUISettings) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
+
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

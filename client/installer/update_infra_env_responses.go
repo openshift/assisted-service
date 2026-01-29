@@ -6,6 +6,8 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
+	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -21,7 +23,7 @@ type UpdateInfraEnvReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *UpdateInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
+func (o *UpdateInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
 	switch response.Code() {
 	case 201:
 		result := NewUpdateInfraEnvCreated()
@@ -78,7 +80,7 @@ func (o *UpdateInfraEnvReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
+		return nil, runtime.NewAPIError("[PATCH /v2/infra-envs/{infra_env_id}] UpdateInfraEnv", response, response.Code())
 	}
 }
 
@@ -121,12 +123,19 @@ func (o *UpdateInfraEnvCreated) IsCode(code int) bool {
 	return code == 201
 }
 
+// Code gets the status code for the update infra env created response
+func (o *UpdateInfraEnvCreated) Code() int {
+	return 201
+}
+
 func (o *UpdateInfraEnvCreated) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvCreated %s", 201, payload)
 }
 
 func (o *UpdateInfraEnvCreated) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvCreated  %+v", 201, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvCreated %s", 201, payload)
 }
 
 func (o *UpdateInfraEnvCreated) GetPayload() *models.InfraEnv {
@@ -138,7 +147,7 @@ func (o *UpdateInfraEnvCreated) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.InfraEnv)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -184,12 +193,19 @@ func (o *UpdateInfraEnvBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
+// Code gets the status code for the update infra env bad request response
+func (o *UpdateInfraEnvBadRequest) Code() int {
+	return 400
+}
+
 func (o *UpdateInfraEnvBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvBadRequest %s", 400, payload)
 }
 
 func (o *UpdateInfraEnvBadRequest) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvBadRequest  %+v", 400, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvBadRequest %s", 400, payload)
 }
 
 func (o *UpdateInfraEnvBadRequest) GetPayload() *models.Error {
@@ -201,7 +217,7 @@ func (o *UpdateInfraEnvBadRequest) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -247,12 +263,19 @@ func (o *UpdateInfraEnvUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
+// Code gets the status code for the update infra env unauthorized response
+func (o *UpdateInfraEnvUnauthorized) Code() int {
+	return 401
+}
+
 func (o *UpdateInfraEnvUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvUnauthorized %s", 401, payload)
 }
 
 func (o *UpdateInfraEnvUnauthorized) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvUnauthorized  %+v", 401, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvUnauthorized %s", 401, payload)
 }
 
 func (o *UpdateInfraEnvUnauthorized) GetPayload() *models.InfraError {
@@ -264,7 +287,7 @@ func (o *UpdateInfraEnvUnauthorized) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -310,12 +333,19 @@ func (o *UpdateInfraEnvForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
+// Code gets the status code for the update infra env forbidden response
+func (o *UpdateInfraEnvForbidden) Code() int {
+	return 403
+}
+
 func (o *UpdateInfraEnvForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvForbidden %s", 403, payload)
 }
 
 func (o *UpdateInfraEnvForbidden) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvForbidden  %+v", 403, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvForbidden %s", 403, payload)
 }
 
 func (o *UpdateInfraEnvForbidden) GetPayload() *models.InfraError {
@@ -327,7 +357,7 @@ func (o *UpdateInfraEnvForbidden) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -373,12 +403,19 @@ func (o *UpdateInfraEnvNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
+// Code gets the status code for the update infra env not found response
+func (o *UpdateInfraEnvNotFound) Code() int {
+	return 404
+}
+
 func (o *UpdateInfraEnvNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotFound %s", 404, payload)
 }
 
 func (o *UpdateInfraEnvNotFound) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotFound  %+v", 404, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotFound %s", 404, payload)
 }
 
 func (o *UpdateInfraEnvNotFound) GetPayload() *models.Error {
@@ -390,7 +427,7 @@ func (o *UpdateInfraEnvNotFound) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -436,12 +473,19 @@ func (o *UpdateInfraEnvMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
+// Code gets the status code for the update infra env method not allowed response
+func (o *UpdateInfraEnvMethodNotAllowed) Code() int {
+	return 405
+}
+
 func (o *UpdateInfraEnvMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvMethodNotAllowed %s", 405, payload)
 }
 
 func (o *UpdateInfraEnvMethodNotAllowed) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvMethodNotAllowed %s", 405, payload)
 }
 
 func (o *UpdateInfraEnvMethodNotAllowed) GetPayload() *models.Error {
@@ -453,7 +497,7 @@ func (o *UpdateInfraEnvMethodNotAllowed) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -499,12 +543,19 @@ func (o *UpdateInfraEnvConflict) IsCode(code int) bool {
 	return code == 409
 }
 
+// Code gets the status code for the update infra env conflict response
+func (o *UpdateInfraEnvConflict) Code() int {
+	return 409
+}
+
 func (o *UpdateInfraEnvConflict) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvConflict %s", 409, payload)
 }
 
 func (o *UpdateInfraEnvConflict) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvConflict  %+v", 409, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvConflict %s", 409, payload)
 }
 
 func (o *UpdateInfraEnvConflict) GetPayload() *models.Error {
@@ -516,7 +567,7 @@ func (o *UpdateInfraEnvConflict) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -562,12 +613,19 @@ func (o *UpdateInfraEnvInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
+// Code gets the status code for the update infra env internal server error response
+func (o *UpdateInfraEnvInternalServerError) Code() int {
+	return 500
+}
+
 func (o *UpdateInfraEnvInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvInternalServerError %s", 500, payload)
 }
 
 func (o *UpdateInfraEnvInternalServerError) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvInternalServerError  %+v", 500, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvInternalServerError %s", 500, payload)
 }
 
 func (o *UpdateInfraEnvInternalServerError) GetPayload() *models.Error {
@@ -579,7 +637,7 @@ func (o *UpdateInfraEnvInternalServerError) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
@@ -625,12 +683,19 @@ func (o *UpdateInfraEnvNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
+// Code gets the status code for the update infra env not implemented response
+func (o *UpdateInfraEnvNotImplemented) Code() int {
+	return 501
+}
+
 func (o *UpdateInfraEnvNotImplemented) Error() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotImplemented %s", 501, payload)
 }
 
 func (o *UpdateInfraEnvNotImplemented) String() string {
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotImplemented  %+v", 501, o.Payload)
+	payload, _ := json.Marshal(o.Payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}][%d] updateInfraEnvNotImplemented %s", 501, payload)
 }
 
 func (o *UpdateInfraEnvNotImplemented) GetPayload() *models.Error {
@@ -642,7 +707,7 @@ func (o *UpdateInfraEnvNotImplemented) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
 		return err
 	}
 
