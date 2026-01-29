@@ -33,6 +33,17 @@ type Config struct {
 
 	// CleanupInterval controls how often stale rate limit entries are cleaned up
 	CleanupInterval time.Duration `envconfig:"RATE_LIMIT_CLEANUP_INTERVAL" default:"10m"`
+
+	// TrustProxyHeaders controls whether to trust X-Forwarded-For and X-Real-IP headers.
+	// Only enable this when running behind a trusted proxy/load balancer.
+	// When false (default in production), only r.RemoteAddr is used for client identification.
+	TrustProxyHeaders bool `envconfig:"RATE_LIMIT_TRUST_PROXY_HEADERS" default:"false"`
+
+	// TrustedProxies is a comma-separated list of trusted proxy CIDRs or IPs.
+	// When TrustProxyHeaders is true, X-Forwarded-For/X-Real-IP headers are only
+	// trusted if the immediate peer IP is in this list. Empty means trust all proxies
+	// when TrustProxyHeaders is true (for backward compatibility in trusted environments).
+	TrustedProxies string `envconfig:"RATE_LIMIT_TRUSTED_PROXIES" default:""`
 }
 
 // CategoryConfig holds rate limit settings for a single category.
@@ -82,11 +93,13 @@ func (c *Config) CreateLimiters() map[EndpointCategory]*RateLimiter {
 // CreateMiddleware creates a configured rate limiting middleware.
 func (c *Config) CreateMiddleware(log logrus.FieldLogger) *Middleware {
 	limiters := c.CreateLimiters()
+	proxyTrustConfig := ParseTrustedProxies(c.TrustProxyHeaders, c.TrustedProxies)
 
 	return NewMiddleware(MiddlewareConfig{
-		Enabled:  c.Enabled,
-		Limiters: limiters,
-		Log:      log,
+		Enabled:          c.Enabled,
+		Limiters:         limiters,
+		Log:              log,
+		ProxyTrustConfig: proxyTrustConfig,
 	})
 }
 

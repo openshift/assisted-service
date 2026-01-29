@@ -403,6 +403,7 @@ deploy-test: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
+	export RATE_LIMIT_ENABLED="false" && \
 	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
 	$(MAKE) deploy-wiremock deploy-all
 
