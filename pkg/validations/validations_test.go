@@ -552,6 +552,198 @@ func GenerateTestCertificate() (string, error) {
 	return certPEM.String(), nil
 }
 
+func generateExpiredCertificate() (string, error) {
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(2019),
+		Subject: pkix.Name{
+			Organization: []string{"Test Org"},
+		},
+		NotBefore:    time.Now().AddDate(-2, 0, 0),
+		NotAfter:     time.Now().AddDate(-1, 0, 0), // Expired 1 year ago
+		SubjectKeyId: []byte{1, 2, 3, 4, 6},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", err
+	}
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &certPrivKey.PublicKey, certPrivKey)
+	if err != nil {
+		return "", err
+	}
+	certPEM := new(bytes.Buffer)
+	if err := pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	}); err != nil {
+		return "", err
+	}
+	return certPEM.String(), nil
+}
+
+var _ = Describe("ValidatePEMCertificate", func() {
+	It("Valid certificate", func() {
+		cert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		err = ValidatePEMCertificate([]byte(cert))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Empty certificate", func() {
+		err := ValidatePEMCertificate([]byte{})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate data is empty"))
+	})
+
+	It("Invalid PEM format", func() {
+		err := ValidatePEMCertificate([]byte("not a valid PEM"))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid PEM format"))
+	})
+
+	It("Wrong PEM block type", func() {
+		// Create a valid PEM structure with wrong type
+		wrongTypePEM := `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7
+-----END PRIVATE KEY-----`
+		err := ValidatePEMCertificate([]byte(wrongTypePEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid PEM type"))
+	})
+
+	It("Expired certificate", func() {
+		cert, err := generateExpiredCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		err = ValidatePEMCertificate([]byte(cert))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate has expired"))
+	})
+
+	It("Certificate too large", func() {
+		// Create data larger than MaxCertificateSize
+		largeData := make([]byte, MaxCertificateSize+1)
+		err := ValidatePEMCertificate(largeData)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed size"))
+	})
+
+	It("Valid certificate bundle with multiple certs (recursive validation)", func() {
+		cert1, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		cert2, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundle := cert1 + cert2
+		err = ValidatePEMCertificate([]byte(bundle))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Certificate bundle with trailing whitespace", func() {
+		cert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		certWithWhitespace := cert + "\n\n   \n"
+		err = ValidatePEMCertificate([]byte(certWithWhitespace))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Certificate bundle with expired second cert fails", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		expiredCert, err := generateExpiredCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundle := validCert + expiredCert
+		err = ValidatePEMCertificate([]byte(bundle))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate has expired"))
+	})
+
+	It("Malformed certificate data in PEM block", func() {
+		// Valid PEM structure but invalid certificate data
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		err := ValidatePEMCertificate([]byte(invalidCertPEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse X.509 certificate"))
+	})
+})
+
+var _ = Describe("ValidatePEMCertificateBundle", func() {
+	It("Valid single certificate", func() {
+		cert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		err = ValidatePEMCertificateBundle([]byte(cert))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Valid certificate bundle with multiple certs", func() {
+		cert1, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		cert2, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundle := cert1 + cert2
+		err = ValidatePEMCertificateBundle([]byte(bundle))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Empty bundle", func() {
+		err := ValidatePEMCertificateBundle([]byte{})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate bundle is empty"))
+	})
+
+	It("Invalid PEM format", func() {
+		err := ValidatePEMCertificateBundle([]byte("not a valid PEM"))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid PEM format"))
+	})
+
+	It("Bundle too large", func() {
+		largeData := make([]byte, MaxCertificateSize+1)
+		err := ValidatePEMCertificateBundle(largeData)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum allowed size"))
+	})
+
+	It("Wrong PEM block type in bundle", func() {
+		// Create a valid PEM structure with wrong type
+		wrongTypePEM := `-----BEGIN PRIVATE KEY-----
+MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7
+-----END PRIVATE KEY-----`
+		err := ValidatePEMCertificateBundle([]byte(wrongTypePEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid PEM type"))
+	})
+
+	It("Malformed certificate data in bundle", func() {
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		err := ValidatePEMCertificateBundle([]byte(invalidCertPEM))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse certificate"))
+	})
+
+	It("Bundle with valid cert followed by invalid cert fails", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		invalidCertPEM := `-----BEGIN CERTIFICATE-----
+YmFkIGNlcnRpZmljYXRlIGRhdGE=
+-----END CERTIFICATE-----`
+		bundle := validCert + invalidCertPEM
+		err = ValidatePEMCertificateBundle([]byte(bundle))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse certificate #2"))
+	})
+
+	It("Bundle allows expired certificates", func() {
+		expiredCert, err := generateExpiredCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		// ValidatePEMCertificateBundle allows expired certs unlike ValidatePEMCertificate
+		err = ValidatePEMCertificateBundle([]byte(expiredCert))
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")
