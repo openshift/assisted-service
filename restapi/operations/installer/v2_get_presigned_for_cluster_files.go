@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetPresignedForClusterFilesHandlerFunc turns a function with the right signature into a v2 get presigned for cluster files handler
-type V2GetPresignedForClusterFilesHandlerFunc func(V2GetPresignedForClusterFilesParams, any) middleware.Responder
+type V2GetPresignedForClusterFilesHandlerFunc func(V2GetPresignedForClusterFilesParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetPresignedForClusterFilesHandlerFunc) Handle(params V2GetPresignedForClusterFilesParams, principal any) middleware.Responder {
+func (fn V2GetPresignedForClusterFilesHandlerFunc) Handle(params V2GetPresignedForClusterFilesParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetPresignedForClusterFilesHandler interface for that can handle valid v2 get presigned for cluster files params
 type V2GetPresignedForClusterFilesHandler interface {
-	Handle(V2GetPresignedForClusterFilesParams, any) middleware.Responder
+	Handle(V2GetPresignedForClusterFilesParams, interface{}) middleware.Responder
 }
 
 // NewV2GetPresignedForClusterFiles creates a new http.Handler for the v2 get presigned for cluster files operation
@@ -53,9 +53,9 @@ func (o *V2GetPresignedForClusterFiles) ServeHTTP(rw http.ResponseWriter, r *htt
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2GetPresignedForClusterFiles) ServeHTTP(rw http.ResponseWriter, r *htt
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

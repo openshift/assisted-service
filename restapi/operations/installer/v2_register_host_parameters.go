@@ -6,7 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -32,6 +31,7 @@ func NewV2RegisterHostParams() V2RegisterHostParams {
 //
 // swagger:parameters v2RegisterHost
 type V2RegisterHostParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -39,13 +39,11 @@ type V2RegisterHostParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-
 	/*The infra-env that the agent is associated with.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
-
 	/*The description of the agent being registered.
 	  Required: true
 	  In: body
@@ -72,12 +70,10 @@ func (o *V2RegisterHostParams) BindRequest(r *http.Request, route *middleware.Ma
 	}
 
 	if runtime.HasBody(r) {
-		defer func() {
-			_ = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		var body models.HostCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if stderrors.Is(err, io.EOF) {
+			if err == io.EOF {
 				res = append(res, errors.Required("newHostParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("newHostParams", "body", "", err))
@@ -147,7 +143,7 @@ func (o *V2RegisterHostParams) bindInfraEnvID(rawData []string, hasKey bool, for
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2RegisterHostParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

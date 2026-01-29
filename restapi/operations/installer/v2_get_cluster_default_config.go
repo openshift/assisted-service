@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetClusterDefaultConfigHandlerFunc turns a function with the right signature into a v2 get cluster default config handler
-type V2GetClusterDefaultConfigHandlerFunc func(V2GetClusterDefaultConfigParams, any) middleware.Responder
+type V2GetClusterDefaultConfigHandlerFunc func(V2GetClusterDefaultConfigParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetClusterDefaultConfigHandlerFunc) Handle(params V2GetClusterDefaultConfigParams, principal any) middleware.Responder {
+func (fn V2GetClusterDefaultConfigHandlerFunc) Handle(params V2GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetClusterDefaultConfigHandler interface for that can handle valid v2 get cluster default config params
 type V2GetClusterDefaultConfigHandler interface {
-	Handle(V2GetClusterDefaultConfigParams, any) middleware.Responder
+	Handle(V2GetClusterDefaultConfigParams, interface{}) middleware.Responder
 }
 
 // NewV2GetClusterDefaultConfig creates a new http.Handler for the v2 get cluster default config operation
@@ -53,9 +53,9 @@ func (o *V2GetClusterDefaultConfig) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2GetClusterDefaultConfig) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

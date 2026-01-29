@@ -71,7 +71,7 @@ const (
 )
 
 // for schema
-var hostStageEnum []any
+var hostStageEnum []interface{}
 
 func init() {
 	var res []HostStage

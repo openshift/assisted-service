@@ -38,7 +38,7 @@ const (
 )
 
 // for schema
-var containerImageAvailabilityResultEnum []any
+var containerImageAvailabilityResultEnum []interface{}
 
 func init() {
 	var res []ContainerImageAvailabilityResult

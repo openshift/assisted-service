@@ -41,7 +41,7 @@ const (
 )
 
 // for schema
-var operatorStatusEnum []any
+var operatorStatusEnum []interface{}
 
 func init() {
 	var res []OperatorStatus

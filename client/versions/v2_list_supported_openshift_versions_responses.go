@@ -6,8 +6,6 @@ package versions
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ListSupportedOpenshiftVersionsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListSupportedOpenshiftVersionsOK()
@@ -50,7 +48,7 @@ func (o *V2ListSupportedOpenshiftVersionsReader) ReadResponse(response runtime.C
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/openshift-versions] v2ListSupportedOpenshiftVersions", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -93,19 +91,12 @@ func (o *V2ListSupportedOpenshiftVersionsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 list supported openshift versions o k response
-func (o *V2ListSupportedOpenshiftVersionsOK) Code() int {
-	return 200
-}
-
 func (o *V2ListSupportedOpenshiftVersionsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsOK) GetPayload() models.OpenshiftVersions {
@@ -115,7 +106,7 @@ func (o *V2ListSupportedOpenshiftVersionsOK) GetPayload() models.OpenshiftVersio
 func (o *V2ListSupportedOpenshiftVersionsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -161,19 +152,12 @@ func (o *V2ListSupportedOpenshiftVersionsBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 list supported openshift versions bad request response
-func (o *V2ListSupportedOpenshiftVersionsBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2ListSupportedOpenshiftVersionsBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsBadRequest) GetPayload() *models.Error {
@@ -185,7 +169,7 @@ func (o *V2ListSupportedOpenshiftVersionsBadRequest) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -231,19 +215,12 @@ func (o *V2ListSupportedOpenshiftVersionsInternalServerError) IsCode(code int) b
 	return code == 500
 }
 
-// Code gets the status code for the v2 list supported openshift versions internal server error response
-func (o *V2ListSupportedOpenshiftVersionsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2ListSupportedOpenshiftVersionsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsInternalServerError) GetPayload() *models.Error {
@@ -255,7 +232,7 @@ func (o *V2ListSupportedOpenshiftVersionsInternalServerError) readResponse(respo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -301,19 +278,12 @@ func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) IsCode(code int) bo
 	return code == 503
 }
 
-// Code gets the status code for the v2 list supported openshift versions service unavailable response
-func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/openshift-versions][%d] v2ListSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() *models.Error {
@@ -325,7 +295,7 @@ func (o *V2ListSupportedOpenshiftVersionsServiceUnavailable) readResponse(respon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

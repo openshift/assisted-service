@@ -12,16 +12,16 @@ import (
 )
 
 // V2ListSupportedOperatorsHandlerFunc turns a function with the right signature into a v2 list supported operators handler
-type V2ListSupportedOperatorsHandlerFunc func(V2ListSupportedOperatorsParams, any) middleware.Responder
+type V2ListSupportedOperatorsHandlerFunc func(V2ListSupportedOperatorsParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ListSupportedOperatorsHandlerFunc) Handle(params V2ListSupportedOperatorsParams, principal any) middleware.Responder {
+func (fn V2ListSupportedOperatorsHandlerFunc) Handle(params V2ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ListSupportedOperatorsHandler interface for that can handle valid v2 list supported operators params
 type V2ListSupportedOperatorsHandler interface {
-	Handle(V2ListSupportedOperatorsParams, any) middleware.Responder
+	Handle(V2ListSupportedOperatorsParams, interface{}) middleware.Responder
 }
 
 // NewV2ListSupportedOperators creates a new http.Handler for the v2 list supported operators operation
@@ -53,9 +53,9 @@ func (o *V2ListSupportedOperators) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2ListSupportedOperators) ServeHTTP(rw http.ResponseWriter, r *http.Req
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -53,15 +52,11 @@ func (m *TangConnectivityResponse) validateTangServerResponse(formats strfmt.Reg
 
 		if m.TangServerResponse[i] != nil {
 			if err := m.TangServerResponse[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("tang_server_response" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("tang_server_response" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -90,21 +85,12 @@ func (m *TangConnectivityResponse) contextValidateTangServerResponse(ctx context
 	for i := 0; i < len(m.TangServerResponse); i++ {
 
 		if m.TangServerResponse[i] != nil {
-
-			if swag.IsZero(m.TangServerResponse[i]) { // not required
-				return nil
-			}
-
 			if err := m.TangServerResponse[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("tang_server_response" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("tang_server_response" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -173,15 +159,11 @@ func (m *TangServerResponse) validateSignatures(formats strfmt.Registry) error {
 
 		if m.Signatures[i] != nil {
 			if err := m.Signatures[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("signatures" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("signatures" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -210,21 +192,12 @@ func (m *TangServerResponse) contextValidateSignatures(ctx context.Context, form
 	for i := 0; i < len(m.Signatures); i++ {
 
 		if m.Signatures[i] != nil {
-
-			if swag.IsZero(m.Signatures[i]) { // not required
-				return nil
-			}
-
 			if err := m.Signatures[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("signatures" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("signatures" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

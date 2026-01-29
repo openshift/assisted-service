@@ -48,7 +48,7 @@ func (o *V2GetBundleURL) Build() (*url.URL, error) {
 
 	id := o.ID
 	if id != "" {
-		_path = strings.ReplaceAll(_path, "{id}", id)
+		_path = strings.Replace(_path, "{id}", id, -1)
 	} else {
 		return nil, errors.New("id is required on V2GetBundleURL")
 	}

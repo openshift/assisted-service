@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetClusterDefaultConfigReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetClusterDefaultConfigOK()
@@ -50,7 +48,7 @@ func (o *V2GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientRe
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/default-config] V2GetClusterDefaultConfig", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -93,19 +91,12 @@ func (o *V2GetClusterDefaultConfigOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get cluster default config o k response
-func (o *V2GetClusterDefaultConfigOK) Code() int {
-	return 200
-}
-
 func (o *V2GetClusterDefaultConfigOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigOK) GetPayload() *models.ClusterDefaultConfig {
@@ -117,7 +108,7 @@ func (o *V2GetClusterDefaultConfigOK) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.ClusterDefaultConfig)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -163,19 +154,12 @@ func (o *V2GetClusterDefaultConfigUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 get cluster default config unauthorized response
-func (o *V2GetClusterDefaultConfigUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2GetClusterDefaultConfigUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigUnauthorized) GetPayload() *models.InfraError {
@@ -187,7 +171,7 @@ func (o *V2GetClusterDefaultConfigUnauthorized) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -233,19 +217,12 @@ func (o *V2GetClusterDefaultConfigForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 get cluster default config forbidden response
-func (o *V2GetClusterDefaultConfigForbidden) Code() int {
-	return 403
-}
-
 func (o *V2GetClusterDefaultConfigForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigForbidden) GetPayload() *models.InfraError {
@@ -257,7 +234,7 @@ func (o *V2GetClusterDefaultConfigForbidden) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -303,19 +280,12 @@ func (o *V2GetClusterDefaultConfigInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 get cluster default config internal server error response
-func (o *V2GetClusterDefaultConfigInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetClusterDefaultConfigInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/default-config][%d] v2GetClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetClusterDefaultConfigInternalServerError) GetPayload() *models.Error {
@@ -327,7 +297,7 @@ func (o *V2GetClusterDefaultConfigInternalServerError) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

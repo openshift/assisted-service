@@ -35,6 +35,7 @@ func NewGetSupportedFeaturesParams() GetSupportedFeaturesParams {
 //
 // swagger:parameters GetSupportedFeatures
 type GetSupportedFeaturesParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -43,18 +44,15 @@ type GetSupportedFeaturesParams struct {
 	  Default: "x86_64"
 	*/
 	CPUArchitecture *string
-
 	/*External platform name when platform type is set to external. The value of this parameter will be ignored if platform_type is not external.
 	  In: query
 	*/
 	ExternalPlatformName *string
-
 	/*Version of the OpenShift cluster.
 	  Required: true
 	  In: query
 	*/
 	OpenshiftVersion string
-
 	/*The provider platform type.
 	  In: query
 	*/
@@ -69,6 +67,7 @@ func (o *GetSupportedFeaturesParams) BindRequest(r *http.Request, route *middlew
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
@@ -119,10 +118,10 @@ func (o *GetSupportedFeaturesParams) bindCPUArchitecture(rawData []string, hasKe
 	return nil
 }
 
-// validateCPUArchitecture carries out validations for parameter CPUArchitecture
+// validateCPUArchitecture carries on validations for parameter CPUArchitecture
 func (o *GetSupportedFeaturesParams) validateCPUArchitecture(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []any{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
+	if err := validate.EnumCase("cpu_architecture", "query", *o.CPUArchitecture, []interface{}{"x86_64", "aarch64", "arm64", "ppc64le", "s390x", "multi"}, true); err != nil {
 		return err
 	}
 
@@ -190,10 +189,10 @@ func (o *GetSupportedFeaturesParams) bindPlatformType(rawData []string, hasKey b
 	return nil
 }
 
-// validatePlatformType carries out validations for parameter PlatformType
+// validatePlatformType carries on validations for parameter PlatformType
 func (o *GetSupportedFeaturesParams) validatePlatformType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []any{"baremetal", "none", "nutanix", "vsphere", "external"}, true); err != nil {
+	if err := validate.EnumCase("platform_type", "query", *o.PlatformType, []interface{}{"baremetal", "none", "nutanix", "vsphere", "external"}, true); err != nil {
 		return err
 	}
 

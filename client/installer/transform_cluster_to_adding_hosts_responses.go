@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type TransformClusterToAddingHostsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *TransformClusterToAddingHostsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *TransformClusterToAddingHostsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 202:
 		result := NewTransformClusterToAddingHostsAccepted()
@@ -68,7 +66,7 @@ func (o *TransformClusterToAddingHostsReader) ReadResponse(response runtime.Clie
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts] TransformClusterToAddingHosts", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *TransformClusterToAddingHostsAccepted) IsCode(code int) bool {
 	return code == 202
 }
 
-// Code gets the status code for the transform cluster to adding hosts accepted response
-func (o *TransformClusterToAddingHostsAccepted) Code() int {
-	return 202
-}
-
 func (o *TransformClusterToAddingHostsAccepted) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted  %+v", 202, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsAccepted) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsAccepted  %+v", 202, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsAccepted) GetPayload() *models.Cluster {
@@ -135,7 +126,7 @@ func (o *TransformClusterToAddingHostsAccepted) readResponse(response runtime.Cl
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -181,19 +172,12 @@ func (o *TransformClusterToAddingHostsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the transform cluster to adding hosts unauthorized response
-func (o *TransformClusterToAddingHostsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *TransformClusterToAddingHostsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsUnauthorized) GetPayload() *models.InfraError {
@@ -205,7 +189,7 @@ func (o *TransformClusterToAddingHostsUnauthorized) readResponse(response runtim
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -251,19 +235,12 @@ func (o *TransformClusterToAddingHostsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the transform cluster to adding hosts forbidden response
-func (o *TransformClusterToAddingHostsForbidden) Code() int {
-	return 403
-}
-
 func (o *TransformClusterToAddingHostsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsForbidden) GetPayload() *models.InfraError {
@@ -275,7 +252,7 @@ func (o *TransformClusterToAddingHostsForbidden) readResponse(response runtime.C
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -321,19 +298,12 @@ func (o *TransformClusterToAddingHostsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the transform cluster to adding hosts not found response
-func (o *TransformClusterToAddingHostsNotFound) Code() int {
-	return 404
-}
-
 func (o *TransformClusterToAddingHostsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsNotFound) GetPayload() *models.Error {
@@ -345,7 +315,7 @@ func (o *TransformClusterToAddingHostsNotFound) readResponse(response runtime.Cl
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -391,19 +361,12 @@ func (o *TransformClusterToAddingHostsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the transform cluster to adding hosts method not allowed response
-func (o *TransformClusterToAddingHostsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *TransformClusterToAddingHostsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsMethodNotAllowed) GetPayload() *models.Error {
@@ -415,7 +378,7 @@ func (o *TransformClusterToAddingHostsMethodNotAllowed) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -461,19 +424,12 @@ func (o *TransformClusterToAddingHostsConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the transform cluster to adding hosts conflict response
-func (o *TransformClusterToAddingHostsConflict) Code() int {
-	return 409
-}
-
 func (o *TransformClusterToAddingHostsConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict  %+v", 409, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsConflict  %+v", 409, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsConflict) GetPayload() *models.Error {
@@ -485,7 +441,7 @@ func (o *TransformClusterToAddingHostsConflict) readResponse(response runtime.Cl
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -531,19 +487,12 @@ func (o *TransformClusterToAddingHostsInternalServerError) IsCode(code int) bool
 	return code == 500
 }
 
-// Code gets the status code for the transform cluster to adding hosts internal server error response
-func (o *TransformClusterToAddingHostsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *TransformClusterToAddingHostsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-hosts][%d] transformClusterToAddingHostsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *TransformClusterToAddingHostsInternalServerError) GetPayload() *models.Error {
@@ -555,7 +504,7 @@ func (o *TransformClusterToAddingHostsInternalServerError) readResponse(response
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

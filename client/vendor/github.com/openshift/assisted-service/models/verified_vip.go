@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -58,15 +57,11 @@ func (m *VerifiedVip) validateVerification(formats strfmt.Registry) error {
 
 	if m.Verification != nil {
 		if err := m.Verification.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("verification")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("verification")
 			}
-
 			return err
 		}
 	}
@@ -80,15 +75,11 @@ func (m *VerifiedVip) validateVip(formats strfmt.Registry) error {
 	}
 
 	if err := m.Vip.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("vip")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("vip")
 		}
-
 		return err
 	}
 
@@ -101,15 +92,11 @@ func (m *VerifiedVip) validateVipType(formats strfmt.Registry) error {
 	}
 
 	if err := m.VipType.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("vip_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("vip_type")
 		}
-
 		return err
 	}
 
@@ -141,21 +128,12 @@ func (m *VerifiedVip) ContextValidate(ctx context.Context, formats strfmt.Regist
 func (m *VerifiedVip) contextValidateVerification(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Verification != nil {
-
-		if swag.IsZero(m.Verification) { // not required
-			return nil
-		}
-
 		if err := m.Verification.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("verification")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("verification")
 			}
-
 			return err
 		}
 	}
@@ -165,20 +143,12 @@ func (m *VerifiedVip) contextValidateVerification(ctx context.Context, formats s
 
 func (m *VerifiedVip) contextValidateVip(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Vip) { // not required
-		return nil
-	}
-
 	if err := m.Vip.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("vip")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("vip")
 		}
-
 		return err
 	}
 
@@ -187,20 +157,12 @@ func (m *VerifiedVip) contextValidateVip(ctx context.Context, formats strfmt.Reg
 
 func (m *VerifiedVip) contextValidateVipType(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.VipType) { // not required
-		return nil
-	}
-
 	if err := m.VipType.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("vip_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("vip_type")
 		}
-
 		return err
 	}
 

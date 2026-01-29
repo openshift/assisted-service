@@ -35,6 +35,7 @@ func NewV2DownloadClusterManifestParams() V2DownloadClusterManifestParams {
 //
 // swagger:parameters v2DownloadClusterManifest
 type V2DownloadClusterManifestParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -43,13 +44,11 @@ type V2DownloadClusterManifestParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The manifest file name to download.
 	  Required: true
 	  In: query
 	*/
 	FileName string
-
 	/*The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
 	  In: query
 	  Default: "manifests"
@@ -65,6 +64,7 @@ func (o *V2DownloadClusterManifestParams) BindRequest(r *http.Request, route *mi
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -111,7 +111,7 @@ func (o *V2DownloadClusterManifestParams) bindClusterID(rawData []string, hasKey
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2DownloadClusterManifestParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -164,10 +164,10 @@ func (o *V2DownloadClusterManifestParams) bindFolder(rawData []string, hasKey bo
 	return nil
 }
 
-// validateFolder carries out validations for parameter Folder
+// validateFolder carries on validations for parameter Folder
 func (o *V2DownloadClusterManifestParams) validateFolder(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("folder", "query", *o.Folder, []any{"manifests", "openshift"}, true); err != nil {
+	if err := validate.EnumCase("folder", "query", *o.Folder, []interface{}{"manifests", "openshift"}, true); err != nil {
 		return err
 	}
 

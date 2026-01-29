@@ -18,7 +18,7 @@ import (
 type Usage struct {
 
 	// additional properties of the feature
-	Data map[string]any `json:"data,omitempty"`
+	Data map[string]interface{} `json:"data,omitempty"`
 
 	// Unique idenftifier of the feature
 	ID string `json:"id,omitempty"`

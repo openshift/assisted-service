@@ -6,7 +6,6 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -32,6 +31,7 @@ func NewV2ReportMonitoredOperatorStatusParams() V2ReportMonitoredOperatorStatusP
 //
 // swagger:parameters v2ReportMonitoredOperatorStatus
 type V2ReportMonitoredOperatorStatusParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -40,7 +40,6 @@ type V2ReportMonitoredOperatorStatusParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The operators monitor report.
 	  Required: true
 	  In: body
@@ -63,12 +62,10 @@ func (o *V2ReportMonitoredOperatorStatusParams) BindRequest(r *http.Request, rou
 	}
 
 	if runtime.HasBody(r) {
-		defer func() {
-			_ = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		var body models.OperatorMonitorReport
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if stderrors.Is(err, io.EOF) {
+			if err == io.EOF {
 				res = append(res, errors.Required("reportParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("reportParams", "body", "", err))
@@ -121,7 +118,7 @@ func (o *V2ReportMonitoredOperatorStatusParams) bindClusterID(rawData []string, 
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2ReportMonitoredOperatorStatusParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

@@ -7,8 +7,6 @@ package installer
 
 import (
 	"context"
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -26,7 +24,7 @@ type GetSupportedArchitecturesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetSupportedArchitecturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *GetSupportedArchitecturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetSupportedArchitecturesOK()
@@ -65,7 +63,7 @@ func (o *GetSupportedArchitecturesReader) ReadResponse(response runtime.ClientRe
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/support-levels/architectures] GetSupportedArchitectures", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -108,19 +106,12 @@ func (o *GetSupportedArchitecturesOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the get supported architectures o k response
-func (o *GetSupportedArchitecturesOK) Code() int {
-	return 200
-}
-
 func (o *GetSupportedArchitecturesOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesOK) GetPayload() *GetSupportedArchitecturesOKBody {
@@ -132,7 +123,7 @@ func (o *GetSupportedArchitecturesOK) readResponse(response runtime.ClientRespon
 	o.Payload = new(GetSupportedArchitecturesOKBody)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -178,19 +169,12 @@ func (o *GetSupportedArchitecturesBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the get supported architectures bad request response
-func (o *GetSupportedArchitecturesBadRequest) Code() int {
-	return 400
-}
-
 func (o *GetSupportedArchitecturesBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesBadRequest) GetPayload() *models.Error {
@@ -202,7 +186,7 @@ func (o *GetSupportedArchitecturesBadRequest) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -248,19 +232,12 @@ func (o *GetSupportedArchitecturesUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the get supported architectures unauthorized response
-func (o *GetSupportedArchitecturesUnauthorized) Code() int {
-	return 401
-}
-
 func (o *GetSupportedArchitecturesUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesUnauthorized) GetPayload() *models.InfraError {
@@ -272,7 +249,7 @@ func (o *GetSupportedArchitecturesUnauthorized) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -318,19 +295,12 @@ func (o *GetSupportedArchitecturesForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the get supported architectures forbidden response
-func (o *GetSupportedArchitecturesForbidden) Code() int {
-	return 403
-}
-
 func (o *GetSupportedArchitecturesForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesForbidden) GetPayload() *models.InfraError {
@@ -342,7 +312,7 @@ func (o *GetSupportedArchitecturesForbidden) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -388,19 +358,12 @@ func (o *GetSupportedArchitecturesNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the get supported architectures not found response
-func (o *GetSupportedArchitecturesNotFound) Code() int {
-	return 404
-}
-
 func (o *GetSupportedArchitecturesNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesNotFound) GetPayload() *models.Error {
@@ -412,7 +375,7 @@ func (o *GetSupportedArchitecturesNotFound) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -458,19 +421,12 @@ func (o *GetSupportedArchitecturesServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the get supported architectures service unavailable response
-func (o *GetSupportedArchitecturesServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *GetSupportedArchitecturesServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/architectures][%d] getSupportedArchitecturesServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetSupportedArchitecturesServiceUnavailable) GetPayload() *models.Error {
@@ -482,7 +438,7 @@ func (o *GetSupportedArchitecturesServiceUnavailable) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -520,15 +476,11 @@ func (o *GetSupportedArchitecturesOKBody) validateArchitectures(formats strfmt.R
 
 	if o.Architectures != nil {
 		if err := o.Architectures.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
 			}
-
 			return err
 		}
 	}
@@ -552,20 +504,12 @@ func (o *GetSupportedArchitecturesOKBody) ContextValidate(ctx context.Context, f
 
 func (o *GetSupportedArchitecturesOKBody) contextValidateArchitectures(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(o.Architectures) { // not required
-		return nil
-	}
-
 	if err := o.Architectures.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("getSupportedArchitecturesOK" + "." + "architectures")
 		}
-
 		return err
 	}
 

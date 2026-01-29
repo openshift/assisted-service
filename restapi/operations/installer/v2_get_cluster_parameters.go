@@ -36,6 +36,7 @@ func NewV2GetClusterParams() V2GetClusterParams {
 //
 // swagger:parameters v2GetCluster
 type V2GetClusterParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -44,17 +45,14 @@ type V2GetClusterParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The software version of the discovery agent that is retrieving the cluster details.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-
 	/*If true, do not include hosts.
 	  In: query
 	*/
 	ExcludeHosts *bool
-
 	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
@@ -70,6 +68,7 @@ func (o *V2GetClusterParams) BindRequest(r *http.Request, route *middleware.Matc
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -119,7 +118,7 @@ func (o *V2GetClusterParams) bindClusterID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2GetClusterParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

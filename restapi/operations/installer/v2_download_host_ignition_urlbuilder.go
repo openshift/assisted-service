@@ -47,14 +47,14 @@ func (o *V2DownloadHostIgnitionURL) Build() (*url.URL, error) {
 
 	hostID := o.HostID.String()
 	if hostID != "" {
-		_path = strings.ReplaceAll(_path, "{host_id}", hostID)
+		_path = strings.Replace(_path, "{host_id}", hostID, -1)
 	} else {
 		return nil, errors.New("hostId is required on V2DownloadHostIgnitionURL")
 	}
 
 	infraEnvID := o.InfraEnvID.String()
 	if infraEnvID != "" {
-		_path = strings.ReplaceAll(_path, "{infra_env_id}", infraEnvID)
+		_path = strings.Replace(_path, "{infra_env_id}", infraEnvID, -1)
 	} else {
 		return nil, errors.New("infraEnvId is required on V2DownloadHostIgnitionURL")
 	}

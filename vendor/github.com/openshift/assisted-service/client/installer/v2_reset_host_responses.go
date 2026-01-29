@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ResetHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ResetHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ResetHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ResetHostOK()
@@ -62,7 +60,7 @@ func (o *V2ResetHostReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset] v2ResetHost", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -105,19 +103,12 @@ func (o *V2ResetHostOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 reset host o k response
-func (o *V2ResetHostOK) Code() int {
-	return 200
-}
-
 func (o *V2ResetHostOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostOK %s", 200, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ResetHostOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostOK %s", 200, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ResetHostOK) GetPayload() *models.Host {
@@ -129,7 +120,7 @@ func (o *V2ResetHostOK) readResponse(response runtime.ClientResponse, consumer r
 	o.Payload = new(models.Host)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -175,19 +166,12 @@ func (o *V2ResetHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 reset host unauthorized response
-func (o *V2ResetHostUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2ResetHostUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetHostUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetHostUnauthorized) GetPayload() *models.InfraError {
@@ -199,7 +183,7 @@ func (o *V2ResetHostUnauthorized) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -245,19 +229,12 @@ func (o *V2ResetHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 reset host forbidden response
-func (o *V2ResetHostForbidden) Code() int {
-	return 403
-}
-
 func (o *V2ResetHostForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetHostForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetHostForbidden) GetPayload() *models.InfraError {
@@ -269,7 +246,7 @@ func (o *V2ResetHostForbidden) readResponse(response runtime.ClientResponse, con
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -315,19 +292,12 @@ func (o *V2ResetHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 reset host not found response
-func (o *V2ResetHostNotFound) Code() int {
-	return 404
-}
-
 func (o *V2ResetHostNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetHostNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetHostNotFound) GetPayload() *models.Error {
@@ -339,7 +309,7 @@ func (o *V2ResetHostNotFound) readResponse(response runtime.ClientResponse, cons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -385,19 +355,12 @@ func (o *V2ResetHostConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 reset host conflict response
-func (o *V2ResetHostConflict) Code() int {
-	return 409
-}
-
 func (o *V2ResetHostConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetHostConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetHostConflict) GetPayload() *models.Error {
@@ -409,7 +372,7 @@ func (o *V2ResetHostConflict) readResponse(response runtime.ClientResponse, cons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -455,19 +418,12 @@ func (o *V2ResetHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 reset host internal server error response
-func (o *V2ResetHostInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2ResetHostInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetHostInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset][%d] v2ResetHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetHostInternalServerError) GetPayload() *models.Error {
@@ -479,7 +435,7 @@ func (o *V2ResetHostInternalServerError) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

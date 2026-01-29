@@ -29,6 +29,7 @@ func NewListClusterHostsParams() ListClusterHostsParams {
 //
 // swagger:parameters ListClusterHosts
 type ListClusterHostsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,22 +38,18 @@ type ListClusterHostsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*Role to request.
 	  In: query
 	*/
 	Role *string
-
 	/*Hosts status to request.
 	  In: query
 	*/
 	Status *string
-
 	/*If true return the host's connectivity.
 	  In: query
 	*/
 	WithConnectivity *bool
-
 	/*If true return the host's inventory.
 	  In: query
 	*/
@@ -67,6 +64,7 @@ func (o *ListClusterHostsParams) BindRequest(r *http.Request, route *middleware.
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -123,7 +121,7 @@ func (o *ListClusterHostsParams) bindClusterID(rawData []string, hasKey bool, fo
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *ListClusterHostsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -154,10 +152,10 @@ func (o *ListClusterHostsParams) bindRole(rawData []string, hasKey bool, formats
 	return nil
 }
 
-// validateRole carries out validations for parameter Role
+// validateRole carries on validations for parameter Role
 func (o *ListClusterHostsParams) validateRole(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("role", "query", *o.Role, []any{"master", "arbiter", "worker", "auto-assign"}, true); err != nil {
+	if err := validate.EnumCase("role", "query", *o.Role, []interface{}{"master", "arbiter", "worker", "auto-assign"}, true); err != nil {
 		return err
 	}
 

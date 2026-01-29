@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetIgnoredValidationsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetIgnoredValidationsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetIgnoredValidationsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetIgnoredValidationsOK()
@@ -44,7 +42,7 @@ func (o *V2GetIgnoredValidationsReader) ReadResponse(response runtime.ClientResp
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/ignored-validations] v2GetIgnoredValidations", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -87,19 +85,12 @@ func (o *V2GetIgnoredValidationsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get ignored validations o k response
-func (o *V2GetIgnoredValidationsOK) Code() int {
-	return 200
-}
-
 func (o *V2GetIgnoredValidationsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsOK) GetPayload() *models.IgnoredValidations {
@@ -111,7 +102,7 @@ func (o *V2GetIgnoredValidationsOK) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.IgnoredValidations)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -157,19 +148,12 @@ func (o *V2GetIgnoredValidationsBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 get ignored validations bad request response
-func (o *V2GetIgnoredValidationsBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2GetIgnoredValidationsBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsBadRequest) GetPayload() *models.Error {
@@ -181,7 +165,7 @@ func (o *V2GetIgnoredValidationsBadRequest) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -227,19 +211,12 @@ func (o *V2GetIgnoredValidationsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get ignored validations not found response
-func (o *V2GetIgnoredValidationsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetIgnoredValidationsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/ignored-validations][%d] v2GetIgnoredValidationsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetIgnoredValidationsNotFound) GetPayload() *models.Error {
@@ -251,7 +228,7 @@ func (o *V2GetIgnoredValidationsNotFound) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

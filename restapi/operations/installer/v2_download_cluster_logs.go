@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadClusterLogsHandlerFunc turns a function with the right signature into a v2 download cluster logs handler
-type V2DownloadClusterLogsHandlerFunc func(V2DownloadClusterLogsParams, any) middleware.Responder
+type V2DownloadClusterLogsHandlerFunc func(V2DownloadClusterLogsParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadClusterLogsHandlerFunc) Handle(params V2DownloadClusterLogsParams, principal any) middleware.Responder {
+func (fn V2DownloadClusterLogsHandlerFunc) Handle(params V2DownloadClusterLogsParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadClusterLogsHandler interface for that can handle valid v2 download cluster logs params
 type V2DownloadClusterLogsHandler interface {
-	Handle(V2DownloadClusterLogsParams, any) middleware.Responder
+	Handle(V2DownloadClusterLogsParams, interface{}) middleware.Responder
 }
 
 // NewV2DownloadClusterLogs creates a new http.Handler for the v2 download cluster logs operation
@@ -53,9 +53,9 @@ func (o *V2DownloadClusterLogs) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2DownloadClusterLogs) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

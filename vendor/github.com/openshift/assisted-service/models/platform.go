@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -53,15 +52,11 @@ func (m *Platform) validateExternal(formats strfmt.Registry) error {
 
 	if m.External != nil {
 		if err := m.External.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("external")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("external")
 			}
-
 			return err
 		}
 	}
@@ -81,15 +76,11 @@ func (m *Platform) validateType(formats strfmt.Registry) error {
 
 	if m.Type != nil {
 		if err := m.Type.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("type")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("type")
 			}
-
 			return err
 		}
 	}
@@ -118,21 +109,12 @@ func (m *Platform) ContextValidate(ctx context.Context, formats strfmt.Registry)
 func (m *Platform) contextValidateExternal(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.External != nil {
-
-		if swag.IsZero(m.External) { // not required
-			return nil
-		}
-
 		if err := m.External.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("external")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("external")
 			}
-
 			return err
 		}
 	}
@@ -143,17 +125,12 @@ func (m *Platform) contextValidateExternal(ctx context.Context, formats strfmt.R
 func (m *Platform) contextValidateType(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Type != nil {
-
 		if err := m.Type.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("type")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("type")
 			}
-
 			return err
 		}
 	}

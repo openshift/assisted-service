@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type GetInfraEnvDownloadURLReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetInfraEnvDownloadURLReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *GetInfraEnvDownloadURLReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetInfraEnvDownloadURLOK()
@@ -80,7 +78,7 @@ func (o *GetInfraEnvDownloadURLReader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url] GetInfraEnvDownloadURL", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -123,19 +121,12 @@ func (o *GetInfraEnvDownloadURLOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the get infra env download Url o k response
-func (o *GetInfraEnvDownloadURLOK) Code() int {
-	return 200
-}
-
 func (o *GetInfraEnvDownloadURLOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlOK  %+v", 200, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlOK  %+v", 200, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLOK) GetPayload() *models.PresignedURL {
@@ -147,7 +138,7 @@ func (o *GetInfraEnvDownloadURLOK) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.PresignedURL)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -193,19 +184,12 @@ func (o *GetInfraEnvDownloadURLBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the get infra env download Url bad request response
-func (o *GetInfraEnvDownloadURLBadRequest) Code() int {
-	return 400
-}
-
 func (o *GetInfraEnvDownloadURLBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLBadRequest) GetPayload() *models.Error {
@@ -217,7 +201,7 @@ func (o *GetInfraEnvDownloadURLBadRequest) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -263,19 +247,12 @@ func (o *GetInfraEnvDownloadURLUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the get infra env download Url unauthorized response
-func (o *GetInfraEnvDownloadURLUnauthorized) Code() int {
-	return 401
-}
-
 func (o *GetInfraEnvDownloadURLUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLUnauthorized) GetPayload() *models.InfraError {
@@ -287,7 +264,7 @@ func (o *GetInfraEnvDownloadURLUnauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -333,19 +310,12 @@ func (o *GetInfraEnvDownloadURLForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the get infra env download Url forbidden response
-func (o *GetInfraEnvDownloadURLForbidden) Code() int {
-	return 403
-}
-
 func (o *GetInfraEnvDownloadURLForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLForbidden) GetPayload() *models.InfraError {
@@ -357,7 +327,7 @@ func (o *GetInfraEnvDownloadURLForbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -403,19 +373,12 @@ func (o *GetInfraEnvDownloadURLNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the get infra env download Url not found response
-func (o *GetInfraEnvDownloadURLNotFound) Code() int {
-	return 404
-}
-
 func (o *GetInfraEnvDownloadURLNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLNotFound) GetPayload() *models.Error {
@@ -427,7 +390,7 @@ func (o *GetInfraEnvDownloadURLNotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -473,19 +436,12 @@ func (o *GetInfraEnvDownloadURLMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the get infra env download Url method not allowed response
-func (o *GetInfraEnvDownloadURLMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *GetInfraEnvDownloadURLMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLMethodNotAllowed) GetPayload() *models.Error {
@@ -497,7 +453,7 @@ func (o *GetInfraEnvDownloadURLMethodNotAllowed) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -543,19 +499,12 @@ func (o *GetInfraEnvDownloadURLInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the get infra env download Url internal server error response
-func (o *GetInfraEnvDownloadURLInternalServerError) Code() int {
-	return 500
-}
-
 func (o *GetInfraEnvDownloadURLInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLInternalServerError) GetPayload() *models.Error {
@@ -567,7 +516,7 @@ func (o *GetInfraEnvDownloadURLInternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -613,19 +562,12 @@ func (o *GetInfraEnvDownloadURLNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the get infra env download Url not implemented response
-func (o *GetInfraEnvDownloadURLNotImplemented) Code() int {
-	return 501
-}
-
 func (o *GetInfraEnvDownloadURLNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLNotImplemented) GetPayload() *models.Error {
@@ -637,7 +579,7 @@ func (o *GetInfraEnvDownloadURLNotImplemented) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -683,19 +625,12 @@ func (o *GetInfraEnvDownloadURLServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the get infra env download Url service unavailable response
-func (o *GetInfraEnvDownloadURLServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *GetInfraEnvDownloadURLServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/image-url][%d] getInfraEnvDownloadUrlServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetInfraEnvDownloadURLServiceUnavailable) GetPayload() *models.Error {
@@ -707,7 +642,7 @@ func (o *GetInfraEnvDownloadURLServiceUnavailable) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

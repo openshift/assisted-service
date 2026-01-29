@@ -44,7 +44,7 @@ const (
 )
 
 // for schema
-var hostRoleUpdateParamsEnum []any
+var hostRoleUpdateParamsEnum []interface{}
 
 func init() {
 	var res []HostRoleUpdateParams

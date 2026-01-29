@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -75,15 +74,11 @@ func (m *VersionedHostRequirements) validateArbiterRequirements(formats strfmt.R
 
 	if m.ArbiterRequirements != nil {
 		if err := m.ArbiterRequirements.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("arbiter")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("arbiter")
 			}
-
 			return err
 		}
 	}
@@ -98,15 +93,11 @@ func (m *VersionedHostRequirements) validateEdgeWorkerRequirements(formats strfm
 
 	if m.EdgeWorkerRequirements != nil {
 		if err := m.EdgeWorkerRequirements.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("edge-worker")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("edge-worker")
 			}
-
 			return err
 		}
 	}
@@ -121,15 +112,11 @@ func (m *VersionedHostRequirements) validateMasterRequirements(formats strfmt.Re
 
 	if m.MasterRequirements != nil {
 		if err := m.MasterRequirements.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("master")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("master")
 			}
-
 			return err
 		}
 	}
@@ -144,15 +131,11 @@ func (m *VersionedHostRequirements) validateSNORequirements(formats strfmt.Regis
 
 	if m.SNORequirements != nil {
 		if err := m.SNORequirements.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("sno")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("sno")
 			}
-
 			return err
 		}
 	}
@@ -167,15 +150,11 @@ func (m *VersionedHostRequirements) validateWorkerRequirements(formats strfmt.Re
 
 	if m.WorkerRequirements != nil {
 		if err := m.WorkerRequirements.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("worker")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("worker")
 			}
-
 			return err
 		}
 	}
@@ -216,21 +195,12 @@ func (m *VersionedHostRequirements) ContextValidate(ctx context.Context, formats
 func (m *VersionedHostRequirements) contextValidateArbiterRequirements(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.ArbiterRequirements != nil {
-
-		if swag.IsZero(m.ArbiterRequirements) { // not required
-			return nil
-		}
-
 		if err := m.ArbiterRequirements.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("arbiter")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("arbiter")
 			}
-
 			return err
 		}
 	}
@@ -241,21 +211,12 @@ func (m *VersionedHostRequirements) contextValidateArbiterRequirements(ctx conte
 func (m *VersionedHostRequirements) contextValidateEdgeWorkerRequirements(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.EdgeWorkerRequirements != nil {
-
-		if swag.IsZero(m.EdgeWorkerRequirements) { // not required
-			return nil
-		}
-
 		if err := m.EdgeWorkerRequirements.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("edge-worker")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("edge-worker")
 			}
-
 			return err
 		}
 	}
@@ -266,21 +227,12 @@ func (m *VersionedHostRequirements) contextValidateEdgeWorkerRequirements(ctx co
 func (m *VersionedHostRequirements) contextValidateMasterRequirements(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.MasterRequirements != nil {
-
-		if swag.IsZero(m.MasterRequirements) { // not required
-			return nil
-		}
-
 		if err := m.MasterRequirements.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("master")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("master")
 			}
-
 			return err
 		}
 	}
@@ -291,21 +243,12 @@ func (m *VersionedHostRequirements) contextValidateMasterRequirements(ctx contex
 func (m *VersionedHostRequirements) contextValidateSNORequirements(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.SNORequirements != nil {
-
-		if swag.IsZero(m.SNORequirements) { // not required
-			return nil
-		}
-
 		if err := m.SNORequirements.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("sno")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("sno")
 			}
-
 			return err
 		}
 	}
@@ -316,21 +259,12 @@ func (m *VersionedHostRequirements) contextValidateSNORequirements(ctx context.C
 func (m *VersionedHostRequirements) contextValidateWorkerRequirements(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.WorkerRequirements != nil {
-
-		if swag.IsZero(m.WorkerRequirements) { // not required
-			return nil
-		}
-
 		if err := m.WorkerRequirements.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("worker")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("worker")
 			}
-
 			return err
 		}
 	}

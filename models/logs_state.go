@@ -47,7 +47,7 @@ const (
 )
 
 // for schema
-var logsStateEnum []any
+var logsStateEnum []interface{}
 
 func init() {
 	var res []LogsState

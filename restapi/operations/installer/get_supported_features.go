@@ -7,7 +7,6 @@ package installer
 
 import (
 	"context"
-	stderrors "errors"
 	"net/http"
 
 	"github.com/go-openapi/errors"
@@ -19,16 +18,16 @@ import (
 )
 
 // GetSupportedFeaturesHandlerFunc turns a function with the right signature into a get supported features handler
-type GetSupportedFeaturesHandlerFunc func(GetSupportedFeaturesParams, any) middleware.Responder
+type GetSupportedFeaturesHandlerFunc func(GetSupportedFeaturesParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetSupportedFeaturesHandlerFunc) Handle(params GetSupportedFeaturesParams, principal any) middleware.Responder {
+func (fn GetSupportedFeaturesHandlerFunc) Handle(params GetSupportedFeaturesParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetSupportedFeaturesHandler interface for that can handle valid get supported features params
 type GetSupportedFeaturesHandler interface {
-	Handle(GetSupportedFeaturesParams, any) middleware.Responder
+	Handle(GetSupportedFeaturesParams, interface{}) middleware.Responder
 }
 
 // NewGetSupportedFeatures creates a new http.Handler for the get supported features operation
@@ -60,9 +59,9 @@ func (o *GetSupportedFeatures) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -71,7 +70,6 @@ func (o *GetSupportedFeatures) ServeHTTP(rw http.ResponseWriter, r *http.Request
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -106,15 +104,11 @@ func (o *GetSupportedFeaturesOKBody) validateFeatures(formats strfmt.Registry) e
 
 	if o.Features != nil {
 		if err := o.Features.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("getSupportedFeaturesOK" + "." + "features")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("getSupportedFeaturesOK" + "." + "features")
 			}
-
 			return err
 		}
 	}
@@ -138,20 +132,12 @@ func (o *GetSupportedFeaturesOKBody) ContextValidate(ctx context.Context, format
 
 func (o *GetSupportedFeaturesOKBody) contextValidateFeatures(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(o.Features) { // not required
-		return nil
-	}
-
 	if err := o.Features.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("getSupportedFeaturesOK" + "." + "features")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("getSupportedFeaturesOK" + "." + "features")
 		}
-
 		return err
 	}
 

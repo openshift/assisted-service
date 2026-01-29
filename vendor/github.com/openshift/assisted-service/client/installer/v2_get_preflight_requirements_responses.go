@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetPreflightRequirementsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetPreflightRequirementsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetPreflightRequirementsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetPreflightRequirementsOK()
@@ -62,7 +60,7 @@ func (o *V2GetPreflightRequirementsReader) ReadResponse(response runtime.ClientR
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/preflight-requirements] v2GetPreflightRequirements", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -105,19 +103,12 @@ func (o *V2GetPreflightRequirementsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get preflight requirements o k response
-func (o *V2GetPreflightRequirementsOK) Code() int {
-	return 200
-}
-
 func (o *V2GetPreflightRequirementsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsOK) GetPayload() *models.PreflightHardwareRequirements {
@@ -129,7 +120,7 @@ func (o *V2GetPreflightRequirementsOK) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.PreflightHardwareRequirements)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -175,19 +166,12 @@ func (o *V2GetPreflightRequirementsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 get preflight requirements unauthorized response
-func (o *V2GetPreflightRequirementsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2GetPreflightRequirementsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsUnauthorized) GetPayload() *models.InfraError {
@@ -199,7 +183,7 @@ func (o *V2GetPreflightRequirementsUnauthorized) readResponse(response runtime.C
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -245,19 +229,12 @@ func (o *V2GetPreflightRequirementsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 get preflight requirements forbidden response
-func (o *V2GetPreflightRequirementsForbidden) Code() int {
-	return 403
-}
-
 func (o *V2GetPreflightRequirementsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsForbidden) GetPayload() *models.InfraError {
@@ -269,7 +246,7 @@ func (o *V2GetPreflightRequirementsForbidden) readResponse(response runtime.Clie
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -315,19 +292,12 @@ func (o *V2GetPreflightRequirementsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get preflight requirements not found response
-func (o *V2GetPreflightRequirementsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetPreflightRequirementsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsNotFound) GetPayload() *models.Error {
@@ -339,7 +309,7 @@ func (o *V2GetPreflightRequirementsNotFound) readResponse(response runtime.Clien
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -385,19 +355,12 @@ func (o *V2GetPreflightRequirementsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 get preflight requirements method not allowed response
-func (o *V2GetPreflightRequirementsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2GetPreflightRequirementsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsMethodNotAllowed) GetPayload() *models.Error {
@@ -409,7 +372,7 @@ func (o *V2GetPreflightRequirementsMethodNotAllowed) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -455,19 +418,12 @@ func (o *V2GetPreflightRequirementsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 get preflight requirements internal server error response
-func (o *V2GetPreflightRequirementsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetPreflightRequirementsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/preflight-requirements][%d] v2GetPreflightRequirementsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetPreflightRequirementsInternalServerError) GetPayload() *models.Error {
@@ -479,7 +435,7 @@ func (o *V2GetPreflightRequirementsInternalServerError) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

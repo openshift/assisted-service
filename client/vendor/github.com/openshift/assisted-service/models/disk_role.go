@@ -38,7 +38,7 @@ const (
 )
 
 // for schema
-var diskRoleEnum []any
+var diskRoleEnum []interface{}
 
 func init() {
 	var res []DiskRole

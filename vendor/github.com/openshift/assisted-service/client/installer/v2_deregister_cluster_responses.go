@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2DeregisterClusterReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2DeregisterClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 204:
 		result := NewV2DeregisterClusterNoContent()
@@ -68,7 +66,7 @@ func (o *V2DeregisterClusterReader) ReadResponse(response runtime.ClientResponse
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[DELETE /v2/clusters/{cluster_id}] v2DeregisterCluster", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -110,17 +108,12 @@ func (o *V2DeregisterClusterNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
-// Code gets the status code for the v2 deregister cluster no content response
-func (o *V2DeregisterClusterNoContent) Code() int {
-	return 204
-}
-
 func (o *V2DeregisterClusterNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNoContent", 204)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNoContent ", 204)
 }
 
 func (o *V2DeregisterClusterNoContent) String() string {
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNoContent", 204)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNoContent ", 204)
 }
 
 func (o *V2DeregisterClusterNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -167,19 +160,12 @@ func (o *V2DeregisterClusterUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 deregister cluster unauthorized response
-func (o *V2DeregisterClusterUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2DeregisterClusterUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeregisterClusterUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeregisterClusterUnauthorized) GetPayload() *models.InfraError {
@@ -191,7 +177,7 @@ func (o *V2DeregisterClusterUnauthorized) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -237,19 +223,12 @@ func (o *V2DeregisterClusterForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 deregister cluster forbidden response
-func (o *V2DeregisterClusterForbidden) Code() int {
-	return 403
-}
-
 func (o *V2DeregisterClusterForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeregisterClusterForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeregisterClusterForbidden) GetPayload() *models.InfraError {
@@ -261,7 +240,7 @@ func (o *V2DeregisterClusterForbidden) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -307,19 +286,12 @@ func (o *V2DeregisterClusterNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 deregister cluster not found response
-func (o *V2DeregisterClusterNotFound) Code() int {
-	return 404
-}
-
 func (o *V2DeregisterClusterNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeregisterClusterNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeregisterClusterNotFound) GetPayload() *models.Error {
@@ -331,7 +303,7 @@ func (o *V2DeregisterClusterNotFound) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -377,19 +349,12 @@ func (o *V2DeregisterClusterMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 deregister cluster method not allowed response
-func (o *V2DeregisterClusterMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2DeregisterClusterMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeregisterClusterMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeregisterClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -401,7 +366,7 @@ func (o *V2DeregisterClusterMethodNotAllowed) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -447,19 +412,12 @@ func (o *V2DeregisterClusterConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 deregister cluster conflict response
-func (o *V2DeregisterClusterConflict) Code() int {
-	return 409
-}
-
 func (o *V2DeregisterClusterConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterConflict %s", 409, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DeregisterClusterConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterConflict %s", 409, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DeregisterClusterConflict) GetPayload() *models.Error {
@@ -471,7 +429,7 @@ func (o *V2DeregisterClusterConflict) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -517,19 +475,12 @@ func (o *V2DeregisterClusterInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 deregister cluster internal server error response
-func (o *V2DeregisterClusterInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2DeregisterClusterInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeregisterClusterInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}][%d] v2DeregisterClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeregisterClusterInternalServerError) GetPayload() *models.Error {
@@ -541,7 +492,7 @@ func (o *V2DeregisterClusterInternalServerError) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

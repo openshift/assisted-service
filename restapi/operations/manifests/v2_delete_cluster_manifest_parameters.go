@@ -35,6 +35,7 @@ func NewV2DeleteClusterManifestParams() V2DeleteClusterManifestParams {
 //
 // swagger:parameters V2DeleteClusterManifest
 type V2DeleteClusterManifestParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -43,13 +44,11 @@ type V2DeleteClusterManifestParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The manifest file name to delete from the cluster.
 	  Required: true
 	  In: query
 	*/
 	FileName string
-
 	/*The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
 	  In: query
 	  Default: "manifests"
@@ -65,6 +64,7 @@ func (o *V2DeleteClusterManifestParams) BindRequest(r *http.Request, route *midd
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -111,7 +111,7 @@ func (o *V2DeleteClusterManifestParams) bindClusterID(rawData []string, hasKey b
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2DeleteClusterManifestParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -164,10 +164,10 @@ func (o *V2DeleteClusterManifestParams) bindFolder(rawData []string, hasKey bool
 	return nil
 }
 
-// validateFolder carries out validations for parameter Folder
+// validateFolder carries on validations for parameter Folder
 func (o *V2DeleteClusterManifestParams) validateFolder(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("folder", "query", *o.Folder, []any{"manifests", "openshift"}, true); err != nil {
+	if err := validate.EnumCase("folder", "query", *o.Folder, []interface{}{"manifests", "openshift"}, true); err != nil {
 		return err
 	}
 

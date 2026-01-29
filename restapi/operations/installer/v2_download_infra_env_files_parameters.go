@@ -28,6 +28,7 @@ func NewV2DownloadInfraEnvFilesParams() V2DownloadInfraEnvFilesParams {
 //
 // swagger:parameters v2DownloadInfraEnvFiles
 type V2DownloadInfraEnvFilesParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -35,24 +36,20 @@ type V2DownloadInfraEnvFilesParams struct {
 	  In: query
 	*/
 	DiscoveryIsoType *string
-
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
 	*/
 	FileName string
-
 	/*The infra-env whose file should be downloaded.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
-
 	/*Specify the script type to be served for iPXE.
 	  In: query
 	*/
 	IpxeScriptType *string
-
 	/*Mac address of the host running ipxe script.
 	  In: query
 	*/
@@ -67,6 +64,7 @@ func (o *V2DownloadInfraEnvFilesParams) BindRequest(r *http.Request, route *midd
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qDiscoveryIsoType, qhkDiscoveryIsoType, _ := qs.GetOK("discovery_iso_type")
@@ -121,10 +119,10 @@ func (o *V2DownloadInfraEnvFilesParams) bindDiscoveryIsoType(rawData []string, h
 	return nil
 }
 
-// validateDiscoveryIsoType carries out validations for parameter DiscoveryIsoType
+// validateDiscoveryIsoType carries on validations for parameter DiscoveryIsoType
 func (o *V2DownloadInfraEnvFilesParams) validateDiscoveryIsoType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("discovery_iso_type", "query", *o.DiscoveryIsoType, []any{"full-iso", "minimal-iso", "disconnected-iso"}, true); err != nil {
+	if err := validate.EnumCase("discovery_iso_type", "query", *o.DiscoveryIsoType, []interface{}{"full-iso", "minimal-iso", "disconnected-iso"}, true); err != nil {
 		return err
 	}
 
@@ -156,10 +154,10 @@ func (o *V2DownloadInfraEnvFilesParams) bindFileName(rawData []string, hasKey bo
 	return nil
 }
 
-// validateFileName carries out validations for parameter FileName
+// validateFileName carries on validations for parameter FileName
 func (o *V2DownloadInfraEnvFilesParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []any{"discovery.ign", "ipxe-script", "static-network-config"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"discovery.ign", "ipxe-script", "static-network-config"}, true); err != nil {
 		return err
 	}
 
@@ -190,7 +188,7 @@ func (o *V2DownloadInfraEnvFilesParams) bindInfraEnvID(rawData []string, hasKey 
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2DownloadInfraEnvFilesParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {
@@ -221,10 +219,10 @@ func (o *V2DownloadInfraEnvFilesParams) bindIpxeScriptType(rawData []string, has
 	return nil
 }
 
-// validateIpxeScriptType carries out validations for parameter IpxeScriptType
+// validateIpxeScriptType carries on validations for parameter IpxeScriptType
 func (o *V2DownloadInfraEnvFilesParams) validateIpxeScriptType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("ipxe_script_type", "query", *o.IpxeScriptType, []any{"discovery-image-always", "boot-order-control"}, true); err != nil {
+	if err := validate.EnumCase("ipxe_script_type", "query", *o.IpxeScriptType, []interface{}{"discovery-image-always", "boot-order-control"}, true); err != nil {
 		return err
 	}
 
@@ -259,7 +257,7 @@ func (o *V2DownloadInfraEnvFilesParams) bindMac(rawData []string, hasKey bool, f
 	return nil
 }
 
-// validateMac carries out validations for parameter Mac
+// validateMac carries on validations for parameter Mac
 func (o *V2DownloadInfraEnvFilesParams) validateMac(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("mac", "query", "mac", o.Mac.String(), formats); err != nil {

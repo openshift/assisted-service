@@ -6,7 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	stderrors "errors"
 	"io"
 	"net/http"
 
@@ -31,6 +30,7 @@ func NewV2RegisterClusterParams() V2RegisterClusterParams {
 //
 // swagger:parameters v2RegisterCluster
 type V2RegisterClusterParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -51,12 +51,10 @@ func (o *V2RegisterClusterParams) BindRequest(r *http.Request, route *middleware
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
-		defer func() {
-			_ = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		var body models.ClusterCreateParams
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
-			if stderrors.Is(err, io.EOF) {
+			if err == io.EOF {
 				res = append(res, errors.Required("newClusterParams", "body", ""))
 			} else {
 				res = append(res, errors.NewParseError("newClusterParams", "body", "", err))

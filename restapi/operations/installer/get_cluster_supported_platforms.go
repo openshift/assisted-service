@@ -12,16 +12,16 @@ import (
 )
 
 // GetClusterSupportedPlatformsHandlerFunc turns a function with the right signature into a get cluster supported platforms handler
-type GetClusterSupportedPlatformsHandlerFunc func(GetClusterSupportedPlatformsParams, any) middleware.Responder
+type GetClusterSupportedPlatformsHandlerFunc func(GetClusterSupportedPlatformsParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetClusterSupportedPlatformsHandlerFunc) Handle(params GetClusterSupportedPlatformsParams, principal any) middleware.Responder {
+func (fn GetClusterSupportedPlatformsHandlerFunc) Handle(params GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetClusterSupportedPlatformsHandler interface for that can handle valid get cluster supported platforms params
 type GetClusterSupportedPlatformsHandler interface {
-	Handle(GetClusterSupportedPlatformsParams, any) middleware.Responder
+	Handle(GetClusterSupportedPlatformsParams, interface{}) middleware.Responder
 }
 
 // NewGetClusterSupportedPlatforms creates a new http.Handler for the get cluster supported platforms operation
@@ -53,9 +53,9 @@ func (o *GetClusterSupportedPlatforms) ServeHTTP(rw http.ResponseWriter, r *http
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *GetClusterSupportedPlatforms) ServeHTTP(rw http.ResponseWriter, r *http
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

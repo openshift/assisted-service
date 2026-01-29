@@ -30,7 +30,7 @@ type LoadBalancer struct {
 	// API and ingress VIPs to it. Note that this configuration needs to be completed before starting the
 	// installation of the cluster, as it is needed during the installation process.
 	//
-	// Enum: ["cluster-managed","user-managed"]
+	// Enum: [cluster-managed user-managed]
 	Type string `json:"type,omitempty" gorm:"not null;check:load_balancer_type in ('cluster-managed', 'user-managed');default:'cluster-managed'"`
 }
 
@@ -48,7 +48,7 @@ func (m *LoadBalancer) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var loadBalancerTypeTypePropEnum []any
+var loadBalancerTypeTypePropEnum []interface{}
 
 func init() {
 	var res []string

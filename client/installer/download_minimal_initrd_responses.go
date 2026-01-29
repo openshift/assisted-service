@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -24,7 +22,7 @@ type DownloadMinimalInitrdReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *DownloadMinimalInitrdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *DownloadMinimalInitrdReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewDownloadMinimalInitrdOK(o.writer)
@@ -75,7 +73,7 @@ func (o *DownloadMinimalInitrdReader) ReadResponse(response runtime.ClientRespon
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd] DownloadMinimalInitrd", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -121,17 +119,12 @@ func (o *DownloadMinimalInitrdOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the download minimal initrd o k response
-func (o *DownloadMinimalInitrdOK) Code() int {
-	return 200
-}
-
 func (o *DownloadMinimalInitrdOK) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdOK", 200)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdOK) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdOK", 200)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdOK) GetPayload() io.Writer {
@@ -141,7 +134,7 @@ func (o *DownloadMinimalInitrdOK) GetPayload() io.Writer {
 func (o *DownloadMinimalInitrdOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -186,17 +179,12 @@ func (o *DownloadMinimalInitrdNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
-// Code gets the status code for the download minimal initrd no content response
-func (o *DownloadMinimalInitrdNoContent) Code() int {
-	return 204
-}
-
 func (o *DownloadMinimalInitrdNoContent) Error() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNoContent", 204)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNoContent ", 204)
 }
 
 func (o *DownloadMinimalInitrdNoContent) String() string {
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNoContent", 204)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNoContent ", 204)
 }
 
 func (o *DownloadMinimalInitrdNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -243,19 +231,12 @@ func (o *DownloadMinimalInitrdUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the download minimal initrd unauthorized response
-func (o *DownloadMinimalInitrdUnauthorized) Code() int {
-	return 401
-}
-
 func (o *DownloadMinimalInitrdUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdUnauthorized) GetPayload() *models.InfraError {
@@ -267,7 +248,7 @@ func (o *DownloadMinimalInitrdUnauthorized) readResponse(response runtime.Client
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -313,19 +294,12 @@ func (o *DownloadMinimalInitrdForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the download minimal initrd forbidden response
-func (o *DownloadMinimalInitrdForbidden) Code() int {
-	return 403
-}
-
 func (o *DownloadMinimalInitrdForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdForbidden) GetPayload() *models.InfraError {
@@ -337,7 +311,7 @@ func (o *DownloadMinimalInitrdForbidden) readResponse(response runtime.ClientRes
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -383,19 +357,12 @@ func (o *DownloadMinimalInitrdNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the download minimal initrd not found response
-func (o *DownloadMinimalInitrdNotFound) Code() int {
-	return 404
-}
-
 func (o *DownloadMinimalInitrdNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdNotFound) GetPayload() *models.Error {
@@ -407,7 +374,7 @@ func (o *DownloadMinimalInitrdNotFound) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -453,19 +420,12 @@ func (o *DownloadMinimalInitrdMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the download minimal initrd method not allowed response
-func (o *DownloadMinimalInitrdMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *DownloadMinimalInitrdMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdMethodNotAllowed) GetPayload() *models.Error {
@@ -477,7 +437,7 @@ func (o *DownloadMinimalInitrdMethodNotAllowed) readResponse(response runtime.Cl
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -523,19 +483,12 @@ func (o *DownloadMinimalInitrdConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the download minimal initrd conflict response
-func (o *DownloadMinimalInitrdConflict) Code() int {
-	return 409
-}
-
 func (o *DownloadMinimalInitrdConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdConflict) GetPayload() *models.Error {
@@ -547,7 +500,7 @@ func (o *DownloadMinimalInitrdConflict) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -593,19 +546,12 @@ func (o *DownloadMinimalInitrdInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the download minimal initrd internal server error response
-func (o *DownloadMinimalInitrdInternalServerError) Code() int {
-	return 500
-}
-
 func (o *DownloadMinimalInitrdInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/minimal-initrd][%d] downloadMinimalInitrdInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadMinimalInitrdInternalServerError) GetPayload() *models.Error {
@@ -617,7 +563,7 @@ func (o *DownloadMinimalInitrdInternalServerError) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

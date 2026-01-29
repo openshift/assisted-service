@@ -12,16 +12,16 @@ import (
 )
 
 // V2UpdateClusterInstallConfigHandlerFunc turns a function with the right signature into a v2 update cluster install config handler
-type V2UpdateClusterInstallConfigHandlerFunc func(V2UpdateClusterInstallConfigParams, any) middleware.Responder
+type V2UpdateClusterInstallConfigHandlerFunc func(V2UpdateClusterInstallConfigParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UpdateClusterInstallConfigHandlerFunc) Handle(params V2UpdateClusterInstallConfigParams, principal any) middleware.Responder {
+func (fn V2UpdateClusterInstallConfigHandlerFunc) Handle(params V2UpdateClusterInstallConfigParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UpdateClusterInstallConfigHandler interface for that can handle valid v2 update cluster install config params
 type V2UpdateClusterInstallConfigHandler interface {
-	Handle(V2UpdateClusterInstallConfigParams, any) middleware.Responder
+	Handle(V2UpdateClusterInstallConfigParams, interface{}) middleware.Responder
 }
 
 // NewV2UpdateClusterInstallConfig creates a new http.Handler for the v2 update cluster install config operation
@@ -53,9 +53,9 @@ func (o *V2UpdateClusterInstallConfig) ServeHTTP(rw http.ResponseWriter, r *http
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2UpdateClusterInstallConfig) ServeHTTP(rw http.ResponseWriter, r *http
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

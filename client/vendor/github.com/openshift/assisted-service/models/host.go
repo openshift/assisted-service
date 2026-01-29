@@ -8,17 +8,14 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 	"strconv"
-
 	timeext "time"
-
-	"gorm.io/gorm"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"gorm.io/gorm"
 )
 
 // Host host
@@ -118,7 +115,7 @@ type Host struct {
 	// 'AddToExistingClusterHost' for host being added to existing OCP cluster, or
 	//
 	// Required: true
-	// Enum: ["Host","AddToExistingClusterHost"]
+	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`
 
 	// logs collected at
@@ -136,7 +133,7 @@ type Host struct {
 	MachineConfigPoolName string `json:"machine_config_pool_name,omitempty"`
 
 	// media status
-	// Enum: ["connected","disconnected"]
+	// Enum: [connected disconnected]
 	MediaStatus *string `json:"media_status,omitempty"`
 
 	// Json containing node's labels.
@@ -175,7 +172,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: ["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-failed","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled","binding","unbinding","unbinding-pending-user-action","known-unbound","disconnected-unbound","insufficient-unbound","disabled-unbound","discovering-unbound","reclaiming","reclaiming-rebooting"]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-failed preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled binding unbinding unbinding-pending-user-action known-unbound disconnected-unbound insufficient-unbound disabled-unbound discovering-unbound reclaiming reclaiming-rebooting]
 	Status *string `json:"status"`
 
 	// status info
@@ -374,7 +371,7 @@ func (m *Host) validateInfraEnvID(formats strfmt.Registry) error {
 	return nil
 }
 
-var hostTypeKindPropEnum []any
+var hostTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -435,15 +432,11 @@ func (m *Host) validateLogsInfo(formats strfmt.Registry) error {
 	}
 
 	if err := m.LogsInfo.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("logs_info")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("logs_info")
 		}
-
 		return err
 	}
 
@@ -462,7 +455,7 @@ func (m *Host) validateLogsStartedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-var hostTypeMediaStatusPropEnum []any
+var hostTypeMediaStatusPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -511,15 +504,11 @@ func (m *Host) validateProgress(formats strfmt.Registry) error {
 
 	if m.Progress != nil {
 		if err := m.Progress.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress")
 			}
-
 			return err
 		}
 	}
@@ -535,15 +524,11 @@ func (m *Host) validateProgressStages(formats strfmt.Registry) error {
 	for i := 0; i < len(m.ProgressStages); i++ {
 
 		if err := m.ProgressStages[i].Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress_stages" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress_stages" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -570,15 +555,11 @@ func (m *Host) validateRole(formats strfmt.Registry) error {
 	}
 
 	if err := m.Role.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("role")
 		}
-
 		return err
 	}
 
@@ -609,7 +590,7 @@ func (m *Host) validateStageUpdatedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-var hostTypeStatusPropEnum []any
+var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -757,15 +738,11 @@ func (m *Host) validateSuggestedRole(formats strfmt.Registry) error {
 	}
 
 	if err := m.SuggestedRole.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("suggested_role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("suggested_role")
 		}
-
 		return err
 	}
 
@@ -816,20 +793,12 @@ func (m *Host) ContextValidate(ctx context.Context, formats strfmt.Registry) err
 
 func (m *Host) contextValidateLogsInfo(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.LogsInfo) { // not required
-		return nil
-	}
-
 	if err := m.LogsInfo.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("logs_info")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("logs_info")
 		}
-
 		return err
 	}
 
@@ -839,21 +808,12 @@ func (m *Host) contextValidateLogsInfo(ctx context.Context, formats strfmt.Regis
 func (m *Host) contextValidateProgress(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Progress != nil {
-
-		if swag.IsZero(m.Progress) { // not required
-			return nil
-		}
-
 		if err := m.Progress.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress")
 			}
-
 			return err
 		}
 	}
@@ -865,20 +825,12 @@ func (m *Host) contextValidateProgressStages(ctx context.Context, formats strfmt
 
 	for i := 0; i < len(m.ProgressStages); i++ {
 
-		if swag.IsZero(m.ProgressStages[i]) { // not required
-			return nil
-		}
-
 		if err := m.ProgressStages[i].ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress_stages" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress_stages" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -889,20 +841,12 @@ func (m *Host) contextValidateProgressStages(ctx context.Context, formats strfmt
 
 func (m *Host) contextValidateRole(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Role) { // not required
-		return nil
-	}
-
 	if err := m.Role.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("role")
 		}
-
 		return err
 	}
 
@@ -911,20 +855,12 @@ func (m *Host) contextValidateRole(ctx context.Context, formats strfmt.Registry)
 
 func (m *Host) contextValidateSuggestedRole(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.SuggestedRole) { // not required
-		return nil
-	}
-
 	if err := m.SuggestedRole.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("suggested_role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("suggested_role")
 		}
-
 		return err
 	}
 

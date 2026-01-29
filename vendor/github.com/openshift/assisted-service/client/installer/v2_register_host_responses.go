@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2RegisterHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2RegisterHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2RegisterHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2RegisterHostCreated()
@@ -86,7 +84,7 @@ func (o *V2RegisterHostReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/infra-envs/{infra_env_id}/hosts] v2RegisterHost", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -129,19 +127,12 @@ func (o *V2RegisterHostCreated) IsCode(code int) bool {
 	return code == 201
 }
 
-// Code gets the status code for the v2 register host created response
-func (o *V2RegisterHostCreated) Code() int {
-	return 201
-}
-
 func (o *V2RegisterHostCreated) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2RegisterHostCreated) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2RegisterHostCreated) GetPayload() *models.HostRegistrationResponse {
@@ -153,7 +144,7 @@ func (o *V2RegisterHostCreated) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.HostRegistrationResponse)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -199,19 +190,12 @@ func (o *V2RegisterHostBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 register host bad request response
-func (o *V2RegisterHostBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2RegisterHostBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2RegisterHostBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2RegisterHostBadRequest) GetPayload() *models.Error {
@@ -223,7 +207,7 @@ func (o *V2RegisterHostBadRequest) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -269,19 +253,12 @@ func (o *V2RegisterHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 register host unauthorized response
-func (o *V2RegisterHostUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2RegisterHostUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2RegisterHostUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2RegisterHostUnauthorized) GetPayload() *models.InfraError {
@@ -293,7 +270,7 @@ func (o *V2RegisterHostUnauthorized) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -339,19 +316,12 @@ func (o *V2RegisterHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 register host forbidden response
-func (o *V2RegisterHostForbidden) Code() int {
-	return 403
-}
-
 func (o *V2RegisterHostForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2RegisterHostForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2RegisterHostForbidden) GetPayload() *models.InfraError {
@@ -363,7 +333,7 @@ func (o *V2RegisterHostForbidden) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -409,19 +379,12 @@ func (o *V2RegisterHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 register host not found response
-func (o *V2RegisterHostNotFound) Code() int {
-	return 404
-}
-
 func (o *V2RegisterHostNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2RegisterHostNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2RegisterHostNotFound) GetPayload() *models.Error {
@@ -433,7 +396,7 @@ func (o *V2RegisterHostNotFound) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -479,19 +442,12 @@ func (o *V2RegisterHostMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 register host method not allowed response
-func (o *V2RegisterHostMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2RegisterHostMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2RegisterHostMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2RegisterHostMethodNotAllowed) GetPayload() *models.Error {
@@ -503,7 +459,7 @@ func (o *V2RegisterHostMethodNotAllowed) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -549,19 +505,12 @@ func (o *V2RegisterHostConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 register host conflict response
-func (o *V2RegisterHostConflict) Code() int {
-	return 409
-}
-
 func (o *V2RegisterHostConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2RegisterHostConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2RegisterHostConflict) GetPayload() *models.Error {
@@ -573,7 +522,7 @@ func (o *V2RegisterHostConflict) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -619,19 +568,12 @@ func (o *V2RegisterHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 register host internal server error response
-func (o *V2RegisterHostInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2RegisterHostInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2RegisterHostInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2RegisterHostInternalServerError) GetPayload() *models.Error {
@@ -643,7 +585,7 @@ func (o *V2RegisterHostInternalServerError) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -689,19 +631,12 @@ func (o *V2RegisterHostNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the v2 register host not implemented response
-func (o *V2RegisterHostNotImplemented) Code() int {
-	return 501
-}
-
 func (o *V2RegisterHostNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *V2RegisterHostNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *V2RegisterHostNotImplemented) GetPayload() *models.Error {
@@ -713,7 +648,7 @@ func (o *V2RegisterHostNotImplemented) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -759,19 +694,12 @@ func (o *V2RegisterHostServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the v2 register host service unavailable response
-func (o *V2RegisterHostServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2RegisterHostServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2RegisterHostServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs/{infra_env_id}/hosts][%d] v2RegisterHostServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2RegisterHostServiceUnavailable) GetPayload() *models.Error {
@@ -783,7 +711,7 @@ func (o *V2RegisterHostServiceUnavailable) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -54,15 +53,11 @@ func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
 	}
 
 	if err := m.ImageType.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("image_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("image_type")
 		}
-
 		return err
 	}
 
@@ -81,15 +76,11 @@ func (m *ImageCreateParams) validateStaticNetworkConfig(formats strfmt.Registry)
 
 		if m.StaticNetworkConfig[i] != nil {
 			if err := m.StaticNetworkConfig[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -119,20 +110,12 @@ func (m *ImageCreateParams) ContextValidate(ctx context.Context, formats strfmt.
 
 func (m *ImageCreateParams) contextValidateImageType(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.ImageType) { // not required
-		return nil
-	}
-
 	if err := m.ImageType.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("image_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("image_type")
 		}
-
 		return err
 	}
 
@@ -144,21 +127,12 @@ func (m *ImageCreateParams) contextValidateStaticNetworkConfig(ctx context.Conte
 	for i := 0; i < len(m.StaticNetworkConfig); i++ {
 
 		if m.StaticNetworkConfig[i] != nil {
-
-			if swag.IsZero(m.StaticNetworkConfig[i]) { // not required
-				return nil
-			}
-
 			if err := m.StaticNetworkConfig[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("static_network_config" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("static_network_config" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

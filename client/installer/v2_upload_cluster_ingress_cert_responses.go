@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2UploadClusterIngressCertReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UploadClusterIngressCertReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2UploadClusterIngressCertReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2UploadClusterIngressCertCreated()
@@ -74,7 +72,7 @@ func (o *V2UploadClusterIngressCertReader) ReadResponse(response runtime.ClientR
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert] v2UploadClusterIngressCert", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -116,17 +114,12 @@ func (o *V2UploadClusterIngressCertCreated) IsCode(code int) bool {
 	return code == 201
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert created response
-func (o *V2UploadClusterIngressCertCreated) Code() int {
-	return 201
-}
-
 func (o *V2UploadClusterIngressCertCreated) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertCreated", 201)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertCreated ", 201)
 }
 
 func (o *V2UploadClusterIngressCertCreated) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertCreated", 201)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertCreated ", 201)
 }
 
 func (o *V2UploadClusterIngressCertCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -173,19 +166,12 @@ func (o *V2UploadClusterIngressCertBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert bad request response
-func (o *V2UploadClusterIngressCertBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2UploadClusterIngressCertBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertBadRequest) GetPayload() *models.Error {
@@ -197,7 +183,7 @@ func (o *V2UploadClusterIngressCertBadRequest) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -243,19 +229,12 @@ func (o *V2UploadClusterIngressCertUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert unauthorized response
-func (o *V2UploadClusterIngressCertUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2UploadClusterIngressCertUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertUnauthorized) GetPayload() *models.InfraError {
@@ -267,7 +246,7 @@ func (o *V2UploadClusterIngressCertUnauthorized) readResponse(response runtime.C
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -313,19 +292,12 @@ func (o *V2UploadClusterIngressCertForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert forbidden response
-func (o *V2UploadClusterIngressCertForbidden) Code() int {
-	return 403
-}
-
 func (o *V2UploadClusterIngressCertForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertForbidden) GetPayload() *models.InfraError {
@@ -337,7 +309,7 @@ func (o *V2UploadClusterIngressCertForbidden) readResponse(response runtime.Clie
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -383,19 +355,12 @@ func (o *V2UploadClusterIngressCertNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert not found response
-func (o *V2UploadClusterIngressCertNotFound) Code() int {
-	return 404
-}
-
 func (o *V2UploadClusterIngressCertNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertNotFound) GetPayload() *models.Error {
@@ -407,7 +372,7 @@ func (o *V2UploadClusterIngressCertNotFound) readResponse(response runtime.Clien
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -453,19 +418,12 @@ func (o *V2UploadClusterIngressCertMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert method not allowed response
-func (o *V2UploadClusterIngressCertMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2UploadClusterIngressCertMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertMethodNotAllowed) GetPayload() *models.Error {
@@ -477,7 +435,7 @@ func (o *V2UploadClusterIngressCertMethodNotAllowed) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -523,19 +481,12 @@ func (o *V2UploadClusterIngressCertInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert internal server error response
-func (o *V2UploadClusterIngressCertInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2UploadClusterIngressCertInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertInternalServerError) GetPayload() *models.Error {
@@ -547,7 +498,7 @@ func (o *V2UploadClusterIngressCertInternalServerError) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -593,19 +544,12 @@ func (o *V2UploadClusterIngressCertServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the v2 upload cluster ingress cert service unavailable response
-func (o *V2UploadClusterIngressCertServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2UploadClusterIngressCertServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/uploads/ingress-cert][%d] v2UploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2UploadClusterIngressCertServiceUnavailable) GetPayload() *models.Error {
@@ -617,7 +561,7 @@ func (o *V2UploadClusterIngressCertServiceUnavailable) readResponse(response run
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

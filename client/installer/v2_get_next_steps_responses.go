@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetNextStepsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetNextStepsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetNextStepsOK()
@@ -74,7 +72,7 @@ func (o *V2GetNextStepsReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions] v2GetNextSteps", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -117,19 +115,12 @@ func (o *V2GetNextStepsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get next steps o k response
-func (o *V2GetNextStepsOK) Code() int {
-	return 200
-}
-
 func (o *V2GetNextStepsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetNextStepsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetNextStepsOK) GetPayload() *models.Steps {
@@ -141,7 +132,7 @@ func (o *V2GetNextStepsOK) readResponse(response runtime.ClientResponse, consume
 	o.Payload = new(models.Steps)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +178,12 @@ func (o *V2GetNextStepsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 get next steps unauthorized response
-func (o *V2GetNextStepsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2GetNextStepsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetNextStepsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetNextStepsUnauthorized) GetPayload() *models.InfraError {
@@ -211,7 +195,7 @@ func (o *V2GetNextStepsUnauthorized) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +241,12 @@ func (o *V2GetNextStepsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 get next steps forbidden response
-func (o *V2GetNextStepsForbidden) Code() int {
-	return 403
-}
-
 func (o *V2GetNextStepsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetNextStepsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetNextStepsForbidden) GetPayload() *models.InfraError {
@@ -281,7 +258,7 @@ func (o *V2GetNextStepsForbidden) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +304,12 @@ func (o *V2GetNextStepsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get next steps not found response
-func (o *V2GetNextStepsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetNextStepsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetNextStepsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetNextStepsNotFound) GetPayload() *models.Error {
@@ -351,7 +321,7 @@ func (o *V2GetNextStepsNotFound) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +367,12 @@ func (o *V2GetNextStepsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 get next steps method not allowed response
-func (o *V2GetNextStepsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2GetNextStepsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetNextStepsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetNextStepsMethodNotAllowed) GetPayload() *models.Error {
@@ -421,7 +384,7 @@ func (o *V2GetNextStepsMethodNotAllowed) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +430,12 @@ func (o *V2GetNextStepsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 get next steps internal server error response
-func (o *V2GetNextStepsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetNextStepsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetNextStepsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetNextStepsInternalServerError) GetPayload() *models.Error {
@@ -491,7 +447,7 @@ func (o *V2GetNextStepsInternalServerError) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +493,12 @@ func (o *V2GetNextStepsNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the v2 get next steps not implemented response
-func (o *V2GetNextStepsNotImplemented) Code() int {
-	return 501
-}
-
 func (o *V2GetNextStepsNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *V2GetNextStepsNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *V2GetNextStepsNotImplemented) GetPayload() *models.Error {
@@ -561,7 +510,7 @@ func (o *V2GetNextStepsNotImplemented) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +556,12 @@ func (o *V2GetNextStepsServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the v2 get next steps service unavailable response
-func (o *V2GetNextStepsServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2GetNextStepsServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2GetNextStepsServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions][%d] v2GetNextStepsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2GetNextStepsServiceUnavailable) GetPayload() *models.Error {
@@ -631,7 +573,7 @@ func (o *V2GetNextStepsServiceUnavailable) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

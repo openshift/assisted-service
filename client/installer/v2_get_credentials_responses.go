@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetCredentialsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetCredentialsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetCredentialsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetCredentialsOK()
@@ -68,7 +66,7 @@ func (o *V2GetCredentialsReader) ReadResponse(response runtime.ClientResponse, c
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/credentials] V2GetCredentials", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,17 +109,12 @@ func (o *V2GetCredentialsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get credentials o k response
-func (o *V2GetCredentialsOK) Code() int {
-	return 200
-}
-
 func (o *V2GetCredentialsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK <payload omitted>", 200)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetCredentialsOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK <payload omitted>", 200)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetCredentialsOK) GetPayload() *models.Credentials {
@@ -133,7 +126,7 @@ func (o *V2GetCredentialsOK) readResponse(response runtime.ClientResponse, consu
 	o.Payload = new(models.Credentials)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -179,19 +172,12 @@ func (o *V2GetCredentialsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 get credentials unauthorized response
-func (o *V2GetCredentialsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2GetCredentialsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetCredentialsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetCredentialsUnauthorized) GetPayload() *models.InfraError {
@@ -203,7 +189,7 @@ func (o *V2GetCredentialsUnauthorized) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -249,19 +235,12 @@ func (o *V2GetCredentialsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 get credentials forbidden response
-func (o *V2GetCredentialsForbidden) Code() int {
-	return 403
-}
-
 func (o *V2GetCredentialsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetCredentialsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetCredentialsForbidden) GetPayload() *models.InfraError {
@@ -273,7 +252,7 @@ func (o *V2GetCredentialsForbidden) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -319,19 +298,12 @@ func (o *V2GetCredentialsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get credentials not found response
-func (o *V2GetCredentialsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetCredentialsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetCredentialsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetCredentialsNotFound) GetPayload() *models.Error {
@@ -343,7 +315,7 @@ func (o *V2GetCredentialsNotFound) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -389,19 +361,12 @@ func (o *V2GetCredentialsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 get credentials method not allowed response
-func (o *V2GetCredentialsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2GetCredentialsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetCredentialsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetCredentialsMethodNotAllowed) GetPayload() *models.Error {
@@ -413,7 +378,7 @@ func (o *V2GetCredentialsMethodNotAllowed) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -459,19 +424,12 @@ func (o *V2GetCredentialsConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 get credentials conflict response
-func (o *V2GetCredentialsConflict) Code() int {
-	return 409
-}
-
 func (o *V2GetCredentialsConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2GetCredentialsConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2GetCredentialsConflict) GetPayload() *models.Error {
@@ -483,7 +441,7 @@ func (o *V2GetCredentialsConflict) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -529,19 +487,12 @@ func (o *V2GetCredentialsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 get credentials internal server error response
-func (o *V2GetCredentialsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetCredentialsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetCredentialsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetCredentialsInternalServerError) GetPayload() *models.Error {
@@ -553,7 +504,7 @@ func (o *V2GetCredentialsInternalServerError) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

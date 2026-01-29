@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2UploadLogsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UploadLogsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2UploadLogsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 204:
 		result := NewV2UploadLogsNoContent()
@@ -80,7 +78,7 @@ func (o *V2UploadLogsReader) ReadResponse(response runtime.ClientResponse, consu
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/logs] V2UploadLogs", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -122,17 +120,12 @@ func (o *V2UploadLogsNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
-// Code gets the status code for the v2 upload logs no content response
-func (o *V2UploadLogsNoContent) Code() int {
-	return 204
-}
-
 func (o *V2UploadLogsNoContent) Error() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNoContent", 204)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNoContent ", 204)
 }
 
 func (o *V2UploadLogsNoContent) String() string {
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNoContent", 204)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNoContent ", 204)
 }
 
 func (o *V2UploadLogsNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -179,19 +172,12 @@ func (o *V2UploadLogsBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 upload logs bad request response
-func (o *V2UploadLogsBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2UploadLogsBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UploadLogsBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UploadLogsBadRequest) GetPayload() *models.Error {
@@ -203,7 +189,7 @@ func (o *V2UploadLogsBadRequest) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -249,19 +235,12 @@ func (o *V2UploadLogsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 upload logs unauthorized response
-func (o *V2UploadLogsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2UploadLogsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UploadLogsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UploadLogsUnauthorized) GetPayload() *models.InfraError {
@@ -273,7 +252,7 @@ func (o *V2UploadLogsUnauthorized) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -319,19 +298,12 @@ func (o *V2UploadLogsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 upload logs forbidden response
-func (o *V2UploadLogsForbidden) Code() int {
-	return 403
-}
-
 func (o *V2UploadLogsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UploadLogsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UploadLogsForbidden) GetPayload() *models.InfraError {
@@ -343,7 +315,7 @@ func (o *V2UploadLogsForbidden) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -389,19 +361,12 @@ func (o *V2UploadLogsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 upload logs not found response
-func (o *V2UploadLogsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2UploadLogsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UploadLogsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UploadLogsNotFound) GetPayload() *models.Error {
@@ -413,7 +378,7 @@ func (o *V2UploadLogsNotFound) readResponse(response runtime.ClientResponse, con
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -459,19 +424,12 @@ func (o *V2UploadLogsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 upload logs method not allowed response
-func (o *V2UploadLogsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2UploadLogsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UploadLogsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UploadLogsMethodNotAllowed) GetPayload() *models.Error {
@@ -483,7 +441,7 @@ func (o *V2UploadLogsMethodNotAllowed) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -529,19 +487,12 @@ func (o *V2UploadLogsConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 upload logs conflict response
-func (o *V2UploadLogsConflict) Code() int {
-	return 409
-}
-
 func (o *V2UploadLogsConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2UploadLogsConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2UploadLogsConflict) GetPayload() *models.Error {
@@ -553,7 +504,7 @@ func (o *V2UploadLogsConflict) readResponse(response runtime.ClientResponse, con
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -599,19 +550,12 @@ func (o *V2UploadLogsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 upload logs internal server error response
-func (o *V2UploadLogsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2UploadLogsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UploadLogsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UploadLogsInternalServerError) GetPayload() *models.Error {
@@ -623,7 +567,7 @@ func (o *V2UploadLogsInternalServerError) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -669,19 +613,12 @@ func (o *V2UploadLogsServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the v2 upload logs service unavailable response
-func (o *V2UploadLogsServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2UploadLogsServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2UploadLogsServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/logs][%d] v2UploadLogsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2UploadLogsServiceUnavailable) GetPayload() *models.Error {
@@ -693,7 +630,7 @@ func (o *V2UploadLogsServiceUnavailable) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

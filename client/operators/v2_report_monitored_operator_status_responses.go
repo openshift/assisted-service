@@ -6,8 +6,6 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ReportMonitoredOperatorStatusReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ReportMonitoredOperatorStatusOK()
@@ -80,7 +78,7 @@ func (o *V2ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.Cl
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[PUT /v2/clusters/{cluster_id}/monitored-operators] v2ReportMonitoredOperatorStatus", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -122,17 +120,12 @@ func (o *V2ReportMonitoredOperatorStatusOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 report monitored operator status o k response
-func (o *V2ReportMonitoredOperatorStatusOK) Code() int {
-	return 200
-}
-
 func (o *V2ReportMonitoredOperatorStatusOK) Error() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusOK", 200)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusOK ", 200)
 }
 
 func (o *V2ReportMonitoredOperatorStatusOK) String() string {
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusOK", 200)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusOK ", 200)
 }
 
 func (o *V2ReportMonitoredOperatorStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -179,19 +172,12 @@ func (o *V2ReportMonitoredOperatorStatusBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 report monitored operator status bad request response
-func (o *V2ReportMonitoredOperatorStatusBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2ReportMonitoredOperatorStatusBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusBadRequest) GetPayload() *models.Error {
@@ -203,7 +189,7 @@ func (o *V2ReportMonitoredOperatorStatusBadRequest) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -249,19 +235,12 @@ func (o *V2ReportMonitoredOperatorStatusUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 report monitored operator status unauthorized response
-func (o *V2ReportMonitoredOperatorStatusUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2ReportMonitoredOperatorStatusUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusUnauthorized) GetPayload() *models.InfraError {
@@ -273,7 +252,7 @@ func (o *V2ReportMonitoredOperatorStatusUnauthorized) readResponse(response runt
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -319,19 +298,12 @@ func (o *V2ReportMonitoredOperatorStatusForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 report monitored operator status forbidden response
-func (o *V2ReportMonitoredOperatorStatusForbidden) Code() int {
-	return 403
-}
-
 func (o *V2ReportMonitoredOperatorStatusForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusForbidden %s", 403, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusForbidden %s", 403, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusForbidden) GetPayload() *models.InfraError {
@@ -343,7 +315,7 @@ func (o *V2ReportMonitoredOperatorStatusForbidden) readResponse(response runtime
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -389,19 +361,12 @@ func (o *V2ReportMonitoredOperatorStatusNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 report monitored operator status not found response
-func (o *V2ReportMonitoredOperatorStatusNotFound) Code() int {
-	return 404
-}
-
 func (o *V2ReportMonitoredOperatorStatusNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusNotFound %s", 404, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusNotFound %s", 404, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusNotFound) GetPayload() *models.Error {
@@ -413,7 +378,7 @@ func (o *V2ReportMonitoredOperatorStatusNotFound) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -459,19 +424,12 @@ func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) IsCode(code int) bool 
 	return code == 405
 }
 
-// Code gets the status code for the v2 report monitored operator status method not allowed response
-func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) GetPayload() *models.Error {
@@ -483,7 +441,7 @@ func (o *V2ReportMonitoredOperatorStatusMethodNotAllowed) readResponse(response 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -529,19 +487,12 @@ func (o *V2ReportMonitoredOperatorStatusConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 report monitored operator status conflict response
-func (o *V2ReportMonitoredOperatorStatusConflict) Code() int {
-	return 409
-}
-
 func (o *V2ReportMonitoredOperatorStatusConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusConflict %s", 409, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusConflict %s", 409, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusConflict) GetPayload() *models.Error {
@@ -553,7 +504,7 @@ func (o *V2ReportMonitoredOperatorStatusConflict) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -599,19 +550,12 @@ func (o *V2ReportMonitoredOperatorStatusInternalServerError) IsCode(code int) bo
 	return code == 500
 }
 
-// Code gets the status code for the v2 report monitored operator status internal server error response
-func (o *V2ReportMonitoredOperatorStatusInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2ReportMonitoredOperatorStatusInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusInternalServerError) GetPayload() *models.Error {
@@ -623,7 +567,7 @@ func (o *V2ReportMonitoredOperatorStatusInternalServerError) readResponse(respon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -669,19 +613,12 @@ func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) IsCode(code int) boo
 	return code == 503
 }
 
-// Code gets the status code for the v2 report monitored operator status service unavailable response
-func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[PUT /v2/clusters/{cluster_id}/monitored-operators][%d] v2ReportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() *models.Error {
@@ -693,7 +630,7 @@ func (o *V2ReportMonitoredOperatorStatusServiceUnavailable) readResponse(respons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

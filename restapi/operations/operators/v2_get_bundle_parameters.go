@@ -29,6 +29,7 @@ func NewV2GetBundleParams() V2GetBundleParams {
 //
 // swagger:parameters V2GetBundle
 type V2GetBundleParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,7 +38,6 @@ type V2GetBundleParams struct {
 	  Collection Format: multi
 	*/
 	FeatureIds []string
-
 	/*Identifier of the bundle, for example, `virtualization` or `openshift-ai`.
 	  Required: true
 	  In: path
@@ -53,6 +53,7 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qFeatureIds, qhkFeatureIds, _ := qs.GetOK("feature_ids")
@@ -84,7 +85,7 @@ func (o *V2GetBundleParams) bindFeatureIds(rawData []string, hasKey bool, format
 	for i, featureIdsIV := range featureIdsIC {
 		featureIdsI := featureIdsIV
 
-		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []any{"SNO"}, true); err != nil {
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "feature_ids", i), "query", featureIdsI, []interface{}{"SNO"}, true); err != nil {
 			return err
 		}
 

@@ -8,8 +8,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
-
 	timeext "time"
 
 	"github.com/go-openapi/errors"
@@ -37,7 +35,7 @@ type InfraEnv struct {
 	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"index"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
-	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x"]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// created at
@@ -75,7 +73,7 @@ type InfraEnv struct {
 
 	// Indicates the type of this object.
 	// Required: true
-	// Enum: ["InfraEnv"]
+	// Enum: [InfraEnv]
 	Kind *string `json:"kind"`
 
 	// Name of the infra-env.
@@ -197,7 +195,7 @@ func (m *InfraEnv) validateClusterID(formats strfmt.Registry) error {
 	return nil
 }
 
-var infraEnvTypeCPUArchitecturePropEnum []any
+var infraEnvTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -295,7 +293,7 @@ func (m *InfraEnv) validateID(formats strfmt.Registry) error {
 	return nil
 }
 
-var infraEnvTypeKindPropEnum []any
+var infraEnvTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -351,15 +349,11 @@ func (m *InfraEnv) validateProxy(formats strfmt.Registry) error {
 
 	if m.Proxy != nil {
 		if err := m.Proxy.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("proxy")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("proxy")
 			}
-
 			return err
 		}
 	}
@@ -403,15 +397,11 @@ func (m *InfraEnv) validateType(formats strfmt.Registry) error {
 
 	if m.Type != nil {
 		if err := m.Type.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("type")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("type")
 			}
-
 			return err
 		}
 	}
@@ -453,21 +443,12 @@ func (m *InfraEnv) ContextValidate(ctx context.Context, formats strfmt.Registry)
 func (m *InfraEnv) contextValidateProxy(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Proxy != nil {
-
-		if swag.IsZero(m.Proxy) { // not required
-			return nil
-		}
-
 		if err := m.Proxy.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("proxy")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("proxy")
 			}
-
 			return err
 		}
 	}
@@ -478,17 +459,12 @@ func (m *InfraEnv) contextValidateProxy(ctx context.Context, formats strfmt.Regi
 func (m *InfraEnv) contextValidateType(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Type != nil {
-
 		if err := m.Type.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("type")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("type")
 			}
-
 			return err
 		}
 	}

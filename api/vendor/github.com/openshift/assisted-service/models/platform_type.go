@@ -47,7 +47,7 @@ const (
 )
 
 // for schema
-var platformTypeEnum []any
+var platformTypeEnum []interface{}
 
 func init() {
 	var res []PlatformType

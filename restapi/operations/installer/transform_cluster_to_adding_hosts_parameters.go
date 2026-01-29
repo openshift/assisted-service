@@ -27,6 +27,7 @@ func NewTransformClusterToAddingHostsParams() TransformClusterToAddingHostsParam
 //
 // swagger:parameters TransformClusterToAddingHosts
 type TransformClusterToAddingHostsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -80,7 +81,7 @@ func (o *TransformClusterToAddingHostsParams) bindClusterID(rawData []string, ha
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *TransformClusterToAddingHostsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

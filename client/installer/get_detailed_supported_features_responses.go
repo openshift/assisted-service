@@ -7,8 +7,6 @@ package installer
 
 import (
 	"context"
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 	"strconv"
@@ -27,7 +25,7 @@ type GetDetailedSupportedFeaturesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetDetailedSupportedFeaturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *GetDetailedSupportedFeaturesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetDetailedSupportedFeaturesOK()
@@ -60,7 +58,7 @@ func (o *GetDetailedSupportedFeaturesReader) ReadResponse(response runtime.Clien
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/support-levels/features/detailed] GetDetailedSupportedFeatures", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -103,19 +101,12 @@ func (o *GetDetailedSupportedFeaturesOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the get detailed supported features o k response
-func (o *GetDetailedSupportedFeaturesOK) Code() int {
-	return 200
-}
-
 func (o *GetDetailedSupportedFeaturesOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesOK) GetPayload() *GetDetailedSupportedFeaturesOKBody {
@@ -127,7 +118,7 @@ func (o *GetDetailedSupportedFeaturesOK) readResponse(response runtime.ClientRes
 	o.Payload = new(GetDetailedSupportedFeaturesOKBody)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -173,19 +164,12 @@ func (o *GetDetailedSupportedFeaturesBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the get detailed supported features bad request response
-func (o *GetDetailedSupportedFeaturesBadRequest) Code() int {
-	return 400
-}
-
 func (o *GetDetailedSupportedFeaturesBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesBadRequest) GetPayload() *models.Error {
@@ -197,7 +181,7 @@ func (o *GetDetailedSupportedFeaturesBadRequest) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -243,19 +227,12 @@ func (o *GetDetailedSupportedFeaturesUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the get detailed supported features unauthorized response
-func (o *GetDetailedSupportedFeaturesUnauthorized) Code() int {
-	return 401
-}
-
 func (o *GetDetailedSupportedFeaturesUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesUnauthorized) GetPayload() *models.InfraError {
@@ -267,7 +244,7 @@ func (o *GetDetailedSupportedFeaturesUnauthorized) readResponse(response runtime
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -313,19 +290,12 @@ func (o *GetDetailedSupportedFeaturesForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the get detailed supported features forbidden response
-func (o *GetDetailedSupportedFeaturesForbidden) Code() int {
-	return 403
-}
-
 func (o *GetDetailedSupportedFeaturesForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesForbidden) GetPayload() *models.InfraError {
@@ -337,7 +307,7 @@ func (o *GetDetailedSupportedFeaturesForbidden) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -383,19 +353,12 @@ func (o *GetDetailedSupportedFeaturesInternalServerError) IsCode(code int) bool 
 	return code == 500
 }
 
-// Code gets the status code for the get detailed supported features internal server error response
-func (o *GetDetailedSupportedFeaturesInternalServerError) Code() int {
-	return 500
-}
-
 func (o *GetDetailedSupportedFeaturesInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/support-levels/features/detailed][%d] getDetailedSupportedFeaturesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetDetailedSupportedFeaturesInternalServerError) GetPayload() *models.Error {
@@ -407,7 +370,7 @@ func (o *GetDetailedSupportedFeaturesInternalServerError) readResponse(response 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -457,15 +420,11 @@ func (o *GetDetailedSupportedFeaturesOKBody) validateFeatures(formats strfmt.Reg
 
 		if o.Features[i] != nil {
 			if err := o.Features[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -487,15 +446,11 @@ func (o *GetDetailedSupportedFeaturesOKBody) validateOperators(formats strfmt.Re
 
 		if o.Operators[i] != nil {
 			if err := o.Operators[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -528,21 +483,12 @@ func (o *GetDetailedSupportedFeaturesOKBody) contextValidateFeatures(ctx context
 	for i := 0; i < len(o.Features); i++ {
 
 		if o.Features[i] != nil {
-
-			if swag.IsZero(o.Features[i]) { // not required
-				continue
-			}
-
 			if err := o.Features[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -557,21 +503,12 @@ func (o *GetDetailedSupportedFeaturesOKBody) contextValidateOperators(ctx contex
 	for i := 0; i < len(o.Operators); i++ {
 
 		if o.Operators[i] != nil {
-
-			if swag.IsZero(o.Operators[i]) { // not required
-				continue
-			}
-
 			if err := o.Operators[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

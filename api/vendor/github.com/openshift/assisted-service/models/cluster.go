@@ -8,17 +8,14 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 	"strconv"
-
 	timeext "time"
-
-	"gorm.io/gorm"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"gorm.io/gorm"
 )
 
 // Cluster cluster
@@ -69,7 +66,7 @@ type Cluster struct {
 	ControllerLogsStartedAt strfmt.DateTime `json:"controller_logs_started_at,omitempty" gorm:"type:timestamp with time zone"`
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
-	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x","multi"]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
 	// The time that this cluster was created.
@@ -94,7 +91,7 @@ type Cluster struct {
 	// (DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
 	//
-	// Enum: ["Full","None"]
+	// Enum: [Full None]
 	HighAvailabilityMode *string `json:"high_availability_mode,omitempty"`
 
 	// List of host networks to be filled during query.
@@ -118,7 +115,7 @@ type Cluster struct {
 	HTTPSProxy string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
 
 	// Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
-	// Enum: ["none","masters","arbiters","workers","masters,arbiters","masters,workers","arbiters,workers","masters,arbiters,workers","all"]
+	// Enum: [none masters arbiters workers masters,arbiters masters,workers arbiters,workers masters,arbiters,workers all]
 	Hyperthreading string `json:"hyperthreading,omitempty"`
 
 	// Unique identifier of the object.
@@ -172,7 +169,7 @@ type Cluster struct {
 	// 'DisconnectedCluster' for clusters with embedded ignition for offline installation,
 	//
 	// Required: true
-	// Enum: ["Cluster","AddHostsCluster","DisconnectedCluster"]
+	// Enum: [Cluster AddHostsCluster DisconnectedCluster]
 	Kind *string `json:"kind"`
 
 	// last installation preparation
@@ -205,7 +202,7 @@ type Cluster struct {
 	// - Calico: Tigera Calico CNI (requires custom manifests)
 	// - None: No CNI - user must provide custom CNI manifests
 	//
-	// Enum: ["OpenShiftSDN","OVNKubernetes","CiscoACI","Cilium","Calico","None"]
+	// Enum: [OpenShiftSDN OVNKubernetes CiscoACI Cilium Calico None]
 	NetworkType *string `json:"network_type,omitempty"`
 
 	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
@@ -259,7 +256,7 @@ type Cluster struct {
 
 	// Status of the OpenShift cluster.
 	// Required: true
-	// Enum: ["insufficient","ready","error","preparing-for-installation","pending-for-input","installing","finalizing","installed","adding-hosts","cancelled","installing-pending-user-action","unmonitored"]
+	// Enum: [insufficient ready error preparing-for-installation pending-for-input installing finalizing installed adding-hosts cancelled installing-pending-user-action unmonitored]
 	Status *string `json:"status"`
 
 	// Additional information pertaining to the status of the OpenShift cluster.
@@ -479,15 +476,11 @@ func (m *Cluster) validateAPIVips(formats strfmt.Registry) error {
 
 		if m.APIVips[i] != nil {
 			if err := m.APIVips[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("api_vips" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("api_vips" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -537,15 +530,11 @@ func (m *Cluster) validateClusterNetworks(formats strfmt.Registry) error {
 
 		if m.ClusterNetworks[i] != nil {
 			if err := m.ClusterNetworks[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -579,7 +568,7 @@ func (m *Cluster) validateControllerLogsStartedAt(formats strfmt.Registry) error
 	return nil
 }
 
-var clusterTypeCPUArchitecturePropEnum []any
+var clusterTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -652,15 +641,11 @@ func (m *Cluster) validateDiskEncryption(formats strfmt.Registry) error {
 
 	if m.DiskEncryption != nil {
 		if err := m.DiskEncryption.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("disk_encryption")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("disk_encryption")
 			}
-
 			return err
 		}
 	}
@@ -668,7 +653,7 @@ func (m *Cluster) validateDiskEncryption(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeHighAvailabilityModePropEnum []any
+var clusterTypeHighAvailabilityModePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -722,15 +707,11 @@ func (m *Cluster) validateHostNetworks(formats strfmt.Registry) error {
 
 		if m.HostNetworks[i] != nil {
 			if err := m.HostNetworks[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("host_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("host_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -752,15 +733,11 @@ func (m *Cluster) validateHosts(formats strfmt.Registry) error {
 
 		if m.Hosts[i] != nil {
 			if err := m.Hosts[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("hosts" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -779,7 +756,7 @@ func (m *Cluster) validateHref(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeHyperthreadingPropEnum []any
+var clusterTypeHyperthreadingPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -862,15 +839,11 @@ func (m *Cluster) validateIgnitionEndpoint(formats strfmt.Registry) error {
 
 	if m.IgnitionEndpoint != nil {
 		if err := m.IgnitionEndpoint.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ignition_endpoint")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("ignition_endpoint")
 			}
-
 			return err
 		}
 	}
@@ -886,15 +859,11 @@ func (m *Cluster) validateImageInfo(formats strfmt.Registry) error {
 
 	if m.ImageInfo != nil {
 		if err := m.ImageInfo.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("image_info")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("image_info")
 			}
-
 			return err
 		}
 	}
@@ -914,15 +883,11 @@ func (m *Cluster) validateIngressVips(formats strfmt.Registry) error {
 
 		if m.IngressVips[i] != nil {
 			if err := m.IngressVips[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -956,7 +921,7 @@ func (m *Cluster) validateInstallStartedAt(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeKindPropEnum []any
+var clusterTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -1008,15 +973,11 @@ func (m *Cluster) validateLastInstallationPreparation(formats strfmt.Registry) e
 	}
 
 	if err := m.LastInstallationPreparation.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("last-installation-preparation")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("last-installation-preparation")
 		}
-
 		return err
 	}
 
@@ -1030,15 +991,11 @@ func (m *Cluster) validateLoadBalancer(formats strfmt.Registry) error {
 
 	if m.LoadBalancer != nil {
 		if err := m.LoadBalancer.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("load_balancer")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("load_balancer")
 			}
-
 			return err
 		}
 	}
@@ -1052,15 +1009,11 @@ func (m *Cluster) validateLogsInfo(formats strfmt.Registry) error {
 	}
 
 	if err := m.LogsInfo.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("logs_info")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("logs_info")
 		}
-
 		return err
 	}
 
@@ -1091,15 +1044,11 @@ func (m *Cluster) validateMachineNetworks(formats strfmt.Registry) error {
 
 		if m.MachineNetworks[i] != nil {
 			if err := m.MachineNetworks[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("machine_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("machine_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1121,15 +1070,11 @@ func (m *Cluster) validateMonitoredOperators(formats strfmt.Registry) error {
 
 		if m.MonitoredOperators[i] != nil {
 			if err := m.MonitoredOperators[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("monitored_operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("monitored_operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1139,7 +1084,7 @@ func (m *Cluster) validateMonitoredOperators(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeNetworkTypePropEnum []any
+var clusterTypeNetworkTypePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -1212,15 +1157,11 @@ func (m *Cluster) validatePlatform(formats strfmt.Registry) error {
 
 	if m.Platform != nil {
 		if err := m.Platform.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("platform")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("platform")
 			}
-
 			return err
 		}
 	}
@@ -1235,15 +1176,11 @@ func (m *Cluster) validateProgress(formats strfmt.Registry) error {
 
 	if m.Progress != nil {
 		if err := m.Progress.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress")
 			}
-
 			return err
 		}
 	}
@@ -1275,15 +1212,11 @@ func (m *Cluster) validateServiceNetworks(formats strfmt.Registry) error {
 
 		if m.ServiceNetworks[i] != nil {
 			if err := m.ServiceNetworks[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1293,7 +1226,7 @@ func (m *Cluster) validateServiceNetworks(formats strfmt.Registry) error {
 	return nil
 }
 
-var clusterTypeStatusPropEnum []any
+var clusterTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -1478,21 +1411,12 @@ func (m *Cluster) contextValidateAPIVips(ctx context.Context, formats strfmt.Reg
 	for i := 0; i < len(m.APIVips); i++ {
 
 		if m.APIVips[i] != nil {
-
-			if swag.IsZero(m.APIVips[i]) { // not required
-				return nil
-			}
-
 			if err := m.APIVips[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("api_vips" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("api_vips" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1507,21 +1431,12 @@ func (m *Cluster) contextValidateClusterNetworks(ctx context.Context, formats st
 	for i := 0; i < len(m.ClusterNetworks); i++ {
 
 		if m.ClusterNetworks[i] != nil {
-
-			if swag.IsZero(m.ClusterNetworks[i]) { // not required
-				return nil
-			}
-
 			if err := m.ClusterNetworks[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1534,21 +1449,12 @@ func (m *Cluster) contextValidateClusterNetworks(ctx context.Context, formats st
 func (m *Cluster) contextValidateDiskEncryption(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.DiskEncryption != nil {
-
-		if swag.IsZero(m.DiskEncryption) { // not required
-			return nil
-		}
-
 		if err := m.DiskEncryption.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("disk_encryption")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("disk_encryption")
 			}
-
 			return err
 		}
 	}
@@ -1561,21 +1467,12 @@ func (m *Cluster) contextValidateHostNetworks(ctx context.Context, formats strfm
 	for i := 0; i < len(m.HostNetworks); i++ {
 
 		if m.HostNetworks[i] != nil {
-
-			if swag.IsZero(m.HostNetworks[i]) { // not required
-				return nil
-			}
-
 			if err := m.HostNetworks[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("host_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("host_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1590,21 +1487,12 @@ func (m *Cluster) contextValidateHosts(ctx context.Context, formats strfmt.Regis
 	for i := 0; i < len(m.Hosts); i++ {
 
 		if m.Hosts[i] != nil {
-
-			if swag.IsZero(m.Hosts[i]) { // not required
-				return nil
-			}
-
 			if err := m.Hosts[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("hosts" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("hosts" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1617,21 +1505,12 @@ func (m *Cluster) contextValidateHosts(ctx context.Context, formats strfmt.Regis
 func (m *Cluster) contextValidateIgnitionEndpoint(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.IgnitionEndpoint != nil {
-
-		if swag.IsZero(m.IgnitionEndpoint) { // not required
-			return nil
-		}
-
 		if err := m.IgnitionEndpoint.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ignition_endpoint")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("ignition_endpoint")
 			}
-
 			return err
 		}
 	}
@@ -1642,17 +1521,12 @@ func (m *Cluster) contextValidateIgnitionEndpoint(ctx context.Context, formats s
 func (m *Cluster) contextValidateImageInfo(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.ImageInfo != nil {
-
 		if err := m.ImageInfo.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("image_info")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("image_info")
 			}
-
 			return err
 		}
 	}
@@ -1665,21 +1539,12 @@ func (m *Cluster) contextValidateIngressVips(ctx context.Context, formats strfmt
 	for i := 0; i < len(m.IngressVips); i++ {
 
 		if m.IngressVips[i] != nil {
-
-			if swag.IsZero(m.IngressVips[i]) { // not required
-				return nil
-			}
-
 			if err := m.IngressVips[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("ingress_vips" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1691,20 +1556,12 @@ func (m *Cluster) contextValidateIngressVips(ctx context.Context, formats strfmt
 
 func (m *Cluster) contextValidateLastInstallationPreparation(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.LastInstallationPreparation) { // not required
-		return nil
-	}
-
 	if err := m.LastInstallationPreparation.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("last-installation-preparation")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("last-installation-preparation")
 		}
-
 		return err
 	}
 
@@ -1714,21 +1571,12 @@ func (m *Cluster) contextValidateLastInstallationPreparation(ctx context.Context
 func (m *Cluster) contextValidateLoadBalancer(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.LoadBalancer != nil {
-
-		if swag.IsZero(m.LoadBalancer) { // not required
-			return nil
-		}
-
 		if err := m.LoadBalancer.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("load_balancer")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("load_balancer")
 			}
-
 			return err
 		}
 	}
@@ -1738,20 +1586,12 @@ func (m *Cluster) contextValidateLoadBalancer(ctx context.Context, formats strfm
 
 func (m *Cluster) contextValidateLogsInfo(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.LogsInfo) { // not required
-		return nil
-	}
-
 	if err := m.LogsInfo.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("logs_info")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("logs_info")
 		}
-
 		return err
 	}
 
@@ -1763,21 +1603,12 @@ func (m *Cluster) contextValidateMachineNetworks(ctx context.Context, formats st
 	for i := 0; i < len(m.MachineNetworks); i++ {
 
 		if m.MachineNetworks[i] != nil {
-
-			if swag.IsZero(m.MachineNetworks[i]) { // not required
-				return nil
-			}
-
 			if err := m.MachineNetworks[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("machine_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("machine_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1792,21 +1623,12 @@ func (m *Cluster) contextValidateMonitoredOperators(ctx context.Context, formats
 	for i := 0; i < len(m.MonitoredOperators); i++ {
 
 		if m.MonitoredOperators[i] != nil {
-
-			if swag.IsZero(m.MonitoredOperators[i]) { // not required
-				return nil
-			}
-
 			if err := m.MonitoredOperators[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("monitored_operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("monitored_operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -1819,21 +1641,12 @@ func (m *Cluster) contextValidateMonitoredOperators(ctx context.Context, formats
 func (m *Cluster) contextValidatePlatform(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Platform != nil {
-
-		if swag.IsZero(m.Platform) { // not required
-			return nil
-		}
-
 		if err := m.Platform.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("platform")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("platform")
 			}
-
 			return err
 		}
 	}
@@ -1844,21 +1657,12 @@ func (m *Cluster) contextValidatePlatform(ctx context.Context, formats strfmt.Re
 func (m *Cluster) contextValidateProgress(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Progress != nil {
-
-		if swag.IsZero(m.Progress) { // not required
-			return nil
-		}
-
 		if err := m.Progress.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("progress")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("progress")
 			}
-
 			return err
 		}
 	}
@@ -1871,21 +1675,12 @@ func (m *Cluster) contextValidateServiceNetworks(ctx context.Context, formats st
 	for i := 0; i < len(m.ServiceNetworks); i++ {
 
 		if m.ServiceNetworks[i] != nil {
-
-			if swag.IsZero(m.ServiceNetworks[i]) { // not required
-				return nil
-			}
-
 			if err := m.ServiceNetworks[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

@@ -6,7 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	stderrors "errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -38,6 +37,7 @@ func NewV2UploadLogsParams() V2UploadLogsParams {
 //
 // swagger:parameters V2UploadLogs
 type V2UploadLogsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -46,23 +46,19 @@ type V2UploadLogsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The host whose logs should be uploaded.
 	  In: query
 	*/
 	HostID *strfmt.UUID
-
 	/*The infra-env ID of the host.
 	  In: query
 	*/
 	InfraEnvID *strfmt.UUID
-
 	/*The type of log file to be uploaded.
 	  Required: true
 	  In: query
 	*/
 	LogsType string
-
 	/*The log file to be uploaded.
 	  Max Length: 262144000
 	  In: formData
@@ -78,13 +74,14 @@ func (o *V2UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matc
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	if err := r.ParseMultipartForm(V2UploadLogsMaxParseMemory); err != nil {
-		if !stderrors.Is(err, http.ErrNotMultipart) {
+		if err != http.ErrNotMultipart {
 			return errors.New(400, "%v", err)
-		} else if errParse := r.ParseForm(); errParse != nil {
-			return errors.New(400, "%v", errParse)
+		} else if err := r.ParseForm(); err != nil {
+			return errors.New(400, "%v", err)
 		}
 	}
 
@@ -109,17 +106,14 @@ func (o *V2UploadLogsParams) BindRequest(r *http.Request, route *middleware.Matc
 	}
 
 	upfile, upfileHeader, err := r.FormFile("upfile")
-	if err != nil {
-		if !stderrors.Is(err, http.ErrMissingFile) {
-			res = append(res, errors.New(400, "reading file %q failed: %v", "upfile", err))
-		}
+	if err != nil && err != http.ErrMissingFile {
+		res = append(res, errors.New(400, "reading file %q failed: %v", "upfile", err))
+	} else if err == http.ErrMissingFile {
 		// no-op for missing but optional file parameter
+	} else if err := o.bindUpfile(upfile, upfileHeader); err != nil {
+		res = append(res, err)
 	} else {
-		if errBind := o.bindUpfile(upfile, upfileHeader); errBind != nil {
-			res = append(res, errBind)
-		} else {
-			o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
-		}
+		o.Upfile = &runtime.File{Data: upfile, Header: upfileHeader}
 	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
@@ -151,7 +145,7 @@ func (o *V2UploadLogsParams) bindClusterID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2UploadLogsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -188,7 +182,7 @@ func (o *V2UploadLogsParams) bindHostID(rawData []string, hasKey bool, formats s
 	return nil
 }
 
-// validateHostID carries out validations for parameter HostID
+// validateHostID carries on validations for parameter HostID
 func (o *V2UploadLogsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
@@ -225,7 +219,7 @@ func (o *V2UploadLogsParams) bindInfraEnvID(rawData []string, hasKey bool, forma
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2UploadLogsParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "query", "uuid", o.InfraEnvID.String(), formats); err != nil {
@@ -259,10 +253,10 @@ func (o *V2UploadLogsParams) bindLogsType(rawData []string, hasKey bool, formats
 	return nil
 }
 
-// validateLogsType carries out validations for parameter LogsType
+// validateLogsType carries on validations for parameter LogsType
 func (o *V2UploadLogsParams) validateLogsType(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("logs_type", "query", o.LogsType, []any{"host", "controller"}, true); err != nil {
+	if err := validate.EnumCase("logs_type", "query", o.LogsType, []interface{}{"host", "controller"}, true); err != nil {
 		return err
 	}
 

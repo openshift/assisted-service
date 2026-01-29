@@ -7,14 +7,13 @@ package versions
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery --name API --keeptree --with-expecter --case underscore
+//go:generate mockery -name API -inpkg
 
 // API is the interface of the versions client
 type API interface {
@@ -51,6 +50,7 @@ type Client struct {
 V2ListComponentVersions List of component versions.
 */
 func (a *Client) V2ListComponentVersions(ctx context.Context, params *V2ListComponentVersionsParams) (*V2ListComponentVersionsOK, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListComponentVersions",
 		Method:             "GET",
@@ -67,23 +67,15 @@ func (a *Client) V2ListComponentVersions(ctx context.Context, params *V2ListComp
 	if err != nil {
 		return nil, err
 	}
-	if value, ok := result.(*V2ListComponentVersionsOK); ok {
-		return value, nil
-	}
+	return result.(*V2ListComponentVersionsOK), nil
 
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for v2ListComponentVersions: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }
 
 /*
 V2ListReleaseSources Retrieves openshift release sources configuration.
 */
 func (a *Client) V2ListReleaseSources(ctx context.Context, params *V2ListReleaseSourcesParams) (*V2ListReleaseSourcesOK, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListReleaseSources",
 		Method:             "GET",
@@ -100,23 +92,15 @@ func (a *Client) V2ListReleaseSources(ctx context.Context, params *V2ListRelease
 	if err != nil {
 		return nil, err
 	}
-	if value, ok := result.(*V2ListReleaseSourcesOK); ok {
-		return value, nil
-	}
+	return result.(*V2ListReleaseSourcesOK), nil
 
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for v2ListReleaseSources: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }
 
 /*
 V2ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions.
 */
 func (a *Client) V2ListSupportedOpenshiftVersions(ctx context.Context, params *V2ListSupportedOpenshiftVersionsParams) (*V2ListSupportedOpenshiftVersionsOK, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListSupportedOpenshiftVersions",
 		Method:             "GET",
@@ -133,23 +117,6 @@ func (a *Client) V2ListSupportedOpenshiftVersions(ctx context.Context, params *V
 	if err != nil {
 		return nil, err
 	}
+	return result.(*V2ListSupportedOpenshiftVersionsOK), nil
 
-	switch value := result.(type) {
-	case *V2ListSupportedOpenshiftVersionsOK:
-		return value, nil
-	case *V2ListSupportedOpenshiftVersionsBadRequest:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListSupportedOpenshiftVersionsInternalServerError:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListSupportedOpenshiftVersionsServiceUnavailable:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	}
-
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for v2ListSupportedOpenshiftVersions: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }

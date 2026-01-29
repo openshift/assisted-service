@@ -7,14 +7,13 @@ package managed_domains
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery --name API --keeptree --with-expecter --case underscore
+//go:generate mockery -name API -inpkg
 
 // API is the interface of the managed domains client
 type API interface {
@@ -45,6 +44,7 @@ type Client struct {
 V2ListManagedDomains List of managed DNS domains.
 */
 func (a *Client) V2ListManagedDomains(ctx context.Context, params *V2ListManagedDomainsParams) (*V2ListManagedDomainsOK, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "V2ListManagedDomains",
 		Method:             "GET",
@@ -61,19 +61,6 @@ func (a *Client) V2ListManagedDomains(ctx context.Context, params *V2ListManaged
 	if err != nil {
 		return nil, err
 	}
+	return result.(*V2ListManagedDomainsOK), nil
 
-	switch value := result.(type) {
-	case *V2ListManagedDomainsOK:
-		return value, nil
-	case *V2ListManagedDomainsInternalServerError:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	}
-
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for V2ListManagedDomains: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }

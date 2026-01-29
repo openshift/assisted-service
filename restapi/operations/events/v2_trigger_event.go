@@ -12,16 +12,16 @@ import (
 )
 
 // V2TriggerEventHandlerFunc turns a function with the right signature into a v2 trigger event handler
-type V2TriggerEventHandlerFunc func(V2TriggerEventParams, any) middleware.Responder
+type V2TriggerEventHandlerFunc func(V2TriggerEventParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2TriggerEventHandlerFunc) Handle(params V2TriggerEventParams, principal any) middleware.Responder {
+func (fn V2TriggerEventHandlerFunc) Handle(params V2TriggerEventParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2TriggerEventHandler interface for that can handle valid v2 trigger event params
 type V2TriggerEventHandler interface {
-	Handle(V2TriggerEventParams, any) middleware.Responder
+	Handle(V2TriggerEventParams, interface{}) middleware.Responder
 }
 
 // NewV2TriggerEvent creates a new http.Handler for the v2 trigger event operation
@@ -53,9 +53,9 @@ func (o *V2TriggerEvent) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2TriggerEvent) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

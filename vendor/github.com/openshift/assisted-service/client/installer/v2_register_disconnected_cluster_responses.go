@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2RegisterDisconnectedClusterReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2RegisterDisconnectedClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2RegisterDisconnectedClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2RegisterDisconnectedClusterCreated()
@@ -56,7 +54,7 @@ func (o *V2RegisterDisconnectedClusterReader) ReadResponse(response runtime.Clie
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/disconnected] v2RegisterDisconnectedCluster", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -99,19 +97,12 @@ func (o *V2RegisterDisconnectedClusterCreated) IsCode(code int) bool {
 	return code == 201
 }
 
-// Code gets the status code for the v2 register disconnected cluster created response
-func (o *V2RegisterDisconnectedClusterCreated) Code() int {
-	return 201
-}
-
 func (o *V2RegisterDisconnectedClusterCreated) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterCreated) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterCreated) GetPayload() *models.Cluster {
@@ -123,7 +114,7 @@ func (o *V2RegisterDisconnectedClusterCreated) readResponse(response runtime.Cli
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -169,19 +160,12 @@ func (o *V2RegisterDisconnectedClusterBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 register disconnected cluster bad request response
-func (o *V2RegisterDisconnectedClusterBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2RegisterDisconnectedClusterBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterBadRequest) GetPayload() *models.Error {
@@ -193,7 +177,7 @@ func (o *V2RegisterDisconnectedClusterBadRequest) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -239,19 +223,12 @@ func (o *V2RegisterDisconnectedClusterUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 register disconnected cluster unauthorized response
-func (o *V2RegisterDisconnectedClusterUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2RegisterDisconnectedClusterUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterUnauthorized) GetPayload() *models.InfraError {
@@ -263,7 +240,7 @@ func (o *V2RegisterDisconnectedClusterUnauthorized) readResponse(response runtim
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -309,19 +286,12 @@ func (o *V2RegisterDisconnectedClusterForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 register disconnected cluster forbidden response
-func (o *V2RegisterDisconnectedClusterForbidden) Code() int {
-	return 403
-}
-
 func (o *V2RegisterDisconnectedClusterForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterForbidden) GetPayload() *models.InfraError {
@@ -333,7 +303,7 @@ func (o *V2RegisterDisconnectedClusterForbidden) readResponse(response runtime.C
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -379,19 +349,12 @@ func (o *V2RegisterDisconnectedClusterInternalServerError) IsCode(code int) bool
 	return code == 500
 }
 
-// Code gets the status code for the v2 register disconnected cluster internal server error response
-func (o *V2RegisterDisconnectedClusterInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2RegisterDisconnectedClusterInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/disconnected][%d] v2RegisterDisconnectedClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2RegisterDisconnectedClusterInternalServerError) GetPayload() *models.Error {
@@ -403,7 +366,7 @@ func (o *V2RegisterDisconnectedClusterInternalServerError) readResponse(response
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

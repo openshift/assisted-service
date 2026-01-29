@@ -89,7 +89,7 @@ const (
 )
 
 // for schema
-var stepTypeEnum []any
+var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType

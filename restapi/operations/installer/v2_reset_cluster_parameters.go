@@ -27,6 +27,7 @@ func NewV2ResetClusterParams() V2ResetClusterParams {
 //
 // swagger:parameters v2ResetCluster
 type V2ResetClusterParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -80,7 +81,7 @@ func (o *V2ResetClusterParams) bindClusterID(rawData []string, hasKey bool, form
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2ResetClusterParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

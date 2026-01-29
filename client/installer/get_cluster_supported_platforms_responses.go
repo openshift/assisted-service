@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type GetClusterSupportedPlatformsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetClusterSupportedPlatformsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *GetClusterSupportedPlatformsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetClusterSupportedPlatformsOK()
@@ -56,7 +54,7 @@ func (o *GetClusterSupportedPlatformsReader) ReadResponse(response runtime.Clien
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/supported-platforms] GetClusterSupportedPlatforms", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -99,19 +97,12 @@ func (o *GetClusterSupportedPlatformsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the get cluster supported platforms o k response
-func (o *GetClusterSupportedPlatformsOK) Code() int {
-	return 200
-}
-
 func (o *GetClusterSupportedPlatformsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsOK) GetPayload() []models.PlatformType {
@@ -121,7 +112,7 @@ func (o *GetClusterSupportedPlatformsOK) GetPayload() []models.PlatformType {
 func (o *GetClusterSupportedPlatformsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -167,19 +158,12 @@ func (o *GetClusterSupportedPlatformsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the get cluster supported platforms unauthorized response
-func (o *GetClusterSupportedPlatformsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *GetClusterSupportedPlatformsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsUnauthorized) GetPayload() *models.InfraError {
@@ -191,7 +175,7 @@ func (o *GetClusterSupportedPlatformsUnauthorized) readResponse(response runtime
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -237,19 +221,12 @@ func (o *GetClusterSupportedPlatformsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the get cluster supported platforms forbidden response
-func (o *GetClusterSupportedPlatformsForbidden) Code() int {
-	return 403
-}
-
 func (o *GetClusterSupportedPlatformsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsForbidden) GetPayload() *models.InfraError {
@@ -261,7 +238,7 @@ func (o *GetClusterSupportedPlatformsForbidden) readResponse(response runtime.Cl
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -307,19 +284,12 @@ func (o *GetClusterSupportedPlatformsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the get cluster supported platforms not found response
-func (o *GetClusterSupportedPlatformsNotFound) Code() int {
-	return 404
-}
-
 func (o *GetClusterSupportedPlatformsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsNotFound) GetPayload() *models.Error {
@@ -331,7 +301,7 @@ func (o *GetClusterSupportedPlatformsNotFound) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -377,19 +347,12 @@ func (o *GetClusterSupportedPlatformsInternalServerError) IsCode(code int) bool 
 	return code == 500
 }
 
-// Code gets the status code for the get cluster supported platforms internal server error response
-func (o *GetClusterSupportedPlatformsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *GetClusterSupportedPlatformsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/supported-platforms][%d] getClusterSupportedPlatformsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterSupportedPlatformsInternalServerError) GetPayload() *models.Error {
@@ -401,7 +364,7 @@ func (o *GetClusterSupportedPlatformsInternalServerError) readResponse(response 
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

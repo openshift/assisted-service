@@ -27,7 +27,7 @@ type UpdateManifestParams struct {
 
 	// The folder for the manifest to modify.
 	// Required: true
-	// Enum: ["manifests","openshift"]
+	// Enum: [manifests openshift]
 	Folder string `json:"folder"`
 
 	// The new base64 encoded manifest content.
@@ -38,7 +38,7 @@ type UpdateManifestParams struct {
 	UpdatedFileName *string `json:"updated_file_name,omitempty"`
 
 	// The new folder for the manifest. Manifests can be placed in 'manifests' or 'openshift' directories.
-	// Enum: ["manifests","openshift"]
+	// Enum: [manifests openshift]
 	UpdatedFolder *string `json:"updated_folder,omitempty"`
 }
 
@@ -81,7 +81,7 @@ func (m *UpdateManifestParams) validateFileName(formats strfmt.Registry) error {
 	return nil
 }
 
-var updateManifestParamsTypeFolderPropEnum []any
+var updateManifestParamsTypeFolderPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -136,7 +136,7 @@ func (m *UpdateManifestParams) validateUpdatedFileName(formats strfmt.Registry) 
 	return nil
 }
 
-var updateManifestParamsTypeUpdatedFolderPropEnum []any
+var updateManifestParamsTypeUpdatedFolderPropEnum []interface{}
 
 func init() {
 	var res []string

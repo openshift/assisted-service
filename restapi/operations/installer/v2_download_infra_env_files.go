@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadInfraEnvFilesHandlerFunc turns a function with the right signature into a v2 download infra env files handler
-type V2DownloadInfraEnvFilesHandlerFunc func(V2DownloadInfraEnvFilesParams, any) middleware.Responder
+type V2DownloadInfraEnvFilesHandlerFunc func(V2DownloadInfraEnvFilesParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadInfraEnvFilesHandlerFunc) Handle(params V2DownloadInfraEnvFilesParams, principal any) middleware.Responder {
+func (fn V2DownloadInfraEnvFilesHandlerFunc) Handle(params V2DownloadInfraEnvFilesParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadInfraEnvFilesHandler interface for that can handle valid v2 download infra env files params
 type V2DownloadInfraEnvFilesHandler interface {
-	Handle(V2DownloadInfraEnvFilesParams, any) middleware.Responder
+	Handle(V2DownloadInfraEnvFilesParams, interface{}) middleware.Responder
 }
 
 // NewV2DownloadInfraEnvFiles creates a new http.Handler for the v2 download infra env files operation
@@ -53,9 +53,9 @@ func (o *V2DownloadInfraEnvFiles) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2DownloadInfraEnvFiles) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

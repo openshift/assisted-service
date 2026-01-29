@@ -46,7 +46,7 @@ func (o *RegenerateInfraEnvSigningKeyURL) Build() (*url.URL, error) {
 
 	infraEnvID := o.InfraEnvID.String()
 	if infraEnvID != "" {
-		_path = strings.ReplaceAll(_path, "{infra_env_id}", infraEnvID)
+		_path = strings.Replace(_path, "{infra_env_id}", infraEnvID, -1)
 	} else {
 		return nil, errors.New("infraEnvId is required on RegenerateInfraEnvSigningKeyURL")
 	}

@@ -53,7 +53,7 @@ const (
 )
 
 // for schema
-var finalizingStageEnum []any
+var finalizingStageEnum []interface{}
 
 func init() {
 	var res []FinalizingStage

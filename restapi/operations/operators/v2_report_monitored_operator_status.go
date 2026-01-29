@@ -12,16 +12,16 @@ import (
 )
 
 // V2ReportMonitoredOperatorStatusHandlerFunc turns a function with the right signature into a v2 report monitored operator status handler
-type V2ReportMonitoredOperatorStatusHandlerFunc func(V2ReportMonitoredOperatorStatusParams, any) middleware.Responder
+type V2ReportMonitoredOperatorStatusHandlerFunc func(V2ReportMonitoredOperatorStatusParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ReportMonitoredOperatorStatusHandlerFunc) Handle(params V2ReportMonitoredOperatorStatusParams, principal any) middleware.Responder {
+func (fn V2ReportMonitoredOperatorStatusHandlerFunc) Handle(params V2ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ReportMonitoredOperatorStatusHandler interface for that can handle valid v2 report monitored operator status params
 type V2ReportMonitoredOperatorStatusHandler interface {
-	Handle(V2ReportMonitoredOperatorStatusParams, any) middleware.Responder
+	Handle(V2ReportMonitoredOperatorStatusParams, interface{}) middleware.Responder
 }
 
 // NewV2ReportMonitoredOperatorStatus creates a new http.Handler for the v2 report monitored operator status operation
@@ -53,9 +53,9 @@ func (o *V2ReportMonitoredOperatorStatus) ServeHTTP(rw http.ResponseWriter, r *h
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2ReportMonitoredOperatorStatus) ServeHTTP(rw http.ResponseWriter, r *h
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

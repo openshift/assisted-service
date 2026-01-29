@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -43,15 +42,11 @@ func (m *ClusterFinalizingProgress) validateFinalizingStage(formats strfmt.Regis
 	}
 
 	if err := m.FinalizingStage.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("finalizing_stage")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("finalizing_stage")
 		}
-
 		return err
 	}
 
@@ -74,20 +69,12 @@ func (m *ClusterFinalizingProgress) ContextValidate(ctx context.Context, formats
 
 func (m *ClusterFinalizingProgress) contextValidateFinalizingStage(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.FinalizingStage) { // not required
-		return nil
-	}
-
 	if err := m.FinalizingStage.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("finalizing_stage")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("finalizing_stage")
 		}
-
 		return err
 	}
 

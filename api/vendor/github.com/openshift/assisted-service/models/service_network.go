@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -52,15 +51,11 @@ func (m *ServiceNetwork) validateCidr(formats strfmt.Registry) error {
 	}
 
 	if err := m.Cidr.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("cidr")
 		}
-
 		return err
 	}
 
@@ -95,20 +90,12 @@ func (m *ServiceNetwork) ContextValidate(ctx context.Context, formats strfmt.Reg
 
 func (m *ServiceNetwork) contextValidateCidr(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Cidr) { // not required
-		return nil
-	}
-
 	if err := m.Cidr.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("cidr")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("cidr")
 		}
-
 		return err
 	}
 

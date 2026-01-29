@@ -25,6 +25,7 @@ func NewV2ListManagedDomainsParams() V2ListManagedDomainsParams {
 //
 // swagger:parameters V2ListManagedDomains
 type V2ListManagedDomainsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

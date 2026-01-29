@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -88,15 +87,11 @@ func (m *Operator) validateDependencies(formats strfmt.Registry) error {
 	for i := 0; i < len(m.Dependencies); i++ {
 
 		if err := m.Dependencies[i].Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("dependencies" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("dependencies" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -107,20 +102,16 @@ func (m *Operator) validateDependencies(formats strfmt.Registry) error {
 
 func (m *Operator) validateFeatureSupportLevelID(formats strfmt.Registry) error {
 
-	if err := validate.Required("feature-support-level-id", "body", m.FeatureSupportLevelID); err != nil {
+	if err := validate.Required("feature-support-level-id", "body", FeatureSupportLevelID(m.FeatureSupportLevelID)); err != nil {
 		return err
 	}
 
 	if err := m.FeatureSupportLevelID.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("feature-support-level-id")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("feature-support-level-id")
 		}
-
 		return err
 	}
 
@@ -136,15 +127,11 @@ func (m *Operator) validateIncompatibilities(formats strfmt.Registry) error {
 	for i := 0; i < len(m.Incompatibilities); i++ {
 
 		if err := m.Incompatibilities[i].Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -168,15 +155,11 @@ func (m *Operator) validateReason(formats strfmt.Registry) error {
 	}
 
 	if err := m.Reason.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("reason")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("reason")
 		}
-
 		return err
 	}
 
@@ -185,20 +168,16 @@ func (m *Operator) validateReason(formats strfmt.Registry) error {
 
 func (m *Operator) validateSupportLevel(formats strfmt.Registry) error {
 
-	if err := validate.Required("support_level", "body", m.SupportLevel); err != nil {
+	if err := validate.Required("support_level", "body", SupportLevel(m.SupportLevel)); err != nil {
 		return err
 	}
 
 	if err := m.SupportLevel.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("support_level")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("support_level")
 		}
-
 		return err
 	}
 
@@ -239,20 +218,12 @@ func (m *Operator) contextValidateDependencies(ctx context.Context, formats strf
 
 	for i := 0; i < len(m.Dependencies); i++ {
 
-		if swag.IsZero(m.Dependencies[i]) { // not required
-			return nil
-		}
-
 		if err := m.Dependencies[i].ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("dependencies" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("dependencies" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -264,15 +235,11 @@ func (m *Operator) contextValidateDependencies(ctx context.Context, formats strf
 func (m *Operator) contextValidateFeatureSupportLevelID(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.FeatureSupportLevelID.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("feature-support-level-id")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("feature-support-level-id")
 		}
-
 		return err
 	}
 
@@ -283,20 +250,12 @@ func (m *Operator) contextValidateIncompatibilities(ctx context.Context, formats
 
 	for i := 0; i < len(m.Incompatibilities); i++ {
 
-		if swag.IsZero(m.Incompatibilities[i]) { // not required
-			return nil
-		}
-
 		if err := m.Incompatibilities[i].ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("incompatibilities" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 
@@ -307,20 +266,12 @@ func (m *Operator) contextValidateIncompatibilities(ctx context.Context, formats
 
 func (m *Operator) contextValidateReason(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Reason) { // not required
-		return nil
-	}
-
 	if err := m.Reason.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("reason")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("reason")
 		}
-
 		return err
 	}
 
@@ -330,15 +281,11 @@ func (m *Operator) contextValidateReason(ctx context.Context, formats strfmt.Reg
 func (m *Operator) contextValidateSupportLevel(ctx context.Context, formats strfmt.Registry) error {
 
 	if err := m.SupportLevel.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("support_level")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("support_level")
 		}
-
 		return err
 	}
 

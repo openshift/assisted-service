@@ -12,16 +12,16 @@ import (
 )
 
 // V2ResetHostValidationHandlerFunc turns a function with the right signature into a v2 reset host validation handler
-type V2ResetHostValidationHandlerFunc func(V2ResetHostValidationParams, any) middleware.Responder
+type V2ResetHostValidationHandlerFunc func(V2ResetHostValidationParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2ResetHostValidationHandlerFunc) Handle(params V2ResetHostValidationParams, principal any) middleware.Responder {
+func (fn V2ResetHostValidationHandlerFunc) Handle(params V2ResetHostValidationParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2ResetHostValidationHandler interface for that can handle valid v2 reset host validation params
 type V2ResetHostValidationHandler interface {
-	Handle(V2ResetHostValidationParams, any) middleware.Responder
+	Handle(V2ResetHostValidationParams, interface{}) middleware.Responder
 }
 
 // NewV2ResetHostValidation creates a new http.Handler for the v2 reset host validation operation
@@ -55,9 +55,9 @@ func (o *V2ResetHostValidation) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -66,7 +66,6 @@ func (o *V2ResetHostValidation) ServeHTTP(rw http.ResponseWriter, r *http.Reques
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

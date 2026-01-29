@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -68,15 +67,11 @@ func (m *APIVipConnectivityRequest) validateRequestHeaders(formats strfmt.Regist
 
 		if m.RequestHeaders[i] != nil {
 			if err := m.RequestHeaders[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("request_headers" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("request_headers" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -114,21 +109,12 @@ func (m *APIVipConnectivityRequest) contextValidateRequestHeaders(ctx context.Co
 	for i := 0; i < len(m.RequestHeaders); i++ {
 
 		if m.RequestHeaders[i] != nil {
-
-			if swag.IsZero(m.RequestHeaders[i]) { // not required
-				return nil
-			}
-
 			if err := m.RequestHeaders[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("request_headers" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("request_headers" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

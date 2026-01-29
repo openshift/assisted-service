@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type GetInfraEnvPresignedFileURLReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *GetInfraEnvPresignedFileURLReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *GetInfraEnvPresignedFileURLReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewGetInfraEnvPresignedFileURLOK()
@@ -74,7 +72,7 @@ func (o *GetInfraEnvPresignedFileURLReader) ReadResponse(response runtime.Client
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned] GetInfraEnvPresignedFileURL", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -117,19 +115,12 @@ func (o *GetInfraEnvPresignedFileURLOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the get infra env presigned file Url o k response
-func (o *GetInfraEnvPresignedFileURLOK) Code() int {
-	return 200
-}
-
 func (o *GetInfraEnvPresignedFileURLOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlOK  %+v", 200, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlOK  %+v", 200, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLOK) GetPayload() *models.PresignedURL {
@@ -141,7 +132,7 @@ func (o *GetInfraEnvPresignedFileURLOK) readResponse(response runtime.ClientResp
 	o.Payload = new(models.PresignedURL)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +178,12 @@ func (o *GetInfraEnvPresignedFileURLUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the get infra env presigned file Url unauthorized response
-func (o *GetInfraEnvPresignedFileURLUnauthorized) Code() int {
-	return 401
-}
-
 func (o *GetInfraEnvPresignedFileURLUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLUnauthorized) GetPayload() *models.InfraError {
@@ -211,7 +195,7 @@ func (o *GetInfraEnvPresignedFileURLUnauthorized) readResponse(response runtime.
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +241,12 @@ func (o *GetInfraEnvPresignedFileURLForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the get infra env presigned file Url forbidden response
-func (o *GetInfraEnvPresignedFileURLForbidden) Code() int {
-	return 403
-}
-
 func (o *GetInfraEnvPresignedFileURLForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLForbidden) GetPayload() *models.InfraError {
@@ -281,7 +258,7 @@ func (o *GetInfraEnvPresignedFileURLForbidden) readResponse(response runtime.Cli
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +304,12 @@ func (o *GetInfraEnvPresignedFileURLNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the get infra env presigned file Url not found response
-func (o *GetInfraEnvPresignedFileURLNotFound) Code() int {
-	return 404
-}
-
 func (o *GetInfraEnvPresignedFileURLNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLNotFound) GetPayload() *models.Error {
@@ -351,7 +321,7 @@ func (o *GetInfraEnvPresignedFileURLNotFound) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +367,12 @@ func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the get infra env presigned file Url method not allowed response
-func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) GetPayload() *models.Error {
@@ -421,7 +384,7 @@ func (o *GetInfraEnvPresignedFileURLMethodNotAllowed) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +430,12 @@ func (o *GetInfraEnvPresignedFileURLInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the get infra env presigned file Url internal server error response
-func (o *GetInfraEnvPresignedFileURLInternalServerError) Code() int {
-	return 500
-}
-
 func (o *GetInfraEnvPresignedFileURLInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLInternalServerError) GetPayload() *models.Error {
@@ -491,7 +447,7 @@ func (o *GetInfraEnvPresignedFileURLInternalServerError) readResponse(response r
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +493,12 @@ func (o *GetInfraEnvPresignedFileURLNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the get infra env presigned file Url not implemented response
-func (o *GetInfraEnvPresignedFileURLNotImplemented) Code() int {
-	return 501
-}
-
 func (o *GetInfraEnvPresignedFileURLNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLNotImplemented) GetPayload() *models.Error {
@@ -561,7 +510,7 @@ func (o *GetInfraEnvPresignedFileURLNotImplemented) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +556,12 @@ func (o *GetInfraEnvPresignedFileURLServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the get infra env presigned file Url service unavailable response
-func (o *GetInfraEnvPresignedFileURLServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *GetInfraEnvPresignedFileURLServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs/{infra_env_id}/downloads/files-presigned][%d] getInfraEnvPresignedFileUrlServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetInfraEnvPresignedFileURLServiceUnavailable) GetPayload() *models.Error {
@@ -631,7 +573,7 @@ func (o *GetInfraEnvPresignedFileURLServiceUnavailable) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

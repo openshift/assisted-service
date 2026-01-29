@@ -12,16 +12,16 @@ import (
 )
 
 // UpdateInfraEnvHandlerFunc turns a function with the right signature into a update infra env handler
-type UpdateInfraEnvHandlerFunc func(UpdateInfraEnvParams, any) middleware.Responder
+type UpdateInfraEnvHandlerFunc func(UpdateInfraEnvParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn UpdateInfraEnvHandlerFunc) Handle(params UpdateInfraEnvParams, principal any) middleware.Responder {
+func (fn UpdateInfraEnvHandlerFunc) Handle(params UpdateInfraEnvParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // UpdateInfraEnvHandler interface for that can handle valid update infra env params
 type UpdateInfraEnvHandler interface {
-	Handle(UpdateInfraEnvParams, any) middleware.Responder
+	Handle(UpdateInfraEnvParams, interface{}) middleware.Responder
 }
 
 // NewUpdateInfraEnv creates a new http.Handler for the update infra env operation
@@ -53,9 +53,9 @@ func (o *UpdateInfraEnv) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *UpdateInfraEnv) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

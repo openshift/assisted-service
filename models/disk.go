@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -118,15 +117,11 @@ func (m *Disk) validateDriveType(formats strfmt.Registry) error {
 	}
 
 	if err := m.DriveType.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("drive_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("drive_type")
 		}
-
 		return err
 	}
 
@@ -139,15 +134,11 @@ func (m *Disk) validateInstallationEligibility(formats strfmt.Registry) error {
 	}
 
 	if err := m.InstallationEligibility.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("installation_eligibility")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("installation_eligibility")
 		}
-
 		return err
 	}
 
@@ -161,15 +152,11 @@ func (m *Disk) validateIoPerf(formats strfmt.Registry) error {
 
 	if m.IoPerf != nil {
 		if err := m.IoPerf.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("io_perf")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("io_perf")
 			}
-
 			return err
 		}
 	}
@@ -184,15 +171,11 @@ func (m *Disk) validateIscsi(formats strfmt.Registry) error {
 
 	if m.Iscsi != nil {
 		if err := m.Iscsi.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("iscsi")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("iscsi")
 			}
-
 			return err
 		}
 	}
@@ -228,20 +211,12 @@ func (m *Disk) ContextValidate(ctx context.Context, formats strfmt.Registry) err
 
 func (m *Disk) contextValidateDriveType(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.DriveType) { // not required
-		return nil
-	}
-
 	if err := m.DriveType.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("drive_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("drive_type")
 		}
-
 		return err
 	}
 
@@ -250,20 +225,12 @@ func (m *Disk) contextValidateDriveType(ctx context.Context, formats strfmt.Regi
 
 func (m *Disk) contextValidateInstallationEligibility(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.InstallationEligibility) { // not required
-		return nil
-	}
-
 	if err := m.InstallationEligibility.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("installation_eligibility")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("installation_eligibility")
 		}
-
 		return err
 	}
 
@@ -273,21 +240,12 @@ func (m *Disk) contextValidateInstallationEligibility(ctx context.Context, forma
 func (m *Disk) contextValidateIoPerf(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.IoPerf != nil {
-
-		if swag.IsZero(m.IoPerf) { // not required
-			return nil
-		}
-
 		if err := m.IoPerf.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("io_perf")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("io_perf")
 			}
-
 			return err
 		}
 	}
@@ -298,21 +256,12 @@ func (m *Disk) contextValidateIoPerf(ctx context.Context, formats strfmt.Registr
 func (m *Disk) contextValidateIscsi(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Iscsi != nil {
-
-		if swag.IsZero(m.Iscsi) { // not required
-			return nil
-		}
-
 		if err := m.Iscsi.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("iscsi")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("iscsi")
 			}
-
 			return err
 		}
 	}

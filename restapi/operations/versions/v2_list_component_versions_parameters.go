@@ -25,6 +25,7 @@ func NewV2ListComponentVersionsParams() V2ListComponentVersionsParams {
 //
 // swagger:parameters v2ListComponentVersions
 type V2ListComponentVersionsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -49,15 +48,11 @@ func (m *Step) validateStepType(formats strfmt.Registry) error {
 	}
 
 	if err := m.StepType.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("step_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("step_type")
 		}
-
 		return err
 	}
 
@@ -80,20 +75,12 @@ func (m *Step) ContextValidate(ctx context.Context, formats strfmt.Registry) err
 
 func (m *Step) contextValidateStepType(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.StepType) { // not required
-		return nil
-	}
-
 	if err := m.StepType.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("step_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("step_type")
 		}
-
 		return err
 	}
 

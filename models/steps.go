@@ -8,7 +8,6 @@ package models
 import (
 	"context"
 	"encoding/json"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -29,7 +28,7 @@ type Steps struct {
 	NextInstructionSeconds int64 `json:"next_instruction_seconds,omitempty"`
 
 	// What to do after finishing to run step instructions
-	// Enum: ["exit","continue"]
+	// Enum: [exit continue]
 	PostStepAction *string `json:"post_step_action,omitempty"`
 }
 
@@ -63,15 +62,11 @@ func (m *Steps) validateInstructions(formats strfmt.Registry) error {
 
 		if m.Instructions[i] != nil {
 			if err := m.Instructions[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("instructions" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("instructions" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -81,7 +76,7 @@ func (m *Steps) validateInstructions(formats strfmt.Registry) error {
 	return nil
 }
 
-var stepsTypePostStepActionPropEnum []any
+var stepsTypePostStepActionPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -142,21 +137,12 @@ func (m *Steps) contextValidateInstructions(ctx context.Context, formats strfmt.
 	for i := 0; i < len(m.Instructions); i++ {
 
 		if m.Instructions[i] != nil {
-
-			if swag.IsZero(m.Instructions[i]) { // not required
-				return nil
-			}
-
 			if err := m.Instructions[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("instructions" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("instructions" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

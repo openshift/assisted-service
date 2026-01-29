@@ -33,7 +33,7 @@ func NewV2UpdateHostIgnitionCreated() *V2UpdateHostIgnitionCreated {
 // WriteResponse to the client
 func (o *V2UpdateHostIgnitionCreated) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) // Remove Content-Type on empty responses
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
 	rw.WriteHeader(201)
 }

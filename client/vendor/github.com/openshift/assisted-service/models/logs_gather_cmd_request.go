@@ -131,7 +131,7 @@ func (m *LogsGatherCmdRequest) validateInfraEnvID(formats strfmt.Registry) error
 
 func (m *LogsGatherCmdRequest) validateInstallerGather(formats strfmt.Registry) error {
 
-	if err := validate.Required("installer_gather", "body", m.InstallerGather); err != nil {
+	if err := validate.Required("installer_gather", "body", bool(m.InstallerGather)); err != nil {
 		return err
 	}
 

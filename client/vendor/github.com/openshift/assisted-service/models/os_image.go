@@ -22,7 +22,7 @@ type OsImage struct {
 
 	// The CPU architecture of the image (x86_64/arm64/etc).
 	// Required: true
-	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x"]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
 	// Version of the operating system image
@@ -65,7 +65,7 @@ func (m *OsImage) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var osImageTypeCPUArchitecturePropEnum []any
+var osImageTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string

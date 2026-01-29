@@ -6,8 +6,6 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2DeleteClusterManifestReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DeleteClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2DeleteClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2DeleteClusterManifestOK()
@@ -68,7 +66,7 @@ func (o *V2DeleteClusterManifestReader) ReadResponse(response runtime.ClientResp
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[DELETE /v2/clusters/{cluster_id}/manifests] V2DeleteClusterManifest", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -110,17 +108,12 @@ func (o *V2DeleteClusterManifestOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 delete cluster manifest o k response
-func (o *V2DeleteClusterManifestOK) Code() int {
-	return 200
-}
-
 func (o *V2DeleteClusterManifestOK) Error() string {
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestOK", 200)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestOK ", 200)
 }
 
 func (o *V2DeleteClusterManifestOK) String() string {
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestOK", 200)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestOK ", 200)
 }
 
 func (o *V2DeleteClusterManifestOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -167,19 +160,12 @@ func (o *V2DeleteClusterManifestUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 delete cluster manifest unauthorized response
-func (o *V2DeleteClusterManifestUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2DeleteClusterManifestUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -191,7 +177,7 @@ func (o *V2DeleteClusterManifestUnauthorized) readResponse(response runtime.Clie
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -237,19 +223,12 @@ func (o *V2DeleteClusterManifestForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 delete cluster manifest forbidden response
-func (o *V2DeleteClusterManifestForbidden) Code() int {
-	return 403
-}
-
 func (o *V2DeleteClusterManifestForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -261,7 +240,7 @@ func (o *V2DeleteClusterManifestForbidden) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -307,19 +286,12 @@ func (o *V2DeleteClusterManifestNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 delete cluster manifest not found response
-func (o *V2DeleteClusterManifestNotFound) Code() int {
-	return 404
-}
-
 func (o *V2DeleteClusterManifestNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestNotFound) GetPayload() *models.Error {
@@ -331,7 +303,7 @@ func (o *V2DeleteClusterManifestNotFound) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -377,19 +349,12 @@ func (o *V2DeleteClusterManifestMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 delete cluster manifest method not allowed response
-func (o *V2DeleteClusterManifestMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2DeleteClusterManifestMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -401,7 +366,7 @@ func (o *V2DeleteClusterManifestMethodNotAllowed) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -447,19 +412,12 @@ func (o *V2DeleteClusterManifestConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 delete cluster manifest conflict response
-func (o *V2DeleteClusterManifestConflict) Code() int {
-	return 409
-}
-
 func (o *V2DeleteClusterManifestConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestConflict) GetPayload() *models.Error {
@@ -471,7 +429,7 @@ func (o *V2DeleteClusterManifestConflict) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -517,19 +475,12 @@ func (o *V2DeleteClusterManifestInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 delete cluster manifest internal server error response
-func (o *V2DeleteClusterManifestInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2DeleteClusterManifestInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/clusters/{cluster_id}/manifests][%d] v2DeleteClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeleteClusterManifestInternalServerError) GetPayload() *models.Error {
@@ -541,7 +492,7 @@ func (o *V2DeleteClusterManifestInternalServerError) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

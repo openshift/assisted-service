@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type ListInfraEnvsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *ListInfraEnvsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *ListInfraEnvsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewListInfraEnvsOK()
@@ -68,7 +66,7 @@ func (o *ListInfraEnvsReader) ReadResponse(response runtime.ClientResponse, cons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/infra-envs] ListInfraEnvs", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *ListInfraEnvsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the list infra envs o k response
-func (o *ListInfraEnvsOK) Code() int {
-	return 200
-}
-
 func (o *ListInfraEnvsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListInfraEnvsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListInfraEnvsOK) GetPayload() models.InfraEnvList {
@@ -133,7 +124,7 @@ func (o *ListInfraEnvsOK) GetPayload() models.InfraEnvList {
 func (o *ListInfraEnvsOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), &o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -179,19 +170,12 @@ func (o *ListInfraEnvsUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the list infra envs unauthorized response
-func (o *ListInfraEnvsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *ListInfraEnvsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListInfraEnvsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListInfraEnvsUnauthorized) GetPayload() *models.InfraError {
@@ -203,7 +187,7 @@ func (o *ListInfraEnvsUnauthorized) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -249,19 +233,12 @@ func (o *ListInfraEnvsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the list infra envs forbidden response
-func (o *ListInfraEnvsForbidden) Code() int {
-	return 403
-}
-
 func (o *ListInfraEnvsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListInfraEnvsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListInfraEnvsForbidden) GetPayload() *models.InfraError {
@@ -273,7 +250,7 @@ func (o *ListInfraEnvsForbidden) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -319,19 +296,12 @@ func (o *ListInfraEnvsMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the list infra envs method not allowed response
-func (o *ListInfraEnvsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *ListInfraEnvsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListInfraEnvsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListInfraEnvsMethodNotAllowed) GetPayload() *models.Error {
@@ -343,7 +313,7 @@ func (o *ListInfraEnvsMethodNotAllowed) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -389,19 +359,12 @@ func (o *ListInfraEnvsInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the list infra envs internal server error response
-func (o *ListInfraEnvsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *ListInfraEnvsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListInfraEnvsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListInfraEnvsInternalServerError) GetPayload() *models.Error {
@@ -413,7 +376,7 @@ func (o *ListInfraEnvsInternalServerError) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -459,19 +422,12 @@ func (o *ListInfraEnvsNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the list infra envs not implemented response
-func (o *ListInfraEnvsNotImplemented) Code() int {
-	return 501
-}
-
 func (o *ListInfraEnvsNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *ListInfraEnvsNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *ListInfraEnvsNotImplemented) GetPayload() *models.Error {
@@ -483,7 +439,7 @@ func (o *ListInfraEnvsNotImplemented) readResponse(response runtime.ClientRespon
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -529,19 +485,12 @@ func (o *ListInfraEnvsServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the list infra envs service unavailable response
-func (o *ListInfraEnvsServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *ListInfraEnvsServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ListInfraEnvsServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/infra-envs][%d] listInfraEnvsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ListInfraEnvsServiceUnavailable) GetPayload() *models.Error {
@@ -553,7 +502,7 @@ func (o *ListInfraEnvsServiceUnavailable) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

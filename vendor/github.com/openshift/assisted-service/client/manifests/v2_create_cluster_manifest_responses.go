@@ -6,8 +6,6 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2CreateClusterManifestReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2CreateClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2CreateClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 201:
 		result := NewV2CreateClusterManifestCreated()
@@ -74,7 +72,7 @@ func (o *V2CreateClusterManifestReader) ReadResponse(response runtime.ClientResp
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/manifests] V2CreateClusterManifest", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -117,19 +115,12 @@ func (o *V2CreateClusterManifestCreated) IsCode(code int) bool {
 	return code == 201
 }
 
-// Code gets the status code for the v2 create cluster manifest created response
-func (o *V2CreateClusterManifestCreated) Code() int {
-	return 201
-}
-
 func (o *V2CreateClusterManifestCreated) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2CreateClusterManifestCreated) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2CreateClusterManifestCreated) GetPayload() *models.Manifest {
@@ -141,7 +132,7 @@ func (o *V2CreateClusterManifestCreated) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Manifest)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +178,12 @@ func (o *V2CreateClusterManifestBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 create cluster manifest bad request response
-func (o *V2CreateClusterManifestBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2CreateClusterManifestBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2CreateClusterManifestBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2CreateClusterManifestBadRequest) GetPayload() *models.Error {
@@ -211,7 +195,7 @@ func (o *V2CreateClusterManifestBadRequest) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +241,12 @@ func (o *V2CreateClusterManifestUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 create cluster manifest unauthorized response
-func (o *V2CreateClusterManifestUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2CreateClusterManifestUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2CreateClusterManifestUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2CreateClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -281,7 +258,7 @@ func (o *V2CreateClusterManifestUnauthorized) readResponse(response runtime.Clie
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +304,12 @@ func (o *V2CreateClusterManifestForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 create cluster manifest forbidden response
-func (o *V2CreateClusterManifestForbidden) Code() int {
-	return 403
-}
-
 func (o *V2CreateClusterManifestForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2CreateClusterManifestForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2CreateClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -351,7 +321,7 @@ func (o *V2CreateClusterManifestForbidden) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +367,12 @@ func (o *V2CreateClusterManifestNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 create cluster manifest not found response
-func (o *V2CreateClusterManifestNotFound) Code() int {
-	return 404
-}
-
 func (o *V2CreateClusterManifestNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2CreateClusterManifestNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2CreateClusterManifestNotFound) GetPayload() *models.Error {
@@ -421,7 +384,7 @@ func (o *V2CreateClusterManifestNotFound) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +430,12 @@ func (o *V2CreateClusterManifestMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 create cluster manifest method not allowed response
-func (o *V2CreateClusterManifestMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2CreateClusterManifestMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2CreateClusterManifestMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2CreateClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -491,7 +447,7 @@ func (o *V2CreateClusterManifestMethodNotAllowed) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +493,12 @@ func (o *V2CreateClusterManifestConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 create cluster manifest conflict response
-func (o *V2CreateClusterManifestConflict) Code() int {
-	return 409
-}
-
 func (o *V2CreateClusterManifestConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2CreateClusterManifestConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2CreateClusterManifestConflict) GetPayload() *models.Error {
@@ -561,7 +510,7 @@ func (o *V2CreateClusterManifestConflict) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +556,12 @@ func (o *V2CreateClusterManifestInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 create cluster manifest internal server error response
-func (o *V2CreateClusterManifestInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2CreateClusterManifestInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2CreateClusterManifestInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/manifests][%d] v2CreateClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2CreateClusterManifestInternalServerError) GetPayload() *models.Error {
@@ -631,7 +573,7 @@ func (o *V2CreateClusterManifestInternalServerError) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

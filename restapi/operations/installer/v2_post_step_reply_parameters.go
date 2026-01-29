@@ -30,6 +30,7 @@ func NewV2PostStepReplyParams() V2PostStepReplyParams {
 //
 // swagger:parameters v2PostStepReply
 type V2PostStepReplyParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -37,19 +38,16 @@ type V2PostStepReplyParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-
 	/*The host that is posting results.
 	  Required: true
 	  In: path
 	*/
 	HostID strfmt.UUID
-
 	/*The infra-env of the host that is posting results.
 	  Required: true
 	  In: path
 	*/
 	InfraEnvID strfmt.UUID
-
 	/*The results to be posted.
 	  In: body
 	*/
@@ -80,9 +78,7 @@ func (o *V2PostStepReplyParams) BindRequest(r *http.Request, route *middleware.M
 	}
 
 	if runtime.HasBody(r) {
-		defer func() {
-			_ = r.Body.Close()
-		}()
+		defer r.Body.Close()
 		var body models.StepReply
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			res = append(res, errors.NewParseError("reply", "body", "", err))
@@ -149,7 +145,7 @@ func (o *V2PostStepReplyParams) bindHostID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateHostID carries out validations for parameter HostID
+// validateHostID carries on validations for parameter HostID
 func (o *V2PostStepReplyParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -182,7 +178,7 @@ func (o *V2PostStepReplyParams) bindInfraEnvID(rawData []string, hasKey bool, fo
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2PostStepReplyParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

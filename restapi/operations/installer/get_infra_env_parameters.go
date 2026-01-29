@@ -27,6 +27,7 @@ func NewGetInfraEnvParams() GetInfraEnvParams {
 //
 // swagger:parameters GetInfraEnv
 type GetInfraEnvParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -80,7 +81,7 @@ func (o *GetInfraEnvParams) bindInfraEnvID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *GetInfraEnvParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

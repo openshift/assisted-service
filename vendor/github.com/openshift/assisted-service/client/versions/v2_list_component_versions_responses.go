@@ -6,8 +6,6 @@ package versions
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ListComponentVersionsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ListComponentVersionsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ListComponentVersionsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ListComponentVersionsOK()
@@ -32,7 +30,7 @@ func (o *V2ListComponentVersionsReader) ReadResponse(response runtime.ClientResp
 		}
 		return result, nil
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/component-versions] v2ListComponentVersions", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -75,19 +73,12 @@ func (o *V2ListComponentVersionsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 list component versions o k response
-func (o *V2ListComponentVersionsOK) Code() int {
-	return 200
-}
-
 func (o *V2ListComponentVersionsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/component-versions][%d] v2ListComponentVersionsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/component-versions][%d] v2ListComponentVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ListComponentVersionsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/component-versions][%d] v2ListComponentVersionsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/component-versions][%d] v2ListComponentVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ListComponentVersionsOK) GetPayload() *models.ListVersions {
@@ -99,7 +90,7 @@ func (o *V2ListComponentVersionsOK) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.ListVersions)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

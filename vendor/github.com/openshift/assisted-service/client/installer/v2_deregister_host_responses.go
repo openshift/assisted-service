@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2DeregisterHostReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DeregisterHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2DeregisterHostReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 204:
 		result := NewV2DeregisterHostNoContent()
@@ -68,7 +66,7 @@ func (o *V2DeregisterHostReader) ReadResponse(response runtime.ClientResponse, c
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}] v2DeregisterHost", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -110,17 +108,12 @@ func (o *V2DeregisterHostNoContent) IsCode(code int) bool {
 	return code == 204
 }
 
-// Code gets the status code for the v2 deregister host no content response
-func (o *V2DeregisterHostNoContent) Code() int {
-	return 204
-}
-
 func (o *V2DeregisterHostNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNoContent", 204)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNoContent ", 204)
 }
 
 func (o *V2DeregisterHostNoContent) String() string {
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNoContent", 204)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNoContent ", 204)
 }
 
 func (o *V2DeregisterHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -167,19 +160,12 @@ func (o *V2DeregisterHostBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 deregister host bad request response
-func (o *V2DeregisterHostBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2DeregisterHostBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostBadRequest %s", 400, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2DeregisterHostBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostBadRequest %s", 400, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2DeregisterHostBadRequest) GetPayload() *models.Error {
@@ -191,7 +177,7 @@ func (o *V2DeregisterHostBadRequest) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -237,19 +223,12 @@ func (o *V2DeregisterHostUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 deregister host unauthorized response
-func (o *V2DeregisterHostUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2DeregisterHostUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeregisterHostUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DeregisterHostUnauthorized) GetPayload() *models.InfraError {
@@ -261,7 +240,7 @@ func (o *V2DeregisterHostUnauthorized) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -307,19 +286,12 @@ func (o *V2DeregisterHostForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 deregister host forbidden response
-func (o *V2DeregisterHostForbidden) Code() int {
-	return 403
-}
-
 func (o *V2DeregisterHostForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeregisterHostForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostForbidden %s", 403, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DeregisterHostForbidden) GetPayload() *models.InfraError {
@@ -331,7 +303,7 @@ func (o *V2DeregisterHostForbidden) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -377,19 +349,12 @@ func (o *V2DeregisterHostNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 deregister host not found response
-func (o *V2DeregisterHostNotFound) Code() int {
-	return 404
-}
-
 func (o *V2DeregisterHostNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeregisterHostNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNotFound %s", 404, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DeregisterHostNotFound) GetPayload() *models.Error {
@@ -401,7 +366,7 @@ func (o *V2DeregisterHostNotFound) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -447,19 +412,12 @@ func (o *V2DeregisterHostMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 deregister host method not allowed response
-func (o *V2DeregisterHostMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2DeregisterHostMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeregisterHostMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DeregisterHostMethodNotAllowed) GetPayload() *models.Error {
@@ -471,7 +429,7 @@ func (o *V2DeregisterHostMethodNotAllowed) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -517,19 +475,12 @@ func (o *V2DeregisterHostInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 deregister host internal server error response
-func (o *V2DeregisterHostInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2DeregisterHostInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeregisterHostInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[DELETE /v2/infra-envs/{infra_env_id}/hosts/{host_id}][%d] v2DeregisterHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DeregisterHostInternalServerError) GetPayload() *models.Error {
@@ -541,7 +492,7 @@ func (o *V2DeregisterHostInternalServerError) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

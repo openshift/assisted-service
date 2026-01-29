@@ -37,6 +37,7 @@ func NewV2ListEventsParams() V2ListEventsParams {
 //
 // swagger:parameters v2ListEvents
 type V2ListEventsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -44,58 +45,47 @@ type V2ListEventsParams struct {
 	  In: query
 	*/
 	Categories []string
-
 	/*The cluster to return events for.
 	  In: query
 	*/
 	ClusterID *strfmt.UUID
-
 	/*Cluster level events flag.
 	  In: query
 	*/
 	ClusterLevel *bool
-
 	/*Deleted hosts flag.
 	  In: query
 	*/
 	DeletedHosts *bool
-
 	/*A host in the specified cluster to return events for (DEPRECATED. Use `host_ids` instead).
 	  In: query
 	*/
 	HostID *strfmt.UUID
-
 	/*Hosts in the specified cluster to return events for.
 	  In: query
 	*/
 	HostIds []strfmt.UUID
-
 	/*The infra-env to return events for.
 	  In: query
 	*/
 	InfraEnvID *strfmt.UUID
-
 	/*The maximum number of records to retrieve.
 	  In: query
 	*/
 	Limit *int64
-
 	/*Retrieved events message pattern.
 	  In: query
 	*/
 	Message *string
-
 	/*Number of records to skip before starting to return the records.
 	  In: query
 	*/
 	Offset *int64
-
 	/*Order by event_time of events retrieved.
 	  In: query
 	  Default: "ascending"
 	*/
 	Order *string
-
 	/*Retrieved events severities.
 	  In: query
 	*/
@@ -110,6 +100,7 @@ func (o *V2ListEventsParams) BindRequest(r *http.Request, route *middleware.Matc
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qCategories, qhkCategories, _ := qs.GetOK("categories")
@@ -232,7 +223,7 @@ func (o *V2ListEventsParams) bindClusterID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2ListEventsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "query", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -315,7 +306,7 @@ func (o *V2ListEventsParams) bindHostID(rawData []string, hasKey bool, formats s
 	return nil
 }
 
-// validateHostID carries out validations for parameter HostID
+// validateHostID carries on validations for parameter HostID
 func (o *V2ListEventsParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "query", "uuid", o.HostID.String(), formats); err != nil {
@@ -387,7 +378,7 @@ func (o *V2ListEventsParams) bindInfraEnvID(rawData []string, hasKey bool, forma
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2ListEventsParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "query", "uuid", o.InfraEnvID.String(), formats); err != nil {
@@ -483,10 +474,10 @@ func (o *V2ListEventsParams) bindOrder(rawData []string, hasKey bool, formats st
 	return nil
 }
 
-// validateOrder carries out validations for parameter Order
+// validateOrder carries on validations for parameter Order
 func (o *V2ListEventsParams) validateOrder(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("order", "query", *o.Order, []any{"ascending", "descending"}, true); err != nil {
+	if err := validate.EnumCase("order", "query", *o.Order, []interface{}{"ascending", "descending"}, true); err != nil {
 		return err
 	}
 
@@ -512,7 +503,7 @@ func (o *V2ListEventsParams) bindSeverities(rawData []string, hasKey bool, forma
 	for i, severitiesIV := range severitiesIC {
 		severitiesI := severitiesIV
 
-		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "severities", i), "query", severitiesI, []any{"info", "warning", "error", "critical"}, true); err != nil {
+		if err := validate.EnumCase(fmt.Sprintf("%s.%v", "severities", i), "query", severitiesI, []interface{}{"info", "warning", "error", "critical"}, true); err != nil {
 			return err
 		}
 

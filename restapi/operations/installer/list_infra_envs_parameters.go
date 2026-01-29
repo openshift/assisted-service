@@ -28,6 +28,7 @@ func NewListInfraEnvsParams() ListInfraEnvsParams {
 //
 // swagger:parameters ListInfraEnvs
 type ListInfraEnvsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -35,7 +36,6 @@ type ListInfraEnvsParams struct {
 	  In: query
 	*/
 	ClusterID *strfmt.UUID
-
 	/*If provided, returns only infra-envs that are owned by the specified user.
 	  In: query
 	*/
@@ -50,6 +50,7 @@ func (o *ListInfraEnvsParams) BindRequest(r *http.Request, route *middleware.Mat
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qClusterID, qhkClusterID, _ := qs.GetOK("cluster_id")
@@ -95,7 +96,7 @@ func (o *ListInfraEnvsParams) bindClusterID(rawData []string, hasKey bool, forma
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *ListInfraEnvsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "query", "uuid", o.ClusterID.String(), formats); err != nil {

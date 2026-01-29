@@ -12,16 +12,16 @@ import (
 )
 
 // V2GetPresignedForClusterCredentialsHandlerFunc turns a function with the right signature into a v2 get presigned for cluster credentials handler
-type V2GetPresignedForClusterCredentialsHandlerFunc func(V2GetPresignedForClusterCredentialsParams, any) middleware.Responder
+type V2GetPresignedForClusterCredentialsHandlerFunc func(V2GetPresignedForClusterCredentialsParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2GetPresignedForClusterCredentialsHandlerFunc) Handle(params V2GetPresignedForClusterCredentialsParams, principal any) middleware.Responder {
+func (fn V2GetPresignedForClusterCredentialsHandlerFunc) Handle(params V2GetPresignedForClusterCredentialsParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2GetPresignedForClusterCredentialsHandler interface for that can handle valid v2 get presigned for cluster credentials params
 type V2GetPresignedForClusterCredentialsHandler interface {
-	Handle(V2GetPresignedForClusterCredentialsParams, any) middleware.Responder
+	Handle(V2GetPresignedForClusterCredentialsParams, interface{}) middleware.Responder
 }
 
 // NewV2GetPresignedForClusterCredentials creates a new http.Handler for the v2 get presigned for cluster credentials operation
@@ -53,9 +53,9 @@ func (o *V2GetPresignedForClusterCredentials) ServeHTTP(rw http.ResponseWriter, 
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2GetPresignedForClusterCredentials) ServeHTTP(rw http.ResponseWriter, 
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

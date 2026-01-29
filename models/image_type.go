@@ -41,7 +41,7 @@ const (
 )
 
 // for schema
-var imageTypeEnum []any
+var imageTypeEnum []interface{}
 
 func init() {
 	var res []ImageType

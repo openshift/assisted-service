@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -24,7 +22,7 @@ type V2DownloadClusterFilesReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2DownloadClusterFilesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2DownloadClusterFilesReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2DownloadClusterFilesOK(o.writer)
@@ -75,7 +73,7 @@ func (o *V2DownloadClusterFilesReader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/downloads/files] V2DownloadClusterFiles", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -121,17 +119,12 @@ func (o *V2DownloadClusterFilesOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 download cluster files o k response
-func (o *V2DownloadClusterFilesOK) Code() int {
-	return 200
-}
-
 func (o *V2DownloadClusterFilesOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesOK", 200)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesOK  %+v", 200, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesOK", 200)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesOK  %+v", 200, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesOK) GetPayload() io.Writer {
@@ -141,7 +134,7 @@ func (o *V2DownloadClusterFilesOK) GetPayload() io.Writer {
 func (o *V2DownloadClusterFilesOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +180,12 @@ func (o *V2DownloadClusterFilesUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 download cluster files unauthorized response
-func (o *V2DownloadClusterFilesUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2DownloadClusterFilesUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesUnauthorized) GetPayload() *models.InfraError {
@@ -211,7 +197,7 @@ func (o *V2DownloadClusterFilesUnauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +243,12 @@ func (o *V2DownloadClusterFilesForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 download cluster files forbidden response
-func (o *V2DownloadClusterFilesForbidden) Code() int {
-	return 403
-}
-
 func (o *V2DownloadClusterFilesForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesForbidden) GetPayload() *models.InfraError {
@@ -281,7 +260,7 @@ func (o *V2DownloadClusterFilesForbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +306,12 @@ func (o *V2DownloadClusterFilesNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 download cluster files not found response
-func (o *V2DownloadClusterFilesNotFound) Code() int {
-	return 404
-}
-
 func (o *V2DownloadClusterFilesNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesNotFound) GetPayload() *models.Error {
@@ -351,7 +323,7 @@ func (o *V2DownloadClusterFilesNotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +369,12 @@ func (o *V2DownloadClusterFilesMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 download cluster files method not allowed response
-func (o *V2DownloadClusterFilesMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2DownloadClusterFilesMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesMethodNotAllowed) GetPayload() *models.Error {
@@ -421,7 +386,7 @@ func (o *V2DownloadClusterFilesMethodNotAllowed) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +432,12 @@ func (o *V2DownloadClusterFilesConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 download cluster files conflict response
-func (o *V2DownloadClusterFilesConflict) Code() int {
-	return 409
-}
-
 func (o *V2DownloadClusterFilesConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesConflict) GetPayload() *models.Error {
@@ -491,7 +449,7 @@ func (o *V2DownloadClusterFilesConflict) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +495,12 @@ func (o *V2DownloadClusterFilesInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 download cluster files internal server error response
-func (o *V2DownloadClusterFilesInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2DownloadClusterFilesInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesInternalServerError) GetPayload() *models.Error {
@@ -561,7 +512,7 @@ func (o *V2DownloadClusterFilesInternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +558,12 @@ func (o *V2DownloadClusterFilesServiceUnavailable) IsCode(code int) bool {
 	return code == 503
 }
 
-// Code gets the status code for the v2 download cluster files service unavailable response
-func (o *V2DownloadClusterFilesServiceUnavailable) Code() int {
-	return 503
-}
-
 func (o *V2DownloadClusterFilesServiceUnavailable) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesServiceUnavailable) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesServiceUnavailable %s", 503, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/files][%d] v2DownloadClusterFilesServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *V2DownloadClusterFilesServiceUnavailable) GetPayload() *models.Error {
@@ -631,7 +575,7 @@ func (o *V2DownloadClusterFilesServiceUnavailable) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

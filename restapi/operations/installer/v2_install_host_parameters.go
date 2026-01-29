@@ -27,6 +27,7 @@ func NewV2InstallHostParams() V2InstallHostParams {
 //
 // swagger:parameters v2InstallHost
 type V2InstallHostParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -35,7 +36,6 @@ type V2InstallHostParams struct {
 	  In: path
 	*/
 	HostID strfmt.UUID
-
 	/*The infra-env of the host that is being installed.
 	  Required: true
 	  In: path
@@ -91,7 +91,7 @@ func (o *V2InstallHostParams) bindHostID(rawData []string, hasKey bool, formats 
 	return nil
 }
 
-// validateHostID carries out validations for parameter HostID
+// validateHostID carries on validations for parameter HostID
 func (o *V2InstallHostParams) validateHostID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("host_id", "path", "uuid", o.HostID.String(), formats); err != nil {
@@ -124,7 +124,7 @@ func (o *V2InstallHostParams) bindInfraEnvID(rawData []string, hasKey bool, form
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2InstallHostParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

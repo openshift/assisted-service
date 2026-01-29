@@ -28,6 +28,7 @@ func NewGetSupportedArchitecturesParams() GetSupportedArchitecturesParams {
 //
 // swagger:parameters GetSupportedArchitectures
 type GetSupportedArchitecturesParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -46,6 +47,7 @@ func (o *GetSupportedArchitecturesParams) BindRequest(r *http.Request, route *mi
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	qOpenshiftVersion, qhkOpenshiftVersion, _ := qs.GetOK("openshift_version")

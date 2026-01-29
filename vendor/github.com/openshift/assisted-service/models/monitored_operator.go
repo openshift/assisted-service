@@ -7,14 +7,12 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
-
-	"github.com/lib/pq"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"github.com/lib/pq"
 )
 
 // MonitoredOperator monitored operator
@@ -108,15 +106,11 @@ func (m *MonitoredOperator) validateOperatorType(formats strfmt.Registry) error 
 	}
 
 	if err := m.OperatorType.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("operator_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("operator_type")
 		}
-
 		return err
 	}
 
@@ -129,15 +123,11 @@ func (m *MonitoredOperator) validateStatus(formats strfmt.Registry) error {
 	}
 
 	if err := m.Status.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("status")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("status")
 		}
-
 		return err
 	}
 
@@ -176,20 +166,12 @@ func (m *MonitoredOperator) ContextValidate(ctx context.Context, formats strfmt.
 
 func (m *MonitoredOperator) contextValidateOperatorType(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.OperatorType) { // not required
-		return nil
-	}
-
 	if err := m.OperatorType.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("operator_type")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("operator_type")
 		}
-
 		return err
 	}
 
@@ -198,20 +180,12 @@ func (m *MonitoredOperator) contextValidateOperatorType(ctx context.Context, for
 
 func (m *MonitoredOperator) contextValidateStatus(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Status) { // not required
-		return nil
-	}
-
 	if err := m.Status.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("status")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("status")
 		}
-
 		return err
 	}
 

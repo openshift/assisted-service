@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -134,15 +133,11 @@ func (m *ClusterDefaultConfig) validateClusterNetworksDualstack(formats strfmt.R
 
 		if m.ClusterNetworksDualstack[i] != nil {
 			if err := m.ClusterNetworksDualstack[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks_dualstack" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks_dualstack" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -164,15 +159,11 @@ func (m *ClusterDefaultConfig) validateClusterNetworksIPV4(formats strfmt.Regist
 
 		if m.ClusterNetworksIPV4[i] != nil {
 			if err := m.ClusterNetworksIPV4[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks_ipv4" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks_ipv4" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -206,15 +197,11 @@ func (m *ClusterDefaultConfig) validateServiceNetworksDualstack(formats strfmt.R
 
 		if m.ServiceNetworksDualstack[i] != nil {
 			if err := m.ServiceNetworksDualstack[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks_dualstack" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks_dualstack" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -236,15 +223,11 @@ func (m *ClusterDefaultConfig) validateServiceNetworksIPV4(formats strfmt.Regist
 
 		if m.ServiceNetworksIPV4[i] != nil {
 			if err := m.ServiceNetworksIPV4[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks_ipv4" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks_ipv4" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -285,21 +268,12 @@ func (m *ClusterDefaultConfig) contextValidateClusterNetworksDualstack(ctx conte
 	for i := 0; i < len(m.ClusterNetworksDualstack); i++ {
 
 		if m.ClusterNetworksDualstack[i] != nil {
-
-			if swag.IsZero(m.ClusterNetworksDualstack[i]) { // not required
-				return nil
-			}
-
 			if err := m.ClusterNetworksDualstack[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks_dualstack" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks_dualstack" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -314,21 +288,12 @@ func (m *ClusterDefaultConfig) contextValidateClusterNetworksIPV4(ctx context.Co
 	for i := 0; i < len(m.ClusterNetworksIPV4); i++ {
 
 		if m.ClusterNetworksIPV4[i] != nil {
-
-			if swag.IsZero(m.ClusterNetworksIPV4[i]) { // not required
-				return nil
-			}
-
 			if err := m.ClusterNetworksIPV4[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("cluster_networks_ipv4" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("cluster_networks_ipv4" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -343,21 +308,12 @@ func (m *ClusterDefaultConfig) contextValidateServiceNetworksDualstack(ctx conte
 	for i := 0; i < len(m.ServiceNetworksDualstack); i++ {
 
 		if m.ServiceNetworksDualstack[i] != nil {
-
-			if swag.IsZero(m.ServiceNetworksDualstack[i]) { // not required
-				return nil
-			}
-
 			if err := m.ServiceNetworksDualstack[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks_dualstack" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks_dualstack" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -372,21 +328,12 @@ func (m *ClusterDefaultConfig) contextValidateServiceNetworksIPV4(ctx context.Co
 	for i := 0; i < len(m.ServiceNetworksIPV4); i++ {
 
 		if m.ServiceNetworksIPV4[i] != nil {
-
-			if swag.IsZero(m.ServiceNetworksIPV4[i]) { // not required
-				return nil
-			}
-
 			if err := m.ServiceNetworksIPV4[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("service_networks_ipv4" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("service_networks_ipv4" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

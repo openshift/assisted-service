@@ -21,7 +21,7 @@ import (
 type Event struct {
 
 	// category
-	// Enum: ["user","metrics"]
+	// Enum: [user metrics]
 	Category string `json:"category,omitempty" gorm:"default:'user'"`
 
 	// Unique identifier of the cluster this event relates to.
@@ -57,7 +57,7 @@ type Event struct {
 
 	// severity
 	// Required: true
-	// Enum: ["info","warning","error","critical"]
+	// Enum: [info warning error critical]
 	Severity *string `json:"severity"`
 }
 
@@ -103,7 +103,7 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var eventTypeCategoryPropEnum []any
+var eventTypeCategoryPropEnum []interface{}
 
 func init() {
 	var res []string
@@ -215,7 +215,7 @@ func (m *Event) validateRequestID(formats strfmt.Registry) error {
 	return nil
 }
 
-var eventTypeSeverityPropEnum []any
+var eventTypeSeverityPropEnum []interface{}
 
 func init() {
 	var res []string

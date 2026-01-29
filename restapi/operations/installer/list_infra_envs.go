@@ -12,16 +12,16 @@ import (
 )
 
 // ListInfraEnvsHandlerFunc turns a function with the right signature into a list infra envs handler
-type ListInfraEnvsHandlerFunc func(ListInfraEnvsParams, any) middleware.Responder
+type ListInfraEnvsHandlerFunc func(ListInfraEnvsParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn ListInfraEnvsHandlerFunc) Handle(params ListInfraEnvsParams, principal any) middleware.Responder {
+func (fn ListInfraEnvsHandlerFunc) Handle(params ListInfraEnvsParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // ListInfraEnvsHandler interface for that can handle valid list infra envs params
 type ListInfraEnvsHandler interface {
-	Handle(ListInfraEnvsParams, any) middleware.Responder
+	Handle(ListInfraEnvsParams, interface{}) middleware.Responder
 }
 
 // NewListInfraEnvs creates a new http.Handler for the list infra envs operation
@@ -53,9 +53,9 @@ func (o *ListInfraEnvs) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *ListInfraEnvs) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

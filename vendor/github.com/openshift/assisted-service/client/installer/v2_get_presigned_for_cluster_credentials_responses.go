@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetPresignedForClusterCredentialsReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetPresignedForClusterCredentialsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetPresignedForClusterCredentialsReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetPresignedForClusterCredentialsOK()
@@ -74,7 +72,7 @@ func (o *V2GetPresignedForClusterCredentialsReader) ReadResponse(response runtim
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned] V2GetPresignedForClusterCredentials", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -117,19 +115,12 @@ func (o *V2GetPresignedForClusterCredentialsOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials o k response
-func (o *V2GetPresignedForClusterCredentialsOK) Code() int {
-	return 200
-}
-
 func (o *V2GetPresignedForClusterCredentialsOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsOK) GetPayload() *models.PresignedURL {
@@ -141,7 +132,7 @@ func (o *V2GetPresignedForClusterCredentialsOK) readResponse(response runtime.Cl
 	o.Payload = new(models.PresignedURL)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +178,12 @@ func (o *V2GetPresignedForClusterCredentialsBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials bad request response
-func (o *V2GetPresignedForClusterCredentialsBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2GetPresignedForClusterCredentialsBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsBadRequest) GetPayload() *models.Error {
@@ -211,7 +195,7 @@ func (o *V2GetPresignedForClusterCredentialsBadRequest) readResponse(response ru
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +241,12 @@ func (o *V2GetPresignedForClusterCredentialsUnauthorized) IsCode(code int) bool 
 	return code == 401
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials unauthorized response
-func (o *V2GetPresignedForClusterCredentialsUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2GetPresignedForClusterCredentialsUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsUnauthorized) GetPayload() *models.InfraError {
@@ -281,7 +258,7 @@ func (o *V2GetPresignedForClusterCredentialsUnauthorized) readResponse(response 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +304,12 @@ func (o *V2GetPresignedForClusterCredentialsForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials forbidden response
-func (o *V2GetPresignedForClusterCredentialsForbidden) Code() int {
-	return 403
-}
-
 func (o *V2GetPresignedForClusterCredentialsForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsForbidden %s", 403, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsForbidden) GetPayload() *models.InfraError {
@@ -351,7 +321,7 @@ func (o *V2GetPresignedForClusterCredentialsForbidden) readResponse(response run
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +367,12 @@ func (o *V2GetPresignedForClusterCredentialsNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials not found response
-func (o *V2GetPresignedForClusterCredentialsNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetPresignedForClusterCredentialsNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsNotFound) GetPayload() *models.Error {
@@ -421,7 +384,7 @@ func (o *V2GetPresignedForClusterCredentialsNotFound) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +430,12 @@ func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) IsCode(code int) b
 	return code == 405
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials method not allowed response
-func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) GetPayload() *models.Error {
@@ -491,7 +447,7 @@ func (o *V2GetPresignedForClusterCredentialsMethodNotAllowed) readResponse(respo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +493,12 @@ func (o *V2GetPresignedForClusterCredentialsConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials conflict response
-func (o *V2GetPresignedForClusterCredentialsConflict) Code() int {
-	return 409
-}
-
 func (o *V2GetPresignedForClusterCredentialsConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsConflict %s", 409, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsConflict) GetPayload() *models.Error {
@@ -561,7 +510,7 @@ func (o *V2GetPresignedForClusterCredentialsConflict) readResponse(response runt
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +556,12 @@ func (o *V2GetPresignedForClusterCredentialsInternalServerError) IsCode(code int
 	return code == 500
 }
 
-// Code gets the status code for the v2 get presigned for cluster credentials internal server error response
-func (o *V2GetPresignedForClusterCredentialsInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetPresignedForClusterCredentialsInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetPresignedForClusterCredentialsInternalServerError) GetPayload() *models.Error {
@@ -631,7 +573,7 @@ func (o *V2GetPresignedForClusterCredentialsInternalServerError) readResponse(re
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

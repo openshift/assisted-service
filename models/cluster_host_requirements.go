@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -80,15 +79,11 @@ func (m *ClusterHostRequirements) validateOcp(formats strfmt.Registry) error {
 
 	if m.Ocp != nil {
 		if err := m.Ocp.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ocp")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("ocp")
 			}
-
 			return err
 		}
 	}
@@ -108,15 +103,11 @@ func (m *ClusterHostRequirements) validateOperators(formats strfmt.Registry) err
 
 		if m.Operators[i] != nil {
 			if err := m.Operators[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -133,15 +124,11 @@ func (m *ClusterHostRequirements) validateTotal(formats strfmt.Registry) error {
 
 	if m.Total != nil {
 		if err := m.Total.Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("total")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("total")
 			}
-
 			return err
 		}
 	}
@@ -174,21 +161,12 @@ func (m *ClusterHostRequirements) ContextValidate(ctx context.Context, formats s
 func (m *ClusterHostRequirements) contextValidateOcp(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Ocp != nil {
-
-		if swag.IsZero(m.Ocp) { // not required
-			return nil
-		}
-
 		if err := m.Ocp.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("ocp")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("ocp")
 			}
-
 			return err
 		}
 	}
@@ -201,21 +179,12 @@ func (m *ClusterHostRequirements) contextValidateOperators(ctx context.Context, 
 	for i := 0; i < len(m.Operators); i++ {
 
 		if m.Operators[i] != nil {
-
-			if swag.IsZero(m.Operators[i]) { // not required
-				return nil
-			}
-
 			if err := m.Operators[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -228,21 +197,12 @@ func (m *ClusterHostRequirements) contextValidateOperators(ctx context.Context, 
 func (m *ClusterHostRequirements) contextValidateTotal(ctx context.Context, formats strfmt.Registry) error {
 
 	if m.Total != nil {
-
-		if swag.IsZero(m.Total) { // not required
-			return nil
-		}
-
 		if err := m.Total.ContextValidate(ctx, formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("total")
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("total")
 			}
-
 			return err
 		}
 	}

@@ -12,16 +12,16 @@ import (
 )
 
 // V2UpdateClusterLogsProgressHandlerFunc turns a function with the right signature into a v2 update cluster logs progress handler
-type V2UpdateClusterLogsProgressHandlerFunc func(V2UpdateClusterLogsProgressParams, any) middleware.Responder
+type V2UpdateClusterLogsProgressHandlerFunc func(V2UpdateClusterLogsProgressParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2UpdateClusterLogsProgressHandlerFunc) Handle(params V2UpdateClusterLogsProgressParams, principal any) middleware.Responder {
+func (fn V2UpdateClusterLogsProgressHandlerFunc) Handle(params V2UpdateClusterLogsProgressParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2UpdateClusterLogsProgressHandler interface for that can handle valid v2 update cluster logs progress params
 type V2UpdateClusterLogsProgressHandler interface {
-	Handle(V2UpdateClusterLogsProgressParams, any) middleware.Responder
+	Handle(V2UpdateClusterLogsProgressParams, interface{}) middleware.Responder
 }
 
 // NewV2UpdateClusterLogsProgress creates a new http.Handler for the v2 update cluster logs progress operation
@@ -53,9 +53,9 @@ func (o *V2UpdateClusterLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2UpdateClusterLogsProgress) ServeHTTP(rw http.ResponseWriter, r *http.
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

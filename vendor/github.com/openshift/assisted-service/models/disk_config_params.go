@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -61,15 +60,11 @@ func (m *DiskConfigParams) validateRole(formats strfmt.Registry) error {
 	}
 
 	if err := m.Role.Validate(formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("role")
 		}
-
 		return err
 	}
 
@@ -92,20 +87,12 @@ func (m *DiskConfigParams) ContextValidate(ctx context.Context, formats strfmt.R
 
 func (m *DiskConfigParams) contextValidateRole(ctx context.Context, formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Role) { // not required
-		return nil
-	}
-
 	if err := m.Role.ContextValidate(ctx, formats); err != nil {
-		ve := new(errors.Validation)
-		if stderrors.As(err, &ve) {
+		if ve, ok := err.(*errors.Validation); ok {
 			return ve.ValidateName("role")
-		}
-		ce := new(errors.CompositeError)
-		if stderrors.As(err, &ce) {
+		} else if ce, ok := err.(*errors.CompositeError); ok {
 			return ce.ValidateName("role")
 		}
-
 		return err
 	}
 

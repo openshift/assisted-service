@@ -9,12 +9,11 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/lib/pq"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
+	"github.com/lib/pq"
 )
 
 // ReleaseImage release image
@@ -24,7 +23,7 @@ type ReleaseImage struct {
 
 	// (DEPRECATED) The CPU architecture of the image (x86_64/arm64/etc).
 	// Required: true
-	// Enum: ["x86_64","aarch64","arm64","ppc64le","s390x","multi"]
+	// Enum: [x86_64 aarch64 arm64 ppc64le s390x multi]
 	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
 	// List of CPU architectures provided by the image.
@@ -38,7 +37,7 @@ type ReleaseImage struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// Level of support of the version.
-	// Enum: ["beta","production","maintenance","end-of-life"]
+	// Enum: [beta production maintenance end-of-life]
 	SupportLevel string `json:"support_level,omitempty"`
 
 	// The installation image of the OpenShift cluster.
@@ -80,7 +79,7 @@ func (m *ReleaseImage) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var releaseImageTypeCPUArchitecturePropEnum []any
+var releaseImageTypeCPUArchitecturePropEnum []interface{}
 
 func init() {
 	var res []string
@@ -144,7 +143,7 @@ func (m *ReleaseImage) validateOpenshiftVersion(formats strfmt.Registry) error {
 	return nil
 }
 
-var releaseImageTypeSupportLevelPropEnum []any
+var releaseImageTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string

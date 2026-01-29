@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type RegisterInfraEnvReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *RegisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *RegisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 201:
 		result := NewRegisterInfraEnvCreated()
@@ -80,7 +78,7 @@ func (o *RegisterInfraEnvReader) ReadResponse(response runtime.ClientResponse, c
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/infra-envs] RegisterInfraEnv", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -123,19 +121,12 @@ func (o *RegisterInfraEnvCreated) IsCode(code int) bool {
 	return code == 201
 }
 
-// Code gets the status code for the register infra env created response
-func (o *RegisterInfraEnvCreated) Code() int {
-	return 201
-}
-
 func (o *RegisterInfraEnvCreated) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterInfraEnvCreated) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvCreated %s", 201, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterInfraEnvCreated) GetPayload() *models.InfraEnv {
@@ -147,7 +138,7 @@ func (o *RegisterInfraEnvCreated) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraEnv)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -193,19 +184,12 @@ func (o *RegisterInfraEnvBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the register infra env bad request response
-func (o *RegisterInfraEnvBadRequest) Code() int {
-	return 400
-}
-
 func (o *RegisterInfraEnvBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *RegisterInfraEnvBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvBadRequest %s", 400, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *RegisterInfraEnvBadRequest) GetPayload() *models.Error {
@@ -217,7 +201,7 @@ func (o *RegisterInfraEnvBadRequest) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -263,19 +247,12 @@ func (o *RegisterInfraEnvUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the register infra env unauthorized response
-func (o *RegisterInfraEnvUnauthorized) Code() int {
-	return 401
-}
-
 func (o *RegisterInfraEnvUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *RegisterInfraEnvUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *RegisterInfraEnvUnauthorized) GetPayload() *models.InfraError {
@@ -287,7 +264,7 @@ func (o *RegisterInfraEnvUnauthorized) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -333,19 +310,12 @@ func (o *RegisterInfraEnvForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the register infra env forbidden response
-func (o *RegisterInfraEnvForbidden) Code() int {
-	return 403
-}
-
 func (o *RegisterInfraEnvForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvForbidden  %+v", 403, o.Payload)
 }
 
 func (o *RegisterInfraEnvForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvForbidden  %+v", 403, o.Payload)
 }
 
 func (o *RegisterInfraEnvForbidden) GetPayload() *models.InfraError {
@@ -357,7 +327,7 @@ func (o *RegisterInfraEnvForbidden) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -403,19 +373,12 @@ func (o *RegisterInfraEnvNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the register infra env not found response
-func (o *RegisterInfraEnvNotFound) Code() int {
-	return 404
-}
-
 func (o *RegisterInfraEnvNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotFound  %+v", 404, o.Payload)
 }
 
 func (o *RegisterInfraEnvNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotFound  %+v", 404, o.Payload)
 }
 
 func (o *RegisterInfraEnvNotFound) GetPayload() *models.Error {
@@ -427,7 +390,7 @@ func (o *RegisterInfraEnvNotFound) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -473,19 +436,12 @@ func (o *RegisterInfraEnvMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the register infra env method not allowed response
-func (o *RegisterInfraEnvMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *RegisterInfraEnvMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *RegisterInfraEnvMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *RegisterInfraEnvMethodNotAllowed) GetPayload() *models.Error {
@@ -497,7 +453,7 @@ func (o *RegisterInfraEnvMethodNotAllowed) readResponse(response runtime.ClientR
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -543,19 +499,12 @@ func (o *RegisterInfraEnvConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the register infra env conflict response
-func (o *RegisterInfraEnvConflict) Code() int {
-	return 409
-}
-
 func (o *RegisterInfraEnvConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvConflict  %+v", 409, o.Payload)
 }
 
 func (o *RegisterInfraEnvConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvConflict  %+v", 409, o.Payload)
 }
 
 func (o *RegisterInfraEnvConflict) GetPayload() *models.Error {
@@ -567,7 +516,7 @@ func (o *RegisterInfraEnvConflict) readResponse(response runtime.ClientResponse,
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -613,19 +562,12 @@ func (o *RegisterInfraEnvInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the register infra env internal server error response
-func (o *RegisterInfraEnvInternalServerError) Code() int {
-	return 500
-}
-
 func (o *RegisterInfraEnvInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *RegisterInfraEnvInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *RegisterInfraEnvInternalServerError) GetPayload() *models.Error {
@@ -637,7 +579,7 @@ func (o *RegisterInfraEnvInternalServerError) readResponse(response runtime.Clie
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -683,19 +625,12 @@ func (o *RegisterInfraEnvNotImplemented) IsCode(code int) bool {
 	return code == 501
 }
 
-// Code gets the status code for the register infra env not implemented response
-func (o *RegisterInfraEnvNotImplemented) Code() int {
-	return 501
-}
-
 func (o *RegisterInfraEnvNotImplemented) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *RegisterInfraEnvNotImplemented) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotImplemented %s", 501, payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] registerInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *RegisterInfraEnvNotImplemented) GetPayload() *models.Error {
@@ -707,7 +642,7 @@ func (o *RegisterInfraEnvNotImplemented) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

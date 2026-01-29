@@ -6,8 +6,6 @@ package operators
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2GetBundleReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2GetBundleReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2GetBundleReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2GetBundleOK()
@@ -50,7 +48,7 @@ func (o *V2GetBundleReader) ReadResponse(response runtime.ClientResponse, consum
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[GET /v2/operators/bundles/{id}] V2GetBundle", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -93,19 +91,12 @@ func (o *V2GetBundleOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 get bundle o k response
-func (o *V2GetBundleOK) Code() int {
-	return 200
-}
-
 func (o *V2GetBundleOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetBundleOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK %s", 200, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleOK  %+v", 200, o.Payload)
 }
 
 func (o *V2GetBundleOK) GetPayload() *models.Bundle {
@@ -117,7 +108,7 @@ func (o *V2GetBundleOK) readResponse(response runtime.ClientResponse, consumer r
 	o.Payload = new(models.Bundle)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -163,19 +154,12 @@ func (o *V2GetBundleBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 get bundle bad request response
-func (o *V2GetBundleBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2GetBundleBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetBundleBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleBadRequest %s", 400, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2GetBundleBadRequest) GetPayload() *models.Error {
@@ -187,7 +171,7 @@ func (o *V2GetBundleBadRequest) readResponse(response runtime.ClientResponse, co
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -233,19 +217,12 @@ func (o *V2GetBundleNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 get bundle not found response
-func (o *V2GetBundleNotFound) Code() int {
-	return 404
-}
-
 func (o *V2GetBundleNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetBundleNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound %s", 404, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2GetBundleNotFound) GetPayload() *models.Error {
@@ -257,7 +234,7 @@ func (o *V2GetBundleNotFound) readResponse(response runtime.ClientResponse, cons
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -303,19 +280,12 @@ func (o *V2GetBundleInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 get bundle internal server error response
-func (o *V2GetBundleInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2GetBundleInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetBundleInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[GET /v2/operators/bundles/{id}][%d] v2GetBundleInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2GetBundleInternalServerError) GetPayload() *models.Error {
@@ -327,7 +297,7 @@ func (o *V2GetBundleInternalServerError) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

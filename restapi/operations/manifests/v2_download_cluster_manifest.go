@@ -12,16 +12,16 @@ import (
 )
 
 // V2DownloadClusterManifestHandlerFunc turns a function with the right signature into a v2 download cluster manifest handler
-type V2DownloadClusterManifestHandlerFunc func(V2DownloadClusterManifestParams, any) middleware.Responder
+type V2DownloadClusterManifestHandlerFunc func(V2DownloadClusterManifestParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DownloadClusterManifestHandlerFunc) Handle(params V2DownloadClusterManifestParams, principal any) middleware.Responder {
+func (fn V2DownloadClusterManifestHandlerFunc) Handle(params V2DownloadClusterManifestParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DownloadClusterManifestHandler interface for that can handle valid v2 download cluster manifest params
 type V2DownloadClusterManifestHandler interface {
-	Handle(V2DownloadClusterManifestParams, any) middleware.Responder
+	Handle(V2DownloadClusterManifestParams, interface{}) middleware.Responder
 }
 
 // NewV2DownloadClusterManifest creates a new http.Handler for the v2 download cluster manifest operation
@@ -53,9 +53,9 @@ func (o *V2DownloadClusterManifest) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2DownloadClusterManifest) ServeHTTP(rw http.ResponseWriter, r *http.Re
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

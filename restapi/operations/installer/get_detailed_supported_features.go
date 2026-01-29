@@ -7,7 +7,6 @@ package installer
 
 import (
 	"context"
-	stderrors "errors"
 	"net/http"
 	"strconv"
 
@@ -20,16 +19,16 @@ import (
 )
 
 // GetDetailedSupportedFeaturesHandlerFunc turns a function with the right signature into a get detailed supported features handler
-type GetDetailedSupportedFeaturesHandlerFunc func(GetDetailedSupportedFeaturesParams, any) middleware.Responder
+type GetDetailedSupportedFeaturesHandlerFunc func(GetDetailedSupportedFeaturesParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetDetailedSupportedFeaturesHandlerFunc) Handle(params GetDetailedSupportedFeaturesParams, principal any) middleware.Responder {
+func (fn GetDetailedSupportedFeaturesHandlerFunc) Handle(params GetDetailedSupportedFeaturesParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetDetailedSupportedFeaturesHandler interface for that can handle valid get detailed supported features params
 type GetDetailedSupportedFeaturesHandler interface {
-	Handle(GetDetailedSupportedFeaturesParams, any) middleware.Responder
+	Handle(GetDetailedSupportedFeaturesParams, interface{}) middleware.Responder
 }
 
 // NewGetDetailedSupportedFeatures creates a new http.Handler for the get detailed supported features operation
@@ -61,9 +60,9 @@ func (o *GetDetailedSupportedFeatures) ServeHTTP(rw http.ResponseWriter, r *http
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -72,7 +71,6 @@ func (o *GetDetailedSupportedFeatures) ServeHTTP(rw http.ResponseWriter, r *http
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }
@@ -119,15 +117,11 @@ func (o *GetDetailedSupportedFeaturesOKBody) validateFeatures(formats strfmt.Reg
 
 		if o.Features[i] != nil {
 			if err := o.Features[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -149,15 +143,11 @@ func (o *GetDetailedSupportedFeaturesOKBody) validateOperators(formats strfmt.Re
 
 		if o.Operators[i] != nil {
 			if err := o.Operators[i].Validate(formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -190,21 +180,12 @@ func (o *GetDetailedSupportedFeaturesOKBody) contextValidateFeatures(ctx context
 	for i := 0; i < len(o.Features); i++ {
 
 		if o.Features[i] != nil {
-
-			if swag.IsZero(o.Features[i]) { // not required
-				return nil
-			}
-
 			if err := o.Features[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "features" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}
@@ -219,21 +200,12 @@ func (o *GetDetailedSupportedFeaturesOKBody) contextValidateOperators(ctx contex
 	for i := 0; i < len(o.Operators); i++ {
 
 		if o.Operators[i] != nil {
-
-			if swag.IsZero(o.Operators[i]) { // not required
-				return nil
-			}
-
 			if err := o.Operators[i].ContextValidate(ctx, formats); err != nil {
-				ve := new(errors.Validation)
-				if stderrors.As(err, &ve) {
+				if ve, ok := err.(*errors.Validation); ok {
 					return ve.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
-				}
-				ce := new(errors.CompositeError)
-				if stderrors.As(err, &ce) {
+				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("getDetailedSupportedFeaturesOK" + "." + "operators" + "." + strconv.Itoa(i))
 				}
-
 				return err
 			}
 		}

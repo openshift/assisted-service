@@ -7,14 +7,13 @@ package events
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/go-openapi/runtime"
 
 	strfmt "github.com/go-openapi/strfmt"
 )
 
-//go:generate mockery --name API --keeptree --with-expecter --case underscore
+//go:generate mockery -name API -inpkg
 
 // API is the interface of the events client
 type API interface {
@@ -48,6 +47,7 @@ type Client struct {
 V2ListEvents Lists events for a cluster.
 */
 func (a *Client) V2ListEvents(ctx context.Context, params *V2ListEventsParams) (*V2ListEventsOK, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2ListEvents",
 		Method:             "GET",
@@ -64,35 +64,15 @@ func (a *Client) V2ListEvents(ctx context.Context, params *V2ListEventsParams) (
 	if err != nil {
 		return nil, err
 	}
+	return result.(*V2ListEventsOK), nil
 
-	switch value := result.(type) {
-	case *V2ListEventsOK:
-		return value, nil
-	case *V2ListEventsUnauthorized:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListEventsForbidden:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListEventsNotFound:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListEventsMethodNotAllowed:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2ListEventsInternalServerError:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	}
-
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for v2ListEvents: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }
 
 /*
 V2TriggerEvent Add new assisted installer event.
 */
 func (a *Client) V2TriggerEvent(ctx context.Context, params *V2TriggerEventParams) (*V2TriggerEventCreated, error) {
+
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "v2TriggerEvent",
 		Method:             "POST",
@@ -109,35 +89,6 @@ func (a *Client) V2TriggerEvent(ctx context.Context, params *V2TriggerEventParam
 	if err != nil {
 		return nil, err
 	}
+	return result.(*V2TriggerEventCreated), nil
 
-	switch value := result.(type) {
-	case *V2TriggerEventCreated:
-		return value, nil
-	case *V2TriggerEventBadRequest:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventUnauthorized:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventForbidden:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventNotFound:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventMethodNotAllowed:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventConflict:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventInternalServerError:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventNotImplemented:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *V2TriggerEventServiceUnavailable:
-		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	}
-
-	// unexpected response.
-
-	// no default response is defined.
-	//
-	// safeguard: normally, in the absence of a default response, unknown responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for v2TriggerEvent: API contract not enforced by server. Client expected to get an error, but got: %T", result)
-	panic(msg)
 }

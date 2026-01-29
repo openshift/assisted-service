@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ResetHostValidationReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ResetHostValidationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ResetHostValidationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2ResetHostValidationOK()
@@ -68,7 +66,7 @@ func (o *V2ResetHostValidationReader) ReadResponse(response runtime.ClientRespon
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}] v2ResetHostValidation", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *V2ResetHostValidationOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 reset host validation o k response
-func (o *V2ResetHostValidationOK) Code() int {
-	return 200
-}
-
 func (o *V2ResetHostValidationOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ResetHostValidationOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationOK  %+v", 200, o.Payload)
 }
 
 func (o *V2ResetHostValidationOK) GetPayload() *models.Host {
@@ -135,7 +126,7 @@ func (o *V2ResetHostValidationOK) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.Host)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -181,19 +172,12 @@ func (o *V2ResetHostValidationBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 reset host validation bad request response
-func (o *V2ResetHostValidationBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2ResetHostValidationBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ResetHostValidationBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2ResetHostValidationBadRequest) GetPayload() *models.Error {
@@ -205,7 +189,7 @@ func (o *V2ResetHostValidationBadRequest) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -251,19 +235,12 @@ func (o *V2ResetHostValidationUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 reset host validation unauthorized response
-func (o *V2ResetHostValidationUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2ResetHostValidationUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetHostValidationUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetHostValidationUnauthorized) GetPayload() *models.InfraError {
@@ -275,7 +252,7 @@ func (o *V2ResetHostValidationUnauthorized) readResponse(response runtime.Client
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -321,19 +298,12 @@ func (o *V2ResetHostValidationForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 reset host validation forbidden response
-func (o *V2ResetHostValidationForbidden) Code() int {
-	return 403
-}
-
 func (o *V2ResetHostValidationForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationForbidden %s", 403, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetHostValidationForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationForbidden %s", 403, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetHostValidationForbidden) GetPayload() *models.InfraError {
@@ -345,7 +315,7 @@ func (o *V2ResetHostValidationForbidden) readResponse(response runtime.ClientRes
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -391,19 +361,12 @@ func (o *V2ResetHostValidationNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 reset host validation not found response
-func (o *V2ResetHostValidationNotFound) Code() int {
-	return 404
-}
-
 func (o *V2ResetHostValidationNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationNotFound %s", 404, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetHostValidationNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationNotFound %s", 404, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetHostValidationNotFound) GetPayload() *models.Error {
@@ -415,7 +378,7 @@ func (o *V2ResetHostValidationNotFound) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -461,19 +424,12 @@ func (o *V2ResetHostValidationConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 reset host validation conflict response
-func (o *V2ResetHostValidationConflict) Code() int {
-	return 409
-}
-
 func (o *V2ResetHostValidationConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationConflict %s", 409, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetHostValidationConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationConflict %s", 409, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetHostValidationConflict) GetPayload() *models.Error {
@@ -485,7 +441,7 @@ func (o *V2ResetHostValidationConflict) readResponse(response runtime.ClientResp
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -531,19 +487,12 @@ func (o *V2ResetHostValidationInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 reset host validation internal server error response
-func (o *V2ResetHostValidationInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2ResetHostValidationInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetHostValidationInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PATCH /v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] v2ResetHostValidationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetHostValidationInternalServerError) GetPayload() *models.Error {
@@ -555,7 +504,7 @@ func (o *V2ResetHostValidationInternalServerError) readResponse(response runtime
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

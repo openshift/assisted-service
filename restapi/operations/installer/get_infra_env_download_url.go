@@ -12,16 +12,16 @@ import (
 )
 
 // GetInfraEnvDownloadURLHandlerFunc turns a function with the right signature into a get infra env download URL handler
-type GetInfraEnvDownloadURLHandlerFunc func(GetInfraEnvDownloadURLParams, any) middleware.Responder
+type GetInfraEnvDownloadURLHandlerFunc func(GetInfraEnvDownloadURLParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn GetInfraEnvDownloadURLHandlerFunc) Handle(params GetInfraEnvDownloadURLParams, principal any) middleware.Responder {
+func (fn GetInfraEnvDownloadURLHandlerFunc) Handle(params GetInfraEnvDownloadURLParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // GetInfraEnvDownloadURLHandler interface for that can handle valid get infra env download URL params
 type GetInfraEnvDownloadURLHandler interface {
-	Handle(GetInfraEnvDownloadURLParams, any) middleware.Responder
+	Handle(GetInfraEnvDownloadURLParams, interface{}) middleware.Responder
 }
 
 // NewGetInfraEnvDownloadURL creates a new http.Handler for the get infra env download URL operation
@@ -53,9 +53,9 @@ func (o *GetInfraEnvDownloadURL) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *GetInfraEnvDownloadURL) ServeHTTP(rw http.ResponseWriter, r *http.Reque
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

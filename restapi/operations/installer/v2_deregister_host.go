@@ -12,16 +12,16 @@ import (
 )
 
 // V2DeregisterHostHandlerFunc turns a function with the right signature into a v2 deregister host handler
-type V2DeregisterHostHandlerFunc func(V2DeregisterHostParams, any) middleware.Responder
+type V2DeregisterHostHandlerFunc func(V2DeregisterHostParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2DeregisterHostHandlerFunc) Handle(params V2DeregisterHostParams, principal any) middleware.Responder {
+func (fn V2DeregisterHostHandlerFunc) Handle(params V2DeregisterHostParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2DeregisterHostHandler interface for that can handle valid v2 deregister host params
 type V2DeregisterHostHandler interface {
-	Handle(V2DeregisterHostParams, any) middleware.Responder
+	Handle(V2DeregisterHostParams, interface{}) middleware.Responder
 }
 
 // NewV2DeregisterHost creates a new http.Handler for the v2 deregister host operation
@@ -53,9 +53,9 @@ func (o *V2DeregisterHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2DeregisterHost) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

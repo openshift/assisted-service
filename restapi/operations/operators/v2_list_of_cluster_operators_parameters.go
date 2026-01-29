@@ -28,6 +28,7 @@ func NewV2ListOfClusterOperatorsParams() V2ListOfClusterOperatorsParams {
 //
 // swagger:parameters V2ListOfClusterOperators
 type V2ListOfClusterOperatorsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,7 +37,6 @@ type V2ListOfClusterOperatorsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*An operator in the specified cluster to return its data.
 	  In: query
 	*/
@@ -51,6 +51,7 @@ func (o *V2ListOfClusterOperatorsParams) BindRequest(r *http.Request, route *mid
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -92,7 +93,7 @@ func (o *V2ListOfClusterOperatorsParams) bindClusterID(rawData []string, hasKey 
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2ListOfClusterOperatorsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {

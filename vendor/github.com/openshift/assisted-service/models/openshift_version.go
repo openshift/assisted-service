@@ -33,7 +33,7 @@ type OpenshiftVersion struct {
 
 	// Level of support of the version.
 	// Required: true
-	// Enum: ["beta","production","maintenance","end-of-life"]
+	// Enum: [beta production maintenance end-of-life]
 	SupportLevel *string `json:"support_level"`
 }
 
@@ -77,7 +77,7 @@ func (m *OpenshiftVersion) validateDisplayName(formats strfmt.Registry) error {
 	return nil
 }
 
-var openshiftVersionTypeSupportLevelPropEnum []any
+var openshiftVersionTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string

@@ -12,16 +12,16 @@ import (
 )
 
 // V2CreateClusterManifestHandlerFunc turns a function with the right signature into a v2 create cluster manifest handler
-type V2CreateClusterManifestHandlerFunc func(V2CreateClusterManifestParams, any) middleware.Responder
+type V2CreateClusterManifestHandlerFunc func(V2CreateClusterManifestParams, interface{}) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn V2CreateClusterManifestHandlerFunc) Handle(params V2CreateClusterManifestParams, principal any) middleware.Responder {
+func (fn V2CreateClusterManifestHandlerFunc) Handle(params V2CreateClusterManifestParams, principal interface{}) middleware.Responder {
 	return fn(params, principal)
 }
 
 // V2CreateClusterManifestHandler interface for that can handle valid v2 create cluster manifest params
 type V2CreateClusterManifestHandler interface {
-	Handle(V2CreateClusterManifestParams, any) middleware.Responder
+	Handle(V2CreateClusterManifestParams, interface{}) middleware.Responder
 }
 
 // NewV2CreateClusterManifest creates a new http.Handler for the v2 create cluster manifest operation
@@ -53,9 +53,9 @@ func (o *V2CreateClusterManifest) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	if aCtx != nil {
 		*r = *aCtx
 	}
-	var principal any
+	var principal interface{}
 	if uprinc != nil {
-		principal = uprinc
+		principal = uprinc.(interface{}) // this is really a interface{}, I promise
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
@@ -64,7 +64,6 @@ func (o *V2CreateClusterManifest) ServeHTTP(rw http.ResponseWriter, r *http.Requ
 	}
 
 	res := o.Handler.Handle(Params, principal) // actually handle the request
-
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

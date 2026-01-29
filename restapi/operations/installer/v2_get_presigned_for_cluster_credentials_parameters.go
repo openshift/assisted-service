@@ -28,6 +28,7 @@ func NewV2GetPresignedForClusterCredentialsParams() V2GetPresignedForClusterCred
 //
 // swagger:parameters V2GetPresignedForClusterCredentials
 type V2GetPresignedForClusterCredentialsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -36,7 +37,6 @@ type V2GetPresignedForClusterCredentialsParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-
 	/*The file to be downloaded.
 	  Required: true
 	  In: query
@@ -52,6 +52,7 @@ func (o *V2GetPresignedForClusterCredentialsParams) BindRequest(r *http.Request,
 	var res []error
 
 	o.HTTPRequest = r
+
 	qs := runtime.Values(r.URL.Query())
 
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
@@ -93,7 +94,7 @@ func (o *V2GetPresignedForClusterCredentialsParams) bindClusterID(rawData []stri
 	return nil
 }
 
-// validateClusterID carries out validations for parameter ClusterID
+// validateClusterID carries on validations for parameter ClusterID
 func (o *V2GetPresignedForClusterCredentialsParams) validateClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("cluster_id", "path", "uuid", o.ClusterID.String(), formats); err != nil {
@@ -127,10 +128,10 @@ func (o *V2GetPresignedForClusterCredentialsParams) bindFileName(rawData []strin
 	return nil
 }
 
-// validateFileName carries out validations for parameter FileName
+// validateFileName carries on validations for parameter FileName
 func (o *V2GetPresignedForClusterCredentialsParams) validateFileName(formats strfmt.Registry) error {
 
-	if err := validate.EnumCase("file_name", "query", o.FileName, []any{"kubeadmin-password", "kubeconfig", "kubeconfig-noingress"}, true); err != nil {
+	if err := validate.EnumCase("file_name", "query", o.FileName, []interface{}{"kubeadmin-password", "kubeconfig", "kubeconfig-noingress"}, true); err != nil {
 		return err
 	}
 

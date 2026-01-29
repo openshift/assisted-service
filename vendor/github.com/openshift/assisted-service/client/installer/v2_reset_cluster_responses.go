@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2ResetClusterReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2ResetClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2ResetClusterReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 202:
 		result := NewV2ResetClusterAccepted()
@@ -68,7 +66,7 @@ func (o *V2ResetClusterReader) ReadResponse(response runtime.ClientResponse, con
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/actions/reset] v2ResetCluster", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *V2ResetClusterAccepted) IsCode(code int) bool {
 	return code == 202
 }
 
-// Code gets the status code for the v2 reset cluster accepted response
-func (o *V2ResetClusterAccepted) Code() int {
-	return 202
-}
-
 func (o *V2ResetClusterAccepted) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterAccepted  %+v", 202, o.Payload)
 }
 
 func (o *V2ResetClusterAccepted) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterAccepted  %+v", 202, o.Payload)
 }
 
 func (o *V2ResetClusterAccepted) GetPayload() *models.Cluster {
@@ -135,7 +126,7 @@ func (o *V2ResetClusterAccepted) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -181,19 +172,12 @@ func (o *V2ResetClusterUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 reset cluster unauthorized response
-func (o *V2ResetClusterUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2ResetClusterUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetClusterUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2ResetClusterUnauthorized) GetPayload() *models.InfraError {
@@ -205,7 +189,7 @@ func (o *V2ResetClusterUnauthorized) readResponse(response runtime.ClientRespons
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -251,19 +235,12 @@ func (o *V2ResetClusterForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 reset cluster forbidden response
-func (o *V2ResetClusterForbidden) Code() int {
-	return 403
-}
-
 func (o *V2ResetClusterForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetClusterForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2ResetClusterForbidden) GetPayload() *models.InfraError {
@@ -275,7 +252,7 @@ func (o *V2ResetClusterForbidden) readResponse(response runtime.ClientResponse, 
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -321,19 +298,12 @@ func (o *V2ResetClusterNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 reset cluster not found response
-func (o *V2ResetClusterNotFound) Code() int {
-	return 404
-}
-
 func (o *V2ResetClusterNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetClusterNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2ResetClusterNotFound) GetPayload() *models.Error {
@@ -345,7 +315,7 @@ func (o *V2ResetClusterNotFound) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -391,19 +361,12 @@ func (o *V2ResetClusterMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 reset cluster method not allowed response
-func (o *V2ResetClusterMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2ResetClusterMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2ResetClusterMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2ResetClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -415,7 +378,7 @@ func (o *V2ResetClusterMethodNotAllowed) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -461,19 +424,12 @@ func (o *V2ResetClusterConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 reset cluster conflict response
-func (o *V2ResetClusterConflict) Code() int {
-	return 409
-}
-
 func (o *V2ResetClusterConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetClusterConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2ResetClusterConflict) GetPayload() *models.Error {
@@ -485,7 +441,7 @@ func (o *V2ResetClusterConflict) readResponse(response runtime.ClientResponse, c
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -531,19 +487,12 @@ func (o *V2ResetClusterInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 reset cluster internal server error response
-func (o *V2ResetClusterInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2ResetClusterInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetClusterInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/reset][%d] v2ResetClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2ResetClusterInternalServerError) GetPayload() *models.Error {
@@ -555,7 +504,7 @@ func (o *V2ResetClusterInternalServerError) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

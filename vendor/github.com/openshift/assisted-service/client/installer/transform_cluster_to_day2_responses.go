@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type TransformClusterToDay2Reader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *TransformClusterToDay2Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *TransformClusterToDay2Reader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 202:
 		result := NewTransformClusterToDay2Accepted()
@@ -68,7 +66,7 @@ func (o *TransformClusterToDay2Reader) ReadResponse(response runtime.ClientRespo
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers] TransformClusterToDay2", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *TransformClusterToDay2Accepted) IsCode(code int) bool {
 	return code == 202
 }
 
-// Code gets the status code for the transform cluster to day2 accepted response
-func (o *TransformClusterToDay2Accepted) Code() int {
-	return 202
-}
-
 func (o *TransformClusterToDay2Accepted) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Accepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Accepted  %+v", 202, o.Payload)
 }
 
 func (o *TransformClusterToDay2Accepted) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Accepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Accepted  %+v", 202, o.Payload)
 }
 
 func (o *TransformClusterToDay2Accepted) GetPayload() *models.Cluster {
@@ -135,7 +126,7 @@ func (o *TransformClusterToDay2Accepted) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -181,19 +172,12 @@ func (o *TransformClusterToDay2Unauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the transform cluster to day2 unauthorized response
-func (o *TransformClusterToDay2Unauthorized) Code() int {
-	return 401
-}
-
 func (o *TransformClusterToDay2Unauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Unauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Unauthorized  %+v", 401, o.Payload)
 }
 
 func (o *TransformClusterToDay2Unauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Unauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Unauthorized  %+v", 401, o.Payload)
 }
 
 func (o *TransformClusterToDay2Unauthorized) GetPayload() *models.InfraError {
@@ -205,7 +189,7 @@ func (o *TransformClusterToDay2Unauthorized) readResponse(response runtime.Clien
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -251,19 +235,12 @@ func (o *TransformClusterToDay2Forbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the transform cluster to day2 forbidden response
-func (o *TransformClusterToDay2Forbidden) Code() int {
-	return 403
-}
-
 func (o *TransformClusterToDay2Forbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Forbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Forbidden  %+v", 403, o.Payload)
 }
 
 func (o *TransformClusterToDay2Forbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Forbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Forbidden  %+v", 403, o.Payload)
 }
 
 func (o *TransformClusterToDay2Forbidden) GetPayload() *models.InfraError {
@@ -275,7 +252,7 @@ func (o *TransformClusterToDay2Forbidden) readResponse(response runtime.ClientRe
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -321,19 +298,12 @@ func (o *TransformClusterToDay2NotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the transform cluster to day2 not found response
-func (o *TransformClusterToDay2NotFound) Code() int {
-	return 404
-}
-
 func (o *TransformClusterToDay2NotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2NotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2NotFound  %+v", 404, o.Payload)
 }
 
 func (o *TransformClusterToDay2NotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2NotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2NotFound  %+v", 404, o.Payload)
 }
 
 func (o *TransformClusterToDay2NotFound) GetPayload() *models.Error {
@@ -345,7 +315,7 @@ func (o *TransformClusterToDay2NotFound) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -391,19 +361,12 @@ func (o *TransformClusterToDay2MethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the transform cluster to day2 method not allowed response
-func (o *TransformClusterToDay2MethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *TransformClusterToDay2MethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2MethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2MethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *TransformClusterToDay2MethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2MethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2MethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *TransformClusterToDay2MethodNotAllowed) GetPayload() *models.Error {
@@ -415,7 +378,7 @@ func (o *TransformClusterToDay2MethodNotAllowed) readResponse(response runtime.C
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -461,19 +424,12 @@ func (o *TransformClusterToDay2Conflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the transform cluster to day2 conflict response
-func (o *TransformClusterToDay2Conflict) Code() int {
-	return 409
-}
-
 func (o *TransformClusterToDay2Conflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Conflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Conflict  %+v", 409, o.Payload)
 }
 
 func (o *TransformClusterToDay2Conflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Conflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2Conflict  %+v", 409, o.Payload)
 }
 
 func (o *TransformClusterToDay2Conflict) GetPayload() *models.Error {
@@ -485,7 +441,7 @@ func (o *TransformClusterToDay2Conflict) readResponse(response runtime.ClientRes
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -531,19 +487,12 @@ func (o *TransformClusterToDay2InternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the transform cluster to day2 internal server error response
-func (o *TransformClusterToDay2InternalServerError) Code() int {
-	return 500
-}
-
 func (o *TransformClusterToDay2InternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2InternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2InternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *TransformClusterToDay2InternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2InternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/allow-add-workers][%d] transformClusterToDay2InternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *TransformClusterToDay2InternalServerError) GetPayload() *models.Error {
@@ -555,7 +504,7 @@ func (o *TransformClusterToDay2InternalServerError) readResponse(response runtim
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

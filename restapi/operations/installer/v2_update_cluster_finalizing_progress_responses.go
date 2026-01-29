@@ -33,7 +33,7 @@ func NewV2UpdateClusterFinalizingProgressOK() *V2UpdateClusterFinalizingProgress
 // WriteResponse to the client
 func (o *V2UpdateClusterFinalizingProgressOK) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
 
-	rw.Header().Del(runtime.HeaderContentType) // Remove Content-Type on empty responses
+	rw.Header().Del(runtime.HeaderContentType) //Remove Content-Type on empty responses
 
 	rw.WriteHeader(200)
 }

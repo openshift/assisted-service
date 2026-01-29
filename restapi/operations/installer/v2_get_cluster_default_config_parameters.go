@@ -25,6 +25,7 @@ func NewV2GetClusterDefaultConfigParams() V2GetClusterDefaultConfigParams {
 //
 // swagger:parameters V2GetClusterDefaultConfig
 type V2GetClusterDefaultConfigParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 }

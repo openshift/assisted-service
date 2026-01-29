@@ -6,8 +6,6 @@ package installer
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2CancelInstallationReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2CancelInstallationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2CancelInstallationReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 202:
 		result := NewV2CancelInstallationAccepted()
@@ -68,7 +66,7 @@ func (o *V2CancelInstallationReader) ReadResponse(response runtime.ClientRespons
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[POST /v2/clusters/{cluster_id}/actions/cancel] V2CancelInstallation", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -111,19 +109,12 @@ func (o *V2CancelInstallationAccepted) IsCode(code int) bool {
 	return code == 202
 }
 
-// Code gets the status code for the v2 cancel installation accepted response
-func (o *V2CancelInstallationAccepted) Code() int {
-	return 202
-}
-
 func (o *V2CancelInstallationAccepted) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationAccepted  %+v", 202, o.Payload)
 }
 
 func (o *V2CancelInstallationAccepted) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationAccepted %s", 202, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationAccepted  %+v", 202, o.Payload)
 }
 
 func (o *V2CancelInstallationAccepted) GetPayload() *models.Cluster {
@@ -135,7 +126,7 @@ func (o *V2CancelInstallationAccepted) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Cluster)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -181,19 +172,12 @@ func (o *V2CancelInstallationUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 cancel installation unauthorized response
-func (o *V2CancelInstallationUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2CancelInstallationUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2CancelInstallationUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2CancelInstallationUnauthorized) GetPayload() *models.InfraError {
@@ -205,7 +189,7 @@ func (o *V2CancelInstallationUnauthorized) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -251,19 +235,12 @@ func (o *V2CancelInstallationForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 cancel installation forbidden response
-func (o *V2CancelInstallationForbidden) Code() int {
-	return 403
-}
-
 func (o *V2CancelInstallationForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2CancelInstallationForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationForbidden %s", 403, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2CancelInstallationForbidden) GetPayload() *models.InfraError {
@@ -275,7 +252,7 @@ func (o *V2CancelInstallationForbidden) readResponse(response runtime.ClientResp
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -321,19 +298,12 @@ func (o *V2CancelInstallationNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 cancel installation not found response
-func (o *V2CancelInstallationNotFound) Code() int {
-	return 404
-}
-
 func (o *V2CancelInstallationNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2CancelInstallationNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationNotFound %s", 404, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2CancelInstallationNotFound) GetPayload() *models.Error {
@@ -345,7 +315,7 @@ func (o *V2CancelInstallationNotFound) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -391,19 +361,12 @@ func (o *V2CancelInstallationMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 cancel installation method not allowed response
-func (o *V2CancelInstallationMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2CancelInstallationMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2CancelInstallationMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2CancelInstallationMethodNotAllowed) GetPayload() *models.Error {
@@ -415,7 +378,7 @@ func (o *V2CancelInstallationMethodNotAllowed) readResponse(response runtime.Cli
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -461,19 +424,12 @@ func (o *V2CancelInstallationConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 cancel installation conflict response
-func (o *V2CancelInstallationConflict) Code() int {
-	return 409
-}
-
 func (o *V2CancelInstallationConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2CancelInstallationConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationConflict %s", 409, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2CancelInstallationConflict) GetPayload() *models.Error {
@@ -485,7 +441,7 @@ func (o *V2CancelInstallationConflict) readResponse(response runtime.ClientRespo
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -531,19 +487,12 @@ func (o *V2CancelInstallationInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 cancel installation internal server error response
-func (o *V2CancelInstallationInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2CancelInstallationInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2CancelInstallationInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[POST /v2/clusters/{cluster_id}/actions/cancel][%d] v2CancelInstallationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2CancelInstallationInternalServerError) GetPayload() *models.Error {
@@ -555,7 +504,7 @@ func (o *V2CancelInstallationInternalServerError) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

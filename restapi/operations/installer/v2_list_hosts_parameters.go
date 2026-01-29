@@ -27,6 +27,7 @@ func NewV2ListHostsParams() V2ListHostsParams {
 //
 // swagger:parameters v2ListHosts
 type V2ListHostsParams struct {
+
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
@@ -80,7 +81,7 @@ func (o *V2ListHostsParams) bindInfraEnvID(rawData []string, hasKey bool, format
 	return nil
 }
 
-// validateInfraEnvID carries out validations for parameter InfraEnvID
+// validateInfraEnvID carries on validations for parameter InfraEnvID
 func (o *V2ListHostsParams) validateInfraEnvID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("infra_env_id", "path", "uuid", o.InfraEnvID.String(), formats); err != nil {

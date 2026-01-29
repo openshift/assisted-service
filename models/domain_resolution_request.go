@@ -7,7 +7,6 @@ package models
 
 import (
 	"context"
-	stderrors "errors"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -49,15 +48,11 @@ func (m *DomainResolutionRequest) validateDomains(formats strfmt.Registry) error
 	for i := 0; i < len(m.Domains); i++ {
 
 		if err := m.Domains[i].Validate(formats); err != nil {
-			ve := new(errors.Validation)
-			if stderrors.As(err, &ve) {
+			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("domains" + "." + strconv.Itoa(i))
-			}
-			ce := new(errors.CompositeError)
-			if stderrors.As(err, &ce) {
+			} else if ce, ok := err.(*errors.CompositeError); ok {
 				return ce.ValidateName("domains" + "." + strconv.Itoa(i))
 			}
-
 			return err
 		}
 

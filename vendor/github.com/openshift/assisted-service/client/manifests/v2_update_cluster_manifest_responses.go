@@ -6,8 +6,6 @@ package manifests
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"encoding/json"
-	stderrors "errors"
 	"fmt"
 	"io"
 
@@ -23,7 +21,7 @@ type V2UpdateClusterManifestReader struct {
 }
 
 // ReadResponse reads a server response into the received o.
-func (o *V2UpdateClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (any, error) {
+func (o *V2UpdateClusterManifestReader) ReadResponse(response runtime.ClientResponse, consumer runtime.Consumer) (interface{}, error) {
 	switch response.Code() {
 	case 200:
 		result := NewV2UpdateClusterManifestOK()
@@ -74,7 +72,7 @@ func (o *V2UpdateClusterManifestReader) ReadResponse(response runtime.ClientResp
 		}
 		return nil, result
 	default:
-		return nil, runtime.NewAPIError("[PATCH /v2/clusters/{cluster_id}/manifests] V2UpdateClusterManifest", response, response.Code())
+		return nil, runtime.NewAPIError("response status code does not match any response statuses defined for this endpoint in the swagger spec", response, response.Code())
 	}
 }
 
@@ -117,19 +115,12 @@ func (o *V2UpdateClusterManifestOK) IsCode(code int) bool {
 	return code == 200
 }
 
-// Code gets the status code for the v2 update cluster manifest o k response
-func (o *V2UpdateClusterManifestOK) Code() int {
-	return 200
-}
-
 func (o *V2UpdateClusterManifestOK) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestOK  %+v", 200, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestOK) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestOK %s", 200, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestOK  %+v", 200, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestOK) GetPayload() *models.Manifest {
@@ -141,7 +132,7 @@ func (o *V2UpdateClusterManifestOK) readResponse(response runtime.ClientResponse
 	o.Payload = new(models.Manifest)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -187,19 +178,12 @@ func (o *V2UpdateClusterManifestBadRequest) IsCode(code int) bool {
 	return code == 400
 }
 
-// Code gets the status code for the v2 update cluster manifest bad request response
-func (o *V2UpdateClusterManifestBadRequest) Code() int {
-	return 400
-}
-
 func (o *V2UpdateClusterManifestBadRequest) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestBadRequest) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestBadRequest %s", 400, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestBadRequest) GetPayload() *models.Error {
@@ -211,7 +195,7 @@ func (o *V2UpdateClusterManifestBadRequest) readResponse(response runtime.Client
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -257,19 +241,12 @@ func (o *V2UpdateClusterManifestUnauthorized) IsCode(code int) bool {
 	return code == 401
 }
 
-// Code gets the status code for the v2 update cluster manifest unauthorized response
-func (o *V2UpdateClusterManifestUnauthorized) Code() int {
-	return 401
-}
-
 func (o *V2UpdateClusterManifestUnauthorized) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestUnauthorized) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestUnauthorized %s", 401, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -281,7 +258,7 @@ func (o *V2UpdateClusterManifestUnauthorized) readResponse(response runtime.Clie
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -327,19 +304,12 @@ func (o *V2UpdateClusterManifestForbidden) IsCode(code int) bool {
 	return code == 403
 }
 
-// Code gets the status code for the v2 update cluster manifest forbidden response
-func (o *V2UpdateClusterManifestForbidden) Code() int {
-	return 403
-}
-
 func (o *V2UpdateClusterManifestForbidden) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestForbidden) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestForbidden %s", 403, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -351,7 +321,7 @@ func (o *V2UpdateClusterManifestForbidden) readResponse(response runtime.ClientR
 	o.Payload = new(models.InfraError)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -397,19 +367,12 @@ func (o *V2UpdateClusterManifestNotFound) IsCode(code int) bool {
 	return code == 404
 }
 
-// Code gets the status code for the v2 update cluster manifest not found response
-func (o *V2UpdateClusterManifestNotFound) Code() int {
-	return 404
-}
-
 func (o *V2UpdateClusterManifestNotFound) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestNotFound) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestNotFound %s", 404, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestNotFound) GetPayload() *models.Error {
@@ -421,7 +384,7 @@ func (o *V2UpdateClusterManifestNotFound) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -467,19 +430,12 @@ func (o *V2UpdateClusterManifestMethodNotAllowed) IsCode(code int) bool {
 	return code == 405
 }
 
-// Code gets the status code for the v2 update cluster manifest method not allowed response
-func (o *V2UpdateClusterManifestMethodNotAllowed) Code() int {
-	return 405
-}
-
 func (o *V2UpdateClusterManifestMethodNotAllowed) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestMethodNotAllowed) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestMethodNotAllowed %s", 405, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -491,7 +447,7 @@ func (o *V2UpdateClusterManifestMethodNotAllowed) readResponse(response runtime.
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -537,19 +493,12 @@ func (o *V2UpdateClusterManifestConflict) IsCode(code int) bool {
 	return code == 409
 }
 
-// Code gets the status code for the v2 update cluster manifest conflict response
-func (o *V2UpdateClusterManifestConflict) Code() int {
-	return 409
-}
-
 func (o *V2UpdateClusterManifestConflict) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestConflict) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestConflict %s", 409, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestConflict) GetPayload() *models.Error {
@@ -561,7 +510,7 @@ func (o *V2UpdateClusterManifestConflict) readResponse(response runtime.ClientRe
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 
@@ -607,19 +556,12 @@ func (o *V2UpdateClusterManifestInternalServerError) IsCode(code int) bool {
 	return code == 500
 }
 
-// Code gets the status code for the v2 update cluster manifest internal server error response
-func (o *V2UpdateClusterManifestInternalServerError) Code() int {
-	return 500
-}
-
 func (o *V2UpdateClusterManifestInternalServerError) Error() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestInternalServerError) String() string {
-	payload, _ := json.Marshal(o.Payload)
-	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestInternalServerError %s", 500, payload)
+	return fmt.Sprintf("[PATCH /v2/clusters/{cluster_id}/manifests][%d] v2UpdateClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2UpdateClusterManifestInternalServerError) GetPayload() *models.Error {
@@ -631,7 +573,7 @@ func (o *V2UpdateClusterManifestInternalServerError) readResponse(response runti
 	o.Payload = new(models.Error)
 
 	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && !stderrors.Is(err, io.EOF) {
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
 		return err
 	}
 

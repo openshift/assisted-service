@@ -38,7 +38,7 @@ const (
 )
 
 // for schema
-var operatorTypeEnum []any
+var operatorTypeEnum []interface{}
 
 func init() {
 	var res []OperatorType

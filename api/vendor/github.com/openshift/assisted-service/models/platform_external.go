@@ -21,7 +21,7 @@ import (
 type PlatformExternal struct {
 
 	// When set to external, this property will enable an external cloud provider.
-	// Enum: ["","External"]
+	// Enum: [ External]
 	CloudControllerManager *string `json:"cloud_controller_manager,omitempty"`
 
 	// Holds the arbitrary string representing the infrastructure provider name.
@@ -47,7 +47,7 @@ func (m *PlatformExternal) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-var platformExternalTypeCloudControllerManagerPropEnum []any
+var platformExternalTypeCloudControllerManagerPropEnum []interface{}
 
 func init() {
 	var res []string
