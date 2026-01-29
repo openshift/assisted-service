@@ -14,9 +14,15 @@ spec:
             image: amazon/aws-cli
             env:
             - name: AWS_ACCESS_KEY_ID
-              value: "accessKey1"
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_access_key_id
             - name: AWS_SECRET_ACCESS_KEY
-              value: "verySecretKey1"
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_secret_access_key
             command: ["aws"]
             args: ["--endpoint-url", "http://cloudserver-front:8000", "s3api", "list-objects", "--bucket", "test"]
           restartPolicy: OnFailure
