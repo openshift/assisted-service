@@ -185,10 +185,7 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 	if err != nil {
 		return false, err
 	}
-	if rdh == nil {
-		return false, nil
-	}
-
+	// Note: rdh can be nil - GetAcceptableDisksWithHints returns all eligible disks when hints are nil
 	acceptableDisks := hostutil.GetAcceptableDisksWithHints(inventory.Disks, rdh)
 	if host.InstallationDiskID != "" {
 		for _, disk := range acceptableDisks {
