@@ -27,10 +27,11 @@ FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:6fc28bcb6776e387d
 RUN microdnf install -y nmstate nmstate-libs && microdnf clean all
 
 ARG DEBUG_SERVICE_PORT=40000
-EXPOSE 8090 $DEBUG_SERVICE_PORT
+ENV DEBUG_SERVICE_PORT=${DEBUG_SERVICE_PORT}
+EXPOSE 8090 ${DEBUG_SERVICE_PORT}
 
 COPY --from=builder /opt/app-root/src/go/bin/dlv /usr/bin/dlv
 COPY --from=builder /assisted-service/build/assisted-installer/assisted-service /assisted-service
 COPY --from=builder /assisted-service/build/assisted-installer/assisted-service-operator /assisted-service-operator
 
-CMD ["dlv", "--listen=:40000", "--headless=true", "--continue", "--api-version=2", "--accept-multiclient", "exec", "/assisted-service"]
+CMD ["sh", "-c", "dlv --listen=:${DEBUG_SERVICE_PORT} --headless=true --continue --api-version=2 --accept-multiclient exec /assisted-service"]
