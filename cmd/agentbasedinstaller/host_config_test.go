@@ -7,8 +7,9 @@ import (
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus/hooks/test"
+
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("loadFencingCredentials", func() {
