@@ -682,3 +682,136 @@ var _ = Describe("findByHostname logging", func() {
 	})
 })
 
+var _ = Describe("applyRootDeviceHints", func() {
+	var (
+		tempDir string
+	)
+
+	BeforeEach(func() {
+		var err error
+		tempDir, err = os.MkdirTemp("", "rdh-test-*")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		if tempDir != "" {
+			os.RemoveAll(tempDir)
+		}
+	})
+
+	Context("when no root-device-hints.yaml file exists", func() {
+		It("should still select a disk from all eligible disks", func() {
+			testLogger, _ := test.NewNullLogger()
+
+			// Create a MAC-based config directory WITHOUT root-device-hints.yaml
+			config := &hostConfig{
+				configDir:    tempDir,
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+
+			// Create inventory with eligible disks
+			inventory := &models.Inventory{
+				Disks: []*models.Disk{
+					{
+						ID:   "/dev/sda",
+						Path: "/dev/sda",
+						InstallationEligibility: models.DiskInstallationEligibility{
+							Eligible: true,
+						},
+					},
+					{
+						ID:   "/dev/sdb",
+						Path: "/dev/sdb",
+						InstallationEligibility: models.DiskInstallationEligibility{
+							Eligible: true,
+						},
+					},
+				},
+			}
+
+			host := &models.Host{
+				InstallationDiskID: "", // No disk selected yet
+			}
+
+			updateParams := &models.HostUpdateParams{}
+
+			// Call applyRootDeviceHints - should succeed even without hints file
+			applied, err := applyRootDeviceHints(testLogger, host, inventory, config, updateParams)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeTrue(), "should return true indicating disk selection was made")
+			Expect(updateParams.DisksSelectedConfig).To(HaveLen(1))
+			Expect(*updateParams.DisksSelectedConfig[0].ID).To(Equal("/dev/sda"), "should select first eligible disk")
+		})
+	})
+
+	Context("when host already has the correct disk selected", func() {
+		It("should return false without making changes", func() {
+			testLogger, _ := test.NewNullLogger()
+
+			config := &hostConfig{
+				configDir:    tempDir,
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+
+			inventory := &models.Inventory{
+				Disks: []*models.Disk{
+					{
+						ID:   "/dev/sda",
+						Path: "/dev/sda",
+						InstallationEligibility: models.DiskInstallationEligibility{
+							Eligible: true,
+						},
+					},
+				},
+			}
+
+			host := &models.Host{
+				InstallationDiskID: "/dev/sda", // Already has correct disk
+			}
+
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyRootDeviceHints(testLogger, host, inventory, config, updateParams)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse(), "should return false when disk already matches")
+			Expect(updateParams.DisksSelectedConfig).To(BeNil())
+		})
+	})
+
+	Context("when config is hostname-based (no macAddresses)", func() {
+		It("should return false without error", func() {
+			testLogger, _ := test.NewNullLogger()
+
+			// Hostname-based configs don't have root device hints
+			config := &hostConfig{
+				configDir: tempDir,
+				hostname:  "master-0",
+				// macAddresses is empty - this is a hostname-based config
+			}
+
+			inventory := &models.Inventory{
+				Disks: []*models.Disk{
+					{
+						ID:   "/dev/sda",
+						Path: "/dev/sda",
+						InstallationEligibility: models.DiskInstallationEligibility{
+							Eligible: true,
+						},
+					},
+				},
+			}
+
+			host := &models.Host{}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyRootDeviceHints(testLogger, host, inventory, config, updateParams)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse(), "hostname-based configs should not apply root device hints")
+			Expect(updateParams.DisksSelectedConfig).To(BeNil())
+		})
+	})
+})
+
