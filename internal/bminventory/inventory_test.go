@@ -11833,17 +11833,17 @@ var _ = Describe("V2UploadClusterIngressCert test", func() {
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
 	})
-	It("V2UploadClusterIngressCert bad ingressCa, mergeIngressCaIntoKubeconfig failure", func() {
+	It("V2UploadClusterIngressCert bad ingressCa, certificate validation failure", func() {
 		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
-		objectExists()
-		mockS3Client.EXPECT().Download(ctx, kubeconfigNoingress).Return(kubeconfigFile, int64(0), nil)
+		// With certificate validation, invalid PEM format is rejected early with BadRequest (400)
+		// before any S3 operations occur, so no mock expectations are needed
 		generateReply := bm.V2UploadClusterIngressCert(ctx, installer.V2UploadClusterIngressCertParams{
 			ClusterID:         clusterID,
 			IngressCertParams: "bad format",
 		})
-		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertInternalServerError()))
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewV2UploadClusterIngressCertBadRequest()))
 	})
 
 	It("V2UploadClusterIngressCert push fails", func() {
@@ -21139,22 +21139,20 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	})
 
 	It("kubeconfig presigned cluster is not in installed state", func() {
-		fullS3Path := fmt.Sprintf("%s/%s", clusterID.String(), constants.Kubeconfig)
-
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fullS3Path, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
+		// With the new validation, cluster state is checked before making S3 calls.
+		// Cluster without a valid status for kubeconfig download should return 409 Conflict.
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Path).Return(true, nil)
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: clusterID,
 			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 
 	It("presigned cluster credentials  - downloading no-ingress kubeconfig", func() {
-		status := models.ClusterStatusInstalling
+		// Use Finalizing status which is the earliest allowed state for kubeconfig download
+		status := models.ClusterStatusFinalizing
 		c.Status = &status
 		db.Save(&c)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
@@ -21192,18 +21190,16 @@ var _ = Describe("Download presigned cluster credentials", func() {
 	})
 
 	It("presigned cluster credentials download with invalid cluster id", func() {
+		// With the new validation, cluster existence is checked before making S3 calls.
+		// A non-existent cluster should return 404 Not Found.
 		clusterId := strToUUID(uuid.New().String())
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		fullS3Name := fmt.Sprintf("%s/%s", clusterId.String(), constants.Kubeconfig)
-		mockS3Client.EXPECT().DoesObjectExist(ctx, fullS3Name).Return(true, nil)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(
-			ctx, fullS3Name, constants.Kubeconfig, gomock.Any()).Return("", errors.New("some error"))
 		generateReply := bm.V2GetPresignedForClusterCredentials(ctx, installer.V2GetPresignedForClusterCredentialsParams{
 			ClusterID: *clusterId,
 			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusInternalServerError)))
+		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusNotFound)))
 	})
 })
 
@@ -22121,5 +22117,103 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 				Expect(*primaryIPStack).To(Equal(common.PrimaryIPStackV6))
 			})
 		})
+	})
+})
+
+var _ = Describe("validateHTTPHeader security tests", func() {
+	It("accepts valid header", func() {
+		err := validateHTTPHeader("X-Custom-Header", "some-value")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("accepts header with special characters in value", func() {
+		err := validateHTTPHeader("Authorization-Token", "Bearer abc123=")
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("rejects dangerous Host header", func() {
+		err := validateHTTPHeader("Host", "evil.com")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Content-Length header", func() {
+		err := validateHTTPHeader("Content-Length", "9999")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Transfer-Encoding header", func() {
+		err := validateHTTPHeader("Transfer-Encoding", "chunked")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Connection header", func() {
+		err := validateHTTPHeader("Connection", "keep-alive")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects dangerous Authorization header", func() {
+		err := validateHTTPHeader("Authorization", "Basic abc123")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not allowed"))
+	})
+
+	It("rejects CRLF injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\r\nInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects newline injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\nInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects carriage return injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\rInjected: evil")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects null byte injection in value", func() {
+		err := validateHTTPHeader("X-Header", "value\x00null")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects CRLF injection in key", func() {
+		err := validateHTTPHeader("X-Header\r\nEvil", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid characters"))
+	})
+
+	It("rejects invalid header key format with space", func() {
+		err := validateHTTPHeader("Invalid Header", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid header key format"))
+	})
+
+	It("rejects header key with colon", func() {
+		err := validateHTTPHeader("Invalid:Header", "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("invalid header key format"))
+	})
+
+	It("rejects header key exceeding max length", func() {
+		longKey := strings.Repeat("a", 257)
+		err := validateHTTPHeader(longKey, "value")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum length"))
+	})
+
+	It("rejects header value exceeding max length", func() {
+		longValue := strings.Repeat("a", 4097)
+		err := validateHTTPHeader("X-Header", longValue)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("exceeds maximum length"))
 	})
 })
