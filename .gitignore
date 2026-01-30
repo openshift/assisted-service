@@ -13,6 +13,9 @@ __pycache__/
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Compiled test binaries
+*.test
+
 # Drop scorecard stuff
 deploy/olm-catalog/**/tests/**
 

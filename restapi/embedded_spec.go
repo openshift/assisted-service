@@ -5720,6 +5720,43 @@ func init() {
         }
       }
     },
+    "/v2/logout": {
+      "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2Logout",
+        "responses": {
+          "200": {
+            "description": "Successfully logged out and token revoked."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/openshift-versions": {
       "get": {
         "security": [
@@ -17172,6 +17209,43 @@ func init() {
             "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/logout": {
+      "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          },
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2Logout",
+        "responses": {
+          "200": {
+            "description": "Successfully logged out and token revoked."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
             }
           },
           "500": {
