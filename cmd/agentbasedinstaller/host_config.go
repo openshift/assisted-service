@@ -56,7 +56,7 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	}
 
 	fcFile := &fencingCredentialsFile{}
-	if err := yaml.UnmarshalStrict(fileData, fcFile); err != nil {
+	if err := yaml.UnmarshalStrict(fileData, fcFile); err != nil { //nolint:govet
 		return nil, fmt.Errorf("failed to parse fencing credentials file at %s: %w", fencingFilePath, err)
 	}
 
@@ -286,7 +286,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		hostPath := path.Join(hostConfigDir, e.Name())
 		log.Infof("Reading directory %s", hostPath)
 
-		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
+		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses")) //nolint:govet
 		if os.IsNotExist(err) {
 			log.Info("No MAC Addresses file found")
 			continue
@@ -311,7 +311,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			// Filter out the other HostConfig entries because each day-2
 			// node is added in isolation using their own internal assisted-service
 			// instance.
-			addHostConfig, err := currentHostHasMACAddress(addresses)
+			addHostConfig, err := currentHostHasMACAddress(addresses) //nolint:govet
 			if err != nil {
 				return nil, err
 			}
@@ -405,7 +405,7 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 	}
 
 	rdh := &bmh_v1alpha1.RootDeviceHints{}
-	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil {
+	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil { //nolint:govet
 		return nil, fmt.Errorf("failed to parse Root Device Hints file: %w", err)
 	}
 	log.Info("Read root device hints file")
