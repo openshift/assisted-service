@@ -90,6 +90,7 @@ type RateLimiter struct {
 	burst       int        // burst size (max tokens)
 	cleanupFreq time.Duration
 	stopCleanup chan struct{}
+	stopOnce    sync.Once // ensures Stop() is safe to call multiple times
 }
 
 // visitorState tracks rate limiting state for a single client
@@ -166,9 +167,12 @@ func (rl *RateLimiter) Burst() int {
 	return rl.burst
 }
 
-// Stop stops the cleanup goroutine.
+// Stop stops the cleanup goroutine. It is safe to call Stop() multiple times;
+// subsequent calls after the first are no-ops.
 func (rl *RateLimiter) Stop() {
-	close(rl.stopCleanup)
+	rl.stopOnce.Do(func() {
+		close(rl.stopCleanup)
+	})
 }
 
 // cleanupLoop periodically removes stale visitor entries that haven't been seen

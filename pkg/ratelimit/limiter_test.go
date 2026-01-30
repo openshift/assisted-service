@@ -147,6 +147,22 @@ var _ = Describe("RateLimiter", func() {
 			Expect(limiter.Allow("client1")).To(BeTrue())
 		})
 	})
+
+	Describe("Stop", func() {
+		It("should not panic when called multiple times", func() {
+			limiter = NewRateLimiter(10.0, 5, time.Hour)
+
+			// Calling Stop multiple times should not panic
+			Expect(func() {
+				limiter.Stop()
+				limiter.Stop()
+				limiter.Stop()
+			}).NotTo(Panic())
+
+			// Set limiter to nil so AfterEach doesn't call Stop again
+			limiter = nil
+		})
+	})
 })
 
 var _ = Describe("GetClientID", func() {

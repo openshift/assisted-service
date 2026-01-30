@@ -110,11 +110,11 @@ func (o *V2GetCredentialsOK) IsCode(code int) bool {
 }
 
 func (o *V2GetCredentialsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK <payload omitted>", 200)
 }
 
 func (o *V2GetCredentialsOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/credentials][%d] v2GetCredentialsOK <payload omitted>", 200)
 }
 
 func (o *V2GetCredentialsOK) GetPayload() *models.Credentials {
