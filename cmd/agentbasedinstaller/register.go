@@ -214,6 +214,7 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
 
 	var nmStateConfig aiv1beta1.NMStateConfig
+	var staticNetworkConfig []*models.HostStaticNetworkConfig
 
 	fileInfo, _ := os.Stat(nmStateConfigPath)
 	if fileInfo != nil {
@@ -228,9 +229,36 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 
 		if len(staticNetworkConfig) > 0 {
 			log.Infof("Added %d nmstateconfigs", len(staticNetworkConfig))
-			infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 		}
 	}
+
+	// For ABI workflow, always set a placeholder StaticNetworkConfig to ensure
+	// --copy-network flag is added to coreos-installer. This allows users to
+	// configure networking statically on any node (via nmtui or other means)
+	// and have it persist after installation.
+	if len(staticNetworkConfig) == 0 {
+		log.Info("Setting placeholder StaticNetworkConfig for ABI workflow to enable --copy-network")
+		// Create a minimal valid nmstate config with a dummy interface
+		// This passes validation while allowing the real network config to come from NetworkManager keyfiles
+		dummyNMState := `interfaces:
+  - name: dummy0
+    type: dummy
+    state: down
+    ipv4:
+      enabled: false
+    ipv6:
+      enabled: false
+`
+		staticNetworkConfig = []*models.HostStaticNetworkConfig{
+			{
+				MacInterfaceMap: models.MacInterfaceMap{
+					{LogicalNicName: "dummy0", MacAddress: "02:00:00:00:00:00"},
+				},
+				NetworkYaml: dummyNMState,
+			},
+		}
+	}
+	infraEnvParams.InfraenvCreateParams.StaticNetworkConfig = staticNetworkConfig
 
 	clientInfraEnvParams := &installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: infraEnvParams.InfraenvCreateParams,
