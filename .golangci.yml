@@ -61,16 +61,16 @@ linters:
       - docs
       - models
       - restapi
-      - third_party$
-      - builtin$
-      - examples$
+      - (^|/)third_party(/|$)
+      - (^|/)builtin(/|$)
+      - (^|/)examples(/|$)
 issues:
   uniq-by-line: true
 formatters:
   enable:
-    - gci
     - gofmt
     - goimports
+    - gci
   exclusions:
     generated: lax
     paths:
@@ -79,6 +79,6 @@ formatters:
       - docs
       - models
       - restapi
-      - third_party$
-      - builtin$
-      - examples$
+      - (^|/)third_party(/|$)
+      - (^|/)builtin(/|$)
+      - (^|/)examples(/|$)
