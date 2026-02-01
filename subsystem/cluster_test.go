@@ -824,7 +824,7 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
 
 		for i := range reply.Payload.Hosts {
-			Expect(reply.Payload.Hosts[i].RequestedHostname).Should(Not(BeEmpty()))
+			Expect(hostutil.GetHostnameForMsg(reply.Payload.Hosts[i])).Should(Not(BeEmpty()))
 		}
 
 		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
@@ -1247,7 +1247,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(*updateClusterReply.GetPayload().SchedulableMasters).Should(BeTrue())
 		for i := range updateClusterReply.Payload.Hosts {
-			Expect(updateClusterReply.Payload.Hosts[i].RequestedHostname).Should(Not(BeEmpty()))
+			Expect(hostutil.GetHostnameForMsg(updateClusterReply.Payload.Hosts[i])).Should(Not(BeEmpty()))
 		}
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, utils_test.DefaultWaitForClusterStateTimeout,
@@ -3278,7 +3278,7 @@ spec:
 		h3 := utils_test.TestContext.GetHostV2(*infraEnvID, *hosts[2].ID)
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 		waitForHostState(ctx, "known", 60*time.Second, h1)
-		Expect(h1.RequestedHostname).Should(Equal("h1"))
+		Expect(hostutil.GetHostnameForMsg(h1)).Should(Equal("h1"))
 
 		By("Registering host with same hostname")
 		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
@@ -3287,7 +3287,7 @@ spec:
 		h4 = utils_test.TestContext.GetHostV2(*infraEnvID, *h4.ID)
 		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		waitForHostState(ctx, "insufficient", 60*time.Second, h1)
-		Expect(h4.RequestedHostname).Should(Equal("h1"))
+		Expect(hostutil.GetHostnameForMsg(h4)).Should(Equal("h1"))
 		h1 = utils_test.TestContext.GetHostV2(*infraEnvID, *h1.ID)
 		Expect(*h1.Status).Should(Equal("insufficient"))
 
@@ -3346,7 +3346,7 @@ spec:
 		utils_test.TestContext.GenerateEssentialHostSteps(ctx, h4, "h4", newIPs[0])
 		waitForHostState(ctx, models.HostStatusKnown, utils_test.DefaultWaitForHostStateTimeout, h4)
 		h4 = utils_test.TestContext.GetHostV2(*infraEnvID, *h4.ID)
-		Expect(h4.RequestedHostname).Should(Equal("h4"))
+		Expect(hostutil.GetHostnameForMsg(h4)).Should(Equal("h4"))
 
 		By("Remove host with the same hostname and verify h1 is known")
 		_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterHost(ctx, &installer.V2DeregisterHostParams{
@@ -3392,13 +3392,13 @@ spec:
 
 		h1 := utils_test.TestContext.GetHostV2(*infraEnvID, *hosts[0].ID)
 		waitForHostState(ctx, "known", 60*time.Second, h1)
-		Expect(h1.RequestedHostname).Should(Equal("h1"))
+		Expect(hostutil.GetHostnameForMsg(h1)).Should(Equal("h1"))
 
 		By("Changing hostname reply to localhost")
 		utils_test.TestContext.GenerateEssentialHostSteps(ctx, h1, localhost, ips[0])
 		waitForHostState(ctx, models.HostStatusInsufficient, 60*time.Second, h1)
 		h1Host := utils_test.TestContext.GetHostV2(*infraEnvID, *h1.ID)
-		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
+		Expect(hostutil.GetHostnameForMsg(h1Host)).Should(Equal(localhost))
 
 		By("Setting hostname to valid name")
 		hostname := "reqh0"

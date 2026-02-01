@@ -1616,11 +1616,11 @@ func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, 
 		// move host to installing
 		err = b.createAndUploadDay2NodeIgnition(ctx, cluster, &h.Host, h.IgnitionEndpointToken, h.IgnitionEndpointHTTPHeaders)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
+			log.WithError(err).Errorf("Failed to upload ignition for host %s", hostutil.GetHostnameForMsg(&h.Host))
 			return err
 		}
 		if installErr := b.hostApi.Install(ctx, &h.Host, tx); installErr != nil {
-			log.WithError(installErr).Errorf("Failed to move host %s to installing", h.RequestedHostname)
+			log.WithError(installErr).Errorf("Failed to move host %s to installing", hostutil.GetHostnameForMsg(&h.Host))
 			return installErr
 		}
 
@@ -1693,13 +1693,13 @@ func (b *bareMetalInventory) V2InstallHost(ctx context.Context, params installer
 
 	err = b.createAndUploadDay2NodeIgnition(ctx, cluster, h, host.IgnitionEndpointToken, host.IgnitionEndpointHTTPHeaders)
 	if err != nil {
-		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
+		log.Errorf("Failed to upload ignition for host %s", hostutil.GetHostnameForMsg(h))
 		return common.GenerateErrorResponder(err)
 	}
 	err = b.hostApi.Install(ctx, h, b.db)
 	if err != nil {
 		// we just logs the error, each host install is independent
-		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
+		log.Errorf("Failed to move host %s to installing", hostutil.GetHostnameForMsg(h))
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewV2InstallHostAccepted().WithPayload(h)
@@ -4665,7 +4665,6 @@ func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models
 		isSno = cluster.ControlPlaneCount == 1
 	}
 	host.ProgressStages = b.hostApi.GetStagesByRole(host, isSno)
-	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
 }
 
 func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
