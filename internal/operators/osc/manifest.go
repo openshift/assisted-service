@@ -85,7 +85,7 @@ func generateCustomManifests(namespace string) ([]byte, error) {
 		{map[string]string{"TDX_MC_NAME": "99-enable-intel-tdx"}, "kataccMcManifest", kataccMcManifest},
 		{map[string]string{"NFD_NAME": "nfd-instance", "NFD_NAMESPACE": "openshift-nfd"}, "kataccNfdManifest", kataccNfdManifest},
 		{map[string]string{"OSC_RULES_NAME": "osc-rules", "NFD_NAMESPACE": "openshift-nfd"}, "oscRulesManifest", oscRulesManifest},
-		{map[string]string{"INTEL_NFR_NAME": "intel-dp-devices", "INTE_NFR_NAMESPACE": "openshift-nfd"}, "intelNfrManifest", intelNfrManifest},
+		{map[string]string{"INTEL_NFR_NAME": "intel-dp-devices", "INTEL_NFR_NAMESPACE": "openshift-nfd"}, "intelNfrManifest", intelNfrManifest},
 		{map[string]string{"AMD_NFR_NAME": "amd-sev-snp", "AMD_NFR_NAMESPACE": "openshift-nfd"}, "amdNfrManifest", amdNfrManifest},
 		{map[string]string{"OSC_FEATURE_GATE_NAME": "osc-feature-gates", "OPERATOR_NAMESPACE": namespace}, "oscFeaturegateManifest", oscFeaturegateManifest},
 		{map[string]string{"OPERATOR_NAMESPACE": namespace}, "oscKataconfigManifest", oscKataconfigManifest},
@@ -208,7 +208,7 @@ apiVersion: nfd.openshift.io/v1alpha1
 kind: NodeFeatureRule
 metadata:
   name: {{.INTEL_NFR_NAME}}
-  namespace: {{.INTE_NFR_NAMESPACE}}
+  namespace: {{.INTEL_NFR_NAMESPACE}}
 spec:
   rules:
     - name: "intel.sgx"
