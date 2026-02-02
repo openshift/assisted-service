@@ -814,4 +814,3 @@ var _ = Describe("applyRootDeviceHints", func() {
 		})
 	})
 })
-
