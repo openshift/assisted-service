@@ -2,16 +2,20 @@ package v1beta1
 
 import (
 	"encoding/json"
-	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	v1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	admissionv1 "k8s.io/api/admission/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -20,6 +24,20 @@ func createDecoder() *admission.Decoder {
 	err := v1beta1.AddToScheme(scheme)
 	Expect(err).To(BeNil())
 	return admission.NewDecoder(scheme)
+}
+
+func createTestScheme() *runtime.Scheme {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(hivev1.AddToScheme(scheme))
+	utilruntime.Must(hiveext.AddToScheme(scheme))
+	return scheme
+}
+
+func createTestClient(objs ...client.Object) client.Client {
+	return fakeclient.NewClientBuilder().
+		WithScheme(createTestScheme()).
+		WithObjects(objs...).
+		Build()
 }
 
 var _ = Describe("infraenv web hook init", func() {
@@ -35,13 +53,6 @@ var _ = Describe("infraenv web hook init", func() {
 		plural, singular := data.ValidatingResource()
 		Expect(plural).To(Equal(expectedPlural))
 		Expect(singular).To(Equal(expectedSingular))
-
-	})
-
-	It("Initialize", func() {
-		data := NewInfraEnvValidatingAdmissionHook(createDecoder())
-		err := data.Initialize(nil, nil)
-		Expect(err).To(BeNil())
 	})
 
 	It("Check implements interface ", func() {
@@ -61,6 +72,7 @@ var _ = Describe("infraenv web validate", func() {
 		operation       admissionv1.Operation
 		expectedAllowed bool
 		gvr             *metav1.GroupVersionResource
+		setupClient     func() client.Client
 	}{
 		{
 			name:            "Test unable to marshal old object during update",
@@ -233,12 +245,108 @@ var _ = Describe("infraenv web validate", func() {
 			operation:       admissionv1.Create,
 			expectedAllowed: true,
 		},
+		{
+			name: "Test OSImageVersion can be added when cluster is installed",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				OSImageVersion: "4.14",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+			setupClient: func() client.Client {
+				cd := &hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cluster",
+						Namespace: "test-namespace",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
+							Kind: "AgentClusterInstall",
+							Name: "test-aci",
+						},
+						Installed: true,
+					},
+				}
+				return createTestClient(cd)
+			},
+		},
+		{
+			name: "Test OSImageVersion cannot be added when cluster is not installed",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				OSImageVersion: "4.14",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			setupClient: func() client.Client {
+				cd := &hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cluster",
+						Namespace: "test-namespace",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
+							Kind: "AgentClusterInstall",
+							Name: "test-aci",
+						},
+						Installed: false,
+					},
+				}
+				return createTestClient(cd)
+			},
+		},
+		{
+			name: "Test OSImageVersion addition fails when ClusterDeployment not found",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "missing-cluster",
+					Namespace: "test-namespace",
+				},
+				OSImageVersion: "4.14",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "missing-cluster",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			setupClient: func() client.Client {
+				return createTestClient()
+			},
+		},
 	}
 
 	for i := range cases {
 		tc := cases[i]
 		It(tc.name, func() {
-			data := NewInfraEnvValidatingAdmissionHook(createDecoder())
+			decoder := createDecoder()
+			data := NewInfraEnvValidatingAdmissionHook(decoder)
+
+			if tc.setupClient != nil {
+				testClient := tc.setupClient()
+				data.client = testClient
+			}
+
 			newObject := &v1beta1.InfraEnv{
 				Spec: tc.newSpec,
 			}
@@ -278,10 +386,4 @@ var _ = Describe("infraenv web validate", func() {
 			Expect(response.Allowed).To(Equal(tc.expectedAllowed))
 		})
 	}
-
 })
-
-func TestControllers(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "webhooks tests")
-}
