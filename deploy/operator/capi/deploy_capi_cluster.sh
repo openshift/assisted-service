@@ -82,6 +82,13 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
+    # [TEMP]. mirroed CAPI operator image to local mirror registry until 
+    # https://github.com/openshift/hypershift/pull/7320/changes#diff-b5cde720842b19b53da3f454d827e27327c4559b2e4849906dac728586f51eb3R2428-R2433 is removed
+    CAPI_IMAGE="${CAPI_OPERATOR_IMAGE:-quay.io/openshift-release-dev/ocp-release@sha256:7f183e9b5610a2c9f9aabfd5906b418adfbe659f441b019933426a19bf6a5962}"
+    CAPI_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${CAPI_IMAGE})"
+    oc-mirror -a "${PULL_SECRET_FILE}" "${CAPI_IMAGE}" "${CAPI_LOCAL_IMAGE}" --v2
+    export CAPI_IMAGE="${CAPI_LOCAL_IMAGE}"
+
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
