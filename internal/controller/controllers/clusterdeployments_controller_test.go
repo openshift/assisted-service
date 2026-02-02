@@ -1431,6 +1431,28 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(clusterInstall.ObjectMeta.OwnerReferences[0]).To(Equal(ownref))
 	})
 
+	It("skips owner reference update when already set", func() {
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		clusterInstallBefore := &hiveext.AgentClusterInstall{}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstallBefore)).To(BeNil())
+		resourceVersionBefore := clusterInstallBefore.ResourceVersion
+
+		err := cr.ensureOwnerRef(ctx, common.GetTestLog(), cluster, clusterInstallBefore)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		clusterInstallAfter := &hiveext.AgentClusterInstall{}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstallAfter)).To(BeNil())
+		Expect(clusterInstallAfter.ResourceVersion).To(Equal(resourceVersionBefore))
+	})
+
 	It("validate label on Pull Secret", func() {
 		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 		sId := strfmt.UUID(uuid.New().String())
