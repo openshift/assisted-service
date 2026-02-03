@@ -695,7 +695,7 @@ func (r *BMACReconciler) handlePauseAndDetachBMHAnnotations(ctx context.Context,
 	}
 
 	result := reconcileComplete{}
-	// detach when provisioned for converged or anytime after reboot for non-converged
+	// detach and pause when provisioned for converged or anytime after reboot for non-converged
 	nonConvergedDetachStages := []models.HostStage{models.HostStageFailed, models.HostStageRebooting, models.HostStageJoined, models.HostStageDone}
 	if r.ConvergedFlowEnabled && bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned ||
 		!r.ConvergedFlowEnabled && agent != nil && funk.Contains(nonConvergedDetachStages, agent.Status.Progress.CurrentStage) {
@@ -704,21 +704,16 @@ func (r *BMACReconciler) handlePauseAndDetachBMHAnnotations(ctx context.Context,
 			return res
 		}
 		result.dirty = res.Dirty()
-	}
-
-	if r.PauseProvisionedBMHs {
-		// Add 'status' and 'paused' annotations for provisioned BMHs
-		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateProvisioned {
+		if r.PauseProvisionedBMHs {
 			res := r.addBMHStatusAndPausedAnnotations(log, bmh)
 			result.dirty = result.dirty || res.Dirty()
-
 		}
-		// Remove 'paused' annotation if BMH's provisioning state is missing
-		if bmh.Status.Provisioning.State == bmh_v1alpha1.StateNone {
-			res := r.removePausedAnnotation(log, bmh)
-			result.dirty = result.dirty || res.Dirty()
+	}
 
-		}
+	// Remove 'paused' annotation if BMH's provisioning state is missing
+	if r.PauseProvisionedBMHs && bmh.Status.Provisioning.State == bmh_v1alpha1.StateNone {
+		res := r.removePausedAnnotation(log, bmh)
+		result.dirty = result.dirty || res.Dirty()
 	}
 	return result
 }
