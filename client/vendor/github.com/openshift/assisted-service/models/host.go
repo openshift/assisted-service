@@ -72,6 +72,9 @@ type Host struct {
 	// free addresses
 	FreeAddresses string `json:"free_addresses,omitempty" gorm:"type:text"`
 
+	// hostname
+	Hostname string `json:"hostname,omitempty"`
+
 	// Self link.
 	// Required: true
 	Href *string `json:"href"`

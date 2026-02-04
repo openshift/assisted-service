@@ -4665,6 +4665,7 @@ func (b *bareMetalInventory) customizeHost(cluster *models.Cluster, host *models
 		isSno = cluster.ControlPlaneCount == 1
 	}
 	host.ProgressStages = b.hostApi.GetStagesByRole(host, isSno)
+	host.Hostname = hostutil.GetHostnameForMsg(host)
 }
 
 func proxySettingsChanged(params *models.V2ClusterUpdateParams, cluster *common.Cluster) bool {
