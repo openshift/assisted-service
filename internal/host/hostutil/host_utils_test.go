@@ -327,7 +327,7 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
-			It("should prefer cluster certificate over host certificate when both exist", func() {
+			It("should prefer host certificate over cluster certificate when both exist", func() {
 				clusterCert := "Y2x1c3RlciBjZXJ0aWZpY2F0ZQo="
 				hostCert := "aG9zdCBjZXJ0aWZpY2F0ZQo="
 
@@ -357,8 +357,8 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cert).ShouldNot(BeNil())
-				// Should use cluster certificate, not host certificate
-				Expect(*cert).Should(Equal(clusterCert))
+				// Should use host certificate, not cluster certificate
+				Expect(*cert).Should(Equal(hostCert))
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
