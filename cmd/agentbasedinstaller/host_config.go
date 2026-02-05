@@ -31,6 +31,55 @@ const (
 	AgentWorkflowTypeAddNodes AgentWorkflowType = "addnodes"
 )
 
+// loadFencingCredentials reads the fencing-credentials.yaml file from the specified path
+// and returns a map of hostname→credentials for easy lookup during host application.
+// Returns nil map (not error) if file doesn't exist, since fencing is optional.
+func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingCredentialsParams, error) {
+	fileData, err := os.ReadFile(fencingFilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			log.Info("No fencing credentials file found, skipping fencing configuration")
+			return nil, nil // Not an error - fencing is optional
+		}
+		return nil, fmt.Errorf("failed to read fencing credentials file at %s: %w", fencingFilePath, err)
+	}
+
+	// Intermediate structure matching installer's YAML output
+	type fencingCredentialsFile struct {
+		Credentials []struct {
+			Hostname                string  `yaml:"hostname"`
+			Address                 *string `yaml:"address"`
+			Username                *string `yaml:"username"`
+			Password                *string `yaml:"password"`
+			CertificateVerification *string `yaml:"certificateVerification,omitempty"`
+		} `yaml:"credentials"`
+	}
+
+	fcFile := &fencingCredentialsFile{}
+	if err := yaml.UnmarshalStrict(fileData, fcFile); err != nil { //nolint:govet
+		return nil, fmt.Errorf("failed to parse fencing credentials file at %s: %w", fencingFilePath, err)
+	}
+
+	credentialsMap := make(map[string]*models.FencingCredentialsParams)
+
+	for _, cred := range fcFile.Credentials {
+		if cred.Hostname == "" {
+			log.Warn("Skipping fencing credential with empty hostname")
+			continue
+		}
+		credentialsMap[cred.Hostname] = &models.FencingCredentialsParams{
+			Address:                 cred.Address,
+			Username:                cred.Username,
+			Password:                cred.Password,
+			CertificateVerification: cred.CertificateVerification,
+		}
+		log.Infof("Loaded fencing credential for hostname: %s", cred.Hostname)
+	}
+
+	log.Infof("Loaded %d fencing credentials from file", len(credentialsMap))
+	return credentialsMap, nil
+}
+
 func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.AssistedInstall, hostConfigs HostConfigs, infraEnvID strfmt.UUID) ([]Failure, error) {
 	hostList, err := bmInventory.Installer.V2ListHosts(ctx, installer.NewV2ListHostsParams().WithInfraEnvID(infraEnvID))
 	if err != nil {
@@ -59,6 +108,7 @@ func ApplyHostConfigs(ctx context.Context, log *log.Logger, bmInventory *client.
 	} else {
 		log.Info("All expected hosts found")
 	}
+
 	return failures, nil
 }
 
@@ -76,28 +126,33 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 		return fmt.Errorf("failed to unmarshal host inventory: %w", err)
 	}
 
-	config := hostConfigs.findHostConfig(*host.ID, inventory)
-	if config == nil {
+	configs := hostConfigs.findHostConfigs(*host.ID, inventory)
+	if len(configs) == 0 {
 		return nil
 	}
 
 	updateParams := &models.HostUpdateParams{}
 	changed := false
 
-	rdh, err := config.RootDeviceHints()
-	if err != nil {
-		return err
-	}
-	if applyRootDeviceHints(log, host, inventory, rdh, updateParams) {
-		changed = true
-	}
+	// Apply all matching configs - each config contributes its attributes
+	for _, config := range configs {
+		applied, applyErr := applyRootDeviceHints(log, host, inventory, config, updateParams)
+		if applyErr != nil {
+			return applyErr
+		}
+		changed = changed || applied
 
-	role, err := config.Role()
-	if err != nil {
-		return err
-	}
-	if applyRole(log, host, inventory, role, updateParams) {
-		changed = true
+		applied, applyErr = applyRole(log, host, config, updateParams)
+		if applyErr != nil {
+			return applyErr
+		}
+		changed = changed || applied
+
+		applied, applyErr = applyFencingCredentials(log, host, config, updateParams)
+		if applyErr != nil {
+			return applyErr
+		}
+		changed = changed || applied
 	}
 
 	if !changed {
@@ -125,13 +180,23 @@ func applyHostConfig(ctx context.Context, log *log.Logger, bmInventory *client.A
 	return nil
 }
 
-func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, rdh *bmh_v1alpha1.RootDeviceHints, updateParams *models.HostUpdateParams) bool {
+func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.Inventory, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
+	// Only MAC-based configs apply root device hints
+	if len(config.macAddresses) == 0 {
+		return false, nil
+	}
+
+	rdh, err := config.RootDeviceHints()
+	if err != nil {
+		return false, err
+	}
+	// Note: rdh can be nil - GetAcceptableDisksWithHints returns all eligible disks when hints are nil
 	acceptableDisks := hostutil.GetAcceptableDisksWithHints(inventory.Disks, rdh)
 	if host.InstallationDiskID != "" {
 		for _, disk := range acceptableDisks {
 			if disk.ID == host.InstallationDiskID {
 				log.Infof("Selected disk %s already matches root device hints", host.InstallationDiskID)
-				return false
+				return false, nil
 			}
 		}
 	}
@@ -158,22 +223,46 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 	updateParams.DisksSelectedConfig = []*models.DiskConfigParams{
 		{ID: &diskID, Role: models.DiskRoleInstall},
 	}
-	return true
+	return true, nil
 }
 
-func applyRole(log *log.Logger, host *models.Host, inventory *models.Inventory, role *string, updateParams *models.HostUpdateParams) bool {
+func applyRole(log *log.Logger, host *models.Host, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
+	role, err := config.Role()
+	if err != nil {
+		return false, err
+	}
 	if role == nil {
 		log.Info("No role configured")
-		return false
+		return false, nil
 	}
 
 	if host.SuggestedRole == models.HostRole(*role) {
 		log.Infof("Host role %s already configured", *role)
-		return false
+		return false, nil
 	}
 
 	updateParams.HostRole = role
-	return true
+	return true, nil
+}
+
+func applyFencingCredentials(log *log.Logger, host *models.Host, config *hostConfig, updateParams *models.HostUpdateParams) (bool, error) {
+	creds, err := config.FencingCredentials()
+	if err != nil {
+		return false, err
+	}
+	if creds == nil {
+		return false, nil
+	}
+
+	// Skip if already configured
+	if host.FencingCredentials != "" {
+		log.Info("Fencing credentials already configured for host")
+		return false, nil
+	}
+
+	log.Infof("Adding fencing credentials for hostname %s", config.hostname)
+	updateParams.FencingCredentials = creds
+	return true, nil
 }
 
 func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (HostConfigs, error) {
@@ -197,7 +286,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		hostPath := path.Join(hostConfigDir, e.Name())
 		log.Infof("Reading directory %s", hostPath)
 
-		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses"))
+		macs, err := os.ReadFile(filepath.Join(hostPath, "mac_addresses")) //nolint:govet
 		if os.IsNotExist(err) {
 			log.Info("No MAC Addresses file found")
 			continue
@@ -219,10 +308,10 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			// In the addnodes workflow, the only host config we want to load is the
 			// current host's. Multiple HostConfigs could exist in hostConfigDir
 			// if multiple day-2 nodes are being added using the same day-2 ISO.
-			// Filter otu the other HostConfig entries because each day-2
+			// Filter out the other HostConfig entries because each day-2
 			// node is added in isolation using their own internal assisted-service
 			// instance.
-			addHostConfig, err := currentHostHasMACAddress(addresses)
+			addHostConfig, err := currentHostHasMACAddress(addresses) //nolint:govet
 			if err != nil {
 				return nil, err
 			}
@@ -235,13 +324,49 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			macAddresses: addresses,
 		})
 	}
+
+	// Load fencing credentials and create hostname-based configs
+	// Note: For AddNodes workflow, the installer doesn't generate fencing-credentials.yaml,
+	// so no special filtering is needed - the file simply won't exist.
+	fencingCreds, err := loadFencingCredentials(filepath.Join(hostConfigDir, "fencing-credentials.yaml"))
+	if err != nil {
+		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
+	}
+
+	// Create hostname-based hostConfig entries for each fencing credential
+	for hostname := range fencingCreds {
+		configs = append(configs, &hostConfig{
+			configDir: hostConfigDir, // Store parent dir for lazy-loading fencing credentials
+			hostname:  hostname,
+		})
+	}
+
 	return configs, nil
 }
 
+// hostConfig represents configuration for a single host, loaded from disk.
+// There are two types of hostConfig: MAC-based (for role and root device hints)
+// and hostname-based (for fencing credentials). A host can match both types,
+// receiving attributes from each. Attribute methods use guard clauses to return
+// nil for config types that don't support that attribute.
 type hostConfig struct {
-	configDir    string
+	// configDir is the path to host configuration files.
+	// For MAC-based configs: per-host directory (e.g., /hostconfig/host-0/)
+	// containing "role" and "root-device-hints.yaml" files.
+	// For hostname-based configs: parent directory (e.g., /hostconfig/)
+	// containing the shared "fencing-credentials.yaml" file.
+	configDir string
+
+	// macAddresses identifies the host for MAC-based configs (role, root device hints).
+	// Empty for hostname-based configs.
 	macAddresses []string
-	hostID       strfmt.UUID
+
+	// hostname identifies the host for hostname-based configs (fencing credentials).
+	// Empty for MAC-based configs.
+	hostname string
+
+	// hostID is set when this config is matched to a registered host.
+	hostID strfmt.UUID
 }
 
 // currentHostHasMACAddress returns true if this host has a MAC address in addresses string array.
@@ -265,6 +390,11 @@ func currentHostHasMACAddress(addresses []string) (bool, error) {
 }
 
 func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
+	// Only MAC-based configs have root device hints
+	if len(hc.macAddresses) == 0 {
+		return nil, nil
+	}
+
 	hintData, err := os.ReadFile(path.Join(hc.configDir, "root-device-hints.yaml"))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -275,7 +405,7 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 	}
 
 	rdh := &bmh_v1alpha1.RootDeviceHints{}
-	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil {
+	if err := yaml.UnmarshalStrict(hintData, rdh); err != nil { //nolint:govet
 		return nil, fmt.Errorf("failed to parse Root Device Hints file: %w", err)
 	}
 	log.Info("Read root device hints file")
@@ -283,6 +413,11 @@ func (hc hostConfig) RootDeviceHints() (*bmh_v1alpha1.RootDeviceHints, error) {
 }
 
 func (hc hostConfig) Role() (*string, error) {
+	// Only MAC-based configs have role
+	if len(hc.macAddresses) == 0 {
+		return nil, nil
+	}
+
 	roleData, err := os.ReadFile(path.Join(hc.configDir, "role"))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -302,25 +437,86 @@ func (hc hostConfig) Role() (*string, error) {
 	return &role, nil
 }
 
+func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, error) {
+	// Only hostname-based configs have fencing credentials
+	if hc.hostname == "" {
+		return nil, nil
+	}
+
+	creds, err := loadFencingCredentials(filepath.Join(hc.configDir, "fencing-credentials.yaml"))
+	if err != nil {
+		return nil, err
+	}
+	if creds == nil {
+		return nil, nil
+	}
+
+	return creds[hc.hostname], nil
+}
+
 type HostConfigs []*hostConfig
 
-func (configs HostConfigs) findHostConfig(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
-	log.Infof("Searching for config for host %s", hostID)
+func (configs HostConfigs) findHostConfigs(hostID strfmt.UUID, inventory *models.Inventory) []*hostConfig {
+	log.Infof("Searching for configs for host %s", hostID)
 
+	var matched []*hostConfig
+
+	if macConfig := configs.findByMAC(hostID, inventory); macConfig != nil {
+		matched = append(matched, macConfig)
+	}
+
+	if hostnameConfig := configs.findByHostname(hostID, inventory); hostnameConfig != nil {
+		matched = append(matched, hostnameConfig)
+	}
+
+	if len(matched) == 0 {
+		log.Info("No config found for host")
+	}
+	return matched
+}
+
+// findByMAC returns the first hostConfig that matches any of the host's MAC addresses.
+func (configs HostConfigs) findByMAC(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
 	for _, hc := range configs {
+		if len(hc.macAddresses) == 0 {
+			continue
+		}
 		for _, nic := range inventory.Interfaces {
-			if nic != nil {
-				for _, mac := range hc.macAddresses {
-					if nic.MacAddress == mac {
-						log.Infof("Found host config in %s", hc.configDir)
-						hc.hostID = hostID
-						return hc
-					}
+			if nic == nil {
+				continue
+			}
+			for _, mac := range hc.macAddresses {
+				if nic.MacAddress == mac {
+					log.Infof("Found host config in %s (MAC match)", hc.configDir)
+					hc.hostID = hostID
+					return hc
 				}
 			}
 		}
 	}
-	log.Info("No config found for host")
+	return nil
+}
+
+// findByHostname returns the hostConfig that matches the host's hostname.
+// If hostname-based configs exist but none match, logs a warning with available hostnames
+// to help diagnose hostname format mismatches (e.g., FQDN vs short name).
+func (configs HostConfigs) findByHostname(hostID strfmt.UUID, inventory *models.Inventory) *hostConfig {
+	var availableHostnames []string
+	for _, hc := range configs {
+		if hc.hostname == "" {
+			continue
+		}
+		availableHostnames = append(availableHostnames, hc.hostname)
+		if hc.hostname == inventory.Hostname {
+			log.Infof("Found fencing config for hostname %s", hc.hostname)
+			hc.hostID = hostID
+			return hc
+		}
+	}
+	if len(availableHostnames) > 0 {
+		log.Warnf("Host %s did not match any fencing credential hostnames. Available hostnames in credentials: %v",
+			inventory.Hostname, availableHostnames)
+	}
 	return nil
 }
 
@@ -328,8 +524,12 @@ func (configs HostConfigs) missing(log *log.Logger) []missingHost {
 	missing := []missingHost{}
 	for _, hc := range configs {
 		if hc.hostID == "" {
-			log.Infof("No agent found matching config at %s (%s)", hc.configDir, strings.Join(hc.macAddresses, ", "))
-
+			// Log appropriately based on config type
+			if hc.hostname != "" {
+				log.Infof("No agent found matching hostname %s", hc.hostname)
+			} else {
+				log.Infof("No agent found matching config at %s (%s)", hc.configDir, strings.Join(hc.macAddresses, ", "))
+			}
 			missing = append(missing, missingHost{config: hc})
 		}
 	}
@@ -394,9 +594,15 @@ type missingHost struct {
 }
 
 func (mh missingHost) Hostname() string {
+	if mh.config.hostname != "" {
+		return mh.config.hostname
+	}
 	return path.Base(mh.config.configDir)
 }
 
 func (mh missingHost) DescribeFailure() string {
+	if mh.config.hostname != "" {
+		return "Fencing credentials loaded but no host with matching hostname found"
+	}
 	return "Host not registered"
 }
