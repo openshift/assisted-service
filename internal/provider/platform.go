@@ -261,7 +261,7 @@ func GetClusterPlatformByControlPlaneCount(platform *models.Platform, userManage
 		return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Invalid value for controlPlaneCount: nil"))
 	}
 
-	// Currently arbiter clusters can only be used in baremetal platforms, but we will still allow this function to set the platform to other values because of 2 reasons:
+	// Currently arbiter clusters can only be used in baremetal or none platforms, but we will still allow this function to set the platform to other values because of 2 reasons:
 	// 1. The validation comes afterward anyway, since arbiter cluster are allowed to have controlPlaneCount valid for normal HA cluster.
 	// 2. It will make it easier to add support for other platforms in the future.
 	// In practice the second condition is unnecessary since if the first condition is false then the second is also false, but it's clearer to keep it explicitly.

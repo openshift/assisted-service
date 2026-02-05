@@ -10803,13 +10803,13 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
 		})
 
-		It("update host role arbiter failure - cluster's platform is not baremetal", func() {
+		It("update host role arbiter failure - cluster's platform is not allowed", func() {
 			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
-			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeNone)}
+			cluster.Platform = &models.Platform{Type: models.NewPlatformType(models.PlatformTypeVsphere)}
 			db.Save(&cluster)
 			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
 				InfraEnvID: infraEnvID,
@@ -10820,7 +10820,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal", hostID, infraEnvID)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
 		})
 
 		Context("Hostname", func() {
@@ -18637,7 +18637,7 @@ var _ = Describe("BindHost", func() {
 		var clusterObj models.Cluster
 		Expect(db.First(&clusterObj, "id = ?", clusterID).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&clusterObj).Update("openshift_version", common.MinimumVersionForArbiterClusters).Error).ShouldNot(HaveOccurred())
-		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeNone).Error).ShouldNot(HaveOccurred())
+		Expect(db.Model(&clusterObj).Update("platform_type", models.PlatformTypeVsphere).Error).ShouldNot(HaveOccurred())
 
 		var hostObj models.Host
 		Expect(db.First(&hostObj, "id = ?", hostID).Error).ShouldNot(HaveOccurred())

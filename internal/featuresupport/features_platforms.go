@@ -123,7 +123,6 @@ func (feature *NonePlatformFeature) getFeatureActiveLevel(cluster *common.Cluste
 
 func (feature *NonePlatformFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
-		models.FeatureSupportLevelIDTNA,
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
