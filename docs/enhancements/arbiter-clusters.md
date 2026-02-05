@@ -79,7 +79,7 @@ to s3. The list of patches arbiter.ign needs:
 Our validations will need to be updated as follows:
 - Clusters can set control_plane_count to be 2. Clusters that do that must
   add at least one more host that will be assigned the arbiter role.
-- TNA clusters' platform must be baremetal.
+- TNA clusters' platform must be baremetal or none.
 - TNA clusters' ocp version must be at least 4.19.
 
 In the cluster's transition handler, the function enoughMastersAndWorkers
