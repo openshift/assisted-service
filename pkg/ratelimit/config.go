@@ -8,8 +8,10 @@ import (
 
 // Config holds rate limiting configuration loaded from environment variables.
 type Config struct {
-	// Enabled controls whether rate limiting is active
-	Enabled bool `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
+	// Enabled controls whether rate limiting is active.
+	// Defaults to false (disabled) for safety in existing deployments.
+	// Set to "true" to enable rate limiting in SaaS/multi-tenant environments.
+	Enabled bool `envconfig:"RATE_LIMIT_ENABLED" default:"false"`
 
 	// Auth endpoint limits (brute force protection - stricter)
 	AuthRPS   float64 `envconfig:"RATE_LIMIT_AUTH_RPS" default:"0.1"`

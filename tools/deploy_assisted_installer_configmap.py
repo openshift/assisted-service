@@ -54,7 +54,7 @@ JWKS_URL = os.environ.get("JWKS_URL", "https://sso.redhat.com/auth/realms/redhat
 NVIDIA_REQUIRE_GPU = os.environ.get("NVIDIA_REQUIRE_GPU", "true")
 AMD_REQUIRE_GPU = os.environ.get("AMD_REQUIRE_GPU", "true")
 TNA_CLUSTERS_SUPPORT = os.environ.get("TNA_CLUSTERS_SUPPORT", "true")
-RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT_ENABLED", "true")
+RATE_LIMIT_ENABLED = os.environ.get("RATE_LIMIT_ENABLED", "false")
 
 def get_deployment_tag(args):
     if args.deploy_manifest_tag:
