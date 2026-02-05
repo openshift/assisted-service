@@ -262,7 +262,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(
 				"none platform",
 				[]SupportLevelFeature{&NonePlatformFeature{}},
-				false,
+				true,
 			),
 
 			Entry(
@@ -396,10 +396,19 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			),
 
 			Entry(
-				"unavailable - platform is not baremetal",
+				"tech preview openshift version with none platform",
 				SupportLevelFilters{
 					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
 					PlatformType:     models.PlatformTypeNone.Pointer(),
+				},
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"unavailable - platform is not allowed",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
+					PlatformType:     models.PlatformTypeVsphere.Pointer(),
 				},
 				models.SupportLevelUnavailable,
 			),
