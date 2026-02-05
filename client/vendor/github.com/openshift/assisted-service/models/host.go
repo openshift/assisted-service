@@ -63,6 +63,9 @@ type Host struct {
 	// service and cannot be modified by the user.
 	DisksToBeFormatted string `json:"disks_to_be_formatted,omitempty" gorm:"type:text"`
 
+	// display hostname
+	DisplayHostname string `json:"display_hostname,omitempty"`
+
 	// The domain name resolution result.
 	DomainNameResolutions string `json:"domain_name_resolutions,omitempty" gorm:"type:text"`
 

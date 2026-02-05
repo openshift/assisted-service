@@ -8459,6 +8459,9 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "display_hostname": {
+          "type": "string"
+        },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
           "type": "string",
@@ -20006,6 +20009,9 @@ func init() {
           "description": "A comma-separated list of disks that will be formatted once\ninstallation begins, unless otherwise set to be skipped by\nskip_formatting_disks. This means that this list also includes disks\nthat appear in skip_formatting_disks. This property is managed by the\nservice and cannot be modified by the user.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "display_hostname": {
+          "type": "string"
         },
         "domain_name_resolutions": {
           "description": "The domain name resolution result.",
