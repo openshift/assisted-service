@@ -237,6 +237,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		VersionsV2ListSupportedOpenshiftVersionsHandler: versions.V2ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.V2ListSupportedOpenshiftVersions has not yet been implemented")
 		}),
+		InstallerV2LogoutHandler: installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2Logout has not yet been implemented")
+		}),
 		InstallerV2PostStepReplyHandler: installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2PostStepReply has not yet been implemented")
 		}),
@@ -514,6 +517,8 @@ type AssistedInstallAPI struct {
 	VersionsV2ListReleaseSourcesHandler versions.V2ListReleaseSourcesHandler
 	// VersionsV2ListSupportedOpenshiftVersionsHandler sets the operation handler for the v2 list supported openshift versions operation
 	VersionsV2ListSupportedOpenshiftVersionsHandler versions.V2ListSupportedOpenshiftVersionsHandler
+	// InstallerV2LogoutHandler sets the operation handler for the v2 logout operation
+	InstallerV2LogoutHandler installer.V2LogoutHandler
 	// InstallerV2PostStepReplyHandler sets the operation handler for the v2 post step reply operation
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterClusterHandler sets the operation handler for the v2 register cluster operation
@@ -839,6 +844,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.VersionsV2ListSupportedOpenshiftVersionsHandler == nil {
 		unregistered = append(unregistered, "versions.V2ListSupportedOpenshiftVersionsHandler")
+	}
+	if o.InstallerV2LogoutHandler == nil {
+		unregistered = append(unregistered, "installer.V2LogoutHandler")
 	}
 	if o.InstallerV2PostStepReplyHandler == nil {
 		unregistered = append(unregistered, "installer.V2PostStepReplyHandler")
@@ -1266,6 +1274,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/openshift-versions"] = versions.NewV2ListSupportedOpenshiftVersions(o.context, o.VersionsV2ListSupportedOpenshiftVersionsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/logout"] = installer.NewV2Logout(o.context, o.InstallerV2LogoutHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
