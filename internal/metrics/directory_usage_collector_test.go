@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	gomock "go.uber.org/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	gomock "go.uber.org/mock/gomock"
 )
 
 var _ = Describe("Collection on scrape", func() {
