@@ -422,10 +422,11 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
 		h = &kubeAPIVersionsHandler{
-			log:            common.GetTestLog(),
-			releaseHandler: mockRelease,
-			releaseImages:  defaultReleaseImages,
-			sem:            semaphore.NewWeighted(30),
+			log:               common.GetTestLog(),
+			releaseHandler:    mockRelease,
+			releaseImages:     defaultReleaseImages,
+			sem:               semaphore.NewWeighted(30),
+			skipURLValidation: true, // Skip URL validation for tests using fake URLs
 		}
 	})
 
@@ -552,6 +553,11 @@ var _ = Describe("GetReleaseImageByURL", func() {
 	})
 
 	Context("SSRF protection", func() {
+		BeforeEach(func() {
+			// Enable URL validation for SSRF protection tests
+			h.skipURLValidation = false
+		})
+
 		It("fails when URL resolves to private IP", func() {
 			_, err := h.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", pullSecret)
 			Expect(err).Should(HaveOccurred())

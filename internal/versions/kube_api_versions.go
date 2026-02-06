@@ -21,16 +21,17 @@ import (
 )
 
 type kubeAPIVersionsHandler struct {
-	mustGatherVersions MustGatherVersions
-	releaseImages      models.ReleaseImages
-	imagesLock         sync.Mutex
-	sem                *semaphore.Weighted
-	releaseHandler     oc.Release
-	releaseImageMirror string
-	log                logrus.FieldLogger
-	kubeClient         client.Client
-	urlValidator       *validations.ImageURLValidator
-	urlValidatorOnce   sync.Once
+	mustGatherVersions  MustGatherVersions
+	releaseImages       models.ReleaseImages
+	imagesLock          sync.Mutex
+	sem                 *semaphore.Weighted
+	releaseHandler      oc.Release
+	releaseImageMirror  string
+	log                 logrus.FieldLogger
+	kubeClient          client.Client
+	urlValidator        *validations.ImageURLValidator
+	urlValidatorOnce    sync.Once
+	skipURLValidation   bool // Set to true in tests to skip SSRF validation
 }
 
 // // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.
@@ -121,6 +122,10 @@ func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, 
 
 // validateImageURL validates an image URL to prevent SSRF attacks.
 func (h *kubeAPIVersionsHandler) validateImageURL(imageURL string) error {
+	// Skip validation in tests
+	if h.skipURLValidation {
+		return nil
+	}
 	h.urlValidatorOnce.Do(func() {
 		h.urlValidator = validations.DefaultImageURLValidator
 	})

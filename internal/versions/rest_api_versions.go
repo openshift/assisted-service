@@ -26,6 +26,7 @@ type restAPIVersionsHandler struct {
 	db                       *gorm.DB
 	urlValidator             *validations.ImageURLValidator
 	urlValidatorOnce         sync.Once
+	skipURLValidation        bool // Set to true in tests to skip SSRF validation
 }
 
 // GetReleaseImage retrieves a release image based on a specified OpenShift version and CPU architecture.
@@ -113,6 +114,10 @@ func (h *restAPIVersionsHandler) GetReleaseImageByURL(_ context.Context, url, _ 
 
 // validateImageURL validates an image URL to prevent SSRF attacks.
 func (h *restAPIVersionsHandler) validateImageURL(imageURL string) error {
+	// Skip validation in tests
+	if h.skipURLValidation {
+		return nil
+	}
 	h.urlValidatorOnce.Do(func() {
 		h.urlValidator = validations.DefaultImageURLValidator
 	})

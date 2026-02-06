@@ -685,6 +685,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			mustGatherVersions:       nil,
 			ignoredOpenshiftVersions: nil,
 			db:                       db,
+			skipURLValidation:        true, // Skip URL validation for tests using real domain names (avoids DNS resolution in tests)
 		}
 
 		releaseImages := models.ReleaseImages{
@@ -728,6 +729,11 @@ var _ = Describe("GetReleaseImageByURL", func() {
 	})
 
 	Context("SSRF protection", func() {
+		BeforeEach(func() {
+			// Enable URL validation for SSRF protection tests
+			handler.skipURLValidation = false
+		})
+
 		It("fails when URL resolves to private IP", func() {
 			_, err := handler.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", "")
 			Expect(err).Should(HaveOccurred())
