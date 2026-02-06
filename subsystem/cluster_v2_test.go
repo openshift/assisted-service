@@ -117,7 +117,7 @@ var _ = Describe("[V2ClusterTests]", func() {
 
 		By("verify host name is set")
 		h1 = utils_test.TestContext.GetHostV2(infraEnvID, *h1.ID)
-		Expect(hostutil.GetHostnameForMsg(h1)).To(Equal("h1"))
+		Expect(h1.RequestedHostname).To(Equal("h1"))
 
 		By("unbind host and re-register h1 --> cluster return to insufficient")
 		utils_test.TestContext.UnbindHost(infraEnvID, *h1.ID)
@@ -131,7 +131,7 @@ var _ = Describe("[V2ClusterTests]", func() {
 
 		By("verify that the unbound host still retains its name and disks count")
 		h1 = utils_test.TestContext.GetHostV2(infraEnvID, *h1.ID)
-		Expect(hostutil.GetHostnameForMsg(h1)).To(Equal(("h1")))
+		Expect(h1.RequestedHostname).To(Equal(("h1")))
 		var inventory models.Inventory
 		_ = json.Unmarshal([]byte(h1.Inventory), &inventory)
 		Expect(len(inventory.Disks)).To(Equal(2))

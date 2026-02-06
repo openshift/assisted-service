@@ -15,7 +15,6 @@ import (
 	opclient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
@@ -219,7 +218,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				hInventory := models.Inventory{}
 				_ = json.Unmarshal([]byte(h.Inventory), &hInventory)
 				hInventory.CPU = &models.CPU{Count: cpucores}
-				utils_test.TestContext.GenerateEssentialHostStepsWithInventory(context.TODO(), h, hostutil.GetHostnameForMsg(h), &hInventory)
+				utils_test.TestContext.GenerateEssentialHostStepsWithInventory(context.TODO(), h, h.RequestedHostname, &hInventory)
 			}
 			By("add hosts with a minimal worker (cnv operator is not enabled)")
 			infraEnvID := registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
