@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

@@ -15,9 +15,25 @@ spec:
       labels:
         app: object-store
     spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       containers:
         - image: quay.io/minio/minio:latest
           name: s3server
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            capabilities:
+              drop:
+                - ALL
           args:
             - server
             - /data

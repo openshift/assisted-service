@@ -21,10 +21,26 @@ spec:
       labels:
         app: grafana
     spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       containers:
       - name: grafana
         image: quay.io/openshift/origin-grafana:latest
         imagePullPolicy: IfNotPresent
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          capabilities:
+            drop:
+              - ALL
         ports:
         - name: grafana
           protocol: TCP

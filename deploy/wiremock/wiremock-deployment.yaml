@@ -13,11 +13,35 @@ spec:
       labels:
         app: wiremock
     spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       containers:
         - name: wiremock
           image: quay.io/ocpmetal/wiremock
           args: ["--verbose"]
           imagePullPolicy: "IfNotPresent"
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            limits:
+              cpu: 500m
+              memory: 500Mi
+            requests:
+              cpu: 100m
+              memory: 200Mi
           ports:
             - containerPort: 8080
 ---

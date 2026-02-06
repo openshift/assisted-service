@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/filanov/stateswitch"
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/host"
 )

@@ -3,7 +3,7 @@ package testing
 import (
 	"fmt"
 
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"github.com/openshift/assisted-service/models"
 )
 

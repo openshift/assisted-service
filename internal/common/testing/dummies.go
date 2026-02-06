@@ -1,7 +1,7 @@
 package testing
 
 import (
-	"github.com/golang/mock/gomock"
+	"go.uber.org/mock/gomock"
 	"github.com/openshift/assisted-service/internal/stream"
 )
 

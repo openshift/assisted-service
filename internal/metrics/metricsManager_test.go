@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"

@@ -1,0 +1,210 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: assisted-service-netpol
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      app: assisted-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress traffic on the API port
+    - ports:
+        - protocol: TCP
+          port: 8090
+        - protocol: TCP
+          port: 8900
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow egress to postgres
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres
+      ports:
+        - protocol: TCP
+          port: 5432
+    # Allow egress to object-store (S3)
+    - to:
+        - podSelector:
+            matchLabels:
+              app: object-store
+      ports:
+        - protocol: TCP
+          port: 9000
+    # Allow egress to assisted-image-service
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assisted-image-service
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Allow egress to external services (HTTPS)
+    - ports:
+        - protocol: TCP
+          port: 443
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: assisted-image-service-netpol
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      app: assisted-image-service
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow ingress traffic from assisted-service and external
+    - ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow egress to assisted-service
+    - to:
+        - podSelector:
+            matchLabels:
+              app: assisted-service
+      ports:
+        - protocol: TCP
+          port: 8090
+    # Allow egress to external services (HTTPS for image downloads)
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: postgres-netpol
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      app: postgres
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only allow ingress from assisted-service
+    - from:
+        - podSelector:
+            matchLabels:
+              app: assisted-service
+      ports:
+        - protocol: TCP
+          port: 5432
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: object-store-netpol
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      app: object-store
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only allow ingress from assisted-service and assisted-image-service
+    - from:
+        - podSelector:
+            matchLabels:
+              app: assisted-service
+        - podSelector:
+            matchLabels:
+              app: assisted-image-service
+      ports:
+        - protocol: TCP
+          port: 9000
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: infrastructure-operator-netpol
+  namespace: REPLACE_NAMESPACE
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: infrastructure-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow health check and metrics
+    - ports:
+        - protocol: TCP
+          port: 8081
+  egress:
+    # Allow DNS resolution
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # Allow egress to Kubernetes API server
+    - ports:
+        - protocol: TCP
+          port: 6443
+        - protocol: TCP
+          port: 443

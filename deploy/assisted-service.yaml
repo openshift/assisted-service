@@ -13,6 +13,15 @@ spec:
       labels:
         app: assisted-service
     spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       containers:
         - name: assisted-service
           resources:
@@ -25,7 +34,13 @@ spec:
           image: REPLACE_IMAGE
           imagePullPolicy: Always
           securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
             readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
           ports:
             - containerPort: 8090
           livenessProbe:
