@@ -1,7 +1,7 @@
 package versions
 
 import (
-	context "context"
+	"context"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -21,17 +21,17 @@ import (
 )
 
 type kubeAPIVersionsHandler struct {
-	mustGatherVersions  MustGatherVersions
-	releaseImages       models.ReleaseImages
-	imagesLock          sync.Mutex
-	sem                 *semaphore.Weighted
-	releaseHandler      oc.Release
-	releaseImageMirror  string
-	log                 logrus.FieldLogger
-	kubeClient          client.Client
-	urlValidator        *validations.ImageURLValidator
-	urlValidatorOnce    sync.Once
-	skipURLValidation   bool // Set to true in tests to skip SSRF validation
+	mustGatherVersions MustGatherVersions
+	releaseImages      models.ReleaseImages
+	imagesLock         sync.Mutex
+	sem                *semaphore.Weighted
+	releaseHandler     oc.Release
+	releaseImageMirror string
+	log                logrus.FieldLogger
+	kubeClient         client.Client
+	urlValidator       *validations.ImageURLValidator
+	urlValidatorOnce   sync.Once
+	skipURLValidation  bool // Set to true in tests to skip SSRF validation
 }
 
 // // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.
@@ -120,6 +120,11 @@ func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, 
 	return h.addReleaseImage(url, pullSecret)
 }
 
+// ErrURLValidatorNotInitialized is returned when URL validation cannot be performed
+// because the validator was not properly initialized. This ensures fail-closed behavior
+// for SSRF protection.
+var ErrURLValidatorNotInitialized = errors.New("image URL validator not initialized")
+
 // validateImageURL validates an image URL to prevent SSRF attacks.
 func (h *kubeAPIVersionsHandler) validateImageURL(imageURL string) error {
 	// Skip validation in tests
@@ -130,7 +135,8 @@ func (h *kubeAPIVersionsHandler) validateImageURL(imageURL string) error {
 		h.urlValidator = validations.DefaultImageURLValidator
 	})
 	if h.urlValidator == nil {
-		return nil
+		// Fail-closed: reject requests if validator is not available
+		return ErrURLValidatorNotInitialized
 	}
 	return h.urlValidator.ValidateImageURL(imageURL)
 }

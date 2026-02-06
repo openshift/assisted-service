@@ -122,7 +122,8 @@ func (h *restAPIVersionsHandler) validateImageURL(imageURL string) error {
 		h.urlValidator = validations.DefaultImageURLValidator
 	})
 	if h.urlValidator == nil {
-		return nil
+		// Fail-closed: reject requests if validator is not available
+		return ErrURLValidatorNotInitialized
 	}
 	return h.urlValidator.ValidateImageURL(imageURL)
 }
