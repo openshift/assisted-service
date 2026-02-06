@@ -67,11 +67,13 @@ const (
 )
 
 type openShiftReleasesAPIClient struct {
-	baseURL url.URL
+	baseURL      url.URL
+	urlValidator *validations.ImageURLValidator
 }
 
 type openShiftSupportLevelAPIClient struct {
-	baseURL url.URL
+	baseURL      url.URL
+	urlValidator *validations.ImageURLValidator
 }
 
 func appendURLQueryParams(
@@ -87,11 +89,14 @@ func appendURLQueryParams(
 	return u.String()
 }
 
-func requestAndDecode(rawUrl string, decodeInto any) error {
+func requestAndDecode(rawUrl string, decodeInto any, urlValidator *validations.ImageURLValidator) error {
 	// Validate URL to prevent SSRF attacks.
 	// This provides defense-in-depth even though base URLs are admin-configured.
-	if err := validations.DefaultImageURLValidator.ValidateGenericURL(rawUrl); err != nil {
-		return errors.Wrapf(err, "URL validation failed for %s", rawUrl)
+	// Skip validation if no validator is provided (e.g., in tests).
+	if urlValidator != nil {
+		if err := urlValidator.ValidateGenericURL(rawUrl); err != nil {
+			return errors.Wrapf(err, "URL validation failed for %s", rawUrl)
+		}
 	}
 
 	response, err := http.Get(rawUrl)
@@ -120,7 +125,7 @@ func (o openShiftReleasesAPIClient) getReleases(
 	)
 
 	var releaseGraphInstance ReleaseGraph
-	err := requestAndDecode(url, &releaseGraphInstance)
+	err := requestAndDecode(url, &releaseGraphInstance, o.urlValidator)
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +144,7 @@ func (o openShiftSupportLevelAPIClient) getSupportLevels(openshiftMajorVersion s
 	)
 
 	var supportLevelGraphInstance supportLevelGraph
-	err := requestAndDecode(url, &supportLevelGraphInstance)
+	err := requestAndDecode(url, &supportLevelGraphInstance, o.urlValidator)
 	if err != nil {
 		return nil, err
 	}

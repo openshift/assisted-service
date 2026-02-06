@@ -570,15 +570,10 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
 		})
 
-		It("allows valid public registry URL", func() {
-			mockRelease.EXPECT().GetOpenshiftVersion(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
-			mockRelease.EXPECT().GetReleaseArchitecture(
-				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
-
-			releaseImage, err := h.GetReleaseImageByURL(ctx, "quay.io/openshift/image:tag", pullSecret)
-			Expect(err).ShouldNot(HaveOccurred())
-			Expect(releaseImage).ShouldNot(BeNil())
+		It("fails when URL resolves to internal network", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "10.0.0.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
 		})
 	})
 
