@@ -968,3 +968,40 @@ var _ = Describe("Test getSupportLevels", func() {
 		Expect(supportLevels).To(BeNil())
 	})
 })
+
+var _ = Describe("SSRF protection in requestAndDecode", func() {
+	It("Should reject URLs with private IP addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://192.168.1.1/api/endpoint", &result)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with loopback addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://127.0.0.1/api/endpoint", &result)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with AWS metadata endpoint", func() {
+		var result interface{}
+		err := requestAndDecode("http://169.254.169.254/latest/meta-data/", &result)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with internal network addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://10.0.0.1/api/endpoint", &result)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with docker scheme", func() {
+		var result interface{}
+		err := requestAndDecode("docker://registry.example.com/image", &result)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+})

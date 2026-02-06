@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
+	"github.com/openshift/assisted-service/pkg/validations"
 	logrus "github.com/sirupsen/logrus"
 )
 
@@ -50,7 +51,8 @@ var _ = Describe("oc", func() {
 		mockSystemInfo = system.NewMockSystemInfo(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		mirrorRegistriesBuilder := mirrorregistries.New(false)
-		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo)
+		// Use nil validator to skip URL validation in tests (tests use fake image names)
+		oc = NewReleaseWithValidator(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo, nil)
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(dir, pattern string) (*os.File, error) {
@@ -1293,3 +1295,136 @@ func TestOC(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "oc tests")
 }
+
+var _ = Describe("SSRF Protection", func() {
+	var (
+		oc             *release
+		ctrl           *gomock.Controller
+		mockExecuter   *executer.MockExecuter
+		mockSystemInfo *system.MockSystemInfo
+		urlValidator   *validations.ImageURLValidator
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockExecuter = executer.NewMockExecuter(ctrl)
+		mockSystemInfo = system.NewMockSystemInfo(ctrl)
+		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
+		mirrorRegistriesBuilder := mirrorregistries.New(false)
+
+		var err error
+		urlValidator, err = validations.NewImageURLValidator(validations.ImageURLValidatorConfig{}, log)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		oc = &release{
+			executer:                mockExecuter,
+			config:                  config,
+			imagesMap:               common.NewExpiringCache(time.Hour, time.Hour),
+			mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+			sys:                     mockSystemInfo,
+			urlValidator:            urlValidator,
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("validateReleaseImageURL", func() {
+		It("should allow empty URL", func() {
+			err := oc.validateReleaseImageURL("")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should allow valid public registry URLs", func() {
+			validURLs := []string{
+				"quay.io/openshift-release-dev/ocp-release:4.14.1-x86_64",
+				"registry.redhat.io/openshift/release@sha256:abc123",
+				"docker://quay.io/openshift-release-dev/ocp-release:4.14.1",
+			}
+			for _, url := range validURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).ShouldNot(HaveOccurred(), "URL should be allowed: %s", url)
+			}
+		})
+
+		It("should block loopback addresses", func() {
+			blockedURLs := []string{
+				"127.0.0.1/image:tag",
+				"127.0.0.1:5000/image:tag",
+				"localhost/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+
+		It("should block private IP ranges", func() {
+			blockedURLs := []string{
+				"10.0.0.1/image:tag",
+				"172.16.0.1/image:tag",
+				"192.168.1.1/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+
+		It("should block AWS metadata endpoint", func() {
+			blockedURLs := []string{
+				"169.254.169.254/latest/meta-data/",
+				"169.254.0.1/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+	})
+
+	Context("getImageByName with SSRF protection", func() {
+		It("should return error for private IP release image", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "192.168.1.100/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("should return error for private IP release image mirror", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "quay.io/image:tag", "10.0.0.1/mirror:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image mirror URL"))
+		})
+
+		It("should return error for loopback release image", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "127.0.0.1/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("should return error for AWS metadata URL", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "169.254.169.254/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+	})
+
+	Context("NewReleaseWithValidator", func() {
+		It("should create release with custom validator", func() {
+			customValidator, err := validations.NewImageURLValidator(validations.ImageURLValidatorConfig{
+				AllowedRegistries: "custom.registry.io",
+			}, log)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			r := NewReleaseWithValidator(mockExecuter, Config{}, mirrorregistries.New(false), mockSystemInfo, customValidator)
+			Expect(r).ShouldNot(BeNil())
+		})
+
+		It("should work with nil validator (graceful degradation)", func() {
+			oc.urlValidator = nil
+			err := oc.validateReleaseImageURL("any-url")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+})

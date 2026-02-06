@@ -726,4 +726,30 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).To(BeNil())
 	})
+
+	Context("SSRF protection", func() {
+		It("fails when URL resolves to private IP", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to loopback", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "127.0.0.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to AWS metadata endpoint", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "169.254.169.254/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to internal network", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "10.0.0.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+	})
 })

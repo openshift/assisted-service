@@ -551,6 +551,37 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		Expect(err).Should(HaveOccurred())
 	})
 
+	Context("SSRF protection", func() {
+		It("fails when URL resolves to private IP", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to loopback", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "127.0.0.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to AWS metadata endpoint", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "169.254.169.254/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("allows valid public registry URL", func() {
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
+			mockRelease.EXPECT().GetReleaseArchitecture(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
+
+			releaseImage, err := h.GetReleaseImageByURL(ctx, "quay.io/openshift/image:tag", pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(releaseImage).ShouldNot(BeNil())
+		})
+	})
+
 	It("keep support level from cache", func() {
 		mockRelease.EXPECT().GetOpenshiftVersion(
 			gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()

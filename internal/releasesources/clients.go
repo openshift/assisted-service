@@ -7,6 +7,7 @@ import (
 	"net/url"
 
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 )
 
@@ -87,10 +88,17 @@ func appendURLQueryParams(
 }
 
 func requestAndDecode(rawUrl string, decodeInto any) error {
+	// Validate URL to prevent SSRF attacks.
+	// This provides defense-in-depth even though base URLs are admin-configured.
+	if err := validations.DefaultImageURLValidator.ValidateGenericURL(rawUrl); err != nil {
+		return errors.Wrapf(err, "URL validation failed for %s", rawUrl)
+	}
+
 	response, err := http.Get(rawUrl)
 	if err != nil {
 		return errors.Wrapf(err, "an error occurred while making http request to %s", rawUrl)
 	}
+	defer response.Body.Close()
 
 	err = json.NewDecoder(response.Body).Decode(&decodeInto)
 	if err != nil {
