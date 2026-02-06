@@ -246,7 +246,7 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	return infraEnvResult.Payload, nil
 }
 
-func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, client *manifests.Client, cluster *models.Cluster) error {
+func RegisterExtraManifests(fsys fs.FS, ctx context.Context, log *log.Logger, client manifests.API, cluster *models.Cluster) error {
 
 	extras, err := fs.Glob(fsys, "*.y*ml")
 	if err != nil {
