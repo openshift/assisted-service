@@ -665,3 +665,235 @@ func (m *mockManifestTransport) SetDownloadError(errMsg string) {
 func (m *mockManifestTransport) SetCreateError(errMsg string) {
 	m.createError = fmt.Errorf("%s", errMsg)
 }
+
+var _ = Describe("RegisterInfraEnv", func() {
+	var (
+		ctx                context.Context
+		fakeTransport      *mockInfraEnvTransport
+		bmInventory        *client.AssistedInstall
+		pullSecret         string
+		tempDir            string
+		infraEnvFilePath   string
+		nmStateConfigPath  string
+		infraEnvManifest   string
+		nmStateManifest    string
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+
+		pullSecret = `{"auths":{"cloud.openshift.com":{"auth":"test"}}}`
+
+		fakeTransport = NewMockInfraEnvTransport()
+		fakeInstallerClient := installerclient.New(fakeTransport, nil, nil)
+		bmInventory = &client.AssistedInstall{
+			Installer: fakeInstallerClient,
+		}
+
+		// Create temp directory for test manifests
+		var err error
+		tempDir, err = os.MkdirTemp("", "infraenv-test-*")
+		Expect(err).NotTo(HaveOccurred())
+
+		infraEnvFilePath = filepath.Join(tempDir, "infraenv.yaml")
+		nmStateConfigPath = filepath.Join(tempDir, "nmstateconfig.yaml")
+
+		// Minimal InfraEnv manifest
+		infraEnvManifest = `apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: test-infraenv
+  namespace: test-namespace
+spec:
+  clusterRef:
+    name: test-cluster
+    namespace: test-namespace
+  pullSecretRef:
+    name: pull-secret
+  sshAuthorizedKey: ssh-rsa test-key
+  nmStateConfigLabelSelector:
+    matchLabels:
+      infraenvs.agent-install.openshift.io: test-infraenv
+`
+
+		// NMStateConfig manifest
+		nmStateManifest = `apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: test-nmstate
+  namespace: test-namespace
+  labels:
+    infraenvs.agent-install.openshift.io: test-infraenv
+spec:
+  interfaces:
+    - name: eth0
+      type: ethernet
+      state: up
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.111.20
+            prefix-length: 24
+      mac-address: "02:00:00:80:12:14"
+`
+
+		err = os.WriteFile(infraEnvFilePath, []byte(infraEnvManifest), 0600)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		if tempDir != "" {
+			os.RemoveAll(tempDir)
+		}
+	})
+
+	Context("when NMStateConfig file exists", func() {
+		It("should use the NMStateConfig for static network config", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			err := os.WriteFile(nmStateConfigPath, []byte(nmStateManifest), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, nil,
+				infraEnvFilePath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv).NotTo(BeNil())
+
+			// Verify the transport received the params with real NMStateConfig
+			Expect(fakeTransport.lastInfraEnvParams).NotTo(BeNil())
+			Expect(fakeTransport.lastInfraEnvParams.StaticNetworkConfig).To(HaveLen(1))
+
+			// Should have eth0, not dummy0
+			staticConfig := fakeTransport.lastInfraEnvParams.StaticNetworkConfig[0]
+			Expect(staticConfig.NetworkYaml).To(ContainSubstring("eth0"))
+			Expect(staticConfig.NetworkYaml).NotTo(ContainSubstring("dummy0"))
+		})
+	})
+
+	Context("when NMStateConfig file does not exist", func() {
+		It("should set placeholder StaticNetworkConfig with dummy0 interface", func() {
+			fakeLogger, _ := test.NewNullLogger()
+
+			// Don't create nmStateConfigPath file - it won't exist
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, nil,
+				infraEnvFilePath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv).NotTo(BeNil())
+
+			// Verify the transport received params with placeholder
+			Expect(fakeTransport.lastInfraEnvParams).NotTo(BeNil())
+			Expect(fakeTransport.lastInfraEnvParams.StaticNetworkConfig).To(HaveLen(1))
+
+			// Verify placeholder structure
+			staticConfig := fakeTransport.lastInfraEnvParams.StaticNetworkConfig[0]
+			Expect(staticConfig.NetworkYaml).To(ContainSubstring("dummy0"))
+			Expect(staticConfig.NetworkYaml).To(ContainSubstring("type: dummy"))
+			Expect(staticConfig.NetworkYaml).To(ContainSubstring("state: down"))
+			Expect(staticConfig.MacInterfaceMap).To(HaveLen(1))
+			Expect(staticConfig.MacInterfaceMap[0].LogicalNicName).To(Equal("dummy0"))
+			Expect(staticConfig.MacInterfaceMap[0].MacAddress).To(Equal("02:00:00:00:00:00"))
+		})
+	})
+
+	Context("when registering with a cluster reference", func() {
+		It("should include cluster ID in params", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			clusterID := strfmt.UUID("e679ea3f-3b85-40e0-8dc9-82fd6945d9b2")
+			cluster := &models.Cluster{
+				ID: &clusterID,
+			}
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, cluster,
+				infraEnvFilePath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv).NotTo(BeNil())
+			Expect(infraEnv.ClusterID).To(Equal(clusterID))
+		})
+	})
+
+	Context("when registering without a cluster reference", func() {
+		It("should succeed for late binding scenario", func() {
+			fakeLogger, _ := test.NewNullLogger()
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, nil,
+				infraEnvFilePath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(infraEnv).NotTo(BeNil())
+			// For late binding, ClusterID should be nil/empty
+		})
+	})
+
+	Context("when API errors occur", func() {
+		It("should return error if RegisterInfraEnv API call fails", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			fakeTransport.SetRegisterError("API error")
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, nil,
+				infraEnvFilePath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("API error"))
+			Expect(infraEnv).To(BeNil())
+		})
+	})
+
+	Context("when InfraEnv manifest file is invalid", func() {
+		It("should return error if file does not exist", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			invalidPath := filepath.Join(tempDir, "does-not-exist.yaml")
+
+			infraEnv, err := RegisterInfraEnv(ctx, fakeLogger, bmInventory, pullSecret, nil,
+				invalidPath, nmStateConfigPath, "full-iso", "")
+
+			Expect(err).To(HaveOccurred())
+			Expect(infraEnv).To(BeNil())
+		})
+	})
+})
+
+// mockInfraEnvTransport is a mock transport for testing RegisterInfraEnv
+type mockInfraEnvTransport struct {
+	lastInfraEnvParams *models.InfraEnvCreateParams
+	registerError      error
+}
+
+func NewMockInfraEnvTransport() *mockInfraEnvTransport {
+	return &mockInfraEnvTransport{}
+}
+
+func (m *mockInfraEnvTransport) Submit(op *runtime.ClientOperation) (interface{}, error) {
+	switch v := op.Params.(type) {
+	case *installerclient.RegisterInfraEnvParams:
+		if m.registerError != nil {
+			return nil, m.registerError
+		}
+
+		m.lastInfraEnvParams = v.InfraenvCreateParams
+
+		// Create response with the same params
+		infraEnvID := strfmt.UUID("00000000-0000-0000-0000-000000000000")
+		var clusterID strfmt.UUID
+		if v.InfraenvCreateParams.ClusterID != nil {
+			clusterID = *v.InfraenvCreateParams.ClusterID
+		}
+
+		return &installerclient.RegisterInfraEnvCreated{
+			Payload: &models.InfraEnv{
+				ID:        &infraEnvID,
+				ClusterID: clusterID,
+				Name:      v.InfraenvCreateParams.Name,
+			},
+		}, nil
+
+	default:
+		return nil, fmt.Errorf("[mockInfraEnvTransport] unmanaged type: %T", v)
+	}
+}
+
+func (m *mockInfraEnvTransport) SetRegisterError(errMsg string) {
+	m.registerError = fmt.Errorf("%s", errMsg)
+}
