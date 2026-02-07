@@ -1847,6 +1847,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 					"db.password": pass,
 					"db.name":     "installer",
 					"db.port":     databasePort.String(),
+					"db.sslmode":  "disable",
 				},
 				Type: corev1.SecretTypeOpaque,
 			}
@@ -1859,6 +1860,56 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(err).To(BeNil())
 
 			Expect(found.StringData["db.password"]).To(Equal(pass))
+		})
+
+		It("should backfill sslmode as disable for upgrades", func() {
+			// Simulate an existing secret from a previous version that doesn't have db.sslmode
+			dbSecret := &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:              databaseName,
+					Namespace:         testNamespace,
+					CreationTimestamp: metav1.Now(),
+				},
+				StringData: map[string]string{
+					"db.host":     "localhost",
+					"db.user":     "admin",
+					"db.password": pass,
+					"db.name":     "installer",
+					"db.port":     databasePort.String(),
+					// Note: db.sslmode is intentionally missing to simulate upgrade scenario
+				},
+				Type: corev1.SecretTypeOpaque,
+			}
+			Expect(ascr.Client.Create(ctx, dbSecret)).To(Succeed())
+
+			AssertReconcileSuccess(ctx, log, ascc, newPostgresSecret)
+
+			found := &corev1.Secret{}
+			err := ascr.Client.Get(ctx, types.NamespacedName{Name: databaseName, Namespace: testNamespace}, found)
+			Expect(err).To(BeNil())
+
+			// For upgrades, sslmode should be backfilled as "disable" to maintain backward compatibility
+			Expect(found.StringData["db.sslmode"]).To(Equal("disable"))
+		})
+	})
+
+	Context("with database-sslmode annotation", func() {
+		It("should use the annotation value for sslmode", func() {
+			// Set up ASC with database-sslmode annotation
+			asc.SetAnnotations(map[string]string{
+				"unsupported.agent-install.openshift.io/database-sslmode": "verify-full",
+			})
+			ascr = newTestReconciler(asc)
+			ascc = initASC(ascr, asc)
+
+			AssertReconcileSuccess(ctx, log, ascc, newPostgresSecret)
+
+			found := &corev1.Secret{}
+			err := ascr.Client.Get(ctx, types.NamespacedName{Name: databaseName, Namespace: testNamespace}, found)
+			Expect(err).To(BeNil())
+
+			// sslmode should be set from the annotation
+			Expect(found.StringData["db.sslmode"]).To(Equal("verify-full"))
 		})
 	})
 
@@ -1874,6 +1925,7 @@ var _ = Describe("ensurePostgresSecret", func() {
 			Expect(found.StringData["db.user"]).To(Equal("admin"))
 			Expect(found.StringData["db.name"]).To(Equal("installer"))
 			Expect(found.StringData["db.port"]).To(Equal(databasePort.String()))
+			Expect(found.StringData["db.sslmode"]).To(Equal("require"))
 			Expect(found.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
 			// password will be random
 			foundPass := found.StringData["db.password"]
