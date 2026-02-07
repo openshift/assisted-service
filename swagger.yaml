@@ -7362,6 +7362,7 @@ definitions:
       - 'mtv-requirements-satisfied'
       - 'osc-requirements-satisfied'
       - 'network-type-valid'
+      - 'custom-manifests-requirements-satisfied'
       - 'platform-requirements-satisfied'
       - 'node-feature-discovery-requirements-satisfied'
       - 'nvidia-gpu-requirements-satisfied'
