@@ -2750,6 +2750,17 @@ func newWebHookClusterRole(ctx context.Context, log logrus.FieldLogger, asc ASC)
 				"create",
 			},
 		},
+		{
+			APIGroups: []string{
+				"hive.openshift.io",
+			},
+			Resources: []string{
+				"clusterdeployments",
+			},
+			Verbs: []string{
+				"get",
+			},
+		},
 	}
 	cr := rbacv1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
