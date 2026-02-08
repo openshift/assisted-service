@@ -326,14 +326,30 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
 	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP
 
+	// For iSCSI/multipath Day2 clusters with unknown machine network, skip adding ip= kernel
+	// args to allow RHCOS to auto-configure all interfaces. This prevents partial
+	// network configuration where only the iSCSI NIC comes up.
+	// This applies to both direct iSCSI and multipath iSCSI installations.
+	skipISCSIIPArgs := false
+
 	// append kargs depending on installation drive type
 	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
 	if installationDisk != nil {
-		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		if (installationDisk.DriveType == models.DriveTypeISCSI ||
+			installationDisk.DriveType == models.DriveTypeMultipath) &&
+			swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+			machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+			if machineNetworkCIDR == "" {
+				skipISCSIIPArgs = true
+				log.Infof("Host %s in cluster %s: skipping ip= kernel args (Day2 iSCSI/multipath with unknown machine network)", host.ID, *cluster.ID)
+			}
+		}
+
+		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP || skipISCSIIPArgs)
 		if err != nil {
 			return "", err
 		}
-		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP || skipISCSIIPArgs)
 		if err != nil {
 			return "", err
 		}
