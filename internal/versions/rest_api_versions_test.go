@@ -685,6 +685,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 			mustGatherVersions:       nil,
 			ignoredOpenshiftVersions: nil,
 			db:                       db,
+			skipURLValidation:        true, // Skip URL validation for tests using real domain names (avoids DNS resolution in tests)
 		}
 
 		releaseImages := models.ReleaseImages{
@@ -725,5 +726,36 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		releaseImage, err := handler.GetReleaseImageByURL(ctx, "quay.io/openshift-release-dev/ocp-release:4.14.1-x86_64", "")
 		Expect(err).Should(HaveOccurred())
 		Expect(releaseImage).To(BeNil())
+	})
+
+	Context("SSRF protection", func() {
+		BeforeEach(func() {
+			// Enable URL validation for SSRF protection tests
+			handler.skipURLValidation = false
+		})
+
+		It("fails when URL resolves to private IP", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to loopback", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "127.0.0.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to AWS metadata endpoint", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "169.254.169.254/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to internal network", func() {
+			_, err := handler.GetReleaseImageByURL(ctx, "10.0.0.1/image:tag", "")
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
 	})
 })

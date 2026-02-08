@@ -422,10 +422,11 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockRelease = oc.NewMockRelease(ctrl)
 		h = &kubeAPIVersionsHandler{
-			log:            common.GetTestLog(),
-			releaseHandler: mockRelease,
-			releaseImages:  defaultReleaseImages,
-			sem:            semaphore.NewWeighted(30),
+			log:               common.GetTestLog(),
+			releaseHandler:    mockRelease,
+			releaseImages:     defaultReleaseImages,
+			sem:               semaphore.NewWeighted(30),
+			skipURLValidation: true, // Skip URL validation for tests using fake URLs
 		}
 	})
 
@@ -549,6 +550,37 @@ var _ = Describe("GetReleaseImageByURL", func() {
 
 		_, err := h.GetReleaseImageByURL(ctx, releaseImageUrl, pullSecret)
 		Expect(err).Should(HaveOccurred())
+	})
+
+	Context("SSRF protection", func() {
+		BeforeEach(func() {
+			// Enable URL validation for SSRF protection tests
+			h.skipURLValidation = false
+		})
+
+		It("fails when URL resolves to private IP", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "192.168.1.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to loopback", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "127.0.0.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to AWS metadata endpoint", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "169.254.169.254/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("fails when URL resolves to internal network", func() {
+			_, err := h.GetReleaseImageByURL(ctx, "10.0.0.1/image:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
 	})
 
 	It("keep support level from cache", func() {
