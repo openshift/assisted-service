@@ -64,6 +64,7 @@ const (
 	AllowedNumberOfWorkersInNoneHaMode                               = 0
 	AllowedNumberOfMasterHostsInTwoNodesWithFencing                  = 2
 	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
+	MinimumVersionForNonStandardHAOCPControlPlaneForACM216           = "4.19"
 	MinimumVersionForArbiterClusters                                 = "4.19"
 	MinimumVersionForTwoNodesWithFencing                             = "4.20"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2

@@ -28,7 +28,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.16.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.19.0"))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
@@ -50,7 +50,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.16.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.19.0"))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
