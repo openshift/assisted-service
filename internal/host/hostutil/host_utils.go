@@ -363,30 +363,26 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 
 	// Determine the certificate to use
 	// Priority order for certificate:
-	// 1. Cluster-level certificate (if provided)
-	// 2. Host-level certificate from ignition config overrides
+	// 1. Host-level certificate from ignition config overrides
+	// 2. Cluster-level certificate (if provided)
 	protocol := "http"
 	port := constants.InsecureMCSPort
-	var cert *string
-	var err error
-	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
+	cert, err := ignition.GetCACertInIgnition(host.IgnitionConfigOverrides)
+	if err != nil {
+		logger.Errorf("Failed to get Ignition certificate for host %s: %s", host.ID, err)
+		return "", nil, err
+	}
+	if cert != nil {
+		logger.Infof("Using host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		protocol = "https"
+		port = constants.SecureMCSPort
+	} else if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
 		logger.Infof("Using cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
 		cert = cluster.IgnitionEndpoint.CaCertificate
 		protocol = "https"
 		port = constants.SecureMCSPort
 	} else {
-		cert, err = ignition.GetCACertInIgnition(host.IgnitionConfigOverrides)
-		if err != nil {
-			logger.Errorf("Failed to get Ignition certificate for host %s: %s", host.ID, err)
-			return "", nil, err
-		}
-		if cert != nil {
-			logger.Infof("Using host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
-			protocol = "https"
-			port = constants.SecureMCSPort
-		} else {
-			logger.Infof("No ignition certificate found for cluster %s, host %s; using HTTP", cluster.ID, host.ID)
-		}
+		logger.Infof("No ignition certificate found for cluster %s, host %s; using HTTP", cluster.ID, host.ID)
 	}
 
 	// Use custom ignition endpoint if provided
