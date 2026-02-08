@@ -12794,6 +12794,40 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		bm.V2UpdateClusterInstallConfig(ctx, params)
 	})
 
+	It("sets FIPS feature usage when fips is enabled in install config overrides", func() {
+		override := `{"fips":true}`
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		mockUsage.EXPECT().Add(gomock.Any(), usage.InstallConfigOverrides, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Add(gomock.Any(), usage.FIPSUsage, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
+			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+		bm.V2UpdateClusterInstallConfig(ctx, params)
+	})
+
+	It("removes FIPS feature usage when fips is disabled in install config overrides", func() {
+		override := `{"fips":false}`
+		params := installer.V2UpdateClusterInstallConfigParams{
+			ClusterID:           clusterID,
+			InstallConfigParams: override,
+		}
+		mockUsage.EXPECT().Add(gomock.Any(), usage.InstallConfigOverrides, gomock.Any()).Times(1)
+		mockUsage.EXPECT().Remove(gomock.Any(), usage.FIPSUsage).Times(1)
+		mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.InstallConfigAppliedEventName),
+			eventstest.WithClusterIdMatcher(params.ClusterID.String())))
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
+		mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+		bm.V2UpdateClusterInstallConfig(ctx, params)
+	})
+
 	It("doesn't update the install config overrides feature usage if it's empty", func() {
 		params := installer.V2UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,

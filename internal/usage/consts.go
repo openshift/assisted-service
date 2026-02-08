@@ -63,4 +63,6 @@ const (
 	UserManagedNetworkingWithMultiNode string = "User Managed Networking With Multi Node"
 	// Usage of Validation Ignore
 	ValidationsIgnored string = "Validations have been ignored for this cluster"
+	// Usage of FIPS
+	FIPSUsage string = "FIPS"
 )
