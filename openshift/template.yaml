@@ -255,12 +255,27 @@ objects:
           app: assisted-service
       spec:
         serviceAccountName: assisted-service
+        # Pod-level security context
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        # Host namespace restrictions
+        hostNetwork: false
+        hostPID: false
+        hostIPC: false
         containers:
           - name: envoy-sidecar
             image: ${ENVOY_IMAGE}:${ENVOY_TAG}
             imagePullPolicy: IfNotPresent
             securityContext:
+              privileged: false
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
               readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
             command:
             - envoy
             - --config-path
@@ -296,7 +311,13 @@ objects:
             image: ${ASSISTED_SERVICE_IMAGE}:${IMAGE_TAG}
             imagePullPolicy: Always
             securityContext:
+              privileged: false
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
               readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
             resources:
               limits:
                 cpu: ${{CPU_LIMIT}}

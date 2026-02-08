@@ -6,13 +6,13 @@ import (
 	"testing"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	gomock "go.uber.org/mock/gomock"
 )
 
 var _ = Describe("DNS tests", func() {

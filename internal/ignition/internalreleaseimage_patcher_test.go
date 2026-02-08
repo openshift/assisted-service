@@ -11,7 +11,6 @@ import (
 
 	types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
@@ -22,6 +21,7 @@ import (
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("InternalReleaseImage resources patching", func() {
