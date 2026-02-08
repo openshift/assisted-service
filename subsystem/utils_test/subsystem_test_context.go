@@ -698,11 +698,10 @@ func (t *SubsystemTestContext) GetDefaultVmwareInventory(cidr string) *models.In
 func (t *SubsystemTestContext) RegisterCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) (strfmt.UUID, error) {
 	var cluster, err = client.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
-			Name:              swag.String(clusterName),
-			OpenshiftVersion:  swag.String(t.vipAutoAllocOpenshiftVersion),
-			PullSecret:        swag.String(pullSecret),
-			BaseDNSDomain:     "example.com",
-			VipDhcpAllocation: swag.Bool(true),
+			Name:             swag.String(clusterName),
+			OpenshiftVersion: swag.String(t.vipAutoAllocOpenshiftVersion),
+			PullSecret:       swag.String(pullSecret),
+			BaseDNSDomain:    "example.com",
 		},
 	})
 	if err != nil {
@@ -763,17 +762,15 @@ func (t *SubsystemTestContext) IsClusterValidationInStatus(clusterID strfmt.UUID
 
 func (t *SubsystemTestContext) WaitForHostValidationStatus(clusterID, infraEnvID, hostID strfmt.UUID, expectedStatus string, hostValidationIDs ...models.HostValidationID) {
 
-	waitFunc := func(_ context.Context) (bool, error) {
+	Eventually(func() bool {
 		for _, vID := range hostValidationIDs {
 			cond, _ := t.IsHostValidationInStatus(clusterID, infraEnvID, hostID, vID, expectedStatus)
 			if !cond {
-				return false, nil
+				return false
 			}
 		}
-		return true, nil
-	}
-	err := wait.PollUntilContextTimeout(context.TODO(), t.pollDefaultInterval, t.pollDefaultTimeout, false, waitFunc)
-	Expect(err).NotTo(HaveOccurred())
+		return true
+	}, t.pollDefaultTimeout, t.pollDefaultInterval).Should(BeTrue())
 }
 
 func (t *SubsystemTestContext) WaitForClusterValidationStatus(clusterID strfmt.UUID, expectedStatus string, clusterValidationIDs ...models.ClusterValidationID) {
