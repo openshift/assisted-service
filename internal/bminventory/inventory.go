@@ -1906,6 +1906,11 @@ func (b *bareMetalInventory) setInstallConfigOverridesUsage(featureUsages string
 		props[key] = true
 	}
 	b.setUsage(true, usage.InstallConfigOverrides, &props, usages)
+	if fipsVal, ok := installConfigOverrides["fips"]; ok {
+		if fipsEnabled, isBool := fipsVal.(bool); isBool {
+			b.setUsage(fipsEnabled, usage.FIPSUsage, nil, usages)
+		}
+	}
 	b.usageApi.Save(db, clusterID, usages)
 	return nil
 }
