@@ -18,6 +18,9 @@ deploy/olm-catalog/**/tests/**
 
 reports
 **/junit_unit_test.xml
+
+# Go test binaries
+*.test
 # Files used for onprem testing
 coreos-installer
 livecd.iso
