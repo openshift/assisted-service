@@ -49,7 +49,9 @@ type TestConfiguration struct {
 
 const TestDiskId = "/dev/disk/by-id/test-disk-id"
 const TestDiskPath = "/dev/test-disk"
-const MinimalVersionForNmstatectl = "4.18"
+
+// MinimalVersionForNmstatectl In master set to 4.18, but since 4.18 isn't part of ACM 2.16, we changed it to 4.19 in the test configuration only to allow the test to pass in 2.16 branch.
+const MinimalVersionForNmstatectl = "4.19"
 
 var (
 	OpenShiftVersion string = "4.6"

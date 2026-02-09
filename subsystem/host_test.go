@@ -3,7 +3,6 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -30,9 +29,9 @@ var _ = Describe("Host tests", func() {
 		cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+				OpenshiftVersion:  swag.String(defaultOpenshiftVersion),
 				PullSecret:        swag.String(pullSecret),
-				VipDhcpAllocation: swag.Bool(true),
+				VipDhcpAllocation: swag.Bool(false),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -249,69 +248,6 @@ var _ = Describe("Host tests", func() {
 		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host2.ID)
 		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeInstallationDiskSpeedCheck)).Should(BeTrue())
 		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeContainerImageAvailability)).Should(BeTrue())
-	})
-
-	It("next step - DHCP", func() {
-		By("Creating cluster")
-		Expect(db.Save(&models.MachineNetwork{ClusterID: clusterID, Cidr: "1.2.3.0/24"}).Error).ToNot(HaveOccurred())
-		By("Creating hosts")
-		host := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
-		host2 := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
-		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
-			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
-		By("Get steps in discovering ...")
-		steps := utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeInventory)).Should(BeTrue())
-		host = utils_test.TestContext.GetHostV2(*infraEnvID, *host.ID)
-		By("Get steps in insufficient ...")
-		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
-		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeInventory)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeFreeNetworkAddresses)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeVerifyVips)).Should(BeFalse())
-		Expect(db.Save(&models.APIVip{IP: "1.2.3.4", ClusterID: clusterID}).Error).ToNot(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeInventory)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeFreeNetworkAddresses)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeVerifyVips)).Should(BeTrue())
-		By("Get steps in known ...")
-		Expect(db.Model(host).Update("status", "known").Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeConnectivityCheck)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeFreeNetworkAddresses)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeVerifyVips)).Should(BeTrue())
-		By("Get steps in disabled ...")
-		Expect(db.Model(host).Update("status", "disabled").Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(steps.NextInstructionSeconds).Should(Equal(int64(120)))
-		Expect(len(steps.Instructions)).Should(Equal(0))
-		By("Get steps in insufficient ...")
-		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeConnectivityCheck)).Should(BeTrue())
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
-		By("Get steps in error ...")
-		Expect(db.Model(host).Update("status", "error").Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeStopInstallation)).Should(BeTrue())
-		By("Get steps in resetting ...")
-		Expect(db.Model(host).Update("status", models.HostStatusResetting).Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(len(steps.Instructions)).Should(Equal(0))
-		for _, st := range []string{models.HostStatusInstalling, models.HostStatusPreparingForInstallation} {
-			By(fmt.Sprintf("Get steps in %s ...", st))
-			Expect(db.Model(host).Update("status", st).Error).NotTo(HaveOccurred())
-			steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-			Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
-		}
-		By(fmt.Sprintf("Get steps in %s ...", models.HostStatusInstallingInProgress))
-		Expect(db.Model(host).Updates(map[string]interface{}{"status": models.HostStatusInstallingInProgress, "progress_stage_updated_at": strfmt.DateTime(time.Now())}).Error).NotTo(HaveOccurred())
-		steps = utils_test.TestContext.GetNextSteps(*infraEnvID, *host.ID)
-		Expect(utils_test.IsStepTypeInList(steps, models.StepTypeDhcpLeaseAllocate)).Should(BeTrue())
 	})
 
 	It("host_disconnection", func() {

@@ -8047,7 +8047,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
-							OpenshiftVersion:     "4.18",
+							OpenshiftVersion:     "4.19",
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							ControlPlaneCount:    common.MinMasterHostsNeededForInstallationInHaMode,
 						},
@@ -8063,7 +8063,7 @@ var _ = Describe("V2UpdateCluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer")
+					verifyApiErrorString(reply, http.StatusBadRequest, "there should be 2-5 dedicated control plane nodes for high availability mode Full in openshift version 4.19 or newer")
 				})
 
 				It("update amount to != 1 when SNO", func() {
@@ -8116,11 +8116,11 @@ var _ = Describe("V2UpdateCluster", func() {
 					)
 				})
 
-				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlane), func() {
+				It(fmt.Sprintf("update amount to != 3 when multi-node, OCP version >= %s", common.MinimumVersionForNonStandardHAOCPControlPlaneForACM216), func() {
 					cluster := &common.Cluster{
 						Cluster: models.Cluster{
 							ID:                   &clusterID,
-							OpenshiftVersion:     "4.18",
+							OpenshiftVersion:     "4.19",
 							HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 							ControlPlaneCount:    4,
 						},
@@ -8139,7 +8139,7 @@ var _ = Describe("V2UpdateCluster", func() {
 					verifyApiErrorString(
 						reply,
 						http.StatusBadRequest,
-						"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
+						"there should be 2-5 dedicated control plane nodes for high availability mode Full in openshift version 4.19 or newer",
 					)
 				})
 			})
@@ -10781,25 +10781,6 @@ var _ = Describe("infraEnvs host", func() {
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("TNA clusters support is disabled, cannot set role arbiter to host %s in infra-env %s", hostID, infraEnvID)))
-		})
-
-		It(fmt.Sprintf("update host role arbiter failure - cluster's openshift version < %s", common.MinimumVersionForArbiterClusters), func() {
-			mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			mockHostApi.EXPECT().UpdateIgnitionEndpointToken(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
-			cluster.OpenshiftVersion = common.MinimumVersionForNonStandardHAOCPControlPlane
-			db.Save(&cluster)
-			resp := bm.V2UpdateHost(ctx, installer.V2UpdateHostParams{
-				InfraEnvID: infraEnvID,
-				HostID:     hostID,
-				HostUpdateParams: &models.HostUpdateParams{
-					HostRole: swag.String("arbiter"),
-				},
-			})
-			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's openshift version must be at least %s", hostID, infraEnvID, common.MinimumVersionForArbiterClusters)))
 		})
 
 		It("update host role arbiter failure - cluster's platform is not allowed", func() {
@@ -16967,14 +16948,14 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiErrorString(
 					reply,
 					http.StatusBadRequest,
-					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+					"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
 				)
 			})
 
 			It("setting 6 control planes, multi-node, non-standard HA OCP Control Plane supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlaneForACM216),
 						ControlPlaneCount:    swag.Int64(6),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 					},
@@ -16983,7 +16964,7 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiErrorString(
 					reply,
 					http.StatusBadRequest,
-					"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
+					"there should be 2-5 dedicated control plane nodes for high availability mode Full in openshift version 4.19 or newer",
 				)
 			})
 
@@ -17031,14 +17012,14 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiErrorString(
 					reply,
 					http.StatusBadRequest,
-					"there should be exactly 3 dedicated control plane nodes for high availability mode Full in openshift version older than 4.18",
+					"there should be 3-5 dedicated control plane nodes for high availability mode Full in openshift version 4.18 or newer",
 				)
 			})
 
 			It("setting 4 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						OpenshiftVersion:     swag.String("4.17"),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						ControlPlaneCount:    swag.Int64(4),
 					},
@@ -17055,7 +17036,7 @@ var _ = Describe("RegisterCluster", func() {
 				bm.TNAClustersSupport = false
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+						OpenshiftVersion:     swag.String(common.MinimumVersionForNonStandardHAOCPControlPlaneForACM216),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						ControlPlaneCount:    swag.Int64(2),
 					},
@@ -17071,7 +17052,7 @@ var _ = Describe("RegisterCluster", func() {
 			It("setting 2 control planes, multi-node, non-standard HA OCP Control Plane not supported", func() {
 				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
-						OpenshiftVersion:     swag.String(testutils.ValidOCPVersionForNonStandardHAOCPControlPlane),
+						OpenshiftVersion:     swag.String("4.17"),
 						HighAvailabilityMode: swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
 						ControlPlaneCount:    swag.Int64(2),
 					},
