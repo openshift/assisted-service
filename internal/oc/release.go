@@ -29,15 +29,14 @@ import (
 )
 
 const (
-	mcoImageName                   = "machine-config-operator"
-	ironicAgentImageName           = "ironic-agent"
-	mustGatherImageName            = "must-gather"
-	okdRPMSImageName               = "okd-rpms"
-	rhcosImageName                 = "rhel-coreos"
-	scosImageName                  = "stream-coreos"
-	DefaultTries                   = 5
-	DefaltRetryDelay               = time.Second * 5
-	staticInstallerRequiredVersion = "4.16.0-0.alpha"
+	mcoImageName         = "machine-config-operator"
+	ironicAgentImageName = "ironic-agent"
+	mustGatherImageName  = "must-gather"
+	okdRPMSImageName     = "okd-rpms"
+	rhcosImageName       = "rhel-coreos"
+	scosImageName        = "stream-coreos"
+	DefaultTries         = 5
+	DefaltRetryDelay     = time.Second * 5
 )
 
 // icspFileFlagName is the name of the command line flag used to indicate a file containg an ImageContentSourcePolicy
@@ -358,26 +357,6 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 
 func (r *release) GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error) {
 	binary = "openshift-baremetal-install"
-
-	fipsEnabled, err := r.sys.FIPSEnabled()
-	if err != nil {
-		return "", "", "", err
-	}
-
-	if !fipsEnabled {
-		// use the statically linked binary for 4.16 and up since our container is el8
-		// based and the baremetal binary for those versions is dynamically linked
-		// against el9 libaries
-		staticLinkingRequiredVersion := version.Must(version.NewVersion(staticInstallerRequiredVersion))
-		v, err := version.NewVersion(ocpVersion)
-		if err != nil {
-			return "", "", "", err
-		}
-		if v.GreaterThanOrEqual(staticLinkingRequiredVersion) {
-			binary = "openshift-install"
-		}
-	}
-
 	workdir = filepath.Join(cacheDir, releaseImage)
 	path = filepath.Join(workdir, binary)
 	return
