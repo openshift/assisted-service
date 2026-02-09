@@ -81,6 +81,12 @@ type InfraEnvSpec struct {
 	// +optional
 	NMStateConfigLabelSelector metav1.LabelSelector `json:"nmStateConfigLabelSelector,omitempty"`
 
+	// ApprovedMACAddressConfigMapLabelSelector is a label selector for finding ConfigMaps that
+	// contain approved MAC addresses. Agents with MAC addresses matching those in the selected
+	// ConfigMaps will be automatically approved (Spec.Approved set to true).
+	// +optional
+	ApprovedMACAddressConfigMapLabelSelector metav1.LabelSelector `json:"approvedMACAddressConfigMapLabelSelector,omitempty"`
+
 	// ClusterRef is the reference to the single ClusterDeployment that will be installed from
 	// this InfraEnv.
 	// Future versions will allow for multiple ClusterDeployments and this reference will be
