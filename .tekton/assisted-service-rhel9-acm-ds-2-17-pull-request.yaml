@@ -4,15 +4,16 @@ metadata:
   annotations:
     build.appstudio.openshift.io/repo: https://github.com/openshift/assisted-service?rev={{revision}}
     build.appstudio.redhat.com/commit_sha: '{{revision}}'
+    build.appstudio.redhat.com/pull_request_number: '{{pull_request_number}}'
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch == "release-ocm-2.16"
+    pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch == "release-ocm-2.17"
   creationTimestamp:
   labels:
-    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-16
-    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-16
+    appstudio.openshift.io/application: assisted-installer-application-acm-ds-2-17
+    appstudio.openshift.io/component: assisted-service-rhel9-acm-ds-2-17
     pipelines.appstudio.openshift.io/type: build
-  name: assisted-service-rhel9-acm-ds-2-16-on-push
+  name: assisted-service-rhel9-acm-ds-2-17-on-pull-request
   namespace: assisted-installer-tenant
 spec:
   params:
@@ -21,7 +22,9 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-16/assisted-service-rhel9-acm-ds-2-16:{{revision}}
+    value: quay.io/redhat-user-workloads/assisted-installer-tenant/assisted-installer-application-acm-ds-2-17/assisted-service-rhel9-acm-ds-2-17:on-pr-{{revision}}
+  - name: image-expires-after
+    value: 5d
   - name: build-platforms
     value:
     - linux/x86_64
@@ -46,14 +49,6 @@ spec:
     value: "--project-name=assisted-service --report --org=3e6fd93b-b325-49dd-8a33-432a0160ab66"
   - name: sast-snyk-check-ignore-file-paths
     value: "tools/wait_for_assisted_service.py,tools/deploy_wiremock.py"
-  - name: send-slack-webhook-notification-on-fail
-    value: "true"
-  - name: slack-webhook-notification-secret
-    value: slack-notif-webhook
-  - name: slack-webhook-notification-secret-key
-    value: token
-  - name: slack-webhook-notification-message
-    value: "[ACM] [2.16] [assisted-service] [<https://github.com/openshift/assisted-service/commit/{{revision}}|{{revision}}>] [<https://konflux-ui.apps.stone-prd-rh01.pg1f.p1.openshiftapps.com/ns/assisted-installer-tenant/applications/assisted-installer-application-acm-ds-2-16/pipelineruns/$(context.pipelineRun.name)|pipeline>] Konflux build failed"
   pipelineRef:
     resolver: git
     params:
@@ -64,7 +59,7 @@ spec:
       - name: pathInRepo
         value: "pipelines/standard-pipeline.yaml"
   taskRunTemplate:
-    serviceAccountName: build-pipeline-assisted-service-rhel9-acm-ds-2-16
+    serviceAccountName: build-pipeline-assisted-service-rhel9-acm-ds-2-17
   workspaces:
   - name: git-auth
     secret:
