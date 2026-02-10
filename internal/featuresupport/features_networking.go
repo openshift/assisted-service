@@ -394,6 +394,10 @@ func (feature *SDNNetworkTypeFeature) getIncompatibleArchitectures(openshiftVers
 func (feature *SDNNetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+		models.FeatureSupportLevelIDCILIUMNETWORKTYPE,
+		models.FeatureSupportLevelIDCALICONETWORKTYPE,
+		models.FeatureSupportLevelIDCISCOACINETWORKTYPE,
+		models.FeatureSupportLevelIDNONENETWORKTYPE,
 	}
 }
 
@@ -445,11 +449,179 @@ func (feature *OVNNetworkTypeFeature) getIncompatibleArchitectures(openshiftVers
 func (feature *OVNNetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+		models.FeatureSupportLevelIDCILIUMNETWORKTYPE,
+		models.FeatureSupportLevelIDCALICONETWORKTYPE,
+		models.FeatureSupportLevelIDCISCOACINETWORKTYPE,
+		models.FeatureSupportLevelIDNONENETWORKTYPE,
 	}
 }
 
 func (feature *OVNNetworkTypeFeature) Validate(cluster *common.Cluster) error {
 	return nil
+}
+
+// CiliumNetworkTypeFeature
+type CiliumNetworkTypeFeature struct{}
+
+func (feature *CiliumNetworkTypeFeature) New() SupportLevelFeature {
+	return &CiliumNetworkTypeFeature{}
+}
+
+func (feature *CiliumNetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCILIUMNETWORKTYPE
+}
+
+func (feature *CiliumNetworkTypeFeature) GetName() string {
+	return "Cilium CNI"
+}
+
+func (feature *CiliumNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	return models.SupportLevelSupported, ""
+}
+
+func (feature *CiliumNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeCilium {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *CiliumNetworkTypeFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (feature *CiliumNetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+		models.FeatureSupportLevelIDCALICONETWORKTYPE,
+		models.FeatureSupportLevelIDCISCOACINETWORKTYPE,
+		models.FeatureSupportLevelIDNONENETWORKTYPE,
+	}
+}
+
+// CalicoNetworkTypeFeature
+type CalicoNetworkTypeFeature struct{}
+
+func (feature *CalicoNetworkTypeFeature) New() SupportLevelFeature {
+	return &CalicoNetworkTypeFeature{}
+}
+
+func (feature *CalicoNetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCALICONETWORKTYPE
+}
+
+func (feature *CalicoNetworkTypeFeature) GetName() string {
+	return "Calico CNI"
+}
+
+func (feature *CalicoNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	return models.SupportLevelSupported, ""
+}
+
+func (feature *CalicoNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeCalico {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *CalicoNetworkTypeFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (feature *CalicoNetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+		models.FeatureSupportLevelIDCILIUMNETWORKTYPE,
+		models.FeatureSupportLevelIDCISCOACINETWORKTYPE,
+		models.FeatureSupportLevelIDNONENETWORKTYPE,
+	}
+}
+
+// CiscoACINetworkTypeFeature
+type CiscoACINetworkTypeFeature struct{}
+
+func (feature *CiscoACINetworkTypeFeature) New() SupportLevelFeature {
+	return &CiscoACINetworkTypeFeature{}
+}
+
+func (feature *CiscoACINetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDCISCOACINETWORKTYPE
+}
+
+func (feature *CiscoACINetworkTypeFeature) GetName() string {
+	return "Cisco ACI CNI"
+}
+
+func (feature *CiscoACINetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	return models.SupportLevelSupported, ""
+}
+
+func (feature *CiscoACINetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeCiscoACI {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *CiscoACINetworkTypeFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (feature *CiscoACINetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+		models.FeatureSupportLevelIDCILIUMNETWORKTYPE,
+		models.FeatureSupportLevelIDCALICONETWORKTYPE,
+		models.FeatureSupportLevelIDNONENETWORKTYPE,
+	}
+}
+
+// NoneNetworkTypeFeature
+type NoneNetworkTypeFeature struct{}
+
+func (feature *NoneNetworkTypeFeature) New() SupportLevelFeature {
+	return &NoneNetworkTypeFeature{}
+}
+
+func (feature *NoneNetworkTypeFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNONENETWORKTYPE
+}
+
+func (feature *NoneNetworkTypeFeature) GetName() string {
+	return "None CNI"
+}
+
+func (feature *NoneNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	return models.SupportLevelSupported, ""
+}
+
+func (feature *NoneNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	networkType := getNetworkType(cluster, clusterUpdateParams)
+	if networkType == models.ClusterNetworkTypeNone {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+func (feature *NoneNetworkTypeFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (feature *NoneNetworkTypeFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDOVNNETWORKTYPE,
+		models.FeatureSupportLevelIDSDNNETWORKTYPE,
+		models.FeatureSupportLevelIDCILIUMNETWORKTYPE,
+		models.FeatureSupportLevelIDCALICONETWORKTYPE,
+		models.FeatureSupportLevelIDCISCOACINETWORKTYPE,
+	}
 }
 
 // Returns NetworkType, from either clusterUpdateParams or cluster state

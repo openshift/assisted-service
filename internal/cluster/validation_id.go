@@ -21,6 +21,7 @@ const (
 	AreApiVipsDefined                              = ValidationID(models.ClusterValidationIDAPIVipsDefined)
 	AreApiVipsValid                                = ValidationID(models.ClusterValidationIDAPIVipsValid)
 	isNetworkTypeValid                             = ValidationID(models.ClusterValidationIDNetworkTypeValid)
+	IsCustomManifestsRequirementsSatisfied         = ValidationID(models.ClusterValidationIDCustomManifestsRequirementsSatisfied)
 	AreIngressVipsDefined                          = ValidationID(models.ClusterValidationIDIngressVipsDefined)
 	AreIngressVipsValid                            = ValidationID(models.ClusterValidationIDIngressVipsValid)
 	AllHostsAreReadyToInstall                      = ValidationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
@@ -64,7 +65,7 @@ func (v ValidationID) Category() (string, error) {
 	switch v {
 	case IsMachineCidrDefined, IsMachineCidrEqualsToCalculatedCidr, AreApiVipsDefined, AreApiVipsValid, AreIngressVipsDefined,
 		AreIngressVipsValid, isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid,
-		IsDNSDomainDefined, IsNtpServerConfigured, isNetworkTypeValid, NetworksSameAddressFamilies:
+		IsDNSDomainDefined, IsNtpServerConfigured, isNetworkTypeValid, NetworksSameAddressFamilies, IsCustomManifestsRequirementsSatisfied:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil

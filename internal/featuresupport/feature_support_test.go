@@ -759,20 +759,20 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			When("GetFeatureSupportList 4.12 with Platform", func() {
 				It(string(*filters.PlatformType)+" "+swag.StringValue(filters.ExternalPlatformName), func() {
 					list := GetFeatureSupportList("dummy", nil, filters.PlatformType, filters.ExternalPlatformName)
-					Expect(len(list)).To(Equal(46))
+					Expect(len(list)).To(Equal(50))
 				})
 			})
 		}
 
 		It("GetFeatureSupportList 4.12", func() {
 			list := GetFeatureSupportList("4.12", nil, nil, nil)
-			Expect(len(list)).To(Equal(51))
+			Expect(len(list)).To(Equal(55))
 
 		})
 
 		It("GetFeatureSupportList 4.13", func() {
 			list := GetFeatureSupportList("4.13", nil, nil, nil)
-			Expect(len(list)).To(Equal(51))
+			Expect(len(list)).To(Equal(55))
 		})
 
 		It("GetCpuArchitectureSupportList 4.12", func() {
@@ -1572,6 +1572,30 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			false,
 		),
 	)
+
+	Context("Test Third-Party CNI Features", func() {
+		It("all third-party CNIs return Supported", func() {
+			filters := SupportLevelFilters{}
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCILIUMNETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCALICONETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCISCOACINETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDNONENETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+		})
+
+		DescribeTable("test CNI incompatibilities - each CNI is incompatible with others",
+			func(feature SupportLevelFeature, incompatibleFeature SupportLevelFeature) {
+				activeFeatures := []SupportLevelFeature{feature, incompatibleFeature}
+				err := isFeaturesCompatibleWithFeatures("4.15", activeFeatures)
+				Expect(err).To(HaveOccurred())
+			},
+			Entry("Cilium vs OVN", &CiliumNetworkTypeFeature{}, &OVNNetworkTypeFeature{}),
+			Entry("Cilium vs SDN", &CiliumNetworkTypeFeature{}, &SDNNetworkTypeFeature{}),
+			Entry("Cilium vs Calico", &CiliumNetworkTypeFeature{}, &CalicoNetworkTypeFeature{}),
+			Entry("Calico vs OVN", &CalicoNetworkTypeFeature{}, &OVNNetworkTypeFeature{}),
+			Entry("CiscoACI vs OVN", &CiscoACINetworkTypeFeature{}, &OVNNetworkTypeFeature{}),
+			Entry("None vs OVN", &NoneNetworkTypeFeature{}, &OVNNetworkTypeFeature{}),
+		)
+	})
 
 })
 

@@ -115,7 +115,10 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		SSHKey:     cluster.SSHPublicKey,
 	}
 
-	cfg.Networking.NetworkType = networkType
+	// For "None" network type, don't set networkType in install-config (user provides CNI manifests)
+	if networkType != models.ClusterNetworkTypeNone {
+		cfg.Networking.NetworkType = networkType
+	}
 
 	for _, network := range cluster.ClusterNetworks {
 		cfg.Networking.ClusterNetwork = append(cfg.Networking.ClusterNetwork,

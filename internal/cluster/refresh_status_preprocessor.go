@@ -350,6 +350,10 @@ func newValidations(v *clusterValidator) []validation {
 			condition: v.isNetworkTypeValid,
 		},
 		{
+			id:        IsCustomManifestsRequirementsSatisfied,
+			condition: v.isCustomManifestsRequirementsSatisfied,
+		},
+		{
 			id:        AreIngressVipsDefined,
 			condition: v.areIngressVipsDefined,
 		},
