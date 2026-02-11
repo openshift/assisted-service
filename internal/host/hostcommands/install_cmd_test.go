@@ -1057,6 +1057,162 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
 	})
+	It("Day2 iSCSI installation disk - ip kernel args skipped when machine network unknown", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.MachineNetworks = nil
+		host.InstallerArgs = ""
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["192.168.1.10/24"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1"]`))
+	})
+	It("Day2 multipath iSCSI installation disk - ip kernel args skipped when machine network unknown", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.MachineNetworks = nil
+		host.InstallerArgs = ""
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"name": "dm-0"
+				},
+				{
+					"id": "iscsi-id-1",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					},
+					"holders": "dm-0"
+				},
+				{
+					"id": "iscsi-id-2",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.81"
+					},
+					"holders": "dm-0"
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["10.56.20.81/25"]
+				},
+				{
+					"mac_address": "0D:0E:0F:10:11:12",
+					"ipv4_addresses":["192.168.1.10/24"]
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeISCSI, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1"]`))
+	})
+	It("Day2 iSCSI installation disk - ip kernel args added when machine network known", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
+		host.InstallerArgs = ""
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+	})
+	It("Day2 multipath iSCSI installation disk - ip kernel args added when machine network known", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
+		host.InstallerArgs = ""
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"name": "dm-0"
+				},
+				{
+					"id": "iscsi-id-1",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					},
+					"holders": "dm-0"
+				},
+				{
+					"id": "iscsi-id-2",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.81"
+					},
+					"holders": "dm-0"
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["10.56.20.81/25"]
+				},
+				{
+					"mac_address": "0D:0E:0F:10:11:12",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeISCSI, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp","--append-karg","ip=07-08-09-0A-0B-0C:dhcp"]`))
+	})
 	It("Raid installation disk - Host IPv4 address", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
 		host.InstallerArgs = ""

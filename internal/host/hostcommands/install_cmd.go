@@ -323,17 +323,18 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	}
 
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
+	hasDay2UnknownMachineNetwork := hasDay2UnknownMachineNetwork(cluster, host, log)
 	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
-	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP
+	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP || hasDay2UnknownMachineNetwork
 
 	// append kargs depending on installation drive type
 	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
 	if installationDisk != nil {
-		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride)
 		if err != nil {
 			return "", err
 		}
-		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasUserConfiguredIP)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride)
 		if err != nil {
 			return "", err
 		}
@@ -400,7 +401,7 @@ func appendCopyNetwork(installerArgs []string) []string {
 	return installerArgs
 }
 
-func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
+func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeISCSI {
 		return installerArgs, nil
 	}
@@ -410,7 +411,7 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 		installerArgs = append(installerArgs, "--append-karg", "rd.iscsi.firmware=1")
 	}
 
-	if hasUserConfiguredIP {
+	if hasIPConfigOverride {
 		return installerArgs, nil
 	}
 
@@ -452,7 +453,7 @@ func appendRaidArgs(installerArgs []string, installationDisk *models.Disk) ([]st
 	return installerArgs, nil
 }
 
-func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasUserConfiguredIP bool) ([]string, error) {
+func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeMultipath {
 		return installerArgs, nil
 	}
@@ -464,7 +465,7 @@ func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, 
 	if len(iSCSIDisks) != 0 {
 		var err error
 		for _, iscsiDisk := range iSCSIDisks {
-			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasUserConfiguredIP)
+			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasIPConfigOverride)
 			if err != nil {
 				return nil, err
 			}
@@ -594,6 +595,20 @@ func hasUserConfiguredIP(args []string) bool {
 		return strings.HasPrefix(s, "ip=")
 	})
 	return result
+}
+
+// When true, iSCSI ip= kernel args should be skipped to allow RHCOS to auto-configure all
+// interfaces, preventing partial network configuration where only the iSCSI NIC comes up.
+func hasDay2UnknownMachineNetwork(cluster *common.Cluster, host *models.Host, log logrus.FieldLogger) bool {
+	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		return false
+	}
+	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
+	if machineNetworkCIDR == "" {
+		log.Infof("Host %s in cluster %s: skipping iSCSI ip= kernel args (Day2 iSCSI/multipath with unknown machine network)", host.ID, *cluster.ID)
+		return true
+	}
+	return false
 }
 
 func hasStaticNetwork(cluster *common.Cluster, infraEnv *common.InfraEnv) bool {
