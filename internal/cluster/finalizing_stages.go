@@ -25,7 +25,6 @@ var finalizingStagesTimeoutsDefaultsHardTimeous = map[models.FinalizingStage]tim
 	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
-	models.FinalizingStageWaitingForOLMOperatorSetupJobs:          shortWaitTimeout,
 	models.FinalizingStageDone:                                    generalWaitTimeout,
 }
 
@@ -35,7 +34,6 @@ var finalizingStagesTimeoutsDefaultsSoftTimeouts = map[models.FinalizingStage]ti
 	models.FinalizingStageApplyingOlmManifests:                    shortWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsv:               generalWaitTimeout,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization: generalWaitTimeout,
-	models.FinalizingStageWaitingForOLMOperatorSetupJobs:          shortWaitTimeout,
 	models.FinalizingStageDone:                                    generalWaitTimeout,
 }
 
@@ -45,7 +43,6 @@ var finalizingStages = []models.FinalizingStage{
 	models.FinalizingStageApplyingOlmManifests,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
 	models.FinalizingStageWaitingForOlmOperatorsCsv,
-	models.FinalizingStageWaitingForOLMOperatorSetupJobs,
 	models.FinalizingStageDone,
 }
 
@@ -53,12 +50,6 @@ var nonFailingFinalizingStages = []models.FinalizingStage{
 	models.FinalizingStageApplyingOlmManifests,
 	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
 	models.FinalizingStageWaitingForOlmOperatorsCsv,
-}
-
-var olmOperatorFinalizingStages = []models.FinalizingStage{
-	models.FinalizingStageWaitingForOlmOperatorsCsvInitialization,
-	models.FinalizingStageWaitingForOlmOperatorsCsv,
-	models.FinalizingStageWaitingForOLMOperatorSetupJobs,
 }
 
 func convertStageToEnvVar(stage models.FinalizingStage) string {
@@ -89,7 +80,7 @@ func finalizingStageDefaultTimeout(stage models.FinalizingStage, softTimeoutEnab
 
 func finalizingStageTimeout(stage models.FinalizingStage, operators []*models.MonitoredOperator, softTimeoutEnabled bool, log logrus.FieldLogger) time.Duration {
 	timeout := finalizingStageDefaultTimeout(stage, softTimeoutEnabled, log)
-	if funk.Contains(olmOperatorFinalizingStages, stage) {
+	if funk.Contains([]models.FinalizingStage{models.FinalizingStageWaitingForOlmOperatorsCsvInitialization, models.FinalizingStageWaitingForOlmOperatorsCsv}, stage) {
 		timeoutSeconds := timeout.Seconds()
 		for _, m := range operators {
 			if m.OperatorType == models.OperatorTypeOlm {
