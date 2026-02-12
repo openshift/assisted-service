@@ -476,12 +476,13 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 }
 
 // Returns OSImageVersion according to the specified property in InfraEnv
+// Priority is given to the OSImageVersion specified in the InfraEnv
 // If there's a cluster reference, return cluster's OpenshiftVersion
 // If OsImageVersion is specified, return value or fallback to latest if missing from ASC
 func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (string, error) {
 	osImageVersion := infraEnv.Spec.OSImageVersion
 
-	if cluster != nil {
+	if cluster != nil && osImageVersion == "" {
 		return cluster.OpenshiftVersion, nil
 	}
 
