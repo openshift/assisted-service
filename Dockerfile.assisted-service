@@ -70,6 +70,20 @@ RUN microdnf install -y skopeo && \
 RUN microdnf install -y nmstate nmstate-libs && \
     microdnf clean all
 
+# Install dnf for external repository management
+RUN microdnf install -y dnf && microdnf clean all
+
+# Import CentOS GPG keys for secure package verification
+RUN rpm --import https://www.centos.org/keys/RPM-GPG-KEY-CentOS-Official
+
+# Add CentOS Stream repositories for packages not available in UBI (platform-agnostic)
+RUN ARCH=$(uname -m) && \
+    dnf install -y 'dnf-command(config-manager)' && \
+    dnf config-manager --add-repo http://mirror.stream.centos.org/9-stream/BaseOS/${ARCH}/os/ && \
+    dnf config-manager --add-repo http://mirror.stream.centos.org/9-stream/AppStream/${ARCH}/os/ && \
+    dnf install -y libvirt-libs && \
+    dnf clean all
+
 RUN microdnf update libksba libxml2 -y && microdnf clean all
 
 # Ensure UID can write in data dir (e.g.: when using podman, docker, ...)
