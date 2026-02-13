@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/thread"
+	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -84,10 +85,12 @@ func newReleaseSourcesHandler(
 		config:                      config,
 		lead:                        lead,
 		releasesClient: openShiftReleasesAPIClient{
-			baseURL: *ocmBaseURL,
+			baseURL:      *ocmBaseURL,
+			urlValidator: validations.DefaultImageURLValidator,
 		},
 		supportLevelClient: openShiftSupportLevelAPIClient{
-			baseURL: *redHatCustomerPortalBaseURL,
+			baseURL:      *redHatCustomerPortalBaseURL,
+			urlValidator: validations.DefaultImageURLValidator,
 		},
 	}, nil
 }

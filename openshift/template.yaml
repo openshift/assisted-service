@@ -5,6 +5,9 @@ parameters:
 - name: MIN_VERSION_FOR_NMSTATE_SERVICE
   value: '4.18'
   required: false
+- name: INTERNAL_SERVICE_HOSTS
+  value: '' # Comma-separated list of internal service hostnames that bypass SSRF IP range validation
+  required: false
 - name: IMAGE_TAG
   value: ''
   required: true
@@ -353,6 +356,9 @@ objects:
                 value: ${ENABLE_SOFT_TIMEOUTS}
               - name: MIN_VERSION_FOR_NMSTATE_SERVICE
                 value: ${MIN_VERSION_FOR_NMSTATE_SERVICE}
+              # SSRF protection: Allow internal Kubernetes services to bypass IP range validation
+              - name: INTERNAL_SERVICE_HOSTS
+                value: ${INTERNAL_SERVICE_HOSTS}
               - name: DB_HOST
                 valueFrom:
                   secretKeyRef:

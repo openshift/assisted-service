@@ -21,7 +21,9 @@ import (
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
+	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/patrickmn/go-cache"
+	pkgerrors "github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thedevsaddam/retry"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -78,18 +80,24 @@ type release struct {
 	config                  Config
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	sys                     system.SystemInfo
+	urlValidator            *validations.ImageURLValidator
 
 	// A map for caching images (image name > release image URL > image)
 	imagesMap common.ExpiringCache
 }
 
 func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, sys system.SystemInfo) Release {
+	return NewReleaseWithValidator(executer, config, mirrorRegistriesBuilder, sys, validations.DefaultImageURLValidator)
+}
+
+func NewReleaseWithValidator(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, sys system.SystemInfo, urlValidator *validations.ImageURLValidator) Release {
 	return &release{
 		executer:                executer,
 		config:                  config,
 		imagesMap:               common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 		sys:                     sys,
+		urlValidator:            urlValidator,
 	}
 }
 
@@ -154,6 +162,16 @@ func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage
 		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
 	}
 
+	// Validate release image URLs to prevent SSRF attacks
+	if validationErr := r.validateReleaseImageURL(releaseImage); validationErr != nil {
+		return "", pkgerrors.Wrapf(validationErr, "invalid release image URL: %s", releaseImage)
+	}
+	if releaseImageMirror != "" {
+		if validationErr := r.validateReleaseImageURL(releaseImageMirror); validationErr != nil {
+			return "", pkgerrors.Wrapf(validationErr, "invalid release image mirror URL: %s", releaseImageMirror)
+		}
+	}
+
 	//TODO: Get mirror registry certificate from install-config
 	image, err = r.getImageFromRelease(log, imageName, releaseImage, releaseImageMirror, pullSecret)
 	if err != nil {
@@ -167,11 +185,39 @@ func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage
 	return image, err
 }
 
+// validateReleaseImageURL validates a release image URL to prevent SSRF attacks.
+// It checks that the URL doesn't resolve to private IP ranges or other blocked destinations.
+//
+// URL validation MUST occur before passing to CLI tools. The `oc` command will fetch
+// from arbitrary URLs if not validated, making it an SSRF vector.
+//
+// This validation is defense-in-depth - even if input validation at the API layer fails,
+// this check prevents exploitation at the execution layer.
+func (r *release) validateReleaseImageURL(imageURL string) error {
+	if imageURL == "" {
+		return nil
+	}
+	if r.urlValidator == nil {
+		return nil
+	}
+	return r.urlValidator.ValidateImageURL(imageURL)
+}
+
 func (r *release) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
 	var openshiftVersion string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
 		return "", errors.New("no releaseImage nor releaseImageMirror provided")
+	}
+
+	// Validate release image URLs to prevent SSRF attacks
+	if validationErr := r.validateReleaseImageURL(releaseImage); validationErr != nil {
+		return "", pkgerrors.Wrapf(validationErr, "invalid release image URL: %s", releaseImage)
+	}
+	if releaseImageMirror != "" {
+		if validationErr := r.validateReleaseImageURL(releaseImageMirror); validationErr != nil {
+			return "", pkgerrors.Wrapf(validationErr, "invalid release image mirror URL: %s", releaseImageMirror)
+		}
 	}
 
 	//TODO: Get mirror registry certificate from install-config
@@ -207,6 +253,16 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 		return nil, errors.New("no releaseImage nor releaseImageMirror provided")
 	}
 
+	// Validate release image URLs to prevent SSRF attacks
+	if validationErr := r.validateReleaseImageURL(releaseImage); validationErr != nil {
+		return nil, pkgerrors.Wrapf(validationErr, "invalid release image URL: %s", releaseImage)
+	}
+	if releaseImageMirror != "" {
+		if validationErr := r.validateReleaseImageURL(releaseImageMirror); validationErr != nil {
+			return nil, pkgerrors.Wrapf(validationErr, "invalid release image mirror URL: %s", releaseImageMirror)
+		}
+	}
+
 	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageInfo)
 	if err != nil {
 		return nil, err
@@ -218,6 +274,11 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 }
 
 func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
+	// Validate image URL to prevent SSRF attacks
+	if validationErr := r.validateReleaseImageURL(image); validationErr != nil {
+		return nil, pkgerrors.Wrapf(validationErr, "invalid image URL: %s", image)
+	}
+
 	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageInfo)
 	if err != nil {
 		return nil, err
@@ -345,6 +406,16 @@ func (r *release) Extract(log logrus.FieldLogger, releaseImage string, releaseIm
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
 		return "", errors.New("no releaseImage or releaseImageMirror provided")
+	}
+
+	// Validate release image URLs to prevent SSRF attacks
+	if validationErr := r.validateReleaseImageURL(releaseImage); validationErr != nil {
+		return "", pkgerrors.Wrapf(validationErr, "invalid release image URL: %s", releaseImage)
+	}
+	if releaseImageMirror != "" {
+		if validationErr := r.validateReleaseImageURL(releaseImageMirror); validationErr != nil {
+			return "", pkgerrors.Wrapf(validationErr, "invalid release image mirror URL: %s", releaseImageMirror)
+		}
 	}
 
 	//TODO: Get mirror registry certificate from install-config

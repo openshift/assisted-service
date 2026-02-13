@@ -50,6 +50,9 @@ spec:
               value: "events-stream"
             - name: DEPLOYMENT_TYPE
               value: "SaaS"
+            # SSRF protection: Allow internal Kubernetes services to bypass IP range validation
+            - name: INTERNAL_SERVICE_HOSTS
+              value: "wiremock,postgres,object-store,assisted-image-service"
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:

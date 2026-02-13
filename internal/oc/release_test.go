@@ -1,8 +1,10 @@
 package oc
 
 import (
+	"context"
 	_ "embed"
 	"fmt"
+	"net"
 	os "os"
 	"path/filepath"
 	"strings"
@@ -17,8 +19,22 @@ import (
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
+	"github.com/openshift/assisted-service/pkg/validations"
 	logrus "github.com/sirupsen/logrus"
 )
+
+// mockDNSResolver is a mock DNS resolver for SSRF tests that returns predictable results.
+type mockDNSResolver struct {
+	resolveToPublicIP bool
+}
+
+func (m *mockDNSResolver) LookupIP(ctx context.Context, network, host string) ([]net.IP, error) {
+	// For tests, resolve all hostnames to either a public or loopback IP
+	if m.resolveToPublicIP {
+		return []net.IP{net.ParseIP("8.8.8.8")}, nil
+	}
+	return []net.IP{net.ParseIP("127.0.0.1")}, nil
+}
 
 var (
 	log                    = logrus.New()
@@ -50,7 +66,8 @@ var _ = Describe("oc", func() {
 		mockSystemInfo = system.NewMockSystemInfo(ctrl)
 		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
 		mirrorRegistriesBuilder := mirrorregistries.New(false)
-		oc = NewRelease(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo)
+		// Use nil validator to skip URL validation in tests (tests use fake image names)
+		oc = NewReleaseWithValidator(mockExecuter, config, mirrorRegistriesBuilder, mockSystemInfo, nil)
 		tempFilePath = "/tmp/pull-secret"
 		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(dir, pattern string) (*os.File, error) {
@@ -1293,3 +1310,155 @@ func TestOC(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "oc tests")
 }
+
+var _ = Describe("SSRF Protection", func() {
+	var (
+		oc             *release
+		ctrl           *gomock.Controller
+		mockExecuter   *executer.MockExecuter
+		mockSystemInfo *system.MockSystemInfo
+		urlValidator   *validations.ImageURLValidator
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockExecuter = executer.NewMockExecuter(ctrl)
+		mockSystemInfo = system.NewMockSystemInfo(ctrl)
+		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
+		mirrorRegistriesBuilder := mirrorregistries.New(false)
+
+		var err error
+		// Use a mock DNS resolver that returns public IPs for all hostnames
+		// This ensures tests don't depend on real DNS resolution
+		urlValidator, err = validations.NewImageURLValidatorWithResolver(
+			validations.ImageURLValidatorConfig{}, log, &mockDNSResolver{resolveToPublicIP: true})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		oc = &release{
+			executer:                mockExecuter,
+			config:                  config,
+			imagesMap:               common.NewExpiringCache(time.Hour, time.Hour),
+			mirrorRegistriesBuilder: mirrorRegistriesBuilder,
+			sys:                     mockSystemInfo,
+			urlValidator:            urlValidator,
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("validateReleaseImageURL", func() {
+		It("should allow empty URL", func() {
+			err := oc.validateReleaseImageURL("")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("should allow valid public registry URLs", func() {
+			// Using mock DNS resolver that returns public IPs for all hostnames
+			validURLs := []string{
+				"quay.io/openshift-release-dev/ocp-release:4.14.1-x86_64",
+				"registry.redhat.io/openshift/release@sha256:abc123",
+				"docker://quay.io/openshift-release-dev/ocp-release:4.14.1",
+			}
+			for _, url := range validURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).ShouldNot(HaveOccurred(), "URL should be allowed: %s", url)
+			}
+		})
+
+		It("should block loopback IP addresses", func() {
+			// Direct IP addresses don't require DNS resolution
+			blockedURLs := []string{
+				"127.0.0.1/image:tag",
+				"127.0.0.1:5000/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+
+		It("should block hostnames that resolve to loopback addresses", func() {
+			// Create a validator with mock resolver that returns loopback IP
+			loopbackValidator, err := validations.NewImageURLValidatorWithResolver(
+				validations.ImageURLValidatorConfig{}, log, &mockDNSResolver{resolveToPublicIP: false})
+			Expect(err).ShouldNot(HaveOccurred())
+			oc.urlValidator = loopbackValidator
+
+			err = oc.validateReleaseImageURL("localhost/image:tag")
+			Expect(err).Should(HaveOccurred(), "URL resolving to loopback should be blocked")
+		})
+
+		It("should block private IP ranges", func() {
+			// Direct IP addresses don't require DNS resolution
+			blockedURLs := []string{
+				"10.0.0.1/image:tag",
+				"172.16.0.1/image:tag",
+				"192.168.1.1/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+
+		It("should block AWS metadata endpoint", func() {
+			// Direct IP addresses don't require DNS resolution
+			blockedURLs := []string{
+				"169.254.169.254/latest/meta-data/",
+				"169.254.0.1/image:tag",
+			}
+			for _, url := range blockedURLs {
+				err := oc.validateReleaseImageURL(url)
+				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
+			}
+		})
+	})
+
+	Context("getImageByName with SSRF protection", func() {
+		It("should return error for private IP release image", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "192.168.1.100/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("should return error for private IP release image mirror", func() {
+			// First URL will pass (mock returns public IP), second will fail (direct private IP)
+			_, err := oc.getImageByName(log, mcoImageName, "quay.io/image:tag", "10.0.0.1/mirror:tag", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image mirror URL"))
+		})
+
+		It("should return error for loopback release image", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "127.0.0.1/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+
+		It("should return error for AWS metadata URL", func() {
+			_, err := oc.getImageByName(log, mcoImageName, "169.254.169.254/image:tag", "", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid release image URL"))
+		})
+	})
+
+	Context("NewReleaseWithValidator", func() {
+		It("should create release with custom validator", func() {
+			// Use mock resolver for custom validator test as well
+			customValidator, err := validations.NewImageURLValidatorWithResolver(validations.ImageURLValidatorConfig{
+				AllowedRegistries: "custom.registry.io",
+			}, log, &mockDNSResolver{resolveToPublicIP: true})
+			Expect(err).ShouldNot(HaveOccurred())
+
+			r := NewReleaseWithValidator(mockExecuter, Config{}, mirrorregistries.New(false), mockSystemInfo, customValidator)
+			Expect(r).ShouldNot(BeNil())
+		})
+
+		It("should work with nil validator (graceful degradation)", func() {
+			oc.urlValidator = nil
+			err := oc.validateReleaseImageURL("any-url")
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+})
