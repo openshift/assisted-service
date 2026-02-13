@@ -99,7 +99,7 @@ func (a *AgentLocalAuthenticator) AuthUserAuth(token string) (interface{}, error
 	return a.authenticateToken(token)
 }
 
-func (a *AgentLocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
+func (a *AgentLocalAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
 	return nil, common.NewInfraError(http.StatusUnauthorized, errors.Errorf("URL Authentication not allowed for agent local auth"))
 }
 

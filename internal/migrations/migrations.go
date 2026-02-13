@@ -51,6 +51,7 @@ func post() []*gormigrate.Migration {
 		addHostsByClusterIdIndex(),
 		addHostsByInfraEnvIdIndex(),
 		populatePrimaryIPStackForExistingClusters(),
+		createFailedLoginAttempts(),
 	}
 
 	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })
