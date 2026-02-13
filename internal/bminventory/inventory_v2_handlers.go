@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -30,6 +31,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
@@ -61,8 +63,21 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 
 	log.Infof("Register disconnected cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 
-	if swag.StringValue(params.NewClusterParams.Name) == "" {
+	clusterName := swag.StringValue(params.NewClusterParams.Name)
+	if clusterName == "" {
 		err := errors.New("cluster name is required")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
+	// Enforce 253-character limit for DNS-compatible names (RFC 1035)
+	if len(clusterName) > 253 {
+		err := errors.New("cluster name must be 253 characters or fewer")
+		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
+	}
+
+	// Validate cluster name format (DNS-compatible hostname)
+	// Use BareMetal platform type for validation as disconnected clusters don't specify a platform
+	if err := validations.ValidateClusterNameFormat(clusterName, string(models.PlatformTypeBaremetal)); err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
 
@@ -77,7 +92,7 @@ func (b *bareMetalInventory) V2RegisterDisconnectedCluster(ctx context.Context, 
 			Href:             swag.String(url.String()),
 			Kind:             swag.String(models.ClusterKindDisconnectedCluster),
 			Status:           swag.String(models.ClusterStatusUnmonitored),
-			Name:             swag.StringValue(params.NewClusterParams.Name),
+			Name:             clusterName,
 			OpenshiftVersion: swag.StringValue(params.NewClusterParams.OpenshiftVersion),
 			UserName:         ocm.UserNameFromContext(ctx),
 			OrgID:            ocm.OrgIDFromContext(ctx),
@@ -367,8 +382,10 @@ func (b *bareMetalInventory) V2GetPreflightRequirements(ctx context.Context, par
 func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, params installer.V2UploadClusterIngressCertParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("UploadClusterIngressCert for cluster %s with params %s", params.ClusterID, params.IngressCertParams)
+
 	var cluster common.Cluster
 
+	// Check if cluster exists first (return 404 if not found)
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -379,9 +396,18 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 		}
 	}
 
+	// Check cluster state for upload permission
 	if err := b.clusterApi.UploadIngressCert(&cluster); err != nil {
 		return installer.NewV2UploadClusterIngressCertBadRequest().
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	// Validate the certificate format and expiration
+	certData := []byte(params.IngressCertParams)
+	if err := pkgvalidations.ValidatePEMCertificate(certData); err != nil {
+		log.WithError(err).Errorf("Invalid ingress certificate for cluster %s", params.ClusterID)
+		return installer.NewV2UploadClusterIngressCertBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, errors.Wrap(err, "invalid ingress certificate")))
 	}
 
 	objectName := fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)
@@ -809,14 +835,20 @@ func (b *bareMetalInventory) RegenerateInfraEnvSigningKey(ctx context.Context, p
 func (b *bareMetalInventory) V2GetPresignedForClusterCredentials(ctx context.Context, params installer.V2GetPresignedForClusterCredentialsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
+	// Presigned URL only works with AWS S3 because Scality is not exposed
+	// Check this first to fail fast for non-AWS backends
+	if !b.objectHandler.IsAwsS3() {
+		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
+	}
+
+	// Validate file name and check access permissions (prevents path traversal attacks)
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
 	if err := b.checkFileDownloadAccess(ctx, params.FileName); err != nil {
 		payload := common.GenerateInfraError(http.StatusForbidden, err)
 		return installer.NewV2GetPresignedForClusterCredentialsForbidden().WithPayload(payload)
-	}
-
-	// Presigned URL only works with AWS S3 because Scality is not exposed
-	if !b.objectHandler.IsAwsS3() {
-		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
 
 	fileName := params.FileName

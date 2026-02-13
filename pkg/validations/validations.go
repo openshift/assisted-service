@@ -1,13 +1,16 @@
 package validations
 
 import (
+	"bytes"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/pem"
 	"fmt"
 	"net"
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/asaskevich/govalidator"
 	"github.com/pkg/errors"
@@ -182,6 +185,102 @@ func ValidateCaCertificate(certificate string) error {
 	caCertPool := x509.NewCertPool()
 	if ok := caCertPool.AppendCertsFromPEM(decodedCaCert); !ok {
 		return errors.Errorf("unable to parse certificate")
+	}
+
+	return nil
+}
+
+// MaxCertificateSize is the maximum allowed size for certificate data (10 MB)
+const MaxCertificateSize = 10 * 1024 * 1024
+
+// ValidatePEMCertificate validates a single PEM-encoded certificate for:
+//   - Non-empty and not exceeding size limits
+//   - Valid PEM format with CERTIFICATE block type
+//   - Valid X.509 certificate that can be parsed
+//   - Certificate not expired
+//
+// Use this function for end-entity certificates (e.g., ingress certs) that must
+// be currently valid. For CA bundles where intermediate CAs may have expired but
+// are still valid for chain verification, use ValidatePEMCertificateBundle instead.
+func ValidatePEMCertificate(certData []byte) error {
+	if len(certData) == 0 {
+		return errors.New("certificate data is empty")
+	}
+
+	if len(certData) > MaxCertificateSize {
+		return errors.Errorf("certificate size %d exceeds maximum allowed size of %d bytes", len(certData), MaxCertificateSize)
+	}
+
+	block, rest := pem.Decode(certData)
+	if block == nil {
+		return errors.New("invalid PEM format: no PEM block found")
+	}
+
+	if block.Type != "CERTIFICATE" {
+		return errors.Errorf("invalid PEM type: expected CERTIFICATE, got %s", block.Type)
+	}
+
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		return errors.Wrap(err, "failed to parse X.509 certificate")
+	}
+
+	if cert.NotAfter.Before(time.Now()) {
+		return errors.Errorf("certificate has expired (expired on %s)", cert.NotAfter.Format(time.RFC3339))
+	}
+
+	// Check for additional certificates in the bundle
+	if len(rest) > 0 {
+		rest = bytes.TrimSpace(rest)
+		if len(rest) > 0 {
+			// Recursively validate remaining certificates
+			return ValidatePEMCertificate(rest)
+		}
+	}
+
+	return nil
+}
+
+// ValidatePEMCertificateBundle validates a bundle of PEM-encoded certificates.
+// Unlike ValidatePEMCertificate, this function allows expired certificates.
+//
+// Use this function for CA bundles where intermediate CAs may have expired but
+// are still valid for chain verification purposes. For end-entity certificates
+// that must be currently valid, use ValidatePEMCertificate instead.
+func ValidatePEMCertificateBundle(bundle []byte) error {
+	if len(bundle) == 0 {
+		return errors.New("certificate bundle is empty")
+	}
+
+	if len(bundle) > MaxCertificateSize {
+		return errors.Errorf("certificate bundle size %d exceeds maximum allowed size of %d bytes", len(bundle), MaxCertificateSize)
+	}
+
+	rest := bundle
+	certCount := 0
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			if certCount == 0 {
+				return errors.New("invalid PEM format: no certificates found")
+			}
+			break
+		}
+
+		if block.Type != "CERTIFICATE" {
+			return errors.Errorf("invalid PEM type: expected CERTIFICATE, got %s", block.Type)
+		}
+
+		_, err := x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return errors.Wrapf(err, "failed to parse certificate #%d", certCount+1)
+		}
+
+		certCount++
+		if len(rest) == 0 {
+			break
+		}
 	}
 
 	return nil

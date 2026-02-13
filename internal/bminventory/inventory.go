@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"regexp"
 	"runtime"
 	"strings"
 	"time"
@@ -138,6 +139,70 @@ const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
 const minimalOpenShiftVersionForDefaultNetworkTypeOVNKubernetes = "4.12.0-0.0"
 const minimalOpenShiftVersionForConsoleCapability = "4.12.0-0.0"
 const minimalOpenShiftVersionForNutanix = "4.11.0-0.0"
+
+// Security limits for input validation
+//
+// Array bounds limits prevent DoS attacks via memory exhaustion.
+// Values chosen based on realistic maximum scenarios:
+//   - maxHTTPHeaders: 20 headers sufficient for ignition configuration
+//   - maxDiskParams: 100 disks covers even large storage servers
+//   - maxNodeLabels: 50 labels exceeds typical Kubernetes usage
+const (
+	maxHTTPHeaders      = 20
+	maxHTTPHeaderKeyLen = 256
+	maxHTTPHeaderValLen = 4096
+	maxDiskParams       = 100
+	maxNodeLabels       = 50
+)
+
+// httpHeaderKeyRegex validates HTTP header keys according to RFC 7230
+// Header field names consist of visible ASCII characters (0x21-0x7E) except delimiters
+var httpHeaderKeyRegex = regexp.MustCompile(`^[A-Za-z0-9!#$%&'*+\-.^_` + "`" + `|~]+$`)
+
+// dangerousHTTPHeaders lists headers that should not be set by users to prevent security issues
+var dangerousHTTPHeaders = []string{"host", "content-length", "transfer-encoding", "connection", "authorization"}
+
+// validateHTTPHeader validates an HTTP header key and value for security.
+// It performs security validation on user-provided HTTP headers to prevent
+// response splitting attacks (CWE-113) and header injection.
+//
+// Security controls:
+//   - Blocklist: Headers that could enable request smuggling or auth bypass
+//   - CRLF rejection: Prevents HTTP response splitting
+//   - RFC 7230: Ensures header names contain only valid characters
+//   - Length limits: Mitigates DoS via oversized headers
+func validateHTTPHeader(key, value string) error {
+	// Block dangerous headers that could be used for attacks
+	keyLower := strings.ToLower(key)
+	for _, dangerous := range dangerousHTTPHeaders {
+		if keyLower == dangerous {
+			return errors.Errorf("header '%s' is not allowed", key)
+		}
+	}
+
+	// Block CRLF injection attacks (HTTP response splitting)
+	if strings.ContainsAny(value, "\r\n\x00") {
+		return errors.New("header value contains invalid characters (CRLF or null)")
+	}
+	if strings.ContainsAny(key, "\r\n\x00") {
+		return errors.New("header key contains invalid characters (CRLF or null)")
+	}
+
+	// Validate header key format (RFC 7230)
+	if !httpHeaderKeyRegex.MatchString(key) {
+		return errors.New("invalid header key format")
+	}
+
+	// Enforce length limits
+	if len(key) > maxHTTPHeaderKeyLen {
+		return errors.Errorf("header key exceeds maximum length of %d", maxHTTPHeaderKeyLen)
+	}
+	if len(value) > maxHTTPHeaderValLen {
+		return errors.Errorf("header value exceeds maximum length of %d", maxHTTPHeaderValLen)
+	}
+
+	return nil
+}
 
 type Interactivity bool
 
@@ -6820,8 +6885,19 @@ func (b *bareMetalInventory) updateIgnitionEndpointHTTPHeaders(ctx context.Conte
 		return nil
 	}
 
+	// Limit the number of headers to prevent DoS attacks
+	if len(ignitionEndpointHTTPHeadersList) > maxHTTPHeaders {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("too many HTTP headers: maximum %d allowed, got %d", maxHTTPHeaders, len(ignitionEndpointHTTPHeadersList)))
+	}
+
 	ignitionEndpointHTTPHeaders := make(map[string]string)
 	for _, hdr := range ignitionEndpointHTTPHeadersList {
+		// Validate each header for security (prevents header injection attacks)
+		if err := validateHTTPHeader(*hdr.Key, *hdr.Value); err != nil {
+			return common.NewApiError(http.StatusBadRequest,
+				errors.Wrapf(err, "invalid HTTP header '%s'", *hdr.Key))
+		}
 		ignitionEndpointHTTPHeaders[*hdr.Key] = *hdr.Value
 	}
 
@@ -6844,6 +6920,12 @@ func (b *bareMetalInventory) updateNodeLabels(ctx context.Context, host *common.
 	if nodeLabelsList == nil {
 		log.Infof("No request for node labels update for host %s", host.ID)
 		return nil
+	}
+
+	// Limit the number of labels to prevent DoS attacks
+	if len(nodeLabelsList) > maxNodeLabels {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("too many node labels: maximum %d allowed, got %d", maxNodeLabels, len(nodeLabelsList)))
 	}
 
 	nodeLabelsMap := make(map[string]string)
@@ -6875,6 +6957,12 @@ func (b *bareMetalInventory) updateHostSkipFormattingDisks(ctx context.Context, 
 
 	if len(diskSkipFormattingParams) == 0 {
 		return nil
+	}
+
+	// Limit the number of disk parameters to prevent DoS attacks
+	if len(diskSkipFormattingParams) > maxDiskParams {
+		return common.NewApiError(http.StatusBadRequest,
+			errors.Errorf("too many disk parameters: maximum %d allowed, got %d", maxDiskParams, len(diskSkipFormattingParams)))
 	}
 
 	// Get a list of disks
