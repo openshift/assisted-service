@@ -45,12 +45,18 @@ func (a *AuthzHandler) isOrgBasedFunctionalityEnabled() bool {
 
 func (a *AuthzHandler) IsAdmin(ctx context.Context) bool {
 	authPayload := ocm.PayloadFromContext(ctx)
+	if authPayload == nil {
+		return false
+	}
 	allowedRoles := []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole}
 	return funk.Contains(allowedRoles, authPayload.Role)
 }
 
 func (a *AuthzHandler) isReadOnlyAdmin(ctx context.Context) bool {
 	authPayload := ocm.PayloadFromContext(ctx)
+	if authPayload == nil {
+		return false
+	}
 	allowedRoles := []ocm.RoleType{ocm.ReadOnlyAdminRole}
 	return funk.Contains(allowedRoles, authPayload.Role)
 }
@@ -162,17 +168,25 @@ func (a *AuthzHandler) HasAccessTo(ctx context.Context, obj interface{}, action 
 	} else if a.IsAdmin(ctx) {
 		return true, nil
 	}
+
+	payload := ocm.PayloadFromContext(ctx)
+	if payload == nil {
+		// Unexpected principal type (e.g., jwt.MapClaims from image auth)
+		// Deny access to prevent privilege escalation
+		return false, errors.New("invalid auth payload type for access check")
+	}
+
 	if cluster, ok := obj.(*common.Cluster); ok && cluster != nil {
-		return a.checkClusterBasedAccess(cluster.ID.String(), action, ocm.PayloadFromContext(ctx))
+		return a.checkClusterBasedAccess(cluster.ID.String(), action, payload)
 	}
 	if infraEnv, ok := obj.(*common.InfraEnv); ok && infraEnv != nil {
-		return a.checkInfraEnvBasedAccess(infraEnv.ID.String(), action, ocm.PayloadFromContext(ctx))
+		return a.checkInfraEnvBasedAccess(infraEnv.ID.String(), action, payload)
 	}
 	if host, ok := obj.(*common.Host); ok && host != nil {
 		if host.ClusterID != nil {
-			return a.checkClusterBasedAccess(host.ClusterID.String(), action, ocm.PayloadFromContext(ctx))
+			return a.checkClusterBasedAccess(host.ClusterID.String(), action, payload)
 		}
-		return a.checkInfraEnvBasedAccess(host.InfraEnvID.String(), action, ocm.PayloadFromContext(ctx))
+		return a.checkInfraEnvBasedAccess(host.InfraEnvID.String(), action, payload)
 	}
 	return false, errors.New("can not perform access check on this object")
 }
@@ -297,6 +311,13 @@ func (a *AuthzHandler) imageTokenAuthorizer(ctx context.Context) error {
 // and the principal was stored in the context in the "AuthKey" context value.
 func (a *AuthzHandler) ocmAuthorizer(request *http.Request) error {
 	payload := ocm.PayloadFromContext(request.Context())
+	if payload == nil {
+		// Unexpected principal type (e.g., jwt.MapClaims from image auth)
+		// Deny access to prevent privilege escalation
+		return common.NewInfraError(
+			http.StatusForbidden,
+			fmt.Errorf("invalid auth payload type for OCM authorization"))
+	}
 	username := payload.Username
 
 	if ok := a.hasSufficientRole(request, payload); !ok {

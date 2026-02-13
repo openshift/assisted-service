@@ -161,6 +161,9 @@ type API interface {
 	   V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env.*/
 	V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V2ListHostsOK, error)
 	/*
+	   V2Logout Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.*/
+	V2Logout(ctx context.Context, params *V2LogoutParams) (*V2LogoutOK, error)
+	/*
 	   V2PostStepReply Posts the result of the operations from the host agent.*/
 	V2PostStepReply(ctx context.Context, params *V2PostStepReplyParams) (*V2PostStepReplyNoContent, error)
 	/*
@@ -1411,6 +1414,31 @@ func (a *Client) V2ListHosts(ctx context.Context, params *V2ListHostsParams) (*V
 		return nil, err
 	}
 	return result.(*V2ListHostsOK), nil
+
+}
+
+/*
+V2Logout Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication.
+*/
+func (a *Client) V2Logout(ctx context.Context, params *V2LogoutParams) (*V2LogoutOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2Logout",
+		Method:             "POST",
+		PathPattern:        "/v2/logout",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2LogoutReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2LogoutOK), nil
 
 }
 

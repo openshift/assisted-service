@@ -77,6 +77,10 @@ func (f fakeInventory) V2ListClusters(ctx context.Context, params installer.V2Li
 	return installer.NewV2ListClustersOK()
 }
 
+func (f fakeInventory) V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder {
+	return installer.NewV2LogoutOK()
+}
+
 func (f fakeInventory) V2RegisterCluster(ctx context.Context, params installer.V2RegisterClusterParams) middleware.Responder {
 	return installer.NewV2RegisterClusterCreated()
 }

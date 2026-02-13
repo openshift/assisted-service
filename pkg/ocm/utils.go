@@ -38,35 +38,75 @@ func AdminPayload() *AuthPayload {
 	return &AuthPayload{Role: AdminRole, Username: AdminUsername}
 }
 
-// PayloadFromContext returns auth payload from the specified context
+// AuthPayloadProvider is an interface for types that can provide an AuthPayload.
+// This allows LocalAuthPayload (which embeds *AuthPayload) to be used interchangeably
+// with *AuthPayload in context-based payload extraction.
+type AuthPayloadProvider interface {
+	GetAuthPayload() *AuthPayload
+}
+
+// GetAuthPayload implements AuthPayloadProvider for *AuthPayload
+func (p *AuthPayload) GetAuthPayload() *AuthPayload {
+	return p
+}
+
+// PayloadFromContext returns auth payload from the specified context.
+//
+// The nil return for unexpected principal types is intentional security behavior.
+// Unknown auth payload types should not be granted any permissions - this prevents
+// privilege escalation if a new auth mechanism is added without proper authorization handling.
+//
+// Returns nil if the context contains an unexpected principal type (e.g., jwt.MapClaims
+// from image auth). Callers should handle nil appropriately.
 func PayloadFromContext(ctx context.Context) *AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
 	if payload == nil {
-		// fallback to system-admin
+		// fallback to system-admin for unauthenticated contexts
 		return AdminPayload()
 	}
-	authPayload, ok := payload.(*AuthPayload)
-	if !ok {
-		return AdminPayload()
+
+	// Try direct *AuthPayload first
+	if authPayload, ok := payload.(*AuthPayload); ok {
+		return authPayload
 	}
-	return authPayload
+
+	// Try AuthPayloadProvider interface (handles LocalAuthPayload and similar wrappers)
+	if provider, ok := payload.(AuthPayloadProvider); ok {
+		return provider.GetAuthPayload()
+	}
+
+	// For any other type (e.g., jwt.MapClaims from image auth), return nil
+	// to prevent privilege escalation. Callers must handle nil appropriately.
+	return nil
 }
 
-// UserNameFromContext returns username from the specified context
+// UserNameFromContext returns username from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func UserNameFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Username
 }
 
-// OrgIDFromContext returns org ID from the specified context
+// OrgIDFromContext returns org ID from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func OrgIDFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Organization
 }
 
-// EmailFromContext returns email from the specified context
+// EmailFromContext returns email from the specified context.
+// Returns empty string if payload is nil (e.g., for image auth contexts).
 func EmailFromContext(ctx context.Context) string {
 	payload := PayloadFromContext(ctx)
+	if payload == nil {
+		return ""
+	}
 	return payload.Email
 }
 

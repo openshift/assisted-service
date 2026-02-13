@@ -129,4 +129,24 @@ var _ = Describe("AuthAgentAuth", func() {
 		Expect(err).To(HaveOccurred())
 		validateErrorResponse(err)
 	})
+
+	It("Returns LocalAuthPayload with token for logout support", func() {
+		result, err := a.AuthAgentAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify the result is a LocalAuthPayload containing the original token
+		localPayload, ok := result.(*LocalAuthPayload)
+		Expect(ok).To(BeTrue(), "Expected LocalAuthPayload type")
+		Expect(localPayload.Token).To(Equal(token))
+		Expect(localPayload.AuthPayload).ToNot(BeNil())
+	})
+
+	It("AuthURLAuth returns LocalAuthPayload with token", func() {
+		result, err := a.AuthURLAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+
+		localPayload, ok := result.(*LocalAuthPayload)
+		Expect(ok).To(BeTrue(), "Expected LocalAuthPayload type")
+		Expect(localPayload.Token).To(Equal(token))
+	})
 })

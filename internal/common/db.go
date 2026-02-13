@@ -316,6 +316,24 @@ var ClusterSubTables = [...]string{
 	IngressVIPsTable,
 }
 
+// revokedToken is a local copy of auth.RevokedToken for AutoMigrate use.
+// This avoids an import cycle between internal/common and pkg/auth.
+// The struct must match the definition in pkg/auth/revoked_token.go.
+type revokedToken struct {
+	ID         uint      `gorm:"primarykey"`
+	CreatedAt  time.Time `gorm:"index"`
+	TokenHash  string    `gorm:"type:varchar(64);not null;uniqueIndex:idx_revoked_tokens_hash"`
+	RevokedAt  time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+	ExpiresAt  time.Time `gorm:"not null;index:idx_revoked_tokens_expires"`
+	EntityID   string    `gorm:"type:varchar(255)"`
+	EntityType string    `gorm:"type:varchar(50)"`
+	Reason     string    `gorm:"type:varchar(255)"`
+}
+
+func (revokedToken) TableName() string {
+	return "revoked_tokens"
+}
+
 func AutoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(&models.MonitoredOperator{},
 		&Host{},
@@ -328,6 +346,7 @@ func AutoMigrate(db *gorm.DB) error {
 		&models.MachineNetwork{},
 		&models.APIVip{},
 		&models.IngressVip{},
+		&revokedToken{},
 	)
 }
 

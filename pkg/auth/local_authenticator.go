@@ -19,10 +19,11 @@ import (
 )
 
 type LocalAuthenticator struct {
-	cache     *cache.Cache
-	db        *gorm.DB
-	log       logrus.FieldLogger
-	publicKey crypto.PublicKey
+	cache          *cache.Cache
+	db             *gorm.DB
+	log            logrus.FieldLogger
+	publicKey      crypto.PublicKey
+	tokenBlacklist *TokenBlacklist
 }
 
 func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*LocalAuthenticator, error) {
@@ -35,14 +36,24 @@ func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*L
 		return nil, err
 	}
 
+	tokenBlacklist := NewTokenBlacklist(db, log)
+	// Start cleanup job to remove expired revoked tokens every hour
+	tokenBlacklist.StartCleanupJob(1 * time.Hour)
+
 	a := &LocalAuthenticator{
-		cache:     cache.New(10*time.Minute, 30*time.Minute),
-		db:        db,
-		log:       log,
-		publicKey: key,
+		cache:          cache.New(10*time.Minute, 30*time.Minute),
+		db:             db,
+		log:            log,
+		publicKey:      key,
+		tokenBlacklist: tokenBlacklist,
 	}
 
 	return a, nil
+}
+
+// GetTokenBlacklist returns the token blacklist instance for use by logout handlers.
+func (a *LocalAuthenticator) GetTokenBlacklist() *TokenBlacklist {
+	return a.tokenBlacklist
 }
 
 var _ Authenticator = &LocalAuthenticator{}
@@ -69,6 +80,24 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		err := errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
+	}
+
+	// Check if the token has been revoked
+	// Security note: Blacklist check uses fail-closed behavior. If the blacklist lookup
+	// fails (e.g., database unavailable), authentication is denied rather than allowing
+	// potentially revoked tokens through.
+	if a.tokenBlacklist != nil {
+		isRevoked, err := a.tokenBlacklist.IsRevoked(token)
+		if err != nil {
+			// Fail closed: block authentication when blacklist check cannot be performed
+			a.log.WithError(err).Error("Failed to check token revocation status, blocking authentication")
+			return nil, common.NewInfraError(http.StatusInternalServerError, err)
+		}
+		if isRevoked {
+			err := errors.Errorf("token has been revoked")
+			a.log.Debug(err)
+			return nil, common.NewInfraError(http.StatusUnauthorized, err)
+		}
 	}
 
 	infraEnvID, infraEnvOk := claims[string(gencrypto.InfraEnvKey)].(string)
@@ -103,7 +132,11 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
 	}
 
-	return ocm.AdminPayload(), nil
+	// Return LocalAuthPayload which includes the token for logout support
+	return &LocalAuthPayload{
+		AuthPayload: ocm.AdminPayload(),
+		Token:       token,
+	}, nil
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {

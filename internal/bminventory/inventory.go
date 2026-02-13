@@ -4236,6 +4236,10 @@ func (b *bareMetalInventory) checkFileDownloadAccess(ctx context.Context, fileNa
 	// the OCM payload is only set in the cloud environment when the auth type is RHSSO
 	if funk.Contains(clusterPkg.ClusterOwnerFileNames, fileName) && b.authHandler.AuthType() == auth.TypeRHSSO {
 		authPayload := ocm.PayloadFromContext(ctx)
+		if authPayload == nil {
+			// Unexpected principal type - deny access to prevent privilege escalation
+			return errors.New("invalid auth payload type for file download access check")
+		}
 		if ocm.UserRole != authPayload.Role {
 			errMsg := fmt.Sprintf("File '%s' is accessible only for cluster owners", fileName)
 			return errors.New(errMsg)

@@ -184,6 +184,9 @@ type InstallerAPI interface {
 	/* V2ListHosts Retrieves the list of OpenShift hosts that belong the infra-env. */
 	V2ListHosts(ctx context.Context, params installer.V2ListHostsParams) middleware.Responder
 
+	/* V2Logout Logout and revoke the current authentication token. The token will be added to a blacklist and will no longer be valid for authentication. */
+	V2Logout(ctx context.Context, params installer.V2LogoutParams) middleware.Responder
+
 	/* V2PostStepReply Posts the result of the operations from the host agent. */
 	V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder
 
@@ -742,6 +745,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.VersionsAPI.V2ListSupportedOpenshiftVersions(ctx, params)
+	})
+	api.InstallerV2LogoutHandler = installer.V2LogoutHandlerFunc(func(params installer.V2LogoutParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2Logout(ctx, params)
 	})
 	api.InstallerV2PostStepReplyHandler = installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
