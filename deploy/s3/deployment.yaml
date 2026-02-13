@@ -5,6 +5,11 @@ metadata:
     app: object-store
   name: object-store
   namespace: REPLACE_NAMESPACE
+  annotations:
+    # SECURITY NOTE: This MinIO deployment is used ONLY for local development
+    # and CI subsystem testing. Production deployments use cloud-native S3
+    # storage (AWS S3, etc.) and do not deploy this component.
+    assisted-service.io/deployment-type: "test-infrastructure"
 spec:
   replicas: 1
   selector:
@@ -15,9 +20,43 @@ spec:
       labels:
         app: object-store
     spec:
+      # ============================================================================
+      # SECURITY CONTEXT DOCUMENTATION
+      # ============================================================================
+      # MinIO (quay.io/minio/minio) is designed to run as root (UID 0).
+      # We cannot enforce runAsNonRoot: true because:
+      #   1. Without explicit runAsUser: MinIO defaults to root, causing
+      #      "container has runAsNonRoot and image will run as root" error
+      #   2. With explicit runAsUser (e.g., 1000): OpenShift SCC rejects it
+      #      because the UID is not in the namespace's allowed range
+      #
+      # MITIGATIONS IN PLACE:
+      #   - privileged: false - container cannot gain additional privileges
+      #   - allowPrivilegeEscalation: false - prevents privilege escalation attacks
+      #   - capabilities: drop ALL - removes all Linux capabilities
+      #   - seccompProfile: RuntimeDefault - applies default seccomp filtering
+      #   - hostNetwork/hostPID/hostIPC: false - no host namespace access
+      #
+      # SCOPE: This deployment is TEST INFRASTRUCTURE ONLY (local dev, CI tests).
+      # Production assisted-service uses cloud S3 storage, not local MinIO.
+      # ============================================================================
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
       containers:
         - image: quay.io/minio/minio:latest
           name: s3server
+          securityContext:
+            # MinIO requires root - see security documentation above
+            privileged: false
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           args:
             - server
             - /data

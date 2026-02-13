@@ -21,15 +21,33 @@ items:
         labels:
           app: assisted-image-service
       spec:
+        # Pod-level security context
+        securityContext:
+          runAsNonRoot: true
+          seccompProfile:
+            type: RuntimeDefault
+        # Host namespace restrictions
+        hostNetwork: false
+        hostPID: false
+        hostIPC: false
         containers:
           - name: assisted-image-service
             resources:
+              limits:
+                cpu: 500m
+                memory: 2000Mi
               requests:
                 cpu: 100m
                 memory: 400Mi
             image: REPLACE_IMAGE_SERVICE_IMAGE
             securityContext:
+              privileged: false
+              allowPrivilegeEscalation: false
+              runAsNonRoot: true
               readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                  - ALL
             ports:
               - containerPort: 8080
             readinessProbe:
