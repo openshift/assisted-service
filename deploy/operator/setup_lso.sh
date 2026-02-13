@@ -3,7 +3,7 @@ source ${__dir}/utils.sh
 source ${__dir}/mirror_utils.sh
 
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
-INDEX_TAG="${INDEX_TAG:-v4.8}"
+INDEX_TAG="${INDEX_TAG:-v4.17}"
 DISCONNECTED="${DISCONNECTED:-false}"
 
 function print_help() {

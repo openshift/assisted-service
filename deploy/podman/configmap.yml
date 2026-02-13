@@ -31,5 +31,7 @@ data:
   SERVICE_BASE_URL: http://127.0.0.1:8090
   STORAGE: filesystem
   ENABLE_UPGRADE_AGENT: "true"
+  # Disable rate limiting for local development to avoid issues during testing
+  RATE_LIMIT_ENABLED: "false"
   # Dummy values, doesn't do anything
   AIUI_CHAT_API_URL: http://localhost:12121

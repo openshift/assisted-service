@@ -35,6 +35,20 @@ generate-events:
 --remove-dashes-and-dots:
 	find models/ -name "*.go" -maxdepth 1 -exec sed -i 's/Dash//g;s/Dot//g' {} \;
 
+# Omit credentials payload from Error() and String() methods to prevent accidental exposure in logs
+--omit-credentials-payload:
+	for f in client/installer/v2_get_credentials_responses.go \
+	         client/installer/v2_get_presigned_for_cluster_credentials_responses.go; do \
+		if [ -f "$$f" ]; then \
+			sed -i 's/\(v2GetCredentialsOK\)  %+v", 200, o\.Payload)/\1 <payload omitted>", 200)/g' "$$f"; \
+			sed -i 's/\(v2GetPresignedForClusterCredentialsOK\)  %+v", 200, o\.Payload)/\1 <payload omitted>", 200)/g' "$$f"; \
+			if ! grep -q '<payload omitted>' "$$f"; then \
+				echo "Expected credential payload redaction in $$f but pattern was not applied" >&2; \
+				exit 1; \
+			fi; \
+		fi; \
+	done
+
 validate-swagger-file:
 	./hack/generate.sh validate_swagger_file
 
@@ -49,7 +63,7 @@ generate-bundle:
 	mkdir -p ${BUILD_FOLDER}
 	./hack/generate.sh generate_bundle
 
-generate-from-swagger: lint-swagger generate-go-client generate-go-server validate-swagger-file --remove-dashes-and-dots
+generate-from-swagger: lint-swagger generate-go-client generate-go-server validate-swagger-file --remove-dashes-and-dots --omit-credentials-payload
 
 generate-go:
 	go mod tidy && go mod vendor

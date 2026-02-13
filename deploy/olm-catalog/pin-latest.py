@@ -119,6 +119,10 @@ def pin_path(obj: dict, path: List[str]):
 
     current_key, is_list = current_key.rstrip("[]"), current_key.endswith("[]")
 
+    if current_key not in obj:
+        logging.warning(f"Key '{current_key}' not found in object, skipping")
+        return
+
     if is_list:
         for list_child in obj[current_key]:
             pin_path(list_child, rest)

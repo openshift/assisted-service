@@ -116,11 +116,11 @@ func (o *V2GetPresignedForClusterCredentialsOK) IsCode(code int) bool {
 }
 
 func (o *V2GetPresignedForClusterCredentialsOK) Error() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK <payload omitted>", 200)
 }
 
 func (o *V2GetPresignedForClusterCredentialsOK) String() string {
-	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v2/clusters/{cluster_id}/downloads/credentials-presigned][%d] v2GetPresignedForClusterCredentialsOK <payload omitted>", 200)
 }
 
 func (o *V2GetPresignedForClusterCredentialsOK) GetPayload() *models.PresignedURL {

@@ -403,6 +403,7 @@ deploy-test: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && ENABLE_ORG_TENANCY="True" && ENABLE_ORG_BASED_FEATURE_GATES="True" && \
+	export RATE_LIMIT_ENABLED="false" && \
 	export RELEASE_SOURCES='$(or ${RELEASE_SOURCES},${DEFAULT_RELEASE_SOURCES})' && \
 	$(MAKE) deploy-wiremock deploy-all
 
@@ -496,6 +497,7 @@ _run_subsystem_test:
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
+	export RATE_LIMIT_ENABLED="false" && \
 	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ALLOW_CONVERGED_FLOW=true ISO_IMAGE_TYPE=minimal-iso
 	$(MAKE) deploy-converged-flow-requirements  ENABLE_KUBE_API=true  ALLOW_CONVERGED_FLOW=true
 	$(MAKE) restart_service_pods wait-for-service

@@ -3,7 +3,6 @@ rules:
   info-contact: off
   no-$ref-siblings: off
   oas2-unused-definition: off
-  operation-default-response: off
   operation-singular-tag: off
   operation-description: error
   oas2-parameter-description: error
