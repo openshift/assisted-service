@@ -100,6 +100,14 @@ EOF
   fi
 }
 
+function database_sslmode_annotation() {
+  if [ -n "${DATABASE_SSLMODE:-}" ]; then
+cat <<EOF
+  unsupported.agent-install.openshift.io/database-sslmode: "${DATABASE_SSLMODE}"
+EOF
+  fi
+}
+
 function install_from_catalog_source() {
   # ensure that the necessary MCE CRDs are installed.
   oc apply -f ${__root}/hack/crds/mce
@@ -184,6 +192,7 @@ metadata:
  name: agent
  annotations:
   unsupported.agent-install.openshift.io/assisted-service-configmap: "assisted-service-config"
+$(database_sslmode_annotation)
 spec:
  databaseStorage:
   storageClassName: ${STORAGE_CLASS_NAME}

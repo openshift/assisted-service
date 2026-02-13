@@ -15,6 +15,12 @@ data:
   DB_PASS: admin
   DB_PORT: "5432"
   DB_USER: admin
+  # DB_SSLMODE: disable is intentional for local development with podman.
+  # The database runs on 127.0.0.1, so traffic is not exposed to the network.
+  # For production or network-exposed deployments, set DB_SSLMODE=require
+  # (or verify-ca/verify-full) and configure DB_SSLROOTCERT, DB_SSLCERT,
+  # DB_SSLKEY as needed.
+  DB_SSLMODE: disable  # DB connection is localhost-only; override to 'require' if exposing DB network access
   DEPLOY_TARGET: onprem
   DEPLOYMENT_TYPE: "Podman"
   DISK_ENCRYPTION_SUPPORT: "true"

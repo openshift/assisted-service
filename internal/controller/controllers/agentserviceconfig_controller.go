@@ -92,6 +92,7 @@ const (
 	configmapAnnotation                 = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 	imageServiceSkipVerifyTLSAnnotation = "unsupported.agent-install.openshift.io/assisted-image-service-skip-verify-tls"
 	allowUnrestrictedImagePulls         = "unsupported.agent-install.openshift.io/assisted-service-allow-unrestricted-image-pulls"
+	databaseSSLModeAnnotation           = "unsupported.agent-install.openshift.io/database-sslmode"
 
 	assistedConfigHashAnnotation                 = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation                   = "agent-install.openshift.io/mirror-hash"
@@ -1037,6 +1038,13 @@ func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 
+		// Determine the SSL mode to use: annotation override takes precedence, otherwise default to "require"
+		sslMode := "require"
+		if override, ok := asc.Object.GetAnnotations()[databaseSSLModeAnnotation]; ok && override != "" {
+			sslMode = override
+			log.Infof("Using database SSL mode override from annotation: %s", sslMode)
+		}
+
 		// the password should not change so only calculate it if a new object is going to be created
 		var pass string
 		if secret.ObjectMeta.CreationTimestamp.IsZero() {
@@ -1051,6 +1059,21 @@ func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 				"db.password": pass,
 				"db.name":     "installer",
 				"db.port":     databasePort.String(),
+				"db.sslmode":  sslMode,
+			}
+		}
+
+		// Backfill sslmode for upgrades where the key is missing (keep "disable" for existing installs)
+		// Upgrade compatibility note: Existing deployments without the db.sslmode key
+		// default to "disable" to maintain backward compatibility and avoid breaking
+		// existing database connections. New deployments should always use "require"
+		// or stronger via the "unsupported.agent-install.openshift.io/database-sslmode" annotation.
+		if _, ok := secret.Data["db.sslmode"]; !ok {
+			if secret.StringData == nil {
+				secret.StringData = map[string]string{}
+			}
+			if _, ok := secret.StringData["db.sslmode"]; !ok {
+				secret.StringData["db.sslmode"] = "disable"
 			}
 		}
 		return nil
@@ -1888,6 +1911,10 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PASS", "db.password", databaseName),
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_PORT", "db.port", databaseName),
 		newSecretEnvVar(asc.Object.GetAnnotations(), "DB_USER", "db.user", databaseName),
+		newOptionalSecretEnvVar(asc.Object.GetAnnotations(), "DB_SSLMODE", "db.sslmode", databaseName),
+		newOptionalSecretEnvVar(asc.Object.GetAnnotations(), "DB_SSLROOTCERT", "db.sslrootcert", databaseName),
+		newOptionalSecretEnvVar(asc.Object.GetAnnotations(), "DB_SSLCERT", "db.sslcert", databaseName),
+		newOptionalSecretEnvVar(asc.Object.GetAnnotations(), "DB_SSLKEY", "db.sslkey", databaseName),
 
 		// local auth secret
 		newSecretEnvVar(asc.Object.GetAnnotations(), "EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
@@ -2442,8 +2469,28 @@ func newStaticSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 	}
 }
 
+func newOptionalStaticSecretEnvVar(name, key, secretName string) corev1.EnvVar {
+	optional := true
+	return corev1.EnvVar{
+		Name: name,
+		ValueFrom: &corev1.EnvVarSource{
+			SecretKeyRef: &corev1.SecretKeySelector{
+				Key:      key,
+				Optional: &optional,
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: secretName,
+				},
+			},
+		},
+	}
+}
+
 func newSecretEnvVar(annotations map[string]string, name, key, secretName string) corev1.EnvVar {
 	return newStaticSecretEnvVar(name, key, getSecretName(annotations, secretName))
+}
+
+func newOptionalSecretEnvVar(annotations map[string]string, name, key, secretName string) corev1.EnvVar {
+	return newOptionalStaticSecretEnvVar(name, key, getSecretName(annotations, secretName))
 }
 
 func newInfraEnvWebHook(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {

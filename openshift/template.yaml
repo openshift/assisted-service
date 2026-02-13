@@ -378,6 +378,30 @@ objects:
                   secretKeyRef:
                     key: db.user
                     name: assisted-installer-rds
+              - name: DB_SSLMODE
+                valueFrom:
+                  secretKeyRef:
+                    key: db.sslmode
+                    name: assisted-installer-rds
+                    optional: true
+              - name: DB_SSLROOTCERT
+                valueFrom:
+                  secretKeyRef:
+                    key: db.sslrootcert
+                    name: assisted-installer-rds
+                    optional: true
+              - name: DB_SSLCERT
+                valueFrom:
+                  secretKeyRef:
+                    key: db.sslcert
+                    name: assisted-installer-rds
+                    optional: true
+              - name: DB_SSLKEY
+                valueFrom:
+                  secretKeyRef:
+                    key: db.sslkey
+                    name: assisted-installer-rds
+                    optional: true
               - name: OCM_SERVICE_CLIENT_ID
                 valueFrom:
                   secretKeyRef:

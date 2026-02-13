@@ -11,6 +11,7 @@ data:
   DB_PASS: admin
   DB_PORT: "5432"
   DB_USER: admin
+  DB_SSLMODE: disable
   DEPLOY_TARGET: onprem
   DISK_ENCRYPTION_SUPPORT: "false"
   DUMMY_IGNITION: "false"
