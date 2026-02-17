@@ -94,7 +94,11 @@ func (a *ipmiAccessDetails) BIOSInterface() string {
 }
 
 func (a *ipmiAccessDetails) BootInterface() string {
-	return "ipxe"
+	return ipxe
+}
+
+func (a *ipmiAccessDetails) FirmwareInterface() string {
+	return ""
 }
 
 func (a *ipmiAccessDetails) ManagementInterface() string {
@@ -106,7 +110,7 @@ func (a *ipmiAccessDetails) PowerInterface() string {
 }
 
 func (a *ipmiAccessDetails) RAIDInterface() string {
-	return "no-raid"
+	return noRaid
 }
 
 func (a *ipmiAccessDetails) VendorInterface() string {

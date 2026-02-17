@@ -1,7 +1,6 @@
 package bmc
 
 import (
-	"fmt"
 	"net/url"
 )
 
@@ -13,34 +12,32 @@ func init() {
 
 func newRedfishVirtualMediaAccessDetails(parsedURL *url.URL, disableCertificateVerification bool) (AccessDetails, error) {
 	return &redfishVirtualMediaAccessDetails{
-		bmcType:                        parsedURL.Scheme,
-		host:                           parsedURL.Host,
-		path:                           parsedURL.Path,
-		disableCertificateVerification: disableCertificateVerification,
+		redfishAccessDetails{
+			bmcType:                        parsedURL.Scheme,
+			host:                           parsedURL.Host,
+			path:                           parsedURL.Path,
+			disableCertificateVerification: disableCertificateVerification,
+		},
 	}, nil
 }
 
 type redfishVirtualMediaAccessDetails struct {
-	bmcType                        string
-	host                           string
-	path                           string
-	disableCertificateVerification bool
+	redfishAccessDetails
 }
 
 func (a *redfishVirtualMediaAccessDetails) Type() string {
 	return a.bmcType
 }
 
-// NeedsMAC returns true when the host is going to need a separate
-// port created rather than having it discovered.
+// NeedsMAC returns false for virtual media drivers since they can boot
+// from virtual media without requiring a pre-configured boot MAC address.
+// The MAC address can be populated after hardware inspection completes.
 func (a *redfishVirtualMediaAccessDetails) NeedsMAC() bool {
-	// For the inspection to work, we need a MAC address
-	// https://github.com/metal3-io/baremetal-operator/pull/284#discussion_r317579040
-	return true
+	return false
 }
 
 func (a *redfishVirtualMediaAccessDetails) Driver() string {
-	return "redfish"
+	return redfish
 }
 
 func (a *redfishVirtualMediaAccessDetails) DisableCertificateVerification() bool {
@@ -53,18 +50,7 @@ func (a *redfishVirtualMediaAccessDetails) DisableCertificateVerification() bool
 // expected to add any other information that might be needed (such as
 // the kernel and ramdisk locations).
 func (a *redfishVirtualMediaAccessDetails) DriverInfo(bmcCreds Credentials) map[string]interface{} {
-	result := map[string]interface{}{
-		"redfish_system_id": a.path,
-		"redfish_username":  bmcCreds.Username,
-		"redfish_password":  bmcCreds.Password,
-		"redfish_address":   getRedfishAddress(a.bmcType, a.host),
-	}
-
-	if a.disableCertificateVerification {
-		result["redfish_verify_ca"] = false
-	}
-
-	return result
+	return a.redfishAccessDetails.DriverInfo(bmcCreds)
 }
 
 func (a *redfishVirtualMediaAccessDetails) BIOSInterface() string {
@@ -73,6 +59,10 @@ func (a *redfishVirtualMediaAccessDetails) BIOSInterface() string {
 
 func (a *redfishVirtualMediaAccessDetails) BootInterface() string {
 	return "redfish-virtual-media"
+}
+
+func (a *redfishVirtualMediaAccessDetails) FirmwareInterface() string {
+	return redfish
 }
 
 func (a *redfishVirtualMediaAccessDetails) ManagementInterface() string {
@@ -84,7 +74,7 @@ func (a *redfishVirtualMediaAccessDetails) PowerInterface() string {
 }
 
 func (a *redfishVirtualMediaAccessDetails) RAIDInterface() string {
-	return "no-raid"
+	return redfish
 }
 
 func (a *redfishVirtualMediaAccessDetails) VendorInterface() string {
@@ -104,8 +94,5 @@ func (a *redfishVirtualMediaAccessDetails) RequiresProvisioningNetwork() bool {
 }
 
 func (a *redfishVirtualMediaAccessDetails) BuildBIOSSettings(firmwareConfig *FirmwareConfig) (settings []map[string]string, err error) {
-	if firmwareConfig != nil {
-		return nil, fmt.Errorf("firmware settings for %s are not supported", a.Driver())
-	}
-	return nil, nil
+	return a.redfishAccessDetails.BuildBIOSSettings(firmwareConfig)
 }
