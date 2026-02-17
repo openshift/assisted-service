@@ -10,7 +10,7 @@ require (
 	github.com/onsi/gomega v1.30.0
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
-	github.com/openshift/hive/apis v0.0.0-20231220215202-ad99b9e52d27
+	github.com/openshift/hive/apis e12606b79976
 	github.com/thoas/go-funk v0.9.3
 	k8s.io/api v0.29.9
 	k8s.io/apimachinery v0.29.9
