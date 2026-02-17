@@ -139,6 +139,14 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -241,6 +249,14 @@ func init() {
     },
     "/v2/clusters/disconnected": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Create a disconnected OpenShift cluster for offline installation with embedded ignition",
         "tags": [
           "installer"
@@ -293,6 +309,14 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
@@ -440,6 +464,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes an OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -498,6 +530,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates an OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -576,6 +616,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/allow-add-hosts": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Transforms installed cluster to a state which allows adding hosts.",
         "tags": [
           "installer"
@@ -639,6 +687,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.",
         "tags": [
           "installer"
@@ -703,6 +759,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/cancel": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Cancels an ongoing installation.",
         "tags": [
           "installer"
@@ -855,6 +919,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/install": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
@@ -924,6 +996,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/reset": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Resets a failed installation.",
         "tags": [
           "installer"
@@ -1563,6 +1643,15 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/ignored-validations": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch the validations which are to be ignored for this cluster.",
         "tags": [
           "installer"
@@ -1600,6 +1689,14 @@ func init() {
         }
       },
       "put": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Register the validations which are to be ignored for this cluster.",
         "tags": [
           "installer"
@@ -1730,6 +1827,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Override values in the install config.",
         "tags": [
           "installer"
@@ -2240,6 +2345,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes a manifest from the cluster.",
         "tags": [
           "manifests"
@@ -2845,6 +2958,15 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/ui-settings": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch cluster specific UI settings.",
         "tags": [
           "installer"
@@ -2900,6 +3022,14 @@ func init() {
         }
       },
       "put": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Update cluster specific UI settings.",
         "tags": [
           "installer"
@@ -3544,6 +3674,14 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
           "installer"
@@ -3708,6 +3846,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes an infra-env.",
         "tags": [
           "installer"
@@ -3772,6 +3918,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates an infra-env.",
         "tags": [
           "installer"
@@ -4001,6 +4155,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/downloads/files-presigned": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new pre-signed download URL for the infra-env.",
         "tags": [
           "installer"
@@ -4091,6 +4254,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new pre-signed image download URL for the infra-env.",
         "tags": [
           "installer"
@@ -4503,6 +4675,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deregisters an OpenShift host.",
         "tags": [
           "installer"
@@ -4569,6 +4749,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Update an Openshift host",
         "tags": [
           "installer"
@@ -4655,6 +4843,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Bind host to a cluster",
         "tags": [
           "installer"
@@ -4747,6 +4943,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "install specific host for day2 cluster.",
         "tags": [
           "installer"
@@ -4812,6 +5016,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "reset a failed host for day2 cluster.",
         "tags": [
           "installer"
@@ -4877,6 +5089,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Reset failed host validation. It may be performed on any host validation with persistent validation result.",
         "tags": [
           "installer"
@@ -4956,6 +5176,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Unbind host to a cluster",
         "tags": [
           "installer"
@@ -5045,6 +5273,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch the ignition file for this host as a string. In case of unbound host produces an error",
         "tags": [
           "installer"
@@ -5120,6 +5357,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Patch the ignition file for this host",
         "tags": [
           "installer"
@@ -5203,6 +5448,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args": {
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates a host's installer arguments.",
         "tags": [
           "installer"
@@ -5668,6 +5921,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Regenerate InfraEnv token signing key.",
         "tags": [
           "installer"
@@ -5780,6 +6041,15 @@ func init() {
     },
     "/v2/operators/bundles": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves a list of available bundles filtered by support level.",
         "tags": [
           "operators"
@@ -5868,6 +6138,15 @@ func init() {
     },
     "/v2/operators/bundles/{id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves an array of operator properties for the specified bundle when some features are activated.",
         "tags": [
           "operators"
@@ -6234,6 +6513,15 @@ func init() {
     },
     "/v2/supported-operators": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves the list of supported operators.",
         "tags": [
           "operators"
@@ -11406,31 +11694,37 @@ func init() {
   },
   "securityDefinitions": {
     "agentAuth": {
+      "description": "For agent-to-service communication",
       "type": "apiKey",
       "name": "X-Secret-Key",
       "in": "header"
     },
     "imageAuth": {
+      "description": "For image service authentication",
       "type": "apiKey",
       "name": "Image-Token",
       "in": "header"
     },
     "imageURLAuth": {
+      "description": "For image service URL-based authentication",
       "type": "apiKey",
       "name": "image_token",
       "in": "query"
     },
     "urlAuth": {
+      "description": "For pre-signed URL access (downloads)",
       "type": "apiKey",
       "name": "api_key",
       "in": "query"
     },
     "userAuth": {
+      "description": "For user-facing operations (UI, API clients)",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
     },
     "watcherAuth": {
+      "description": "For watcher service authentication",
       "type": "apiKey",
       "name": "Watcher-Authorization",
       "in": "header"
@@ -11597,6 +11891,14 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -11699,6 +12001,14 @@ func init() {
     },
     "/v2/clusters/disconnected": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Create a disconnected OpenShift cluster for offline installation with embedded ignition",
         "tags": [
           "installer"
@@ -11751,6 +12061,14 @@ func init() {
     },
     "/v2/clusters/import": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster",
         "tags": [
           "installer"
@@ -11898,6 +12216,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes an OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -11956,6 +12282,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates an OpenShift cluster definition.",
         "tags": [
           "installer"
@@ -12034,6 +12368,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/allow-add-hosts": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Transforms installed cluster to a state which allows adding hosts.",
         "tags": [
           "installer"
@@ -12097,6 +12439,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/allow-add-workers": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.",
         "tags": [
           "installer"
@@ -12161,6 +12511,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/cancel": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Cancels an ongoing installation.",
         "tags": [
           "installer"
@@ -12313,6 +12671,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/install": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Installs the OpenShift cluster.",
         "tags": [
           "installer"
@@ -12382,6 +12748,14 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/actions/reset": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Resets a failed installation.",
         "tags": [
           "installer"
@@ -13021,6 +13395,15 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/ignored-validations": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch the validations which are to be ignored for this cluster.",
         "tags": [
           "installer"
@@ -13058,6 +13441,14 @@ func init() {
         }
       },
       "put": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Register the validations which are to be ignored for this cluster.",
         "tags": [
           "installer"
@@ -13188,6 +13579,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Override values in the install config.",
         "tags": [
           "installer"
@@ -13698,6 +14097,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes a manifest from the cluster.",
         "tags": [
           "manifests"
@@ -14303,6 +14710,15 @@ func init() {
     },
     "/v2/clusters/{cluster_id}/ui-settings": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch cluster specific UI settings.",
         "tags": [
           "installer"
@@ -14358,6 +14774,14 @@ func init() {
         }
       },
       "put": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Update cluster specific UI settings.",
         "tags": [
           "installer"
@@ -15007,6 +15431,14 @@ func init() {
         }
       },
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
           "installer"
@@ -15171,6 +15603,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deletes an infra-env.",
         "tags": [
           "installer"
@@ -15235,6 +15675,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates an infra-env.",
         "tags": [
           "installer"
@@ -15464,6 +15912,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/downloads/files-presigned": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new pre-signed download URL for the infra-env.",
         "tags": [
           "installer"
@@ -15554,6 +16011,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/downloads/image-url": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Creates a new pre-signed image download URL for the infra-env.",
         "tags": [
           "installer"
@@ -15966,6 +16432,14 @@ func init() {
         }
       },
       "delete": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Deregisters an OpenShift host.",
         "tags": [
           "installer"
@@ -16032,6 +16506,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Update an Openshift host",
         "tags": [
           "installer"
@@ -16118,6 +16600,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/bind": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Bind host to a cluster",
         "tags": [
           "installer"
@@ -16210,6 +16700,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/install": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "install specific host for day2 cluster.",
         "tags": [
           "installer"
@@ -16275,6 +16773,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "reset a failed host for day2 cluster.",
         "tags": [
           "installer"
@@ -16340,6 +16846,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Reset failed host validation. It may be performed on any host validation with persistent validation result.",
         "tags": [
           "installer"
@@ -16419,6 +16933,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/actions/unbind": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Unbind host to a cluster",
         "tags": [
           "installer"
@@ -16508,6 +17030,15 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/ignition": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Fetch the ignition file for this host as a string. In case of unbound host produces an error",
         "tags": [
           "installer"
@@ -16583,6 +17114,14 @@ func init() {
         }
       },
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Patch the ignition file for this host",
         "tags": [
           "installer"
@@ -16666,6 +17205,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/installer-args": {
       "patch": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Updates a host's installer arguments.",
         "tags": [
           "installer"
@@ -17131,6 +17678,14 @@ func init() {
     },
     "/v2/infra-envs/{infra_env_id}/regenerate-signing-key": {
       "post": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Regenerate InfraEnv token signing key.",
         "tags": [
           "installer"
@@ -17243,6 +17798,15 @@ func init() {
     },
     "/v2/operators/bundles": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves a list of available bundles filtered by support level.",
         "tags": [
           "operators"
@@ -17331,6 +17895,15 @@ func init() {
     },
     "/v2/operators/bundles/{id}": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves an array of operator properties for the specified bundle when some features are activated.",
         "tags": [
           "operators"
@@ -17697,6 +18270,15 @@ func init() {
     },
     "/v2/supported-operators": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves the list of supported operators.",
         "tags": [
           "operators"
@@ -22919,31 +23501,37 @@ func init() {
   },
   "securityDefinitions": {
     "agentAuth": {
+      "description": "For agent-to-service communication",
       "type": "apiKey",
       "name": "X-Secret-Key",
       "in": "header"
     },
     "imageAuth": {
+      "description": "For image service authentication",
       "type": "apiKey",
       "name": "Image-Token",
       "in": "header"
     },
     "imageURLAuth": {
+      "description": "For image service URL-based authentication",
       "type": "apiKey",
       "name": "image_token",
       "in": "query"
     },
     "urlAuth": {
+      "description": "For pre-signed URL access (downloads)",
       "type": "apiKey",
       "name": "api_key",
       "in": "query"
     },
     "userAuth": {
+      "description": "For user-facing operations (UI, API clients)",
       "type": "apiKey",
       "name": "Authorization",
       "in": "header"
     },
     "watcherAuth": {
+      "description": "For watcher service authentication",
       "type": "apiKey",
       "name": "Watcher-Authorization",
       "in": "header"

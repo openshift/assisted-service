@@ -37,26 +37,32 @@ securityDefinitions:
     type: apiKey
     in: header
     name: X-Secret-Key
+    description: For agent-to-service communication
   userAuth:
     type: apiKey
     in: header
     name: Authorization
+    description: For user-facing operations (UI, API clients)
   urlAuth:
     type: apiKey
     in: query
     name: api_key
+    description: For pre-signed URL access (downloads)
   imageAuth:
     type: apiKey
     in: header
     name: Image-Token
+    description: For image service authentication
   imageURLAuth:
     type: apiKey
     in: query
     name: image_token
+    description: For image service URL-based authentication
   watcherAuth:
     type: apiKey
     in: header
     name: Watcher-Authorization
+    description: For watcher service authentication
 
 security:
   - userAuth: [admin, user]
@@ -66,6 +72,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Creates a new OpenShift cluster definition.
       operationId: v2RegisterCluster
       parameters:
@@ -232,6 +240,8 @@ paths:
     delete:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Deletes an OpenShift cluster definition.
       operationId: v2DeregisterCluster
       parameters:
@@ -272,6 +282,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Updates an OpenShift cluster definition.
       operationId: V2UpdateCluster
       parameters:
@@ -472,6 +484,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Creates a new OpenShift Discovery ISO.
       operationId: RegisterInfraEnv
       parameters:
@@ -625,6 +639,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Updates an infra-env.
       operationId: UpdateInfraEnv
       parameters:
@@ -681,6 +697,8 @@ paths:
     delete:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Deletes an infra-env.
       operationId: DeregisterInfraEnv
       parameters:
@@ -726,6 +744,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       description: Creates a new pre-signed image download URL for the infra-env.
       operationId: GetInfraEnvDownloadURL
       parameters:
@@ -938,6 +958,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Update an Openshift host
       operationId: v2UpdateHost
       parameters:
@@ -995,6 +1017,8 @@ paths:
     delete:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Deregisters an OpenShift host.
       operationId: v2DeregisterHost
       parameters:
@@ -1233,6 +1257,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Bind host to a cluster
       operationId: BindHost
       parameters:
@@ -1296,6 +1322,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Unbind host to a cluster
       operationId: UnbindHost
       parameters:
@@ -1357,6 +1385,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       summary: Reset failed host validation.
       operationId: v2ResetHostValidation
       description: Reset failed host validation. It may be performed on any host validation with persistent validation result.
@@ -1412,6 +1442,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: reset a failed host for day2 cluster.
       operationId: v2ResetHost
       parameters:
@@ -1457,6 +1489,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: install specific host for day2 cluster.
       operationId: v2InstallHost
       parameters:
@@ -1502,6 +1536,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Updates a host's installer arguments.
       operationId: v2UpdateHostInstallerArgs
       parameters:
@@ -1565,6 +1601,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       description: Fetch the ignition file for this host as a string. In case of unbound host produces an error
       operationId: v2GetHostIgnition
       parameters:
@@ -1616,6 +1654,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Patch the ignition file for this host
       operationId: v2UpdateHostIgnition
       parameters:
@@ -1760,6 +1800,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       description: Creates a new pre-signed download URL for the infra-env.
       operationId: GetInfraEnvPresignedFileURL
       parameters:
@@ -1882,6 +1924,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Regenerate InfraEnv token signing key.
       operationId: RegenerateInfraEnvSigningKey
       parameters:
@@ -2332,6 +2376,8 @@ paths:
     patch:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Override values in the install config.
       operationId: v2UpdateClusterInstallConfig
       parameters:
@@ -2397,6 +2443,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Installs the OpenShift cluster.
       operationId: v2InstallCluster
       parameters:
@@ -2444,6 +2492,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Cancels an ongoing installation.
       operationId: V2CancelInstallation
       parameters:
@@ -2487,6 +2537,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Resets a failed installation.
       operationId: v2ResetCluster
       parameters:
@@ -2530,6 +2582,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Deprecated, maintained for legacy purposes. Does the same thing as allow-add-hosts. Use allow-add-hosts instead.
       deprecated: true
       operationId: TransformClusterToDay2
@@ -2574,6 +2628,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Transforms installed cluster to a state which allows adding hosts.
       operationId: TransformClusterToAddingHosts
       parameters:
@@ -2694,6 +2750,8 @@ paths:
     get:
       tags:
         - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
       operationId: V2ListSupportedOperators
       description: Retrieves the list of supported operators.
       responses:
@@ -2749,7 +2807,9 @@ paths:
     get:
       tags:
         - operators
-      summary: Get list of available bundles 
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      summary: Get list of available bundles
       description: Retrieves a list of available bundles filtered by support level.
       operationId: V2ListBundles
       parameters:
@@ -2802,6 +2862,8 @@ paths:
     get:
       tags:
         - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
       summary: Get operator properties for a bundle
       description: Retrieves an array of operator properties for the specified bundle when some features are activated.
       operationId: V2GetBundle
@@ -3171,6 +3233,8 @@ paths:
     delete:
       tags:
         - manifests
+      security:
+        - userAuth: [admin, user]
       description: Deletes a manifest from the cluster.
       operationId: V2DeleteClusterManifest
       parameters:
@@ -3993,6 +4057,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Import an AI cluster using minimal data associated with existing OCP cluster, in order to allow adding day2 hosts to that cluster
       operationId: v2ImportCluster
       parameters:
@@ -4027,6 +4093,8 @@ paths:
     post:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Create a disconnected OpenShift cluster for offline installation with embedded ignition
       operationId: v2RegisterDisconnectedCluster
       parameters:
@@ -4062,6 +4130,8 @@ paths:
     get:
       tags:
         - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       description: Fetch the validations which are to be ignored for this cluster.
       operationId: v2GetIgnoredValidations
       parameters:
@@ -4087,6 +4157,8 @@ paths:
     put:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Register the validations which are to be ignored for this cluster.
       operationId: v2SetIgnoredValidations
       parameters:
@@ -4132,6 +4204,8 @@ paths:
     get:
       tags:
           - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
       description: Fetch cluster specific UI settings.
       operationId: V2GetClusterUISettings
       parameters:
@@ -4169,6 +4243,8 @@ paths:
     put:
       tags:
         - installer
+      security:
+        - userAuth: [admin, user]
       description: Update cluster specific UI settings.
       operationId: V2UpdateClusterUISettings
       parameters:
