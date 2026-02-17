@@ -191,7 +191,7 @@ func (rs *RecordSet) ReadFrom(r io.Reader) (int64, error) {
 			// Reconstruct the prefix that we had to read to determine the version
 			// of the record set from the magic byte.
 			//
-			// Technically this may recurisvely stack readers when consuming all
+			// Technically this may recursively stack readers when consuming all
 			// items of the batch, which could hurt performance. In practice this
 			// path should not be taken tho, since the decoder would read from a
 			// *bufio.Reader which implements the bufferedReader interface.
@@ -290,6 +290,46 @@ func (rs *RecordSet) WriteTo(w io.Writer) (int64, error) {
 	}
 
 	return n, nil
+}
+
+// RawRecordSet represents a record set for a RawProduce request. The record set is
+// represented as a raw sequence of pre-encoded record set bytes.
+type RawRecordSet struct {
+	// Reader exposes the raw sequence of record set bytes.
+	Reader io.Reader
+}
+
+// ReadFrom reads the representation of a record set from r into rrs. It re-uses the
+// existing RecordSet.ReadFrom implementation to first read/decode data into a RecordSet,
+// then writes/encodes the RecordSet to a buffer referenced by the RawRecordSet.
+//
+// Note: re-using the RecordSet.ReadFrom implementation makes this suboptimal from a
+// performance standpoint as it requires an extra copy of the record bytes. Holding off
+// on optimizing, as this code path is only invoked in tests.
+func (rrs *RawRecordSet) ReadFrom(r io.Reader) (int64, error) {
+	rs := &RecordSet{}
+	n, err := rs.ReadFrom(r)
+	if err != nil {
+		return 0, err
+	}
+
+	buf := &bytes.Buffer{}
+	rs.WriteTo(buf)
+	*rrs = RawRecordSet{
+		Reader: buf,
+	}
+
+	return n, nil
+}
+
+// WriteTo writes the RawRecordSet to an io.Writer. Since this is a raw record set representation, all that is
+// done here is copying bytes from the underlying reader to the specified writer.
+func (rrs *RawRecordSet) WriteTo(w io.Writer) (int64, error) {
+	if rrs.Reader == nil {
+		return 0, ErrNoRecord
+	}
+
+	return io.Copy(w, rrs.Reader)
 }
 
 func makeTime(t int64) time.Time {
