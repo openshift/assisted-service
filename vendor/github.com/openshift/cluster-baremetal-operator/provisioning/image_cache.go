@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -47,6 +47,39 @@ var (
 		MountPath: imageSharedDir,
 	}
 )
+
+func getImageVolumes() []corev1.Volume {
+	volumes := []corev1.Volume{
+		imageVolume(),
+		trustedCAVolume(),
+		{
+			Name: ironicConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: ironicDataVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: baremetalSharedVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: ironicTmpVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+	}
+
+	return volumes
+}
 
 func imageVolume() corev1.Volume {
 	volType := corev1.HostPathDirectoryOrCreate
@@ -93,11 +126,20 @@ func createContainerImageCache(images *Images) corev1.Container {
 		Image:           images.Ironic,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
+			ReadOnlyRootFilesystem: ptr.To(true),
 			// Needed for hostPath image volume mount
-			Privileged: pointer.BoolPtr(true),
+			Privileged: ptr.To(true),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			},
 		},
-		Command:      []string{"/bin/runhttpd"},
-		VolumeMounts: []corev1.VolumeMount{imageVolumeMount},
+		Command: []string{"/bin/runhttpd"},
+		VolumeMounts: []corev1.VolumeMount{
+			imageVolumeMount,
+			ironicConfigMount,
+			ironicDataMount,
+			sharedVolumeMount,
+		},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          imageCachePortName,
@@ -130,6 +172,7 @@ func createContainerImageCache(images *Images) corev1.Container {
 				corev1.ResourceMemory: resource.MustParse("50Mi"),
 			},
 		},
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 	return container
 }
@@ -173,13 +216,13 @@ func newImageCachePodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateSp
 			Key:               "node.kubernetes.io/not-ready",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 		{
 			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 	}
 
@@ -195,17 +238,14 @@ func newImageCachePodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateSp
 			NodeSelector: map[string]string{
 				"node-role.kubernetes.io/master": "",
 			},
-			Volumes: []corev1.Volume{
-				imageVolume(),
-				trustedCAVolume(),
-			},
+			Volumes:           getImageVolumes(),
 			InitContainers:    injectProxyAndCA(initContainers, info.Proxy),
 			Containers:        containers,
 			HostNetwork:       true,
 			DNSPolicy:         corev1.DNSClusterFirstWithHostNet,
 			PriorityClassName: "system-node-critical",
 			SecurityContext: &corev1.PodSecurityContext{
-				RunAsNonRoot: pointer.BoolPtr(false),
+				RunAsNonRoot: ptr.To(false),
 			},
 			ServiceAccountName: "cluster-baremetal-operator",
 			Tolerations:        tolerations,
@@ -246,6 +286,10 @@ func newImageCacheDaemonSet(info *ProvisioningInfo) (*appsv1.DaemonSet, error) {
 }
 
 func EnsureImageCache(info *ProvisioningInfo) (updated bool, err error) {
+	if info.IsHyperShift {
+		return
+	}
+
 	if info.ProvConfig.Spec.ProvisioningOSDownloadURL == "" {
 		err = DeleteImageCache(info)
 		return

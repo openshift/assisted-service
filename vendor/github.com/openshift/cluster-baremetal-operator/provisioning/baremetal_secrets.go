@@ -12,10 +12,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	coreclientv1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/openshift/api/annotations"
 	"github.com/openshift/library-go/pkg/operator/events"
 	"github.com/openshift/library-go/pkg/operator/resource/resourceapply"
 )
@@ -24,12 +24,11 @@ const (
 	ironicUsernameKey        = "username"
 	ironicPasswordKey        = "password"
 	ironicHtpasswdKey        = "htpasswd"
-	ironicConfigKey          = "auth-config"
 	ironicSecretName         = "metal3-ironic-password"
-	ironicUsername           = "ironic-user"
 	inspectorSecretName      = "metal3-ironic-inspector-password"
-	inspectorUsername        = "inspector-user"
+	ironicUsername           = "ironic-user"
 	tlsSecretName            = "metal3-ironic-tls" // #nosec
+	baremetalJiraComponent   = "Bare Metal Hardware Provisioning / cluster-baremetal-operator"
 	openshiftConfigSecretKey = ".dockerconfigjson" // #nosec
 	// NOTE(dtantsur): this is kept here to be able to remove the old
 	// secret when a Provisioning is removed.
@@ -72,7 +71,7 @@ func applySecret(client coreclientv1.SecretsGetter, recorder events.Recorder, re
 	return err
 }
 
-func createIronicSecret(info *ProvisioningInfo, name string, username string, configSection string) error {
+func createIronicSecret(info *ProvisioningInfo, name string, username string) error {
 	password, err := generateRandomPassword()
 	if err != nil {
 		return err
@@ -103,12 +102,6 @@ func createIronicSecret(info *ProvisioningInfo, name string, username string, co
 			ironicUsernameKey: username,
 			ironicPasswordKey: password,
 			ironicHtpasswdKey: fmt.Sprintf("%s:%s", username, hash),
-			ironicConfigKey: fmt.Sprintf(`[%s]
-auth_type = http_basic
-username = %s
-password = %s
-`,
-				configSection, username, password),
 		},
 	}
 
@@ -121,79 +114,54 @@ password = %s
 
 // createRegistryPullSecret creates a copy of the pull-secret in the
 // openshift-config namespace for use with LocalObjectReference
-func createRegistryPullSecret(info *ProvisioningInfo) error {
+func createRegistryPullSecret(info *ProvisioningInfo) (bool, error) {
 	client := info.Client.CoreV1()
 	openshiftConfigSecret, err := client.Secrets(OpenshiftConfigNamespace).Get(context.TODO(), PullSecretName, metav1.GetOptions{})
 	if err != nil {
-		return fmt.Errorf("could not get secret %s/%s, err: %w", OpenshiftConfigNamespace, PullSecretName, err)
+		return false, fmt.Errorf("could not get secret %s/%s, err: %w", OpenshiftConfigNamespace, PullSecretName, err)
 	}
 	openshiftConfigSecretKeyData, ok := openshiftConfigSecret.Data[openshiftConfigSecretKey]
 	if !ok {
-		return fmt.Errorf("could not find key %q in secret %s/%s", openshiftConfigSecretKey, OpenshiftConfigNamespace, PullSecretName)
+		return false, fmt.Errorf("could not find key %q in secret %s/%s", openshiftConfigSecretKey, OpenshiftConfigNamespace, PullSecretName)
 	}
 
-	// Try to get the openshift-machine-api/pull-secret field .dockerconfigjson.
-	// The openshift-machine-api/pull-secret .dockerconfigjson field should be double encoded due to PR
-	// https://github.com/openshift/cluster-baremetal-operator/pull/184
-	// Attempt decoding this and use the decoded string for comparison.
-	// If any of the below steps fail, machineAPISecretKeyData will be the empty string and it will trigger an update
-	// action for applySecret (that is, if openshift-machine-api/pull-secret already exists).
 	machineAPINamespace := info.Namespace
-	var machineAPISecretKeyData string
-	if machineAPISecret, err := client.Secrets(machineAPINamespace).Get(context.TODO(), PullSecretName, metav1.GetOptions{}); err == nil {
-		if data, ok := machineAPISecret.Data[openshiftConfigSecretKey]; ok {
-			if decoded, err := base64.StdEncoding.DecodeString(string(data)); err == nil {
-				machineAPISecretKeyData = string(decoded)
-			}
-		}
-	}
-
-	shallUpdateData := func(*corev1.Secret) (bool, error) {
-		shallUpdate := string(openshiftConfigSecretKeyData) != machineAPISecretKeyData
-		if shallUpdate {
-			klog.Infof("content of secret %[1]s/%[3]s does not match content of secret %[2]s/%[3]s, reconciling %[2]s/%[3]s",
-				OpenshiftConfigNamespace, machineAPINamespace, PullSecretName)
-			reportRegistryPullSecretReconcile()
-		}
-		return shallUpdate, nil
-	}
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      PullSecretName,
 			Namespace: machineAPINamespace,
 		},
+		Type: corev1.SecretTypeOpaque,
 		StringData: map[string]string{
+			// The openshift-machine-api/pull-secret .dockerconfigjson field should be double encoded due to PR
+			// https://github.com/openshift/cluster-baremetal-operator/pull/184
 			openshiftConfigSecretKey: base64.StdEncoding.EncodeToString(openshiftConfigSecretKeyData),
 		},
 	}
 
 	if err := controllerutil.SetControllerReference(info.ProvConfig, secret, info.Scheme); err != nil {
-		return err
+		return false, err
 	}
-
-	return applySecret(client, info.EventRecorder, secret, shallUpdateData)
+	_, changed, err := resourceapply.ApplySecret(context.TODO(), client, info.EventRecorder, secret)
+	return changed, err
 }
-
-// reportRegistryPullSecretReconcile is used for unit testing, to report that the reconciler was triggered.
-var reportRegistryPullSecretReconcile = func() {}
 
 func EnsureAllSecrets(info *ProvisioningInfo) (bool, error) {
 	// Create a Secret for the Ironic Password
-	if err := createIronicSecret(info, ironicSecretName, ironicUsername, "ironic"); err != nil {
+	if err := createIronicSecret(info, ironicSecretName, ironicUsername); err != nil {
 		return false, errors.Wrap(err, "failed to create Ironic password")
-	}
-	// Create a Secret for the Ironic Inspector Password
-	if err := createIronicSecret(info, inspectorSecretName, inspectorUsername, "inspector"); err != nil {
-		return false, errors.Wrap(err, "failed to create Inspector password")
 	}
 	// Generate/update TLS certificate
 	if err := createOrUpdateTlsSecret(info); err != nil {
 		return false, errors.Wrap(err, "failed to create TLS certificate")
 	}
 	// Create a Secret for the Registry Pull Secret
-	if err := createRegistryPullSecret(info); err != nil {
+	if _, err := createRegistryPullSecret(info); err != nil {
 		return false, errors.Wrap(err, "failed to create Registry pull secret")
+	}
+	// Delete ironic-inspector Secret if it still exists
+	if err := client.IgnoreNotFound(info.Client.CoreV1().Secrets(info.Namespace).Delete(context.Background(), inspectorSecretName, metav1.DeleteOptions{})); err != nil {
+		return false, errors.Wrap(err, "Error occured while deleting Ironic Inspector Secret")
 	}
 	return false, nil // ApplySecret does not use Generation, so just return false for updated
 }
@@ -208,7 +176,7 @@ func DeleteAllSecrets(info *ProvisioningInfo) error {
 	return utilerrors.NewAggregate(secretErrors)
 }
 
-// createOrUpdateTlsSecret creates a Secret for the Ironic and Inspector TLS.
+// createOrUpdateTlsSecret creates a Secret for the Ironic TLS.
 // It updates the secret if the existing certificate is close to expiration.
 func createOrUpdateTlsSecret(info *ProvisioningInfo) error {
 	cert, err := generateTlsCertificate(info.ProvConfig.Spec.ProvisioningIP)
@@ -220,6 +188,9 @@ func createOrUpdateTlsSecret(info *ProvisioningInfo) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      tlsSecretName,
 			Namespace: info.Namespace,
+			Annotations: map[string]string{
+				annotations.OpenShiftComponent: baremetalJiraComponent,
+			},
 		},
 		Data: map[string][]byte{
 			corev1.TLSCertKey:       cert.certificate,

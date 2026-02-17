@@ -22,7 +22,7 @@ import (
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	osconfigv1 "github.com/openshift/api/config/v1"
@@ -54,7 +54,7 @@ func EnableValidatingWebhook(info *ProvisioningInfo, mgr manager.Manager, enable
 					Service: &admissionregistration.ServiceReference{
 						Name:      "cluster-baremetal-webhook-service",
 						Namespace: info.Namespace,
-						Path:      pointer.StringPtr("/validate-metal3-io-v1alpha1-provisioning"),
+						Path:      ptr.To("/validate-metal3-io-v1alpha1-provisioning"),
 					},
 				},
 				SideEffects:             &noSideEffects,

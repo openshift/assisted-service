@@ -32,8 +32,8 @@ type TlsCertificate struct {
 }
 
 const (
-	tlsExpirationDays = 365 * 2
-	tlsRefreshDays    = 180
+	tlsExpiration = 365 * 2 * 24 * time.Hour // 2 years
+	tlsRefresh    = 180 * 24 * time.Hour     // 180 days
 )
 
 func generateRandomPassword() (string, error) {
@@ -54,7 +54,7 @@ func generateRandomPassword() (string, error) {
 }
 
 func generateTlsCertificate(provisioningIP string) (TlsCertificate, error) {
-	caConfig, err := crypto.MakeSelfSignedCAConfig("metal3-ironic", tlsExpirationDays)
+	caConfig, err := crypto.MakeSelfSignedCAConfig("metal3-ironic", tlsExpiration)
 	if err != nil {
 		return TlsCertificate{}, err
 	}
@@ -71,7 +71,8 @@ func generateTlsCertificate(provisioningIP string) (TlsCertificate, error) {
 		host = provisioningIP
 	}
 
-	config, err := ca.MakeServerCert(sets.NewString(host), tlsExpirationDays)
+	config, err := ca.MakeServerCert(sets.New(host), tlsExpiration)
+
 	if err != nil {
 		return TlsCertificate{}, err
 	}
@@ -93,7 +94,7 @@ func isTlsCertificateExpired(certificate []byte) (bool, error) {
 		return false, err
 	}
 
-	refreshAfter := time.Now().AddDate(0, 0, tlsRefreshDays)
+	refreshAfter := time.Now().Add(tlsRefresh)
 	for _, cert := range certs {
 		if cert.NotAfter.Before(refreshAfter) {
 			return true, nil

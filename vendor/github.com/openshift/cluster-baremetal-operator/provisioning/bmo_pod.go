@@ -11,7 +11,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -55,20 +55,6 @@ var bmoVolumes = []corev1.Volume{
 				Items: []corev1.KeyToPath{
 					{Key: ironicUsernameKey, Path: ironicUsernameKey},
 					{Key: ironicPasswordKey, Path: ironicPasswordKey},
-					{Key: ironicConfigKey, Path: ironicConfigKey},
-				},
-			},
-		},
-	},
-	{
-		Name: inspectorCredentialsVolume,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: inspectorSecretName,
-				Items: []corev1.KeyToPath{
-					{Key: ironicUsernameKey, Path: ironicUsernameKey},
-					{Key: ironicPasswordKey, Path: ironicPasswordKey},
-					{Key: ironicConfigKey, Path: ironicConfigKey},
 				},
 			},
 		},
@@ -81,24 +67,16 @@ var bmoVolumes = []corev1.Volume{
 			},
 		},
 	},
-	{
-		Name: inspectorTlsVolume,
-		VolumeSource: corev1.VolumeSource{
-			Secret: &corev1.SecretVolumeSource{
-				SecretName: tlsSecretName,
-			},
-		},
-	},
 }
 
 func createContainerBaremetalOperator(info *ProvisioningInfo) (corev1.Container, error) {
 	webhookPort, _ := strconv.ParseInt(baremetalWebhookPort, 10, 32) // #nosec
-	externalUrlVar, err := setIronicExternalUrl(info)
+	externalIPv6Var, err := setIronicExternalIPv6(info)
 	if err != nil {
 		return corev1.Container{}, err
 	}
 
-	ironicURL, inspectorURL := getControlPlaneEndpoints(info)
+	ironicURL := getControlPlaneEndpoint(info)
 
 	container := corev1.Container{
 		Name:  "metal3-baremetal-operator",
@@ -106,16 +84,33 @@ func createContainerBaremetalOperator(info *ProvisioningInfo) (corev1.Container,
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "webhook-server",
-				HostPort:      int32(webhookPort),
 				ContainerPort: int32(webhookPort),
 			},
 		},
-		Command:         []string{"/baremetal-operator"},
-		Args:            []string{"--health-addr", ":9446", "-build-preprov-image"},
+		Command: []string{"/baremetal-operator"},
+		Args: []string{
+			"--health-addr", ":9446",
+			"-build-preprov-image",
+			"-enable-leader-election",
+
+			// these values match library-go LeaderElectionDefaulting, to produce this outcome
+			// see https://github.com/openshift/library-go/blob/release-4.15/pkg/config/leaderelection/leaderelection.go#L97-L105
+			// 1. clock skew tolerance is leaseDuration-renewDeadline == 30s
+			// 2. kube-apiserver downtime tolerance is == 78s
+			//      lastRetry=floor(renewDeadline/retryPeriod)*retryPeriod == 104
+			//      downtimeTolerance = lastRetry-retryPeriod == 78s
+			// 3. worst non-graceful lease acquisition is leaseDuration+retryPeriod == 163s
+			// 4. worst graceful lease acquisition is retryPeriod == 26s
+			"-lease-duration-seconds", "137",
+			"-renew-deadline-seconds", "107",
+			"-retry-period-seconds", "26",
+		},
 		ImagePullPolicy: "IfNotPresent",
+		SecurityContext: &corev1.SecurityContext{
+			ReadOnlyRootFilesystem: ptr.To(true),
+		},
 		VolumeMounts: []corev1.VolumeMount{
 			ironicCredentialsMount,
-			inspectorCredentialsMount,
 			ironicTlsMount,
 			baremetalWebhookCertMount,
 		},
@@ -155,10 +150,6 @@ func createContainerBaremetalOperator(info *ProvisioningInfo) (corev1.Container,
 				Value: ironicURL,
 			},
 			{
-				Name:  ironicInspectorEndpoint,
-				Value: inspectorURL,
-			},
-			{
 				Name:  "LIVE_ISO_FORCE_PERSISTENT_BOOT_DEVICE",
 				Value: "Never",
 			},
@@ -167,7 +158,11 @@ func createContainerBaremetalOperator(info *ProvisioningInfo) (corev1.Container,
 				Value: metal3AuthRootDir,
 			},
 			setIronicExternalIp(externalIpEnvVar, &info.ProvConfig.Spec),
-			externalUrlVar,
+			externalIPv6Var,
+			{
+				Name:  "PROVISIONING_NETWORK_DISABLED",
+				Value: strconv.FormatBool(info.ProvConfig.Spec.ProvisioningNetwork == metal3iov1alpha1.ProvisioningNetworkDisabled),
+			},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -175,6 +170,7 @@ func createContainerBaremetalOperator(info *ProvisioningInfo) (corev1.Container,
 				corev1.ResourceMemory: resource.MustParse("50Mi"),
 			},
 		},
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 
 	if !info.BaremetalWebhookEnabled {
@@ -207,21 +203,33 @@ func newBMOPodTemplateSpec(info *ProvisioningInfo, labels *map[string]string) (*
 			Key:               "node.kubernetes.io/not-ready",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 		{
 			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 	}
 
 	containers := injectProxyAndCA([]corev1.Container{container}, info.Proxy)
 
+	podAnnotations := make(map[string]string)
+	for key, val := range podTemplateAnnotations {
+		podAnnotations[key] = val
+	}
+
+	podAnnotations["openshift.io/required-scc"] = "hostnetwork-v2"
+
+	nodeSelector := map[string]string{}
+	if !info.IsHyperShift {
+		nodeSelector = map[string]string{"node-role.kubernetes.io/master": ""}
+	}
+
 	return &corev1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Annotations: podTemplateAnnotations,
+			Annotations: podAnnotations,
 			Labels:      *labels,
 		},
 		Spec: corev1.PodSpec{
@@ -230,7 +238,7 @@ func newBMOPodTemplateSpec(info *ProvisioningInfo, labels *map[string]string) (*
 			HostNetwork:        false,
 			DNSPolicy:          corev1.DNSClusterFirstWithHostNet,
 			PriorityClassName:  "system-node-critical",
-			NodeSelector:       map[string]string{"node-role.kubernetes.io/master": ""},
+			NodeSelector:       nodeSelector,
 			ServiceAccountName: "cluster-baremetal-operator",
 			Tolerations:        tolerations,
 		},
@@ -268,7 +276,7 @@ func newBMODeployment(info *ProvisioningInfo) (*appsv1.Deployment, error) {
 			},
 		},
 		Spec: appsv1.DeploymentSpec{
-			Replicas: pointer.Int32Ptr(1),
+			Replicas: ptr.To[int32](1),
 			Selector: selector,
 			Template: *template,
 			Strategy: appsv1.DeploymentStrategy{

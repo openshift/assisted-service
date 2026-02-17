@@ -13,7 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -24,15 +24,11 @@ import (
 )
 
 const (
-	ironicProxyService          = "ironic-proxy"
-	ironicPrivatePort           = 6388
-	inspectorPrivatePort        = 5051
-	ironicUpstreamIPEnvVar      = "IRONIC_UPSTREAM_IP"
-	ironicUpstreamPortEnvVar    = "IRONIC_UPSTREAM_PORT"
-	ironicProxyPortEnvVar       = "IRONIC_PROXY_PORT"
-	inspectorUpstreamIPEnvVar   = "IRONIC_INSPECTOR_UPSTREAM_IP"
-	inspectorUpstreamPortEnvVar = "IRONIC_INSPECTOR_UPSTREAM_PORT"
-	inspectorProxyPortEnvVar    = "IRONIC_INSPECTOR_PROXY_PORT"
+	ironicProxyService       = "ironic-proxy"
+	ironicPrivatePort        = 6388
+	ironicUpstreamIPEnvVar   = "IRONIC_UPSTREAM_IP"
+	ironicUpstreamPortEnvVar = "IRONIC_UPSTREAM_PORT"
+	ironicProxyPortEnvVar    = "IRONIC_PROXY_PORT"
 )
 
 func createContainerIronicProxy(ironicIP string, images *Images) corev1.Container {
@@ -41,25 +37,22 @@ func createContainerIronicProxy(ironicIP string, images *Images) corev1.Containe
 		Image:           images.Ironic,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
+			ReadOnlyRootFilesystem: ptr.To(true),
 			Capabilities: &corev1.Capabilities{
-				Add: []corev1.Capability{"FOWNER"},
+				Drop: []corev1.Capability{"ALL"},
 			},
 		},
 		Command: []string{"/bin/runironic-proxy"},
 		VolumeMounts: []corev1.VolumeMount{
 			ironicTlsMount,
-			inspectorTlsMount,
+			ironicConfigMount,
+			ironicDataMount,
 		},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          "ironic-proxy",
 				ContainerPort: int32(baremetalIronicPort),
 				HostPort:      int32(baremetalIronicPort),
-			},
-			{
-				Name:          "inspector-proxy",
-				ContainerPort: int32(baremetalIronicInspectorPort),
-				HostPort:      int32(baremetalIronicInspectorPort),
 			},
 		},
 		Env: []corev1.EnvVar{
@@ -68,24 +61,12 @@ func createContainerIronicProxy(ironicIP string, images *Images) corev1.Containe
 				Value: fmt.Sprint(baremetalIronicPort),
 			},
 			{
-				Name:  inspectorProxyPortEnvVar,
-				Value: fmt.Sprint(baremetalIronicInspectorPort),
-			},
-			{
 				Name:  ironicUpstreamIPEnvVar,
 				Value: ironicIP,
 			},
 			{
 				Name:  ironicUpstreamPortEnvVar,
 				Value: fmt.Sprint(ironicPrivatePort),
-			},
-			{
-				Name:  inspectorUpstreamIPEnvVar,
-				Value: ironicIP,
-			},
-			{
-				Name:  inspectorUpstreamPortEnvVar,
-				Value: fmt.Sprint(inspectorPrivatePort),
 			},
 			// The provisioning IP is not used except that
 			// httpd cannot start until the IP is available on some interface
@@ -104,6 +85,7 @@ func createContainerIronicProxy(ironicIP string, images *Images) corev1.Containe
 				corev1.ResourceMemory: resource.MustParse("50Mi"),
 			},
 		},
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 	return container
 }
@@ -132,13 +114,13 @@ func newIronicProxyPodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateS
 			Key:               "node.kubernetes.io/not-ready",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 		{
 			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 	}
 
@@ -164,14 +146,6 @@ func newIronicProxyPodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateS
 					},
 				},
 				{
-					Name: inspectorTlsVolume,
-					VolumeSource: corev1.VolumeSource{
-						Secret: &corev1.SecretVolumeSource{
-							SecretName: tlsSecretName,
-						},
-					},
-				},
-				{
 					Name: "trusted-ca",
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
@@ -179,8 +153,20 @@ func newIronicProxyPodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateS
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: externalTrustBundleConfigMapName,
 							},
-							Optional: pointer.BoolPtr(true),
+							Optional: ptr.To(true),
 						},
+					},
+				},
+				{
+					Name: ironicConfigVolume,
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
+					},
+				},
+				{
+					Name: ironicDataVolume,
+					VolumeSource: corev1.VolumeSource{
+						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 			},
@@ -189,7 +175,7 @@ func newIronicProxyPodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateS
 			DNSPolicy:         corev1.DNSClusterFirstWithHostNet,
 			PriorityClassName: "system-node-critical",
 			SecurityContext: &corev1.PodSecurityContext{
-				RunAsNonRoot: pointer.BoolPtr(false),
+				RunAsNonRoot: ptr.To(false),
 			},
 			ServiceAccountName: "cluster-baremetal-operator",
 			Tolerations:        tolerations,
@@ -229,13 +215,17 @@ func newIronicProxyDaemonSet(info *ProvisioningInfo) (*appsv1.DaemonSet, error) 
 	}, nil
 }
 
-func UseIronicProxy(config *metal3iov1alpha1.ProvisioningSpec) bool {
+func UseIronicProxy(info *ProvisioningInfo) bool {
 	// TODO(dtantsur): is it safe to use VirtualMediaViaExternalNetwork here?
-	return config.ProvisioningNetwork == metal3iov1alpha1.ProvisioningNetworkDisabled || config.VirtualMediaViaExternalNetwork
+	if info.IsHyperShift {
+		return false
+	} else {
+		return info.ProvConfig.Spec.ProvisioningNetwork == metal3iov1alpha1.ProvisioningNetworkDisabled || info.ProvConfig.Spec.VirtualMediaViaExternalNetwork
+	}
 }
 
 func EnsureIronicProxy(info *ProvisioningInfo) (updated bool, err error) {
-	if !UseIronicProxy(&info.ProvConfig.Spec) {
+	if !UseIronicProxy(info) {
 		return
 	}
 
@@ -266,8 +256,8 @@ func EnsureIronicProxy(info *ProvisioningInfo) (updated bool, err error) {
 }
 
 // Provide the current state of ironic-proxy daemonset
-func GetIronicProxyState(client appsclientv1.DaemonSetsGetter, targetNamespace string, config *metal3iov1alpha1.Provisioning) (appsv1.DaemonSetConditionType, error) {
-	if !UseIronicProxy(&config.Spec) {
+func GetIronicProxyState(client appsclientv1.DaemonSetsGetter, targetNamespace string, info *ProvisioningInfo) (appsv1.DaemonSetConditionType, error) {
+	if !UseIronicProxy(info) {
 		return DaemonSetDisabled, nil
 	}
 
@@ -287,4 +277,59 @@ func GetIronicProxyState(client appsclientv1.DaemonSetsGetter, targetNamespace s
 
 func DeleteIronicProxy(info *ProvisioningInfo) error {
 	return client.IgnoreNotFound(info.Client.AppsV1().DaemonSets(info.Namespace).Delete(context.Background(), ironicProxyService, metav1.DeleteOptions{}))
+}
+
+// newIronicProxyService creates a headless service for ironic-proxy pods
+// that exposes port 6385. This service is only needed when ironic-proxy is enabled.
+func newIronicProxyService(info *ProvisioningInfo) *corev1.Service {
+	return &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      ironicProxyService,
+			Namespace: info.Namespace,
+			Labels: map[string]string{
+				cboLabelName: ironicProxyService,
+			},
+		},
+		Spec: corev1.ServiceSpec{
+			Type:      corev1.ServiceTypeClusterIP,
+			ClusterIP: corev1.ClusterIPNone, // Headless service
+			Selector: map[string]string{
+				cboLabelName: ironicProxyService,
+			},
+			Ports: []corev1.ServicePort{
+				{
+					Name: "ironic-api",
+					Port: int32(baremetalIronicPort),
+				},
+			},
+		},
+	}
+}
+
+// EnsureIronicProxyService ensures the headless service for ironic-proxy exists
+// when ironic-proxy is enabled.
+func EnsureIronicProxyService(info *ProvisioningInfo) (updated bool, err error) {
+	if !UseIronicProxy(info) {
+		return false, DeleteIronicProxyService(info)
+	}
+
+	ironicProxySvc := newIronicProxyService(info)
+
+	err = controllerutil.SetControllerReference(info.ProvConfig, ironicProxySvc, info.Scheme)
+	if err != nil {
+		err = fmt.Errorf("unable to set controllerReference on ironic-proxy service: %w", err)
+		return
+	}
+
+	_, updated, err = resourceapply.ApplyService(context.Background(),
+		info.Client.CoreV1(), info.EventRecorder, ironicProxySvc)
+	if err != nil {
+		err = fmt.Errorf("unable to apply ironic-proxy service: %w", err)
+	}
+	return
+}
+
+// DeleteIronicProxyService deletes the ironic-proxy service
+func DeleteIronicProxyService(info *ProvisioningInfo) error {
+	return client.IgnoreNotFound(info.Client.CoreV1().Services(info.Namespace).Delete(context.Background(), ironicProxyService, metav1.DeleteOptions{}))
 }
