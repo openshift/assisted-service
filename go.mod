@@ -100,7 +100,7 @@ require (
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/MakeNowJust/heredoc v1.0.0 // indirect
 	github.com/Microsoft/hcsshim v0.11.7 // indirect
-	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20230305170008-8188dc5388df // indirect
+	github.com/antlr/antlr4/runtime/Go/antlr/v4 v4.0.0-20260216212909-7d5770395bb7 // indirect
 	github.com/chai2010/gettext-go v1.0.2 // indirect
 	github.com/containerd/containerd v1.7.29 // indirect
 	github.com/containerd/log v0.1.0 // indirect
