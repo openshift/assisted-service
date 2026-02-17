@@ -37,7 +37,7 @@ COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
 COPY --from=registry.k8s.io/kustomize/kustomize:v5.7.1 /app/kustomize /usr/bin/
 
-RUN dnf install -y --enablerepo=crb \
+RUN dnf install -y --enablerepo=crb --setopt=multilib_policy=best --exclude='*.i686' \
         openssl openssl-devel postgresql nmstate-devel sqlite gcc genisoimage git libvirt-client libvirt-devel java make && \
     dnf clean all
 

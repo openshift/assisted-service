@@ -581,6 +581,35 @@ func generateExpiredCertificate() (string, error) {
 	return certPEM.String(), nil
 }
 
+func generateNotYetValidCertificate() (string, error) {
+	cert := &x509.Certificate{
+		SerialNumber: big.NewInt(2020),
+		Subject: pkix.Name{
+			Organization: []string{"Test Org"},
+		},
+		NotBefore:    time.Now().AddDate(0, 0, 1), // Valid starting tomorrow
+		NotAfter:     time.Now().AddDate(1, 0, 0), // Expires in 1 year
+		SubjectKeyId: []byte{1, 2, 3, 4, 7},
+		KeyUsage:     x509.KeyUsageDigitalSignature,
+	}
+	certPrivKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		return "", err
+	}
+	certBytes, err := x509.CreateCertificate(rand.Reader, cert, cert, &certPrivKey.PublicKey, certPrivKey)
+	if err != nil {
+		return "", err
+	}
+	certPEM := new(bytes.Buffer)
+	if err := pem.Encode(certPEM, &pem.Block{
+		Type:  "CERTIFICATE",
+		Bytes: certBytes,
+	}); err != nil {
+		return "", err
+	}
+	return certPEM.String(), nil
+}
+
 var _ = Describe("ValidatePEMCertificate", func() {
 	It("Valid certificate", func() {
 		cert, err := GenerateTestCertificate()
@@ -617,6 +646,14 @@ MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC7
 		err = ValidatePEMCertificate([]byte(cert))
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("certificate has expired"))
+	})
+
+	It("Certificate not yet valid", func() {
+		cert, err := generateNotYetValidCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		err = ValidatePEMCertificate([]byte(cert))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("certificate is not yet valid"))
 	})
 
 	It("Certificate too large", func() {
@@ -740,6 +777,23 @@ YmFkIGNlcnRpZmljYXRlIGRhdGE=
 		Expect(err).ToNot(HaveOccurred())
 		// ValidatePEMCertificateBundle allows expired certs unlike ValidatePEMCertificate
 		err = ValidatePEMCertificateBundle([]byte(expiredCert))
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Bundle with trailing non-PEM data fails", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundleWithTrailingData := validCert + "\nsome random non-PEM data here"
+		err = ValidatePEMCertificateBundle([]byte(bundleWithTrailingData))
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("trailing non-PEM data"))
+	})
+
+	It("Bundle with trailing whitespace only is valid", func() {
+		validCert, err := GenerateTestCertificate()
+		Expect(err).ToNot(HaveOccurred())
+		bundleWithTrailingWhitespace := validCert + "\n\n   \t\n"
+		err = ValidatePEMCertificateBundle([]byte(bundleWithTrailingWhitespace))
 		Expect(err).ToNot(HaveOccurred())
 	})
 })

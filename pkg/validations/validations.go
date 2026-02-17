@@ -225,7 +225,12 @@ func ValidatePEMCertificate(certData []byte) error {
 		return errors.Wrap(err, "failed to parse X.509 certificate")
 	}
 
-	if cert.NotAfter.Before(time.Now()) {
+	now := time.Now()
+	if cert.NotBefore.After(now) {
+		return errors.Errorf("certificate is not yet valid (valid from %s)", cert.NotBefore.Format(time.RFC3339))
+	}
+
+	if cert.NotAfter.Before(now) {
 		return errors.Errorf("certificate has expired (expired on %s)", cert.NotAfter.Format(time.RFC3339))
 	}
 
@@ -264,6 +269,10 @@ func ValidatePEMCertificateBundle(bundle []byte) error {
 		if block == nil {
 			if certCount == 0 {
 				return errors.New("invalid PEM format: no certificates found")
+			}
+			// Check for trailing non-PEM data
+			if len(bytes.TrimSpace(rest)) > 0 {
+				return errors.New("invalid PEM format: trailing non-PEM data")
 			}
 			break
 		}

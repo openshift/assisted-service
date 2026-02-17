@@ -142,6 +142,12 @@ const minimalOpenShiftVersionForNutanix = "4.11.0-0.0"
 
 // Security limits for input validation
 //
+// These validations are implemented at the application layer, not in swagger-generated
+// code, because go-swagger handles HTTP parsing/routing but business logic validation
+// (security limits, format constraints, semantic checks) is the application's responsibility.
+// The swagger spec defines data types but cannot enforce runtime security policies like
+// DoS prevention limits or injection attack detection.
+//
 // Array bounds limits prevent DoS attacks via memory exhaustion.
 // Values chosen based on realistic maximum scenarios:
 //   - maxHTTPHeaders: 20 headers sufficient for ignition configuration

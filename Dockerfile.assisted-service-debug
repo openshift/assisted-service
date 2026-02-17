@@ -4,7 +4,7 @@ RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
 FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:3816d303e75dec4da2d10eeb9e8651eef4393721598bea4690c607282635aa57 AS builder
 
-RUN dnf install -y gcc git nmstate-devel openssl-devel make && \
+RUN dnf install -y --setopt=multilib_policy=best --exclude='*.i686' gcc git nmstate-devel openssl-devel make && \
     dnf clean all
 
 ENV GOROOT=/usr/lib/golang
