@@ -286,6 +286,6 @@ replace (
 	k8s.io/api => k8s.io/api v0.29.9
 	k8s.io/apimachinery => k8s.io/apimachinery v0.29.9
 	k8s.io/kube-openapi => k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
-	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
+	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws f8b9cb05593d
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
