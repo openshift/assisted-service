@@ -202,7 +202,7 @@ require (
 	github.com/itchyny/timefmt-go v0.1.3 // indirect
 	github.com/jackc/pgconn v1.14.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jackc/pgtype v1.14.0 // indirect
 	github.com/jackc/pgx/v4 v4.16.0 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
