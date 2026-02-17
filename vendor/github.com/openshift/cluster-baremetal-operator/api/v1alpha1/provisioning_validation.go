@@ -159,6 +159,9 @@ func validateProvisioningNetworkSettings(ip string, cidr string, dhcpRange strin
 		return errs
 	}
 
+	if provisioningNetworkMode != ProvisioningNetworkManaged {
+		return errs
+	}
 	// Verify Network CIDR
 	_, provisioningCIDR, err := net.ParseCIDR(cidr)
 	if err != nil {

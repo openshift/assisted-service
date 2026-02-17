@@ -16,6 +16,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,10 +38,10 @@ func (r *Provisioning) SetupWebhookWithManager(mgr ctrl.Manager, features Enable
 }
 
 // https://golangbyexample.com/go-check-if-type-implements-interface/
-var _ webhook.Validator = &Provisioning{}
+var _ webhook.CustomValidator = &Provisioning{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateCreate() (admission.Warnings, error) {
+// ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type
+func (r *Provisioning) ValidateCreate(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	provisioninglog.Info("validate create", "name", r.Name)
 
 	if r.Name != ProvisioningSingletonName {
@@ -51,13 +52,13 @@ func (r *Provisioning) ValidateCreate() (admission.Warnings, error) {
 }
 
 // ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
+func (r *Provisioning) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	provisioninglog.Info("validate update", "name", r.Name)
 	return nil, r.ValidateBaremetalProvisioningConfig(enabledFeatures)
 }
 
 // ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateDelete() (admission.Warnings, error) {
+func (r *Provisioning) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
 	provisioninglog.Info("validate delete", "name", r.Name)
 	return nil, nil
 }

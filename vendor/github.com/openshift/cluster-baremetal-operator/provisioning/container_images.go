@@ -18,7 +18,7 @@ package provisioning
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 )
 
@@ -34,7 +34,7 @@ type Images struct {
 
 func GetContainerImages(containerImages *Images, imagesFilePath string) error {
 	//read images.json file
-	jsonData, err := ioutil.ReadFile(filepath.Clean(imagesFilePath))
+	jsonData, err := os.ReadFile(filepath.Clean(imagesFilePath))
 	if err != nil {
 		return fmt.Errorf("unable to read file %s : %w", imagesFilePath, err)
 	}
