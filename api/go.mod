@@ -60,4 +60,4 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.33.0
 )
 
-replace github.com/golang/glog => github.com/golang/glog v1.2.4
+replace github.com/golang/glog => github.com/golang/glog v1.2.5
