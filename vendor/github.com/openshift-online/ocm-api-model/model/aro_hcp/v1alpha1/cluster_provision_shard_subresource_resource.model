@@ -14,11 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-enum ProvisionShardTopology {
-		// Represents a provision shard with shared topology. In this topology, all
-		// ARO-HCP Clusters share a common pool of K8s Nodes for control plane
-		// request serving workloads, rather than using a different set of
-		// dedicated K8s Nodes per ARO-HCP cluster.
-		@json(name = "shared")
-		Shared
+// Defines the Cluster's level ProvisionShard subresource
+resource ClusterProvisionShardSubresource {
+	// Retrieves the details of the provision shard.
+	method Get {
+		out Body ProvisionShard
+	}
+
 }

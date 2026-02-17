@@ -30,4 +30,7 @@ class DNSDomain {
 
     // Signals which cluster architecture the domain is ready for.
     ClusterArch ClusterArchitecture
+
+    // Signals which cloud provider the domain is ready for.
+    CloudProvider DnsCloudProvider
 }

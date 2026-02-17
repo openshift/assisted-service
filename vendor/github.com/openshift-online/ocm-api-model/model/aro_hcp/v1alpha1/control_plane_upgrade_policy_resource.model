@@ -14,11 +14,19 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-enum ProvisionShardTopology {
-		// Represents a provision shard with shared topology. In this topology, all
-		// ARO-HCP Clusters share a common pool of K8s Nodes for control plane
-		// request serving workloads, rather than using a different set of
-		// dedicated K8s Nodes per ARO-HCP cluster.
-		@json(name = "shared")
-		Shared
+// Manages a specific upgrade policy for the control plane.
+resource ControlPlaneUpgradePolicy {
+	// Retrieves the details of the upgrade policy for the control plane.
+	method Get {
+		out Body ControlPlaneUpgradePolicy
+	}
+
+	// Update the upgrade policy for the control plane.
+	method Update {
+		in out Body ControlPlaneUpgradePolicy
+	}
+
+	// Deletes the upgrade policy for the control plane.
+	method Delete {
+	}
 }

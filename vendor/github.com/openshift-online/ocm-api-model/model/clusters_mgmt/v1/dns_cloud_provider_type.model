@@ -14,30 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Manages a specific nodepool.
-resource NodePool {
-		// Retrieves the details of the node pool.
-		method Get {
-				out Body NodePool
-		}
+enum DnsCloudProvider {
+    @json(name = "aws")
+    aws
 
-		// Updates the node pool.
-		@go(name="Update")
-		method AsyncUpdate {
-				in out Body NodePool
-		}
-
-		// Deletes the node pool.
-		@go(name="Delete")
-		method AsyncDelete {
-		}
-
-	locator Status {
-		target NodePoolStatus
-	}
-
-	// Reference to the resource that manages the collection of upgrade policies for the node pool.
-	locator UpgradePolicies {
-		target NodePoolUpgradePolicies
-	}
+    @json(name = "gcp")
+    gcp
 }

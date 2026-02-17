@@ -689,7 +689,7 @@ github.com/openshift-online/ocm-api-model/clientapi/servicelogs/v1
 github.com/openshift-online/ocm-api-model/clientapi/servicemgmt/v1
 github.com/openshift-online/ocm-api-model/clientapi/statusboard/v1
 github.com/openshift-online/ocm-api-model/clientapi/webrca/v1
-# github.com/openshift-online/ocm-api-model/model v0.0.440
+# github.com/openshift-online/ocm-api-model/model v0.0.449
 ## explicit; go 1.23.0
 github.com/openshift-online/ocm-api-model/model/access_transparency/v1
 github.com/openshift-online/ocm-api-model/model/accounts_mgmt/v1

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2020 Red Hat, Inc.
+Copyright (c) 2026 Red Hat, Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,17 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Representation of a server config
-class ServerConfig {
-	// The URL of the server.
-	Server String
+// Representation of a deleted cluster with its deleted_timestamp and the entire cluster details
+class DeletedCluster {
 
-	// The kubeconfig of the server.
-	Kubeconfig String
+    // Reference to the deleted cluster
+    Cluster Cluster
 
-	// The topology of a provision shard (Optional).
-	Topology ProvisionShardTopology
-
-	// Config for AWS provision shards
-	AWSShard AWSShard 
+    // Date and time the cluster was effectively deleted
+    DeletedTimestamp Date
 }
