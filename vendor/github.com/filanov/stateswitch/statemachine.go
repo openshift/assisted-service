@@ -63,7 +63,8 @@ func (sm *stateMachine) Run(transitionType TransitionType, stateSwitch StateSwit
 			return nil
 		}
 	}
-	return NoConditionPassedToRunTransaction
+	return errors.Wrapf(NoConditionPassedToRunTransaction, "transition type [%s] source state [%s]",
+		transitionType, stateSwitch.State())
 }
 
 func (sm *stateMachine) AddTransition(rule TransitionRule) {
