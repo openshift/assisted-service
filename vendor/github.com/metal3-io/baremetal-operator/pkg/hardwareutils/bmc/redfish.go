@@ -8,7 +8,7 @@ import (
 
 func init() {
 	schemes := []string{"http", "https"}
-	RegisterFactory("redfish", newRedfishAccessDetails, schemes)
+	RegisterFactory(redfish, newRedfishAccessDetails, schemes)
 	RegisterFactory("ilo5-redfish", newRedfishAccessDetails, schemes)
 	RegisterFactory("idrac-redfish", newRedfishiDracAccessDetails, schemes)
 }
@@ -58,7 +58,7 @@ func (a *redfishAccessDetails) NeedsMAC() bool {
 }
 
 func (a *redfishAccessDetails) Driver() string {
-	return "redfish"
+	return redfish
 }
 
 func (a *redfishAccessDetails) DisableCertificateVerification() bool {
@@ -85,10 +85,13 @@ func getRedfishAddress(bmcType, host string) string {
 // the kernel and ramdisk locations).
 func (a *redfishAccessDetails) DriverInfo(bmcCreds Credentials) map[string]interface{} {
 	result := map[string]interface{}{
-		"redfish_system_id": a.path,
-		"redfish_username":  bmcCreds.Username,
-		"redfish_password":  bmcCreds.Password,
-		"redfish_address":   getRedfishAddress(a.bmcType, a.host),
+		"redfish_username": bmcCreds.Username,
+		"redfish_password": bmcCreds.Password,
+		"redfish_address":  getRedfishAddress(a.bmcType, a.host),
+	}
+	trimmedPath := strings.Trim(a.path, "/")
+	if trimmedPath != "" && trimmedPath != "redfish/v1" {
+		result["redfish_system_id"] = a.path
 	}
 
 	if a.disableCertificateVerification {
@@ -102,9 +105,13 @@ func (a *redfishAccessDetails) BIOSInterface() string {
 	return ""
 }
 
-// That can be either pxe or redfish-virtual-media
+// That can be either pxe or redfish-virtual-media.
 func (a *redfishAccessDetails) BootInterface() string {
-	return "ipxe"
+	return ipxe
+}
+
+func (a *redfishAccessDetails) FirmwareInterface() string {
+	return redfish
 }
 
 func (a *redfishAccessDetails) ManagementInterface() string {
@@ -116,7 +123,7 @@ func (a *redfishAccessDetails) PowerInterface() string {
 }
 
 func (a *redfishAccessDetails) RAIDInterface() string {
-	return "no-raid"
+	return redfish
 }
 
 func (a *redfishAccessDetails) VendorInterface() string {
@@ -142,36 +149,38 @@ func (a *redfishAccessDetails) BuildBIOSSettings(firmwareConfig *FirmwareConfig)
 	return nil, nil
 }
 
-// iDrac Redfish Overrides
+// iDrac Redfish Overrides.
 func (a *redfishiDracAccessDetails) Driver() string {
-	return "idrac"
+	return idrac
 }
 
 func (a *redfishiDracAccessDetails) BIOSInterface() string {
-	return "idrac-redfish"
+	return idracRedfish
 }
 
 func (a *redfishiDracAccessDetails) BootInterface() string {
-	return "ipxe"
+	return ipxe
+}
+
+func (a *redfishiDracAccessDetails) FirmwareInterface() string {
+	return redfish
 }
 
 func (a *redfishiDracAccessDetails) ManagementInterface() string {
-	return "idrac-redfish"
+	return idracRedfish
 }
 
 func (a *redfishiDracAccessDetails) PowerInterface() string {
-	return "idrac-redfish"
+	return idracRedfish
 }
 
 func (a *redfishiDracAccessDetails) RAIDInterface() string {
-	// Disabled RAID in OpenShift because we are not ready to support it
-	// return "idrac-redfish"
-	return "no-raid"
+	return idracRedfish
 }
 
 func (a *redfishiDracAccessDetails) VendorInterface() string {
 	// NOTE(dtantsur): the idrac hardware type defaults to WSMAN vendor, we need to use the Redfish implementation.
-	return "idrac-redfish"
+	return idracRedfish
 }
 
 func (a *redfishiDracAccessDetails) BuildBIOSSettings(firmwareConfig *FirmwareConfig) (settings []map[string]string, err error) {
