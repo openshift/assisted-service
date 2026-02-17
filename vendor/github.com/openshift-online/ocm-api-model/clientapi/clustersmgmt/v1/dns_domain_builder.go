@@ -28,6 +28,7 @@ type DNSDomainBuilder struct {
 	fieldSet_           []bool
 	id                  string
 	href                string
+	cloudProvider       DnsCloudProvider
 	cluster             *ClusterLinkBuilder
 	clusterArch         ClusterArchitecture
 	organization        *OrganizationLinkBuilder
@@ -38,14 +39,14 @@ type DNSDomainBuilder struct {
 // NewDNSDomain creates a new builder of 'DNS_domain' objects.
 func NewDNSDomain() *DNSDomainBuilder {
 	return &DNSDomainBuilder{
-		fieldSet_: make([]bool, 8),
+		fieldSet_: make([]bool, 9),
 	}
 }
 
 // Link sets the flag that indicates if this is a link.
 func (b *DNSDomainBuilder) Link(value bool) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.fieldSet_[0] = true
 	return b
@@ -54,7 +55,7 @@ func (b *DNSDomainBuilder) Link(value bool) *DNSDomainBuilder {
 // ID sets the identifier of the object.
 func (b *DNSDomainBuilder) ID(value string) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.id = value
 	b.fieldSet_[1] = true
@@ -64,7 +65,7 @@ func (b *DNSDomainBuilder) ID(value string) *DNSDomainBuilder {
 // HREF sets the link to the object.
 func (b *DNSDomainBuilder) HREF(value string) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.href = value
 	b.fieldSet_[2] = true
@@ -85,18 +86,28 @@ func (b *DNSDomainBuilder) Empty() bool {
 	return true
 }
 
+// CloudProvider sets the value of the 'cloud_provider' attribute to the given value.
+func (b *DNSDomainBuilder) CloudProvider(value DnsCloudProvider) *DNSDomainBuilder {
+	if len(b.fieldSet_) == 0 {
+		b.fieldSet_ = make([]bool, 9)
+	}
+	b.cloudProvider = value
+	b.fieldSet_[3] = true
+	return b
+}
+
 // Cluster sets the value of the 'cluster' attribute to the given value.
 //
 // Definition of a cluster link.
 func (b *DNSDomainBuilder) Cluster(value *ClusterLinkBuilder) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.cluster = value
 	if value != nil {
-		b.fieldSet_[3] = true
+		b.fieldSet_[4] = true
 	} else {
-		b.fieldSet_[3] = false
+		b.fieldSet_[4] = false
 	}
 	return b
 }
@@ -106,10 +117,10 @@ func (b *DNSDomainBuilder) Cluster(value *ClusterLinkBuilder) *DNSDomainBuilder 
 // Possible cluster architectures.
 func (b *DNSDomainBuilder) ClusterArch(value ClusterArchitecture) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.clusterArch = value
-	b.fieldSet_[4] = true
+	b.fieldSet_[5] = true
 	return b
 }
 
@@ -118,13 +129,13 @@ func (b *DNSDomainBuilder) ClusterArch(value ClusterArchitecture) *DNSDomainBuil
 // Definition of an organization link.
 func (b *DNSDomainBuilder) Organization(value *OrganizationLinkBuilder) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.organization = value
 	if value != nil {
-		b.fieldSet_[5] = true
+		b.fieldSet_[6] = true
 	} else {
-		b.fieldSet_[5] = false
+		b.fieldSet_[6] = false
 	}
 	return b
 }
@@ -132,20 +143,20 @@ func (b *DNSDomainBuilder) Organization(value *OrganizationLinkBuilder) *DNSDoma
 // ReservedAtTimestamp sets the value of the 'reserved_at_timestamp' attribute to the given value.
 func (b *DNSDomainBuilder) ReservedAtTimestamp(value time.Time) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.reservedAtTimestamp = value
-	b.fieldSet_[6] = true
+	b.fieldSet_[7] = true
 	return b
 }
 
 // UserDefined sets the value of the 'user_defined' attribute to the given value.
 func (b *DNSDomainBuilder) UserDefined(value bool) *DNSDomainBuilder {
 	if len(b.fieldSet_) == 0 {
-		b.fieldSet_ = make([]bool, 8)
+		b.fieldSet_ = make([]bool, 9)
 	}
 	b.userDefined = value
-	b.fieldSet_[7] = true
+	b.fieldSet_[8] = true
 	return b
 }
 
@@ -160,6 +171,7 @@ func (b *DNSDomainBuilder) Copy(object *DNSDomain) *DNSDomainBuilder {
 	}
 	b.id = object.id
 	b.href = object.href
+	b.cloudProvider = object.cloudProvider
 	if object.cluster != nil {
 		b.cluster = NewClusterLink().Copy(object.cluster)
 	} else {
@@ -185,6 +197,7 @@ func (b *DNSDomainBuilder) Build() (object *DNSDomain, err error) {
 		object.fieldSet_ = make([]bool, len(b.fieldSet_))
 		copy(object.fieldSet_, b.fieldSet_)
 	}
+	object.cloudProvider = b.cloudProvider
 	if b.cluster != nil {
 		object.cluster, err = b.cluster.Build()
 		if err != nil {

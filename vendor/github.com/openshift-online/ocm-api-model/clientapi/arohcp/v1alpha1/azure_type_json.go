@@ -130,6 +130,15 @@ func WriteAzure(object *Azure, stream *jsoniter.Stream) {
 		}
 		stream.WriteObjectField("tenant_id")
 		stream.WriteString(object.tenantID)
+		count++
+	}
+	present_ = len(object.fieldSet_) > 10 && object.fieldSet_[10]
+	if present_ {
+		if count > 0 {
+			stream.WriteMore()
+		}
+		stream.WriteObjectField("vnet_integration_subnet_resource_id")
+		stream.WriteString(object.vnetIntegrationSubnetResourceID)
 	}
 	stream.WriteObjectEnd()
 }
@@ -149,7 +158,7 @@ func UnmarshalAzure(source interface{}) (object *Azure, err error) {
 // ReadAzure reads a value of the 'azure' type from the given iterator.
 func ReadAzure(iterator *jsoniter.Iterator) *Azure {
 	object := &Azure{
-		fieldSet_: make([]bool, 10),
+		fieldSet_: make([]bool, 11),
 	}
 	for {
 		field := iterator.ReadObject()
@@ -197,6 +206,10 @@ func ReadAzure(iterator *jsoniter.Iterator) *Azure {
 			value := iterator.ReadString()
 			object.tenantID = value
 			object.fieldSet_[9] = true
+		case "vnet_integration_subnet_resource_id":
+			value := iterator.ReadString()
+			object.vnetIntegrationSubnetResourceID = value
+			object.fieldSet_[10] = true
 		default:
 			iterator.ReadAny()
 		}

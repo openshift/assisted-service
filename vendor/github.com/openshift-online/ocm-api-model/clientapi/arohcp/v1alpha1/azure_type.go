@@ -23,17 +23,18 @@ package v1alpha1 // github.com/openshift-online/ocm-api-model/clientapi/arohcp/v
 //
 // Microsoft Azure settings of a cluster.
 type Azure struct {
-	fieldSet_                      []bool
-	etcdEncryption                 *AzureEtcdEncryption
-	managedResourceGroupName       string
-	networkSecurityGroupResourceID string
-	nodesOutboundConnectivity      *AzureNodesOutboundConnectivity
-	operatorsAuthentication        *AzureOperatorsAuthentication
-	resourceGroupName              string
-	resourceName                   string
-	subnetResourceID               string
-	subscriptionID                 string
-	tenantID                       string
+	fieldSet_                       []bool
+	etcdEncryption                  *AzureEtcdEncryption
+	managedResourceGroupName        string
+	networkSecurityGroupResourceID  string
+	nodesOutboundConnectivity       *AzureNodesOutboundConnectivity
+	operatorsAuthentication         *AzureOperatorsAuthentication
+	resourceGroupName               string
+	resourceName                    string
+	subnetResourceID                string
+	subscriptionID                  string
+	tenantID                        string
+	vnetIntegrationSubnetResourceID string
 }
 
 // Empty returns true if the object is empty, i.e. no attribute has a value.
@@ -409,6 +410,47 @@ func (o *Azure) GetTenantID() (value string, ok bool) {
 	ok = o != nil && len(o.fieldSet_) > 9 && o.fieldSet_[9]
 	if ok {
 		value = o.tenantID
+	}
+	return
+}
+
+// VnetIntegrationSubnetResourceID returns the value of the 'vnet_integration_subnet_resource_ID' attribute, or
+// the zero value of the type if the attribute doesn't have a value.
+//
+// Vnet Integration Subnet Resource ID is the Azure Resource ID of a pre-existing Azure
+// Subnet used for SWIFT networking (Azure Container Networking Interface).
+// This subnet is delegated to Microsoft.RedHatOpenShift/hcpOpenShiftClusters
+// via a Service Association Link and is used for pod networking in the cluster.
+// Vnet Integration Subnet Resource ID must be located in the same Azure location as the
+// cluster's region and in the same VNet as Subnet Resource ID.
+// The Azure Subscription specified as part of the Vnet Integration Subnet Resource ID must
+// be located in the same Azure Subscription as Subscription ID.
+// This field is optional - if not specified, SWIFT networking will not be enabled.
+// Immutable.
+func (o *Azure) VnetIntegrationSubnetResourceID() string {
+	if o != nil && len(o.fieldSet_) > 10 && o.fieldSet_[10] {
+		return o.vnetIntegrationSubnetResourceID
+	}
+	return ""
+}
+
+// GetVnetIntegrationSubnetResourceID returns the value of the 'vnet_integration_subnet_resource_ID' attribute and
+// a flag indicating if the attribute has a value.
+//
+// Vnet Integration Subnet Resource ID is the Azure Resource ID of a pre-existing Azure
+// Subnet used for SWIFT networking (Azure Container Networking Interface).
+// This subnet is delegated to Microsoft.RedHatOpenShift/hcpOpenShiftClusters
+// via a Service Association Link and is used for pod networking in the cluster.
+// Vnet Integration Subnet Resource ID must be located in the same Azure location as the
+// cluster's region and in the same VNet as Subnet Resource ID.
+// The Azure Subscription specified as part of the Vnet Integration Subnet Resource ID must
+// be located in the same Azure Subscription as Subscription ID.
+// This field is optional - if not specified, SWIFT networking will not be enabled.
+// Immutable.
+func (o *Azure) GetVnetIntegrationSubnetResourceID() (value string, ok bool) {
+	ok = o != nil && len(o.fieldSet_) > 10 && o.fieldSet_[10]
+	if ok {
+		value = o.vnetIntegrationSubnetResourceID
 	}
 	return
 }
