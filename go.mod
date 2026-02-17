@@ -291,4 +291,4 @@ replace (
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
 
-replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.13.0
+replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.13.1
