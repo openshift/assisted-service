@@ -110,7 +110,15 @@ func (m *Middleware) Handler(next http.Handler) http.Handler {
 		// This provides meaningful integer values even for sub-1 RPS configurations
 		// (e.g., 0.1 RPS becomes 6 requests/minute).
 		requestsPerMinute := int(math.Round(float64(limiter.Rate()) * 60))
-		remainingPerMinute := int(math.Round(limiter.Tokens(clientID) * 60))
+		// Clamp remaining to not exceed the limit (tokens can be up to burst capacity)
+		// and ensure non-negative value for coherent header semantics.
+		remainingPerMinute := int(math.Round(math.Min(
+			float64(requestsPerMinute),
+			limiter.Tokens(clientID)*60,
+		)))
+		if remainingPerMinute < 0 {
+			remainingPerMinute = 0
+		}
 		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", requestsPerMinute))
 		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remainingPerMinute))
 

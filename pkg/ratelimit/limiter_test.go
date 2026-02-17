@@ -272,4 +272,32 @@ var _ = Describe("GetClientIDWithConfig", func() {
 		// 10.0.0.50 is in 10.0.0.0/8, so headers should be trusted
 		Expect(clientID).To(Equal("ip:203.0.113.1"))
 	})
+
+	It("should fail closed when proxies string contains only invalid entries", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+		req.Header.Set("X-Forwarded-For", "10.0.0.1")
+
+		// Configure with invalid proxy entries - should fail closed and not trust headers
+		cfg := ParseTrustedProxies(true, "invalid-cidr, not-an-ip, garbage")
+		Expect(cfg.TrustProxyHeaders).To(BeFalse(), "TrustProxyHeaders should be disabled when proxies string is invalid")
+
+		clientID := GetClientIDWithConfig(req, cfg)
+		// Should use RemoteAddr since proxy trust is disabled
+		Expect(clientID).To(Equal("ip:192.168.1.100"))
+	})
+
+	It("should trust headers when proxies string has at least one valid entry among invalid ones", func() {
+		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req.RemoteAddr = "192.168.1.100:12345"
+		req.Header.Set("X-Forwarded-For", "10.0.0.1")
+
+		// Configure with mix of valid and invalid entries
+		cfg := ParseTrustedProxies(true, "invalid-cidr, 192.168.1.100, garbage")
+		Expect(cfg.TrustProxyHeaders).To(BeTrue(), "TrustProxyHeaders should remain enabled with at least one valid entry")
+
+		clientID := GetClientIDWithConfig(req, cfg)
+		// 192.168.1.100 is in trusted list, so headers should be trusted
+		Expect(clientID).To(Equal("ip:10.0.0.1"))
+	})
 })

@@ -45,6 +45,8 @@ type ProxyTrustConfig struct {
 }
 
 // ParseTrustedProxies parses a comma-separated list of CIDRs/IPs into a ProxyTrustConfig.
+// If trustHeaders is true but the proxies string is non-empty and contains no valid entries,
+// TrustProxyHeaders is set to false (fail-closed) to prevent security bypass via spoofed headers.
 func ParseTrustedProxies(trustHeaders bool, proxies string) ProxyTrustConfig {
 	cfg := ProxyTrustConfig{
 		TrustProxyHeaders: trustHeaders,
@@ -56,6 +58,7 @@ func ParseTrustedProxies(trustHeaders bool, proxies string) ProxyTrustConfig {
 		return cfg
 	}
 
+	hasValidEntry := false
 	for _, p := range strings.Split(proxies, ",") {
 		p = strings.TrimSpace(p)
 		if p == "" {
@@ -66,6 +69,7 @@ func ParseTrustedProxies(trustHeaders bool, proxies string) ProxyTrustConfig {
 		_, cidr, err := net.ParseCIDR(p)
 		if err == nil {
 			cfg.TrustedProxyCIDRs = append(cfg.TrustedProxyCIDRs, cidr)
+			hasValidEntry = true
 			continue
 		}
 
@@ -73,7 +77,14 @@ func ParseTrustedProxies(trustHeaders bool, proxies string) ProxyTrustConfig {
 		ip := net.ParseIP(p)
 		if ip != nil {
 			cfg.TrustedProxyIPs[ip.String()] = true
+			hasValidEntry = true
 		}
+	}
+
+	// Fail closed: if a proxies string was provided but contained no valid entries,
+	// disable proxy header trust to prevent security bypass via spoofed X-Forwarded-For.
+	if !hasValidEntry {
+		cfg.TrustProxyHeaders = false
 	}
 
 	return cfg

@@ -100,8 +100,9 @@ var _ = Describe("Middleware", func() {
 				// CategoryRead has 1.0 RPS = 60 requests/minute
 				Expect(recorder.Header().Get("X-RateLimit-Limit")).To(Equal("60"))
 				// Headers are set before Allow() consumes a token.
-				// With burst of 2 and fresh limiter, Tokens() returns 2.0, so 2 * 60 = 120 req/min.
-				Expect(recorder.Header().Get("X-RateLimit-Remaining")).To(Equal("120"))
+				// With burst of 2 and fresh limiter, Tokens() returns 2.0, but we clamp
+				// X-RateLimit-Remaining to not exceed X-RateLimit-Limit per HTTP semantics.
+				Expect(recorder.Header().Get("X-RateLimit-Remaining")).To(Equal("60"))
 			})
 
 			It("should set Retry-After header when rate limited", func() {

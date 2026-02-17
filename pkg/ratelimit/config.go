@@ -6,6 +6,23 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Package ratelimit provides application-level rate limiting for the assisted-service API.
+//
+// Deployment Considerations:
+//
+// This in-application rate limiter provides defense-in-depth for all deployment modes.
+// For SaaS deployments, rate limiting can alternatively be configured at the Envoy proxy
+// layer (see openshift/template.yaml) which already handles access logging and routing.
+//
+// For ACM/Kube-API deployments, if extending rate limiting support, ensure the following
+// manifests are also updated:
+//   - config/ manifests (for operator-managed deployments)
+//   - deploy/ manifests (for testing environments)
+//
+// The application-level approach was chosen to provide consistent rate limiting across
+// all deployment modes (SaaS, on-premise, operator-managed) without requiring external
+// infrastructure changes.
+
 // Config holds rate limiting configuration loaded from environment variables.
 type Config struct {
 	// Enabled controls whether rate limiting is active.
