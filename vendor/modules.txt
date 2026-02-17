@@ -566,8 +566,8 @@ github.com/matttproud/golang_protobuf_extensions/v2/pbutil
 # github.com/metal3-io/baremetal-operator/apis v0.2.0 => github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e
 ## explicit; go 1.19
 github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1
-# github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.2.0 => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
-## explicit; go 1.19
+# github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.2.0 => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20260212161921-dd478a9dca16
+## explicit; go 1.24.0
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils/bmc
 # github.com/microcosm-cc/bluemonday v1.0.26
 ## explicit; go 1.21
@@ -2246,7 +2246,7 @@ sigs.k8s.io/yaml/goyaml.v2
 # github.com/jackc/pgx/v4 => github.com/jackc/pgx/v4 v4.18.3
 # github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20231019133159-8643f32fea3e
 # github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e
-# github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
+# github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20260212161921-dd478a9dca16
 # github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 # github.com/openshift/assisted-service/api => ./api
 # github.com/openshift/assisted-service/client => ./client
