@@ -3,7 +3,9 @@ FROM registry.ci.openshift.org/ocp/builder:rhel-9-golang-1.25-openshift-4.21 AS 
 WORKDIR /src
 COPY . .
 
-RUN dnf install -y gcc nmstate-devel nmstate-libs git && dnf clean all
+# First update base packages to ensure glibc is in sync, then install development packages
+RUN dnf update -y glibc glibc-common && \
+    dnf install -y glibc-devel gcc nmstate-devel nmstate-libs git && dnf clean all
 RUN cd cmd && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service
 RUN cd ./cmd/operator && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator
 RUN cd ./cmd/webadmission && CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-admission

@@ -1040,8 +1040,10 @@ func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 
 		// Determine the SSL mode to use: annotation override takes precedence, otherwise default to "require"
 		sslMode := "require"
+		sslModeOverridden := false
 		if override, ok := asc.Object.GetAnnotations()[databaseSSLModeAnnotation]; ok && override != "" {
 			sslMode = override
+			sslModeOverridden = true
 			log.Infof("Using database SSL mode override from annotation: %s", sslMode)
 		}
 
@@ -1063,17 +1065,21 @@ func newPostgresSecret(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			}
 		}
 
-		// Backfill sslmode for upgrades where the key is missing (keep "disable" for existing installs)
-		// Upgrade compatibility note: Existing deployments without the db.sslmode key
-		// default to "disable" to maintain backward compatibility and avoid breaking
-		// existing database connections. New deployments should always use "require"
-		// or stronger via the "unsupported.agent-install.openshift.io/database-sslmode" annotation.
+		// Backfill sslmode for upgrades where the key is missing
+		// Upgrade compatibility note: If the annotation explicitly sets an SSL mode, use that value.
+		// Otherwise, existing deployments without the db.sslmode key default to "disable" to maintain
+		// backward compatibility and avoid breaking existing database connections.
+		// New deployments should always use "require" or stronger via the annotation.
 		if _, ok := secret.Data["db.sslmode"]; !ok {
 			if secret.StringData == nil {
 				secret.StringData = map[string]string{}
 			}
 			if _, ok := secret.StringData["db.sslmode"]; !ok {
-				secret.StringData["db.sslmode"] = "disable"
+				if sslModeOverridden {
+					secret.StringData["db.sslmode"] = sslMode
+				} else {
+					secret.StringData["db.sslmode"] = "disable"
+				}
 			}
 		}
 		return nil

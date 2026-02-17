@@ -11,7 +11,9 @@ RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:3816d303e75dec4da2d10eeb9e8651eef4393721598bea4690c607282635aa57 as builder
 
 # Build requirements
-RUN dnf install -y gcc git nmstate-devel openssl-devel && \
+# First update base packages to ensure glibc is in sync, then install development packages
+RUN dnf update -y glibc glibc-common && \
+    dnf install -y glibc-devel gcc git nmstate-devel openssl-devel && \
     dnf clean all
 
 ENV GOROOT=/usr/lib/golang
