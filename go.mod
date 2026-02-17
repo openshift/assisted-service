@@ -51,7 +51,7 @@ require (
 	github.com/onsi/gomega v1.35.1
 	github.com/openshift-online/ocm-api-model/clientapi v0.0.440
 	github.com/openshift-online/ocm-sdk-go v0.1.486
-	github.com/openshift/api v0.0.0-20251118143053-b6fddd3c8174
+	github.com/openshift/api v0.0.0-20260213204242-d34f11c515b3
 	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/client v0.0.0
