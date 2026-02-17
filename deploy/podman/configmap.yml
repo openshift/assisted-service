@@ -20,6 +20,10 @@ data:
   IMAGE_SERVICE_BASE_URL: http://127.0.0.1:8888
   # SSRF protection: Allow internal services to bypass IP range validation (empty for local podman deployments)
   INTERNAL_SERVICE_HOSTS: ""
+  # SSRF protection: Allow private IP CIDRs for disconnected/air-gapped environments
+  # Configure this when using private registries in disconnected environments
+  # Example: "10.0.0.0/8,192.168.0.0/16" to allow private registry access
+  ALLOWED_PRIVATE_CIDRS: ""
   IPV6_SUPPORT: "true"
   ISO_IMAGE_TYPE: "full-iso"
   LISTEN_PORT: "8888"

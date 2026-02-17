@@ -33,4 +33,7 @@ data:
   AMD_REQUIRE_GPU: REPLACE_AMD_REQUIRE_GPU
   TNA_CLUSTERS_SUPPORT: REPLACE_TNA_CLUSTERS_SUPPORT
   INTERNAL_SERVICE_HOSTS: REPLACE_INTERNAL_SERVICE_HOSTS
+  # SSRF protection: Allow private IP CIDRs for disconnected/air-gapped environments
+  # Configure this when using private registries in disconnected environments
+  ALLOWED_PRIVATE_CIDRS: REPLACE_ALLOWED_PRIVATE_CIDRS
   EVENT_RATE_LIMITS: ""

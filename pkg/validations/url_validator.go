@@ -19,6 +19,7 @@ type ImageURLValidator struct {
 	allowedRegistries    []string
 	internalServiceHosts []string
 	blockedRanges        []*net.IPNet
+	allowedPrivateCIDRs  []*net.IPNet
 	log                  logrus.FieldLogger
 	resolver             DNSResolver
 }
@@ -58,6 +59,18 @@ type ImageURLValidatorConfig struct {
 	// potential SSRF target if that service is compromised.
 	// Examples: "wiremock,internal-api,my-service.namespace.svc.cluster.local"
 	InternalServiceHosts string `envconfig:"INTERNAL_SERVICE_HOSTS" default:""`
+	// AllowedPrivateCIDRs is a comma-separated list of private CIDR ranges that should
+	// be allowed for disconnected/air-gapped environments. In these environments,
+	// customers often run their own private registries using private IP addresses.
+	//
+	// WARNING: Adding CIDRs here weakens SSRF protection. Only configure this when
+	// operating in a trusted disconnected environment where private registries are needed.
+	//
+	// Examples:
+	//   - "10.0.0.0/8"                      : Allow entire 10.x.x.x range
+	//   - "192.168.1.100/32"                : Allow specific IP only
+	//   - "172.16.0.0/12,192.168.0.0/16"    : Allow multiple private ranges
+	AllowedPrivateCIDRs string `envconfig:"ALLOWED_PRIVATE_CIDRS" default:""`
 }
 
 // defaultBlockedCIDRs contains CIDR ranges that should be blocked to prevent SSRF attacks.
@@ -144,10 +157,34 @@ func NewImageURLValidatorWithResolver(config ImageURLValidatorConfig, log logrus
 		}
 	}
 
+	var allowedPrivateCIDRs []*net.IPNet
+	if config.AllowedPrivateCIDRs != "" {
+		for _, cidr := range strings.Split(config.AllowedPrivateCIDRs, ",") {
+			cidr = strings.TrimSpace(cidr)
+			if cidr != "" {
+				_, ipNet, err := net.ParseCIDR(cidr)
+				if err != nil {
+					// Try parsing as a single IP address and convert to /32 or /128
+					ip := net.ParseIP(cidr)
+					if ip == nil {
+						return nil, errors.Errorf("failed to parse allowed private CIDR %s: invalid CIDR or IP address", cidr)
+					}
+					if ip.To4() != nil {
+						_, ipNet, _ = net.ParseCIDR(cidr + "/32")
+					} else {
+						_, ipNet, _ = net.ParseCIDR(cidr + "/128")
+					}
+				}
+				allowedPrivateCIDRs = append(allowedPrivateCIDRs, ipNet)
+			}
+		}
+	}
+
 	return &ImageURLValidator{
 		allowedRegistries:    allowedRegistries,
 		internalServiceHosts: internalServiceHosts,
 		blockedRanges:        blockedRanges,
+		allowedPrivateCIDRs:  allowedPrivateCIDRs,
 		log:                  log,
 		resolver:             resolver,
 	}, nil
@@ -330,10 +367,19 @@ func (v *ImageURLValidator) validateResolvedIPs(hostname string) error {
 }
 
 // validateIP checks if an IP address is in any of the blocked ranges.
+// IPs in the allowed private CIDRs list (for disconnected environments) are permitted.
 func (v *ImageURLValidator) validateIP(ip net.IP) error {
 	// Handle IPv4-mapped IPv6 addresses
 	if ipv4 := ip.To4(); ipv4 != nil {
 		ip = ipv4
+	}
+
+	// Check if IP is in the allowed private CIDRs list (for disconnected environments)
+	for _, allowedCIDR := range v.allowedPrivateCIDRs {
+		if allowedCIDR.Contains(ip) {
+			v.log.Debugf("IP %s is in allowed private CIDR %s (disconnected environment)", ip.String(), allowedCIDR.String())
+			return nil
+		}
 	}
 
 	for _, blockedRange := range v.blockedRanges {
@@ -374,6 +420,16 @@ func (v *ImageURLValidator) GetBlockedRanges() []string {
 func (v *ImageURLValidator) GetInternalServiceHosts() []string {
 	result := make([]string, len(v.internalServiceHosts))
 	copy(result, v.internalServiceHosts)
+	return result
+}
+
+// GetAllowedPrivateCIDRs returns string representations of allowed private CIDR ranges.
+// These are used in disconnected environments where private registries are needed.
+func (v *ImageURLValidator) GetAllowedPrivateCIDRs() []string {
+	result := make([]string, len(v.allowedPrivateCIDRs))
+	for i, r := range v.allowedPrivateCIDRs {
+		result[i] = r.String()
+	}
 	return result
 }
 
@@ -464,6 +520,7 @@ func init() {
 	config := ImageURLValidatorConfig{
 		AllowedRegistries:    os.Getenv("ALLOWED_REGISTRIES"),
 		InternalServiceHosts: os.Getenv("INTERNAL_SERVICE_HOSTS"),
+		AllowedPrivateCIDRs:  os.Getenv("ALLOWED_PRIVATE_CIDRS"),
 	}
 	DefaultImageURLValidator, err = NewImageURLValidator(config, nil)
 	if err != nil {

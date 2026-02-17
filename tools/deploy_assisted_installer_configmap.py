@@ -57,6 +57,10 @@ TNA_CLUSTERS_SUPPORT = os.environ.get("TNA_CLUSTERS_SUPPORT", "true")
 # SSRF protection: Comma-separated list of internal service hostnames that bypass IP range validation
 # For CI/subsystem tests, this typically includes: wiremock,postgres,object-store,assisted-image-service
 INTERNAL_SERVICE_HOSTS = os.environ.get("INTERNAL_SERVICE_HOSTS", "wiremock,postgres,object-store,assisted-image-service")
+# SSRF protection: Comma-separated list of private CIDR ranges allowed for disconnected/air-gapped environments
+# Configure this when using private registries in disconnected environments
+# Example: "10.0.0.0/8,192.168.0.0/16" to allow private registry access
+ALLOWED_PRIVATE_CIDRS = os.environ.get("ALLOWED_PRIVATE_CIDRS", "")
 
 def get_deployment_tag(args):
     if args.deploy_manifest_tag:
@@ -121,6 +125,7 @@ def main():
     data = data.replace('REPLACE_AMD_REQUIRE_GPU', '"{}"'.format(AMD_REQUIRE_GPU))
     data = data.replace('REPLACE_TNA_CLUSTERS_SUPPORT', '"{}"'.format(TNA_CLUSTERS_SUPPORT))
     data = data.replace('REPLACE_INTERNAL_SERVICE_HOSTS', '"{}"'.format(INTERNAL_SERVICE_HOSTS))
+    data = data.replace('REPLACE_ALLOWED_PRIVATE_CIDRS', '"{}"'.format(ALLOWED_PRIVATE_CIDRS))
 
     versions = {"INSTALLER_IMAGE": "assisted-installer",
                 "CONTROLLER_IMAGE": "assisted-installer-controller",

@@ -1390,8 +1390,10 @@ var _ = Describe("SSRF Protection", func() {
 			Expect(err).Should(HaveOccurred(), "URL resolving to loopback should be blocked")
 		})
 
-		It("should block private IP ranges", func() {
+		It("should block private IP ranges by default", func() {
 			// Direct IP addresses don't require DNS resolution
+			// Note: This is the default (connected) behavior. In disconnected environments,
+			// private IPs can be allowed via ALLOWED_PRIVATE_CIDRS configuration.
 			blockedURLs := []string{
 				"10.0.0.1/image:tag",
 				"172.16.0.1/image:tag",
@@ -1401,6 +1403,31 @@ var _ = Describe("SSRF Protection", func() {
 				err := oc.validateReleaseImageURL(url)
 				Expect(err).Should(HaveOccurred(), "URL should be blocked: %s", url)
 			}
+		})
+
+		It("should allow private IP ranges when configured for disconnected environments", func() {
+			// In disconnected/air-gapped environments, customers run their own private registries
+			// using private IP addresses. ALLOWED_PRIVATE_CIDRS enables this use case.
+			disconnectedValidator, err := validations.NewImageURLValidatorWithResolver(
+				validations.ImageURLValidatorConfig{
+					AllowedPrivateCIDRs: "10.0.0.0/8,192.168.0.0/16",
+				}, log, &mockDNSResolver{resolveToPublicIP: true})
+			Expect(err).ShouldNot(HaveOccurred())
+			oc.urlValidator = disconnectedValidator
+
+			// These should now be allowed
+			allowedURLs := []string{
+				"10.0.0.1/image:tag",
+				"192.168.1.1/image:tag",
+			}
+			for _, url := range allowedURLs {
+				err = oc.validateReleaseImageURL(url)
+				Expect(err).ShouldNot(HaveOccurred(), "URL should be allowed in disconnected mode: %s", url)
+			}
+
+			// But 172.16.x.x should still be blocked (not in allowed CIDRs)
+			err = oc.validateReleaseImageURL("172.16.0.1/image:tag")
+			Expect(err).Should(HaveOccurred(), "URL should still be blocked (not in allowed CIDRs)")
 		})
 
 		It("should block AWS metadata endpoint", func() {

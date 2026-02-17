@@ -737,4 +737,181 @@ var _ = Describe("ImageURLValidator - Additional Coverage Tests", func() {
 			Expect(err.Error()).To(ContainSubstring("resolves to blocked IP"))
 		})
 	})
+
+	Context("Disconnected environment support (AllowedPrivateCIDRs)", func() {
+		var mockResolver *mockDNSResolver
+
+		BeforeEach(func() {
+			mockResolver = &mockDNSResolver{}
+		})
+
+		It("should allow private IPs when configured for disconnected environments", func() {
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8,192.168.0.0/16",
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// These private IPs should now be allowed
+			allowedURLs := []string{
+				"10.0.0.1:5000/image:tag",
+				"10.255.255.255/image:tag",
+				"192.168.1.1/image:tag",
+				"192.168.100.50:5000/image:tag",
+			}
+
+			for _, url := range allowedURLs {
+				err := validator.ValidateImageURL(url)
+				Expect(err).NotTo(HaveOccurred(), "URL %s should be allowed in disconnected mode", url)
+			}
+		})
+
+		It("should still block private IPs not in allowed CIDRs", func() {
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8", // Only 10.x.x.x is allowed
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// These should still be blocked
+			blockedURLs := []string{
+				"172.16.0.1/image:tag",
+				"192.168.1.1/image:tag",
+				"127.0.0.1/image:tag",
+			}
+
+			for _, url := range blockedURLs {
+				err := validator.ValidateImageURL(url)
+				Expect(err).To(HaveOccurred(), "URL %s should still be blocked", url)
+			}
+		})
+
+		It("should always block AWS metadata endpoint (security boundary)", func() {
+			var err error
+			// Even with private CIDRs allowed, AWS metadata should be blocked
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8,192.168.0.0/16,172.16.0.0/12",
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// AWS metadata endpoint should always be blocked
+			err = validator.ValidateImageURL("169.254.169.254/latest/meta-data/")
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("blocked range"))
+		})
+
+		It("should allow specific IP with /32 CIDR", func() {
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "192.168.1.100/32", // Only this specific IP
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Specific IP should be allowed
+			err = validator.ValidateImageURL("192.168.1.100:5000/image:tag")
+			Expect(err).NotTo(HaveOccurred())
+
+			// Other IPs in same subnet should still be blocked
+			err = validator.ValidateImageURL("192.168.1.101:5000/image:tag")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should parse single IP addresses as /32 CIDRs", func() {
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "192.168.1.100", // Single IP without /32
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Should work just like /32
+			err = validator.ValidateImageURL("192.168.1.100:5000/image:tag")
+			Expect(err).NotTo(HaveOccurred())
+
+			err = validator.ValidateImageURL("192.168.1.101:5000/image:tag")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return error for invalid CIDR format", func() {
+			var err error
+			_, err = NewImageURLValidator(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "invalid-cidr",
+			}, log)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("failed to parse allowed private CIDR"))
+		})
+
+		It("should allow hostnames that resolve to allowed private IPs", func() {
+			mockResolver.ips = []net.IP{net.ParseIP("10.0.0.50")}
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8",
+			}, log, mockResolver)
+			Expect(err).NotTo(HaveOccurred())
+
+			// Should be allowed because the resolved IP is in allowed private CIDRs
+			err = validator.ValidateImageURL("internal-registry.local/image:tag")
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should return configured allowed private CIDRs", func() {
+			var err error
+			validator, err = NewImageURLValidator(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8, 192.168.1.0/24",
+			}, log)
+			Expect(err).NotTo(HaveOccurred())
+
+			cidrs := validator.GetAllowedPrivateCIDRs()
+			Expect(cidrs).To(HaveLen(2))
+			Expect(cidrs).To(ContainElement("10.0.0.0/8"))
+			Expect(cidrs).To(ContainElement("192.168.1.0/24"))
+		})
+
+		It("should return empty slice when no allowed private CIDRs configured", func() {
+			var err error
+			validator, err = NewImageURLValidator(ImageURLValidatorConfig{}, log)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(validator.GetAllowedPrivateCIDRs()).To(BeEmpty())
+		})
+
+		It("should work with ValidateGenericURL as well", func() {
+			var err error
+			validator, err = NewImageURLValidatorWithResolver(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "192.168.0.0/16",
+			}, log, &publicIPResolver{})
+			Expect(err).NotTo(HaveOccurred())
+
+			// Should be allowed for generic URLs too
+			err = validator.ValidateGenericURL("http://192.168.1.100:8080/api")
+			Expect(err).NotTo(HaveOccurred())
+
+			// Non-allowed private IP should still be blocked
+			err = validator.ValidateGenericURL("http://10.0.0.1:8080/api")
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should handle whitespace and empty entries in CIDR list", func() {
+			var err error
+			validator, err = NewImageURLValidator(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "  10.0.0.0/8  ,  ,  192.168.0.0/16  ",
+			}, log)
+			Expect(err).NotTo(HaveOccurred())
+
+			cidrs := validator.GetAllowedPrivateCIDRs()
+			Expect(cidrs).To(HaveLen(2))
+		})
+
+		It("should work with IsIPBlocked method", func() {
+			var err error
+			validator, err = NewImageURLValidator(ImageURLValidatorConfig{
+				AllowedPrivateCIDRs: "10.0.0.0/8",
+			}, log)
+			Expect(err).NotTo(HaveOccurred())
+
+			// 10.x.x.x should not be blocked when in allowed CIDRs
+			Expect(validator.IsIPBlocked("10.0.0.1")).To(BeFalse())
+
+			// Other private IPs should still be blocked
+			Expect(validator.IsIPBlocked("192.168.1.1")).To(BeTrue())
+		})
+	})
 })

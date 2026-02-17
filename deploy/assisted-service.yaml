@@ -53,6 +53,11 @@ spec:
             # SSRF protection: Allow internal Kubernetes services to bypass IP range validation
             - name: INTERNAL_SERVICE_HOSTS
               value: "wiremock,postgres,object-store,assisted-image-service"
+            # SSRF protection: Allow private IP CIDRs for disconnected/air-gapped environments
+            # Configure this when using private registries in disconnected environments
+            # Example: "10.0.0.0/8,192.168.0.0/16" to allow private registry access
+            - name: ALLOWED_PRIVATE_CIDRS
+              value: ""
             - name: DB_HOST
               valueFrom:
                 secretKeyRef:
