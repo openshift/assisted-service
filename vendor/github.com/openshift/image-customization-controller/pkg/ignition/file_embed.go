@@ -27,3 +27,14 @@ func ignitionFileEmbed(path string, mode int, overwrite bool, data []byte) ignit
 		},
 	}
 }
+
+func ignitionFileEmbedAppend(path string, mode int, data []byte) ignition_types.File {
+	source := toDataUrl(data)
+	return ignition_types.File{
+		Node: ignition_types.Node{Path: path},
+		FileEmbedded1: ignition_types.FileEmbedded1{
+			Append: []ignition_types.Resource{{Source: &source}},
+			Mode:   &mode,
+		},
+	}
+}
