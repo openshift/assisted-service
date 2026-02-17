@@ -1,0 +1,37 @@
+# Security hardening patch for the infrastructure-operator deployment
+# This patch adds pod-level and container-level security context settings
+# that would otherwise be overwritten by 'make generate' if placed directly in manager.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infrastructure-operator
+  namespace: assisted-installer
+spec:
+  template:
+    spec:
+      # Pod-level security context
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      # Host namespace restrictions
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      containers:
+      - name: manager
+        securityContext:
+          privileged: false
+          allowPrivilegeEscalation: false
+          runAsNonRoot: true
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+              - ALL
+        resources:
+          limits:
+            cpu: 500m
+            memory: 500Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi

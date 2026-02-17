@@ -4,7 +4,10 @@ RUN go install gotest.tools/gotestsum@v1.12.3
 
 FROM quay.io/centos/centos:stream9
 
-RUN dnf upgrade -y && dnf install --enablerepo=crb -y \
+# Exclude i686 packages to prevent glibc multilib dependency resolution issues
+# where dnf tries to resolve i686 glibc-common that isn't available in UBI repos
+RUN dnf upgrade -y && \
+    dnf install --enablerepo=crb -y --exclude='*.i686' \
     git unzip make gcc which nmstate-devel python3 openssl-devel && \
     dnf clean all
 

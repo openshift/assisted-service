@@ -11,7 +11,9 @@ RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:3816d303e75dec4da2d10eeb9e8651eef4393721598bea4690c607282635aa57 as builder
 
 # Build requirements
-RUN dnf install -y gcc git nmstate-devel openssl-devel && \
+# Exclude i686 packages to prevent glibc multilib dependency resolution issues
+# where dnf tries to resolve i686 glibc-common that isn't available in UBI repos
+RUN dnf install -y --exclude='*.i686' gcc git nmstate-devel openssl-devel && \
     dnf clean all
 
 ENV GOROOT=/usr/lib/golang

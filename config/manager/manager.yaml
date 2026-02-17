@@ -22,15 +22,6 @@ spec:
       labels:
         control-plane: infrastructure-operator
     spec:
-      # Pod-level security context
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-      # Host namespace restrictions
-      hostNetwork: false
-      hostPID: false
-      hostIPC: false
       containers:
       - command:
         - /assisted-service-operator
@@ -66,13 +57,8 @@ spec:
               fieldRef:
                 fieldPath: metadata.name
         securityContext:
-          privileged: false
           allowPrivilegeEscalation: false
-          runAsNonRoot: true
           readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-              - ALL
         livenessProbe:
           httpGet:
             path: /healthz
@@ -86,9 +72,6 @@ spec:
           initialDelaySeconds: 5
           periodSeconds: 10
         resources:
-          limits:
-            cpu: 500m
-            memory: 500Mi
           requests:
             cpu: 100m
             memory: 200Mi

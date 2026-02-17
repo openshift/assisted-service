@@ -13,10 +13,13 @@ resources:
 # [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
 #- ../prometheus
 
-patches: []
+patches:
 ###################
 # Required patches
 ###################
+# Security hardening patch - adds pod/container security context, resource limits
+# This patch is applied via kustomize to avoid being overwritten by 'make generate'
+- path: manager_security_patch.yaml
 
 ###################
 # Optional patches
