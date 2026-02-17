@@ -61,7 +61,7 @@ require (
 	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
 	github.com/openshift/hive/apis v0.0.0-20251118235423-715614a9f379
 	github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b
-	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b
+	github.com/openshift/library-go 03f1709971c5
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pelletier/go-toml v1.9.5
 	github.com/pkg/errors v0.9.1
