@@ -48,7 +48,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.34.1
 	github.com/openshift-online/ocm-sdk-go v0.1.205
-	github.com/openshift/api v0.0.0-20240521212423-414cf30d37be
+	github.com/openshift/api d34f11c515b3
 	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/client v0.0.0
