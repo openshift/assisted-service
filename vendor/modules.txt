@@ -621,7 +621,7 @@ github.com/munnerz/goautoneg
 # github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f
 ## explicit
 github.com/mxk/go-flowrate/flowrate
-# github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
+# github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20221111094029-883f36fbb8d9
 ## explicit; go 1.16
 github.com/nmstate/nmstate/rust/src/go/nmstate
 # github.com/nxadm/tail v1.4.8
