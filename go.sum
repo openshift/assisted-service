@@ -1032,8 +1032,8 @@ github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf h
 github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf/go.mod h1:C/h+zRheayk9F6NxH7t2D26p++o4bRpMf/CV4Lovp9E=
 github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e h1:wxkrIEx1lA6vdGAuBAgXmOVDJ+vX+4nhc7Cgu2jszSg=
 github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e/go.mod h1:124MbDDT1AWBpBNcnAPII2H+6p1Q7MIBF67egVtjYbc=
-github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e h1:IHlr/057j/i3LkyaI4lLPYixNXMBMPaaJAe9/GPYnZU=
-github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e/go.mod h1:Dck2B6BQX3L+AE2Xe+LzrVPP1A/zQkhCU/aSVbsi7Nw=
+github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20260212161921-dd478a9dca16 h1:8xfVflxUS8r5oKHAU/le1SvG5gtFERPt1XIAiRcgUxQ=
+github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20260212161921-dd478a9dca16/go.mod h1:K6WxF9PAIrFVHytfcp+P8MwpN+b1B0irQVKLGDOcpfY=
 github.com/openshift/build-machinery-go v0.0.0-20200211121458-5e3d6e570160/go.mod h1:1CkcsT3aVebzRBzVTSbiKSkJMsC/CASqxesfqEMfJEc=
 github.com/openshift/build-machinery-go v0.0.0-20200819073603-48aa266c95f7/go.mod h1:b1BuldmJlbA/xYtdZvKi+7j5YGB44qJUJDZ9zwiNCfE=
 github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5/go.mod h1:5rGmrkQ8DJEUXA+AR3rEjfH+HFyg4/apY9iCQFgvPfE=
