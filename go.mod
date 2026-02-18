@@ -275,7 +275,7 @@ replace (
 	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
 	github.com/jackc/pgx/v4 => github.com/jackc/pgx/v4 v4.18.3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20260212161921-dd478a9dca16
-	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e
+	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis dd478a9dca16
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.12
 	github.com/openshift/assisted-service/api => ./api
