@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -102,6 +101,13 @@ func (r *OrganizationsAddRequest) Header(name string, value interface{}) *Organi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *OrganizationsAddRequest) Impersonate(user string) *OrganizationsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Organization data.
@@ -135,7 +141,7 @@ func (r *OrganizationsAddRequest) SendContext(ctx context.Context) (result *Orga
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +154,25 @@ func (r *OrganizationsAddRequest) SendContext(ctx context.Context) (result *Orga
 	result = &OrganizationsAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readOrganizationsAddResponse(result, response.Body)
+	err = readOrganizationsAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *OrganizationsAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *OrganizationsAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // OrganizationsAddResponse is the response for the 'add' method.
@@ -229,15 +231,15 @@ func (r *OrganizationsAddResponse) GetBody() (value *Organization, ok bool) {
 
 // OrganizationsListRequest is the request for the 'list' method.
 type OrganizationsListRequest struct {
-	transport         http.RoundTripper
-	path              string
-	query             url.Values
-	header            http.Header
-	fetchlabelsLabels *bool
-	fields            *string
-	page              *int
-	search            *string
-	size              *int
+	transport   http.RoundTripper
+	path        string
+	query       url.Values
+	header      http.Header
+	fetchLabels *bool
+	fields      *string
+	page        *int
+	search      *string
+	size        *int
 }
 
 // Parameter adds a query parameter.
@@ -252,11 +254,18 @@ func (r *OrganizationsListRequest) Header(name string, value interface{}) *Organ
 	return r
 }
 
-// FetchlabelsLabels sets the value of the 'fetchlabels_labels' parameter.
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *OrganizationsListRequest) Impersonate(user string) *OrganizationsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// FetchLabels sets the value of the 'fetch_labels' parameter.
 //
 // If true, includes the labels on an organization in the output. Could slow request response time.
-func (r *OrganizationsListRequest) FetchlabelsLabels(value bool) *OrganizationsListRequest {
-	r.fetchlabelsLabels = &value
+func (r *OrganizationsListRequest) FetchLabels(value bool) *OrganizationsListRequest {
+	r.fetchLabels = &value
 	return r
 }
 
@@ -267,7 +276,6 @@ func (r *OrganizationsListRequest) FetchlabelsLabels(value bool) *OrganizationsL
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *OrganizationsListRequest) Fields(value string) *OrganizationsListRequest {
 	r.fields = &value
 	return r
@@ -290,10 +298,9 @@ func (r *OrganizationsListRequest) Page(value int) *OrganizationsListRequest {
 // instead of the names of the columns of a table. For example, in order to
 // retrieve organizations with name starting with my:
 //
-// [source,sql]
-// ----
+// ```sql
 // name like 'my%'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // items that the user has permission to see will be returned.
@@ -321,8 +328,8 @@ func (r *OrganizationsListRequest) Send() (result *OrganizationsListResponse, er
 // SendContext sends this request, waits for the response, and returns it.
 func (r *OrganizationsListRequest) SendContext(ctx context.Context) (result *OrganizationsListResponse, err error) {
 	query := helpers.CopyQuery(r.query)
-	if r.fetchlabelsLabels != nil {
-		helpers.AddValue(&query, "fetchlabels_labels", *r.fetchlabelsLabels)
+	if r.fetchLabels != nil {
+		helpers.AddValue(&query, "fetchLabels", *r.fetchLabels)
 	}
 	if r.fields != nil {
 		helpers.AddValue(&query, "fields", *r.fields)
@@ -357,15 +364,21 @@ func (r *OrganizationsListRequest) SendContext(ctx context.Context) (result *Org
 	result = &OrganizationsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readOrganizationsListResponse(result, response.Body)
+	err = readOrganizationsListResponse(result, reader)
 	if err != nil {
 		return
 	}
