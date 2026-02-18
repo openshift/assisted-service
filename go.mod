@@ -49,7 +49,7 @@ require (
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.35.1
 	github.com/openshift-online/ocm-sdk-go v0.1.205
-	github.com/openshift/api v0.0.0-20251117165054-348370f055bf
+	github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42
 	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
 	github.com/openshift/assisted-service/api v0.0.0
 	github.com/openshift/assisted-service/client v0.0.0
@@ -58,7 +58,7 @@ require (
 	github.com/openshift/cluster-baremetal-operator v0.0.0-20240207191432-82df158cd2e9
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 	github.com/openshift/generic-admission-server v1.14.1-0.20231020105858-8dcc3c9b298f
-	github.com/openshift/hive/apis v0.0.0-20251031193107-899e2c99e938
+	github.com/openshift/hive/apis v0.0.0-20260216175712-e12606b79976
 	github.com/openshift/image-customization-controller v0.0.0-20240307203510-394809633b6b
 	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -71,7 +71,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
@@ -139,7 +139,6 @@ require (
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
-	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sergi/go-diff v1.2.0 // indirect
 	github.com/shirou/gopsutil/v3 v3.23.12 // indirect
@@ -232,7 +231,7 @@ require (
 	github.com/prometheus/common v0.45.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/cobra v1.8.0 // indirect
-	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/testcontainers/testcontainers-go v0.29.1
 	github.com/ulikunitz/xz v0.5.11 // indirect
