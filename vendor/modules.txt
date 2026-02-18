@@ -174,7 +174,7 @@ github.com/coreos/vcontext/path
 github.com/coreos/vcontext/report
 github.com/coreos/vcontext/tree
 github.com/coreos/vcontext/validate
-# github.com/cpuguy83/dockercfg v0.3.1
+# github.com/cpuguy83/dockercfg v0.3.2
 ## explicit; go 1.13
 github.com/cpuguy83/dockercfg
 # github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
