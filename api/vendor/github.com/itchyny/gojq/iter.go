@@ -2,34 +2,34 @@ package gojq
 
 // Iter is an interface for an iterator.
 type Iter interface {
-	Next() (interface{}, bool)
+	Next() (any, bool)
 }
 
-// NewIter creates a new Iter from values.
-func NewIter(values ...interface{}) Iter {
+// NewIter creates a new [Iter] from values.
+func NewIter[T any](values ...T) Iter {
 	switch len(values) {
 	case 0:
 		return emptyIter{}
 	case 1:
 		return &unitIter{value: values[0]}
 	default:
-		iter := sliceIter(values)
+		iter := sliceIter[T](values)
 		return &iter
 	}
 }
 
 type emptyIter struct{}
 
-func (emptyIter) Next() (interface{}, bool) {
+func (emptyIter) Next() (any, bool) {
 	return nil, false
 }
 
 type unitIter struct {
-	value interface{}
+	value any
 	done  bool
 }
 
-func (iter *unitIter) Next() (interface{}, bool) {
+func (iter *unitIter) Next() (any, bool) {
 	if iter.done {
 		return nil, false
 	}
@@ -37,9 +37,9 @@ func (iter *unitIter) Next() (interface{}, bool) {
 	return iter.value, true
 }
 
-type sliceIter []interface{}
+type sliceIter[T any] []T
 
-func (iter *sliceIter) Next() (interface{}, bool) {
+func (iter *sliceIter[T]) Next() (any, bool) {
 	if len(*iter) == 0 {
 		return nil, false
 	}
