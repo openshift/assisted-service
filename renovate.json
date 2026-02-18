@@ -103,6 +103,12 @@
     ],
     "packageRules": [
         {
+            "matchManagers": [
+                "gomod"
+            ],
+            "enabled": false
+        },
+        {
             "groupName": "Go Builder",
             "addLabels": [
                 "golang"
