@@ -432,8 +432,8 @@ github.com/google/shlex
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
-# github.com/gorilla/css v1.0.0
-## explicit
+# github.com/gorilla/css v1.0.1
+## explicit; go 1.20
 github.com/gorilla/css/scanner
 # github.com/gorilla/websocket v1.5.0
 ## explicit; go 1.12
@@ -569,8 +569,8 @@ github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1
 # github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.2.0 => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
 ## explicit; go 1.19
 github.com/metal3-io/baremetal-operator/pkg/hardwareutils/bmc
-# github.com/microcosm-cc/bluemonday v1.0.26
-## explicit; go 1.21
+# github.com/microcosm-cc/bluemonday v1.0.27
+## explicit; go 1.19
 github.com/microcosm-cc/bluemonday
 github.com/microcosm-cc/bluemonday/css
 # github.com/mitchellh/go-wordwrap v1.0.1
