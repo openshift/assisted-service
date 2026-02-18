@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/emicklei/go-restful/v3"
-	"github.com/google/go-cmp/cmp"
-	apidiscoveryv2beta1 "k8s.io/api/apidiscovery/v2beta1"
+	apidiscoveryv2 "k8s.io/api/apidiscovery/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/diff"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -91,7 +91,7 @@ func (f *fakeResourceManager) Validate() error {
 	defer f.expect.lock.RUnlock()
 
 	if !reflect.DeepEqual(f.expect.Actions, f.Actions) {
-		return errors.New(cmp.Diff(f.expect.Actions, f.Actions))
+		return errors.New(diff.Diff(f.expect.Actions, f.Actions))
 	}
 	return nil
 }
@@ -122,7 +122,7 @@ func (f *recorderResourceManager) SetGroupVersionPriority(gv metav1.GroupVersion
 	})
 }
 
-func (f *recorderResourceManager) AddGroupVersion(groupName string, value apidiscoveryv2beta1.APIVersionDiscovery) {
+func (f *recorderResourceManager) AddGroupVersion(groupName string, value apidiscoveryv2.APIVersionDiscovery) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
@@ -153,7 +153,7 @@ func (f *recorderResourceManager) RemoveGroupVersion(gv metav1.GroupVersion) {
 	})
 
 }
-func (f *recorderResourceManager) SetGroups(values []apidiscoveryv2beta1.APIGroupDiscovery) {
+func (f *recorderResourceManager) SetGroups(values []apidiscoveryv2.APIGroupDiscovery) {
 	f.lock.Lock()
 	defer f.lock.Unlock()
 
