@@ -19,6 +19,7 @@ import (
 	"math"
 	"reflect"
 	"strconv"
+	"strings"
 
 	"github.com/google/cel-go/common/types/ref"
 
@@ -80,6 +81,18 @@ func (i Uint) ConvertToNative(typeDesc reflect.Type) (any, error) {
 			return 0, err
 		}
 		return reflect.ValueOf(v).Convert(typeDesc).Interface(), nil
+	case reflect.Uint8:
+		v, err := uint64ToUint8Checked(uint64(i))
+		if err != nil {
+			return 0, err
+		}
+		return reflect.ValueOf(v).Convert(typeDesc).Interface(), nil
+	case reflect.Uint16:
+		v, err := uint64ToUint16Checked(uint64(i))
+		if err != nil {
+			return 0, err
+		}
+		return reflect.ValueOf(v).Convert(typeDesc).Interface(), nil
 	case reflect.Uint64:
 		return reflect.ValueOf(i).Convert(typeDesc).Interface(), nil
 	case reflect.Ptr:
@@ -87,7 +100,7 @@ func (i Uint) ConvertToNative(typeDesc reflect.Type) (any, error) {
 		case anyValueType:
 			// Primitives must be wrapped before being set on an Any field.
 			return anypb.New(wrapperspb.UInt64(uint64(i)))
-		case jsonValueType:
+		case JSONValueType:
 			// JSON can accurately represent 32-bit uints as floating point values.
 			if i.isJSONSafe() {
 				return structpb.NewNumberValue(float64(i)), nil
@@ -236,6 +249,11 @@ func (i Uint) Type() ref.Type {
 // Value implements ref.Val.Value.
 func (i Uint) Value() any {
 	return uint64(i)
+}
+
+func (i Uint) format(sb *strings.Builder) {
+	sb.WriteString(strconv.FormatUint(uint64(i), 10))
+	sb.WriteString("u")
 }
 
 // isJSONSafe indicates whether the uint is safely representable as a floating point value in JSON.
