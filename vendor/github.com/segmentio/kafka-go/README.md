@@ -108,7 +108,7 @@ if err := conn.Close(); err != nil {
 ```
 
 ### To Create Topics
-By default kafka has the `auto.create.topics.enable='true'` (`KAFKA_AUTO_CREATE_TOPICS_ENABLE='true'` in the wurstmeister/kafka kafka docker image). If this value is set to `'true'` then topics will be created as a side effect of `kafka.DialLeader` like so:
+By default kafka has the `auto.create.topics.enable='true'` (`KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE='true'` in the bitnami/kafka kafka docker image). If this value is set to `'true'` then topics will be created as a side effect of `kafka.DialLeader` like so:
 ```go
 // to create topics when auto.create.topics.enable='true'
 conn, err := kafka.DialLeader(context.Background(), "tcp", "localhost:9092", "my-topic", 0)
@@ -225,7 +225,6 @@ r := kafka.NewReader(kafka.ReaderConfig{
     Brokers:   []string{"localhost:9092","localhost:9093", "localhost:9094"},
     Topic:     "topic-A",
     Partition: 0,
-    MinBytes:  10e3, // 10KB
     MaxBytes:  10e6, // 10MB
 })
 r.SetOffset(42)
@@ -256,7 +255,6 @@ r := kafka.NewReader(kafka.ReaderConfig{
     Brokers:   []string{"localhost:9092", "localhost:9093", "localhost:9094"},
     GroupID:   "consumer-group-id",
     Topic:     "topic-A",
-    MinBytes:  10e3, // 10KB
     MaxBytes:  10e6, // 10MB
 })
 
@@ -320,7 +318,6 @@ r := kafka.NewReader(kafka.ReaderConfig{
     Brokers:        []string{"localhost:9092", "localhost:9093", "localhost:9094"},
     GroupID:        "consumer-group-id",
     Topic:          "topic-A",
-    MinBytes:       10e3, // 10KB
     MaxBytes:       10e6, // 10MB
     CommitInterval: time.Second, // flushes commits to Kafka every second
 })
@@ -404,7 +401,7 @@ for i := 0; i < retries; i++ {
     
     // attempt to create topic prior to publishing the message
     err = w.WriteMessages(ctx, messages...)
-    if errors.Is(err, LeaderNotAvailable) || errors.Is(err, context.DeadlineExceeded) {
+    if errors.Is(err, kafka.LeaderNotAvailable) || errors.Is(err, context.DeadlineExceeded) {
         time.Sleep(time.Millisecond * 250)
         continue
     }
@@ -412,6 +409,7 @@ for i := 0; i < retries; i++ {
     if err != nil {
         log.Fatalf("unexpected error %v", err)
     }
+    break
 }
 
 if err := w.Close(); err != nil {
@@ -718,7 +716,6 @@ r := kafka.NewReader(kafka.ReaderConfig{
     Brokers:   []string{"localhost:9092", "localhost:9093", "localhost:9094"},
     Topic:     "my-topic1",
     Partition: 0,
-    MinBytes:  batchSize,
     MaxBytes:  batchSize,
 })
 
@@ -799,4 +796,9 @@ Run tests
 KAFKA_VERSION=2.3.1 \
   KAFKA_SKIP_NETTEST=1 \
   go test -race ./...
+```
+
+(or) to clean up the cached test results and run tests:
+```
+go clean -cache && make test
 ```

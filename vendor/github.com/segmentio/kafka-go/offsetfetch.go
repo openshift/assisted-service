@@ -66,19 +66,28 @@ type OffsetFetchPartition struct {
 // OffsetFetch sends an offset fetch request to a kafka broker and returns the
 // response.
 func (c *Client) OffsetFetch(ctx context.Context, req *OffsetFetchRequest) (*OffsetFetchResponse, error) {
-	topics := make([]offsetfetch.RequestTopic, 0, len(req.Topics))
 
-	for topicName, partitions := range req.Topics {
-		indexes := make([]int32, len(partitions))
+	// Kafka version 0.10.2.x and above allow null Topics map for OffsetFetch API
+	// which will return the result for all topics with the desired consumer group:
+	// https://kafka.apache.org/0102/protocol.html#The_Messages_OffsetFetch
+	// For Kafka version below 0.10.2.x this call will result in an error
+	var topics []offsetfetch.RequestTopic
 
-		for i, p := range partitions {
-			indexes[i] = int32(p)
+	if len(req.Topics) > 0 {
+		topics = make([]offsetfetch.RequestTopic, 0, len(req.Topics))
+
+		for topicName, partitions := range req.Topics {
+			indexes := make([]int32, len(partitions))
+
+			for i, p := range partitions {
+				indexes[i] = int32(p)
+			}
+
+			topics = append(topics, offsetfetch.RequestTopic{
+				Name:             topicName,
+				PartitionIndexes: indexes,
+			})
 		}
-
-		topics = append(topics, offsetfetch.RequestTopic{
-			Name:             topicName,
-			PartitionIndexes: indexes,
-		})
 	}
 
 	m, err := c.roundTrip(ctx, req.Addr, &offsetfetch.Request{
@@ -220,7 +229,7 @@ func (t *offsetFetchResponseV1Response) readFrom(r *bufio.Reader, size int) (rem
 
 	fn := func(r *bufio.Reader, size int) (fnRemain int, fnErr error) {
 		item := offsetFetchResponseV1PartitionResponse{}
-		if fnRemain, fnErr = (&item).readFrom(r, size); err != nil {
+		if fnRemain, fnErr = (&item).readFrom(r, size); fnErr != nil {
 			return
 		}
 		t.PartitionResponses = append(t.PartitionResponses, item)
