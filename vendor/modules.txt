@@ -261,8 +261,8 @@ github.com/exponent-io/jsonpath
 # github.com/felixge/httpsnoop v1.0.4
 ## explicit; go 1.13
 github.com/felixge/httpsnoop
-# github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
-## explicit; go 1.14
+# github.com/filanov/stateswitch v1.0.1
+## explicit; go 1.22
 github.com/filanov/stateswitch
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
