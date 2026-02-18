@@ -69,7 +69,7 @@ require (
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
 	github.com/segmentio/kafka-go v0.4.38
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/slok/go-http-metrics v0.11.0
 	github.com/stretchr/testify v1.10.0
 	github.com/thedevsaddam/retry v1.2.1
