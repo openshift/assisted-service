@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -222,6 +224,13 @@ func (r *LogGetRequest) Header(name string, value interface{}) *LogGetRequest {
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *LogGetRequest) Impersonate(user string) *LogGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Offset sets the value of the 'offset' parameter.
 //
 // Line offset to start logs from. if 0 retreive entire log.
@@ -280,15 +289,21 @@ func (r *LogGetRequest) SendContext(ctx context.Context) (result *LogGetResponse
 	result = &LogGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readLogGetResponse(result, response.Body)
+	err = readLogGetResponse(result, reader)
 	if err != nil {
 		return
 	}

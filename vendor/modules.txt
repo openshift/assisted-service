@@ -352,9 +352,6 @@ github.com/gogo/protobuf/sortkeys
 # github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 ## explicit
 github.com/golang-collections/go-datastructures/bitarray
-# github.com/golang-jwt/jwt v3.2.2+incompatible
-## explicit
-github.com/golang-jwt/jwt
 # github.com/golang-jwt/jwt/v4 v4.5.2
 ## explicit; go 1.16
 github.com/golang-jwt/jwt/v4
@@ -497,7 +494,7 @@ github.com/jackc/pgservicefile
 # github.com/jackc/pgtype v1.14.4
 ## explicit; go 1.13
 github.com/jackc/pgtype
-# github.com/jackc/pgx/v4 v4.18.2 => github.com/jackc/pgx/v4 v4.18.3
+# github.com/jackc/pgx/v4 v4.18.3 => github.com/jackc/pgx/v4 v4.18.3
 ## explicit; go 1.17
 github.com/jackc/pgx/v4
 github.com/jackc/pgx/v4/internal/sanitize
@@ -678,11 +675,48 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.18
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/openshift-online/ocm-sdk-go v0.1.205
-## explicit; go 1.14
+# github.com/openshift-online/ocm-api-model/clientapi v0.0.449
+## explicit; go 1.23.0
+github.com/openshift-online/ocm-api-model/clientapi/accesstransparency/v1
+github.com/openshift-online/ocm-api-model/clientapi/accountsmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/addonsmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/arohcp/v1alpha1
+github.com/openshift-online/ocm-api-model/clientapi/authorizations/v1
+github.com/openshift-online/ocm-api-model/clientapi/clustersmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/dependencymagnet
+github.com/openshift-online/ocm-api-model/clientapi/helpers
+github.com/openshift-online/ocm-api-model/clientapi/jobqueue/v1
+github.com/openshift-online/ocm-api-model/clientapi/osdfleetmgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/servicelogs/v1
+github.com/openshift-online/ocm-api-model/clientapi/servicemgmt/v1
+github.com/openshift-online/ocm-api-model/clientapi/statusboard/v1
+github.com/openshift-online/ocm-api-model/clientapi/webrca/v1
+# github.com/openshift-online/ocm-api-model/model v0.0.449
+## explicit; go 1.23.0
+github.com/openshift-online/ocm-api-model/model/access_transparency/v1
+github.com/openshift-online/ocm-api-model/model/accounts_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/addons_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/aro_hcp/v1alpha1
+github.com/openshift-online/ocm-api-model/model/authorizations/v1
+github.com/openshift-online/ocm-api-model/model/clusters_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/dependencymagnet
+github.com/openshift-online/ocm-api-model/model/job_queue/v1
+github.com/openshift-online/ocm-api-model/model/osd_fleet_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/service_logs/v1
+github.com/openshift-online/ocm-api-model/model/service_mgmt/v1
+github.com/openshift-online/ocm-api-model/model/status_board/v1
+github.com/openshift-online/ocm-api-model/model/web_rca/v1
+# github.com/openshift-online/ocm-sdk-go v0.1.494
+## explicit; go 1.24.0
 github.com/openshift-online/ocm-sdk-go
+github.com/openshift-online/ocm-sdk-go/accesstransparency
+github.com/openshift-online/ocm-sdk-go/accesstransparency/v1
 github.com/openshift-online/ocm-sdk-go/accountsmgmt
 github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
+github.com/openshift-online/ocm-sdk-go/addonsmgmt
+github.com/openshift-online/ocm-sdk-go/addonsmgmt/v1
+github.com/openshift-online/ocm-sdk-go/arohcp
+github.com/openshift-online/ocm-sdk-go/arohcp/v1alpha1
 github.com/openshift-online/ocm-sdk-go/authentication
 github.com/openshift-online/ocm-sdk-go/authorizations
 github.com/openshift-online/ocm-sdk-go/authorizations/v1
@@ -696,9 +730,17 @@ github.com/openshift-online/ocm-sdk-go/jobqueue
 github.com/openshift-online/ocm-sdk-go/jobqueue/v1
 github.com/openshift-online/ocm-sdk-go/logging
 github.com/openshift-online/ocm-sdk-go/metrics
+github.com/openshift-online/ocm-sdk-go/osdfleetmgmt
+github.com/openshift-online/ocm-sdk-go/osdfleetmgmt/v1
 github.com/openshift-online/ocm-sdk-go/retry
 github.com/openshift-online/ocm-sdk-go/servicelogs
 github.com/openshift-online/ocm-sdk-go/servicelogs/v1
+github.com/openshift-online/ocm-sdk-go/servicemgmt
+github.com/openshift-online/ocm-sdk-go/servicemgmt/v1
+github.com/openshift-online/ocm-sdk-go/statusboard
+github.com/openshift-online/ocm-sdk-go/statusboard/v1
+github.com/openshift-online/ocm-sdk-go/webrca
+github.com/openshift-online/ocm-sdk-go/webrca/v1
 # github.com/openshift/api v0.0.0-20251203133830-85216507eada
 ## explicit; go 1.24.0
 github.com/openshift/api
@@ -979,6 +1021,9 @@ github.com/shoenig/go-m1cpu
 ## explicit; go 1.13
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/test
+# github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
+## explicit
+github.com/skratchdot/open-golang/open
 # github.com/slok/go-http-metrics v0.11.0
 ## explicit; go 1.21
 github.com/slok/go-http-metrics/metrics

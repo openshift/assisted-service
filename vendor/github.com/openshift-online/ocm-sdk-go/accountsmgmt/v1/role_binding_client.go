@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -180,16 +179,12 @@ func (r *RoleBindingPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingPollResponse) Body() *RoleBinding {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleBindingPollResponse) GetBody() (value *RoleBinding, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +214,13 @@ func (r *RoleBindingDeleteRequest) Parameter(name string, value interface{}) *Ro
 // Header adds a request header.
 func (r *RoleBindingDeleteRequest) Header(name string, value interface{}) *RoleBindingDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleBindingDeleteRequest) Impersonate(user string) *RoleBindingDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +256,14 @@ func (r *RoleBindingDeleteRequest) SendContext(ctx context.Context) (result *Rol
 	result = &RoleBindingDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +324,13 @@ func (r *RoleBindingGetRequest) Header(name string, value interface{}) *RoleBind
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleBindingGetRequest) Impersonate(user string) *RoleBindingGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +363,21 @@ func (r *RoleBindingGetRequest) SendContext(ctx context.Context) (result *RoleBi
 	result = &RoleBindingGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRoleBindingGetResponse(result, response.Body)
+	err = readRoleBindingGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +417,6 @@ func (r *RoleBindingGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingGetResponse) Body() *RoleBinding {
 	if r == nil {
 		return nil
@@ -407,8 +426,6 @@ func (r *RoleBindingGetResponse) Body() *RoleBinding {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleBindingGetResponse) GetBody() (value *RoleBinding, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +455,14 @@ func (r *RoleBindingUpdateRequest) Header(name string, value interface{}) *RoleB
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RoleBindingUpdateRequest) Impersonate(user string) *RoleBindingUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingUpdateRequest) Body(value *RoleBinding) *RoleBindingUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +493,7 @@ func (r *RoleBindingUpdateRequest) SendContext(ctx context.Context) (result *Rol
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +506,25 @@ func (r *RoleBindingUpdateRequest) SendContext(ctx context.Context) (result *Rol
 	result = &RoleBindingUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRoleBindingUpdateResponse(result, response.Body)
+	err = readRoleBindingUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *RoleBindingUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *RoleBindingUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // RoleBindingUpdateResponse is the response for the 'update' method.
@@ -542,8 +560,6 @@ func (r *RoleBindingUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RoleBindingUpdateResponse) Body() *RoleBinding {
 	if r == nil {
 		return nil
@@ -553,8 +569,6 @@ func (r *RoleBindingUpdateResponse) Body() *RoleBinding {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RoleBindingUpdateResponse) GetBody() (value *RoleBinding, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
