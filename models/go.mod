@@ -10,7 +10,7 @@ require (
 	github.com/go-openapi/swag v0.23.0
 	github.com/go-openapi/validate v0.24.0
 	github.com/lib/pq v1.10.9
-	github.com/openshift/assisted-service v1.0.10-0.20251114000904-3797225d8915
+	github.com/openshift/assisted-service 39c2a628ee4a
 	gorm.io/gorm v1.25.8
 )
 
