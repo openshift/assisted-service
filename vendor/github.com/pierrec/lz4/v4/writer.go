@@ -150,6 +150,10 @@ func (w *Writer) Flush() (err error) {
 	case writeState:
 	case errorState:
 		return w.state.err
+	case newState:
+		if err = w.init(); w.state.next(err) {
+			return
+		}
 	default:
 		return nil
 	}
@@ -172,10 +176,8 @@ func (w *Writer) Close() error {
 	}
 	err := w.frame.CloseW(w.src, w.num)
 	// It is now safe to free the buffer.
-	if w.data != nil {
-		lz4block.Put(w.data)
-		w.data = nil
-	}
+	lz4block.Put(w.data)
+	w.data = nil
 	return err
 }
 
