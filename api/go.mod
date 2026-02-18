@@ -101,6 +101,6 @@ replace (
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.3
 )
 
-replace github.com/golang/glog => github.com/golang/glog v1.2.4
+replace github.com/golang/glog => github.com/golang/glog v1.2.5
 
 replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
