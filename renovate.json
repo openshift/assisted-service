@@ -10,7 +10,8 @@
     "enabledManagers": [
         "custom.regex",
         "tekton",
-        "gomod"
+        "gomod",
+        "rpm-lockfile"
     ],
     "tekton": {
         "managerFilePatterns": [
@@ -207,6 +208,18 @@
                 "api-sync"
             ],
             "enabled": true
+        },
+        {
+            "groupName": "RPM lockfile refresh",
+            "addLabels": [
+                "rpm-lockfile"
+            ],
+            "schedule": [
+                "on Saturday"
+            ],
+            "matchManagers": [
+                "rpm-lockfile"
+            ]
         }
     ]
 }
