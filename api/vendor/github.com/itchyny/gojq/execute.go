@@ -7,7 +7,7 @@ import (
 	"sort"
 )
 
-func (env *env) execute(bc *Code, v interface{}, vars ...interface{}) Iter {
+func (env *env) execute(bc *Code, v any, vars ...any) Iter {
 	env.codes = bc.codes
 	env.codeinfos = bc.codeinfos
 	env.push(v)
@@ -18,7 +18,7 @@ func (env *env) execute(bc *Code, v interface{}, vars ...interface{}) Iter {
 	return env
 }
 
-func (env *env) Next() (interface{}, bool) {
+func (env *env) Next() (any, bool) {
 	var err error
 	pc, callpc, index := env.pc, len(env.codes)-1, -1
 	backtrack, hasCtx := env.backtrack, env.ctx != context.Background()
@@ -58,20 +58,22 @@ loop:
 				break loop
 			}
 			n := code.v.(int)
-			m := make(map[string]interface{}, n)
-			for i := 0; i < n; i++ {
+			m := make(map[string]any, n)
+			for range n {
 				v, k := env.pop(), env.pop()
 				s, ok := k.(string)
 				if !ok {
 					err = &objectKeyNotStringError{k}
 					break loop
 				}
-				m[s] = v
+				if _, ok := m[s]; !ok {
+					m[s] = v
+				}
 			}
 			env.push(m)
 		case opappend:
 			i := env.index(code.v.([2]int))
-			env.values[i] = append(env.values[i].([]interface{}), env.pop())
+			env.values[i] = append(env.values[i].([]any), env.pop())
 		case opfork:
 			if backtrack {
 				if err != nil {
@@ -86,21 +88,15 @@ loop:
 				if err == nil {
 					break loop
 				}
-				switch er := err.(type) {
+				switch e := err.(type) {
 				case *tryEndError:
-					err = er.err
+					err = e.err
+					break loop
+				case *breakError, *HaltError:
 					break loop
 				case ValueError:
-					if er, ok := er.(*exitCodeError); ok && er.halt {
-						break loop
-					}
-					if v := er.Value(); v != nil {
-						env.pop()
-						env.push(v)
-					} else {
-						err = nil
-						break loop
-					}
+					env.pop()
+					env.push(e.Value())
 				default:
 					env.pop()
 					env.push(err.Error())
@@ -155,7 +151,7 @@ loop:
 			}
 			p, v := code.v, env.pop()
 			if code.op == opindexarray && v != nil {
-				if _, ok := v.([]interface{}); !ok {
+				if _, ok := v.([]any); !ok {
 					err = &expectedArrayError{v}
 					break loop
 				}
@@ -181,17 +177,15 @@ loop:
 			case int:
 				pc, callpc, index = v, pc, env.scopes.index
 				goto loop
-			case [3]interface{}:
+			case [3]any:
 				argcnt := v[1].(int)
 				x, args := env.pop(), env.args[:argcnt]
-				for i := 0; i < argcnt; i++ {
+				for i := range argcnt {
 					args[i] = env.pop()
 				}
-				w := v[0].(func(interface{}, []interface{}) interface{})(x, args)
+				w := v[0].(func(any, []any) any)(x, args)
 				if e, ok := w.(error); ok {
-					if er, ok := e.(*exitCodeError); !ok || er.value != nil || er.halt {
-						err = e
-					}
+					err = e
 					break loop
 				}
 				env.push(w)
@@ -209,7 +203,7 @@ loop:
 							break loop
 						}
 						env.paths.push(pathValue{
-							path:  map[string]interface{}{"start": args[2], "end": args[1]},
+							path:  map[string]any{"start": args[2], "end": args[1]},
 							value: w,
 						})
 					case "getpath":
@@ -217,7 +211,7 @@ loop:
 							err = &invalidPathError{x}
 							break loop
 						}
-						for _, p := range args[0].([]interface{}) {
+						for _, p := range args[0].([]any) {
 							env.paths.push(pathValue{path: p, value: w})
 						}
 					}
@@ -244,8 +238,7 @@ loop:
 					callpc, saveindex = env.popscope()
 				}
 			} else {
-				saveindex, _ = env.scopes.save()
-				env.scopes.index = index
+				saveindex = env.scopes.index
 			}
 			if outerindex = index; outerindex >= 0 {
 				if s := env.scopes.data[outerindex].value; s.id == xs[0] {
@@ -255,7 +248,7 @@ loop:
 			env.scopes.push(scope{xs[0], env.offset, callpc, saveindex, outerindex})
 			env.offset += xs[1]
 			if env.offset > len(env.values) {
-				vs := make([]interface{}, env.offset*2)
+				vs := make([]any, env.offset*2)
 				copy(vs, env.values)
 				env.values = vs
 			}
@@ -276,7 +269,7 @@ loop:
 			switch v := env.pop().(type) {
 			case []pathValue:
 				xs = v
-			case []interface{}:
+			case []any:
 				if !env.paths.empty() && env.expdepth == 0 && !env.pathIntact(v) {
 					err = &invalidPathIterError{v}
 					break loop
@@ -288,7 +281,7 @@ loop:
 				for i, v := range v {
 					xs[i] = pathValue{path: i, value: v}
 				}
-			case map[string]interface{}:
+			case map[string]any:
 				if !env.paths.empty() && env.expdepth == 0 && !env.pathIntact(v) {
 					err = &invalidPathIterError{v}
 					break loop
@@ -306,10 +299,6 @@ loop:
 					return xs[i].path.(string) < xs[j].path.(string)
 				})
 			case Iter:
-				if !env.paths.empty() && env.expdepth == 0 {
-					err = &invalidPathIterError{v}
-					break loop
-				}
 				if w, ok := v.Next(); ok {
 					env.push(v)
 					env.pushfork(pc)
@@ -369,11 +358,11 @@ loop:
 	return nil, false
 }
 
-func (env *env) push(v interface{}) {
+func (env *env) push(v any) {
 	env.stack.push(v)
 }
 
-func (env *env) pop() interface{} {
+func (env *env) pop() any {
 	return env.stack.pop()
 }
 
@@ -387,7 +376,7 @@ func (env *env) popscope() (int, int) {
 }
 
 func (env *env) pushfork(pc int) {
-	f := fork{pc: pc, expdepth: env.expdepth}
+	f := fork{pc: pc, offset: env.offset, expdepth: env.expdepth}
 	f.stackindex, f.stacklimit = env.stack.save()
 	f.scopeindex, f.scopelimit = env.scopes.save()
 	f.pathindex, f.pathlimit = env.paths.save()
@@ -398,7 +387,8 @@ func (env *env) pushfork(pc int) {
 func (env *env) popfork() int {
 	f := env.forks[len(env.forks)-1]
 	env.debugForks(f.pc, "<<<")
-	env.forks, env.expdepth = env.forks[:len(env.forks)-1], f.expdepth
+	env.forks, env.offset, env.expdepth =
+		env.forks[:len(env.forks)-1], f.offset, f.expdepth
 	env.stack.restore(f.stackindex, f.stacklimit)
 	env.scopes.restore(f.scopeindex, f.scopelimit)
 	env.paths.restore(f.pathindex, f.pathlimit)
@@ -417,15 +407,15 @@ func (env *env) index(v [2]int) int {
 }
 
 type pathValue struct {
-	path, value interface{}
+	path, value any
 }
 
-func (env *env) pathIntact(v interface{}) bool {
+func (env *env) pathIntact(v any) bool {
 	w := env.paths.top().(pathValue).value
 	switch v := v.(type) {
-	case []interface{}, map[string]interface{}:
+	case []any, map[string]any:
 		switch w.(type) {
-		case []interface{}, map[string]interface{}:
+		case []any, map[string]any:
 			v, w := reflect.ValueOf(v), reflect.ValueOf(w)
 			return v.Pointer() == w.Pointer() && v.Len() == w.Len()
 		}
@@ -437,8 +427,8 @@ func (env *env) pathIntact(v interface{}) bool {
 	return v == w
 }
 
-func (env *env) poppaths() []interface{} {
-	var xs []interface{}
+func (env *env) poppaths() []any {
+	xs := []any{}
 	for {
 		p := env.paths.pop().(pathValue)
 		if p.path == nil {
