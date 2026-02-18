@@ -18,15 +18,23 @@ type xAttrIndex struct {
 	size  uint32
 }
 
-func parseXAttrIndex(b []byte) (*xAttrIndex, error) {
+func parseXAttrIndex(b []byte, offsetMap map[uint32]uint32) (*xAttrIndex, error) {
 	if len(b) < int(xAttrIDEntrySize) {
 		return nil, fmt.Errorf("cannot parse xAttr Index of size %d less than minimum %d", len(b), xAttrIDEntrySize)
 	}
-	return &xAttrIndex{
-		pos:   binary.LittleEndian.Uint64(b[0:8]),
+
+	offsetKey := binary.LittleEndian.Uint32(b[2:6])
+	offset, ok := offsetMap[offsetKey]
+	if !ok {
+		return nil, fmt.Errorf("cannot parse xAttr Index invalid offset key %d", offsetKey)
+	}
+	toReturn := &xAttrIndex{
+		pos:   uint64(binary.LittleEndian.Uint16(b[0:2])) + uint64(offset),
 		count: binary.LittleEndian.Uint32(b[8:12]),
 		size:  binary.LittleEndian.Uint32(b[12:16]),
-	}, nil
+	}
+
+	return toReturn, nil
 }
 
 type xAttrTable struct {
@@ -39,13 +47,16 @@ func (x *xAttrTable) find(pos int) (map[string]string, error) {
 		return nil, fmt.Errorf("position %d is greater than list size %d", pos, len(x.list))
 	}
 	entry := x.list[pos]
+	if int(entry.pos) >= len(x.data) {
+		return nil, fmt.Errorf("entry position %d is greater than list size %d", entry.pos, len(x.data))
+	}
 	b := x.data[entry.pos:]
 	count := entry.count
 	ptr := 0
 	xattrs := map[string]string{}
 	for i := 0; i < int(count); i++ {
 		// must be 4 bytes for header
-		if len(b[pos:]) < 4 {
+		if len(b[ptr:]) < 4 {
 			return nil, fmt.Errorf("insufficient bytes %d to read the xattr at position %d", len(b[ptr:]), ptr)
 		}
 		// get the type and size
@@ -56,7 +67,7 @@ func (x *xAttrTable) find(pos int) (map[string]string, error) {
 		valStart := valHeaderStart + 4
 		// make sure we have enough bytes
 		if len(b[nameStart:]) < xSize {
-			return nil, fmt.Errorf("xattr header has size %d, but only %d bytes available to read at position %d", xSize, len(b[pos+4:]), ptr)
+			return nil, fmt.Errorf("xattr header has size %d, but only %d bytes available to read at position %d", xSize, len(b[ptr+4:]), ptr)
 		}
 		if xSize < 1 {
 			return nil, fmt.Errorf("no name given for xattr at position %d", ptr)

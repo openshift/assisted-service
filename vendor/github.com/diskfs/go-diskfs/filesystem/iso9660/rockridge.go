@@ -6,8 +6,6 @@ import (
 	"os"
 	"sort"
 	"time"
-
-	"gopkg.in/djherbis/times.v1"
 )
 
 const (
@@ -96,53 +94,37 @@ func (r *rockRidgeExtension) GetFilename(de *directoryEntry) (string, error) {
 	}
 	return name, nil
 }
-func (r *rockRidgeExtension) GetFileExtensions(fp string, isSelf, isParent bool) ([]directoryEntrySystemUseExtension, error) {
+func (r *rockRidgeExtension) GetFileExtensions(ffi *finalizeFileInfo, isSelf, isParent bool) ([]directoryEntrySystemUseExtension, error) {
 	// we always do PX, TF, NM, SL order
 	ret := []directoryEntrySystemUseExtension{}
-	// do not follow symlinks
-	fi, err := os.Lstat(fp)
-	if err != nil {
-		return nil, fmt.Errorf("error reading file %s: %v", fp, err)
-	}
-
-	t, err := times.Lstat(fp)
-	if err != nil {
-		return nil, fmt.Errorf("error reading times %s: %v", fp, err)
-	}
 
 	// PX
-	nlink, uid, gid := statt(fi)
-	mtime := fi.ModTime()
-	atime := t.AccessTime()
-	ctime := t.ChangeTime()
+	mtime := ffi.ModTime()
 
 	ret = append(ret, rockRidgePosixAttributes{
-		mode:      fi.Mode(),
-		linkCount: nlink,
-		uid:       uid,
-		gid:       gid,
+		mode:      ffi.Mode(),
+		linkCount: ffi.Nlink(),
+		uid:       ffi.UID(),
+		gid:       ffi.GID(),
 		length:    r.pxLength,
+		serial:    ffi.serial,
 	})
 	// TF
 	tf := rockRidgeTimestamps{longForm: false, stamps: []rockRidgeTimestamp{
 		{timestampType: rockRidgeTimestampModify, time: mtime},
-		{timestampType: rockRidgeTimestampAccess, time: atime},
-		{timestampType: rockRidgeTimestampAttribute, time: ctime},
+		{timestampType: rockRidgeTimestampAccess, time: ffi.AccessTime()},
+		{timestampType: rockRidgeTimestampAttribute, time: ffi.ChangeTime()},
 	}}
 
 	ret = append(ret, tf)
 	// NM
 	if !isSelf && !isParent {
-		ret = append(ret, rockRidgeName{name: fi.Name()})
+		ret = append(ret, rockRidgeName{name: ffi.name})
 	}
 	// SL
-	if fi.Mode()&os.ModeSymlink == os.ModeSymlink {
+	if ffi.Mode()&os.ModeSymlink == os.ModeSymlink {
 		// need the target if it is a symlink
-		target, err := os.Readlink(fp)
-		if err != nil {
-			return nil, fmt.Errorf("error reading symlink target at %s", fp)
-		}
-		ret = append(ret, rockRidgeSymlink{continued: false, name: target})
+		ret = append(ret, rockRidgeSymlink{continued: false, name: ffi.LinkTarget()})
 	}
 
 	return ret, nil
@@ -206,10 +188,7 @@ func (r *rockRidgeExtension) Relocate(dirs map[string]*finalizeFileInfo) ([]*fin
 		}
 	}
 	// repeat until deepers has no children of depth > 8
-	for {
-		if len(deepers) < 1 {
-			break
-		}
+	for len(deepers) > 0 {
 		for _, e := range deepers {
 			// we have a depth greater than 8, so move it
 			e.trueParent = e.parent
@@ -293,7 +272,7 @@ type rockRidgePosixAttributes struct {
 	linkCount uint32
 	uid       uint32
 	gid       uint32
-	serial    uint32
+	serial    uint64
 }
 
 func (d rockRidgePosixAttributes) Equal(o directoryEntrySystemUseExtension) bool {
@@ -362,8 +341,7 @@ func (d rockRidgePosixAttributes) Data() []byte {
 	binary.LittleEndian.PutUint32(ret[24:28], d.gid)
 	binary.BigEndian.PutUint32(ret[28:32], d.gid)
 	if d.length == 44 {
-		binary.LittleEndian.PutUint32(ret[32:36], d.serial)
-		binary.BigEndian.PutUint32(ret[36:40], d.serial)
+		binary.LittleEndian.PutUint64(ret[32:40], d.serial)
 	}
 	return ret
 }
@@ -385,17 +363,17 @@ func (d rockRidgePosixAttributes) Merge([]directoryEntrySystemUseExtension) dire
 func (r *rockRidgeExtension) parsePosixAttributes(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := r.pxLength
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PX extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PX extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PX extension must be version 1, was %d", version)
 	}
 	// file mode
@@ -427,9 +405,9 @@ func (r *rockRidgeExtension) parsePosixAttributes(b []byte) (directoryEntrySyste
 		m |= uint32(os.ModeNamedPipe)
 	}
 
-	var serial uint32
+	var serial uint64
 	if len(b) == 44 {
-		serial = binary.LittleEndian.Uint32(b[36:40])
+		serial = binary.LittleEndian.Uint64(b[36:44])
 	}
 	return rockRidgePosixAttributes{
 		mode:         os.FileMode(m),
@@ -488,17 +466,17 @@ func (d rockRidgePosixDeviceNumber) Merge([]directoryEntrySystemUseExtension) di
 func (r *rockRidgeExtension) parsePosixDeviceNumber(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := 20
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PN extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PN extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PN extension must be version 1, was %d", version)
 	}
 	return rockRidgePosixDeviceNumber{
@@ -542,7 +520,7 @@ func (d rockRidgeSymlink) Bytes() []byte {
 	maxComponentSize := directoryEntryMaxSize - headerSize
 	// break the target of the link down into component parts, and then we can calculate the size
 	components := splitPath(d.name)
-	root := false
+	var root bool
 	if d.name[0] == "/"[0] {
 		root = true
 	}
@@ -612,12 +590,12 @@ func (d rockRidgeSymlink) Merge(links []directoryEntrySystemUseExtension) direct
 func (r *rockRidgeExtension) parseSymlink(b []byte) (directoryEntrySystemUseExtension, error) {
 	size := int(b[2])
 	if size != len(b) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge SL extension received %d bytes, but byte 2 indicated %d", len(b), size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge SL extension must be version 1, was %d", version)
 	}
 	continued := b[4] == 1
@@ -731,12 +709,12 @@ func (d rockRidgeName) Merge(names []directoryEntrySystemUseExtension) directory
 func (r *rockRidgeExtension) parseName(b []byte) (directoryEntrySystemUseExtension, error) {
 	size := int(b[2])
 	if size != len(b) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge NM extension received %d bytes, but byte 2 indicated %d", len(b), size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge NM extension must be version 1, was %d", version)
 	}
 	continued := b[4]&1 != 0
@@ -882,12 +860,12 @@ func (d rockRidgeTimestamps) Merge([]directoryEntrySystemUseExtension) directory
 func (r *rockRidgeExtension) parseTimestamps(b []byte) (directoryEntrySystemUseExtension, error) {
 	size := b[2]
 	if int(size) != len(b) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge TF extension has %d bytes, but byte 2 indicated %d", len(b), size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge TF extension must be version 1, was %d", version)
 	}
 	// what timestamps are recorded?
@@ -985,17 +963,17 @@ func (d rockRidgeSparseFile) Merge([]directoryEntrySystemUseExtension) directory
 func (r *rockRidgeExtension) parseSparseFile(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := r.sfLength
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge SF extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge SF extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge SF extension must be version 1, was %d", version)
 	}
 	sf := &rockRidgeSparseFile{
@@ -1049,17 +1027,17 @@ func (d rockRidgeChildDirectory) Merge([]directoryEntrySystemUseExtension) direc
 func (r *rockRidgeExtension) parseChildDirectory(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := 12
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge CL extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge CL extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge CL extension must be version 1, was %d", version)
 	}
 	return rockRidgeChildDirectory{
@@ -1107,17 +1085,17 @@ func (d rockRidgeParentDirectory) Merge([]directoryEntrySystemUseExtension) dire
 func (r *rockRidgeExtension) parseParentDirectory(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := 12
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PL extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PL extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge PL extension must be version 1, was %d", version)
 	}
 	return rockRidgeParentDirectory{
@@ -1162,17 +1140,17 @@ func (d rockRidgeRelocatedDirectory) Merge([]directoryEntrySystemUseExtension) d
 func (r *rockRidgeExtension) parseRelocatedDirectory(b []byte) (directoryEntrySystemUseExtension, error) {
 	targetSize := 4
 	if len(b) != targetSize {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge RE extension must be %d bytes, but received %d", targetSize, len(b))
 	}
 	size := b[2]
 	if size != uint8(targetSize) {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge RE extension must be %d bytes, but byte 2 indicated %d", targetSize, size)
 	}
 	version := b[3]
 	if version != 1 {
-		//nolint:stylecheck // "Rock Ridge" is a proper noun
+		//nolint:staticcheck // "Rock Ridge" is a proper noun
 		return nil, fmt.Errorf("Rock Ridge RE extension must be version 1, was %d", version)
 	}
 	return rockRidgeRelocatedDirectory{}, nil
