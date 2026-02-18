@@ -69,7 +69,7 @@ require (
 	github.com/prometheus/client_golang v1.18.0
 	github.com/rs/cors v1.11.1
 	github.com/samber/lo v1.47.0
-	github.com/segmentio/kafka-go v0.4.38
+	github.com/segmentio/kafka-go v0.4.50
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
 	github.com/stretchr/testify v1.10.0
@@ -147,8 +147,9 @@ require (
 	github.com/stoewer/go-strcase v1.3.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.12 // indirect
 	github.com/tklauser/numcpus v0.6.1 // indirect
-	github.com/xdg/scram v1.0.5 // indirect
-	github.com/xdg/stringprep v1.0.3 // indirect
+	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
+	github.com/xdg-go/scram v1.1.2 // indirect
+	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/xlab/treeprint v1.2.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.3 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.21.0 // indirect
