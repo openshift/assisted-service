@@ -27,7 +27,7 @@ require (
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/openshift/assisted-service v1.0.10-0.20251113234940-1919c556eaa8 // indirect
+	github.com/openshift/assisted-service 39c2a628ee4a // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect

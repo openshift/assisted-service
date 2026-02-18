@@ -39,7 +39,7 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c // indirect
-	github.com/openshift/assisted-service v1.0.10-0.20230830164851-6573b5d7021d // indirect
+	github.com/openshift/assisted-service 39c2a628ee4a // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.2 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
