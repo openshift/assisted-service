@@ -2,7 +2,11 @@
 
 package v1
 
-// NutanixPlatformStatusApplyConfiguration represents an declarative configuration of the NutanixPlatformStatus type for use
+import (
+	configv1 "github.com/openshift/api/config/v1"
+)
+
+// NutanixPlatformStatusApplyConfiguration represents a declarative configuration of the NutanixPlatformStatus type for use
 // with apply.
 type NutanixPlatformStatusApplyConfiguration struct {
 	APIServerInternalIP  *string                                        `json:"apiServerInternalIP,omitempty"`
@@ -10,9 +14,10 @@ type NutanixPlatformStatusApplyConfiguration struct {
 	IngressIP            *string                                        `json:"ingressIP,omitempty"`
 	IngressIPs           []string                                       `json:"ingressIPs,omitempty"`
 	LoadBalancer         *NutanixPlatformLoadBalancerApplyConfiguration `json:"loadBalancer,omitempty"`
+	DNSRecordsType       *configv1.DNSRecordsType                       `json:"dnsRecordsType,omitempty"`
 }
 
-// NutanixPlatformStatusApplyConfiguration constructs an declarative configuration of the NutanixPlatformStatus type for use with
+// NutanixPlatformStatusApplyConfiguration constructs a declarative configuration of the NutanixPlatformStatus type for use with
 // apply.
 func NutanixPlatformStatus() *NutanixPlatformStatusApplyConfiguration {
 	return &NutanixPlatformStatusApplyConfiguration{}
@@ -59,5 +64,13 @@ func (b *NutanixPlatformStatusApplyConfiguration) WithIngressIPs(values ...strin
 // If called multiple times, the LoadBalancer field is set to the value of the last call.
 func (b *NutanixPlatformStatusApplyConfiguration) WithLoadBalancer(value *NutanixPlatformLoadBalancerApplyConfiguration) *NutanixPlatformStatusApplyConfiguration {
 	b.LoadBalancer = value
+	return b
+}
+
+// WithDNSRecordsType sets the DNSRecordsType field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the DNSRecordsType field is set to the value of the last call.
+func (b *NutanixPlatformStatusApplyConfiguration) WithDNSRecordsType(value configv1.DNSRecordsType) *NutanixPlatformStatusApplyConfiguration {
+	b.DNSRecordsType = &value
 	return b
 }

@@ -3,19 +3,20 @@
 package v1
 
 import (
-	v1 "github.com/openshift/api/config/v1"
+	configv1 "github.com/openshift/api/config/v1"
 )
 
-// UpdateApplyConfiguration represents an declarative configuration of the Update type for use
+// UpdateApplyConfiguration represents a declarative configuration of the Update type for use
 // with apply.
 type UpdateApplyConfiguration struct {
-	Architecture *v1.ClusterVersionArchitecture `json:"architecture,omitempty"`
-	Version      *string                        `json:"version,omitempty"`
-	Image        *string                        `json:"image,omitempty"`
-	Force        *bool                          `json:"force,omitempty"`
+	Architecture *configv1.ClusterVersionArchitecture `json:"architecture,omitempty"`
+	Version      *string                              `json:"version,omitempty"`
+	Image        *string                              `json:"image,omitempty"`
+	Force        *bool                                `json:"force,omitempty"`
+	AcceptRisks  []AcceptRiskApplyConfiguration       `json:"acceptRisks,omitempty"`
 }
 
-// UpdateApplyConfiguration constructs an declarative configuration of the Update type for use with
+// UpdateApplyConfiguration constructs a declarative configuration of the Update type for use with
 // apply.
 func Update() *UpdateApplyConfiguration {
 	return &UpdateApplyConfiguration{}
@@ -24,7 +25,7 @@ func Update() *UpdateApplyConfiguration {
 // WithArchitecture sets the Architecture field in the declarative configuration to the given value
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the Architecture field is set to the value of the last call.
-func (b *UpdateApplyConfiguration) WithArchitecture(value v1.ClusterVersionArchitecture) *UpdateApplyConfiguration {
+func (b *UpdateApplyConfiguration) WithArchitecture(value configv1.ClusterVersionArchitecture) *UpdateApplyConfiguration {
 	b.Architecture = &value
 	return b
 }
@@ -50,5 +51,18 @@ func (b *UpdateApplyConfiguration) WithImage(value string) *UpdateApplyConfigura
 // If called multiple times, the Force field is set to the value of the last call.
 func (b *UpdateApplyConfiguration) WithForce(value bool) *UpdateApplyConfiguration {
 	b.Force = &value
+	return b
+}
+
+// WithAcceptRisks adds the given value to the AcceptRisks field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the AcceptRisks field.
+func (b *UpdateApplyConfiguration) WithAcceptRisks(values ...*AcceptRiskApplyConfiguration) *UpdateApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithAcceptRisks")
+		}
+		b.AcceptRisks = append(b.AcceptRisks, *values[i])
+	}
 	return b
 }

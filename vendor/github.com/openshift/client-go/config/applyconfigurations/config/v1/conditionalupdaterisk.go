@@ -2,19 +2,37 @@
 
 package v1
 
-// ConditionalUpdateRiskApplyConfiguration represents an declarative configuration of the ConditionalUpdateRisk type for use
+import (
+	metav1 "k8s.io/client-go/applyconfigurations/meta/v1"
+)
+
+// ConditionalUpdateRiskApplyConfiguration represents a declarative configuration of the ConditionalUpdateRisk type for use
 // with apply.
 type ConditionalUpdateRiskApplyConfiguration struct {
+	Conditions    []metav1.ConditionApplyConfiguration `json:"conditions,omitempty"`
 	URL           *string                              `json:"url,omitempty"`
 	Name          *string                              `json:"name,omitempty"`
 	Message       *string                              `json:"message,omitempty"`
 	MatchingRules []ClusterConditionApplyConfiguration `json:"matchingRules,omitempty"`
 }
 
-// ConditionalUpdateRiskApplyConfiguration constructs an declarative configuration of the ConditionalUpdateRisk type for use with
+// ConditionalUpdateRiskApplyConfiguration constructs a declarative configuration of the ConditionalUpdateRisk type for use with
 // apply.
 func ConditionalUpdateRisk() *ConditionalUpdateRiskApplyConfiguration {
 	return &ConditionalUpdateRiskApplyConfiguration{}
+}
+
+// WithConditions adds the given value to the Conditions field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Conditions field.
+func (b *ConditionalUpdateRiskApplyConfiguration) WithConditions(values ...*metav1.ConditionApplyConfiguration) *ConditionalUpdateRiskApplyConfiguration {
+	for i := range values {
+		if values[i] == nil {
+			panic("nil value passed to WithConditions")
+		}
+		b.Conditions = append(b.Conditions, *values[i])
+	}
+	return b
 }
 
 // WithURL sets the URL field in the declarative configuration to the given value
