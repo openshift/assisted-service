@@ -9,7 +9,6 @@ package syntax
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"math/big"
 	"os"
@@ -99,6 +98,26 @@ const (
 	RETURN
 	WHILE
 
+	// Reserved words (following Python); unused in Starlark
+
+	AS
+	// ASSERT    // heavily used in our tests
+	ASYNC
+	AWAIT
+	CLASS
+	DEL
+	EXCEPT
+	FINALLY
+	FROM
+	GLOBAL
+	IMPORT
+	IS
+	NONLOCAL
+	RAISE
+	TRY
+	WITH
+	YIELD
+
 	maxToken
 )
 
@@ -181,6 +200,26 @@ var tokenNames = [...]string{
 	PASS:          "pass",
 	RETURN:        "return",
 	WHILE:         "while",
+
+	// Reserved words (following Python); unused in Starlark
+
+	AS: "as",
+	// ASSERT:   "assert", // heavily used in our tests
+	ASYNC:    "async",
+	AWAIT:    "await",
+	CLASS:    "class",
+	DEL:      "del",
+	EXCEPT:   "except",
+	FINALLY:  "finally",
+	FROM:     "from",
+	GLOBAL:   "global",
+	IMPORT:   "import",
+	IS:       "is",
+	NONLOCAL: "nonlocal",
+	RAISE:    "raise",
+	TRY:      "try",
+	WITH:     "with",
+	YIELD:    "yield",
 }
 
 // A FilePortion describes the content of a portion of a file.
@@ -258,7 +297,7 @@ type scanner struct {
 	readline func() ([]byte, error) // read next line of input (REPL only)
 }
 
-func newScanner(filename string, src interface{}, keepComments bool) (*scanner, error) {
+func newScanner(filename string, src any, keepComments bool) (*scanner, error) {
 	var firstLine, firstCol int32 = 1, 1
 	if portion, ok := src.(FilePortion); ok {
 		firstLine, firstCol = portion.FirstLine, portion.FirstCol
@@ -280,14 +319,14 @@ func newScanner(filename string, src interface{}, keepComments bool) (*scanner, 
 	return sc, nil
 }
 
-func readSource(filename string, src interface{}) ([]byte, error) {
+func readSource(filename string, src any) ([]byte, error) {
 	switch src := src.(type) {
 	case string:
 		return []byte(src), nil
 	case []byte:
 		return src, nil
 	case io.Reader:
-		data, err := ioutil.ReadAll(src)
+		data, err := io.ReadAll(src)
 		if err != nil {
 			err = &os.PathError{Op: "read", Path: filename, Err: err}
 			return nil, err
@@ -296,7 +335,7 @@ func readSource(filename string, src interface{}) ([]byte, error) {
 	case FilePortion:
 		return src.Content, nil
 	case nil:
-		return ioutil.ReadFile(filename)
+		return os.ReadFile(filename)
 	default:
 		return nil, fmt.Errorf("invalid source: %T", src)
 	}
@@ -316,7 +355,7 @@ func (sc *scanner) error(pos Position, s string) {
 	panic(Error{pos, s})
 }
 
-func (sc *scanner) errorf(pos Position, format string, args ...interface{}) {
+func (sc *scanner) errorf(pos Position, format string, args ...any) {
 	sc.error(pos, fmt.Sprintf(format, args...))
 }
 
@@ -1105,19 +1144,21 @@ var keywordToken = map[string]Token{
 	"while":    WHILE,
 
 	// reserved words:
-	"as": ILLEGAL,
-	// "assert":   ILLEGAL, // heavily used by our tests
-	"class":    ILLEGAL,
-	"del":      ILLEGAL,
-	"except":   ILLEGAL,
-	"finally":  ILLEGAL,
-	"from":     ILLEGAL,
-	"global":   ILLEGAL,
-	"import":   ILLEGAL,
-	"is":       ILLEGAL,
-	"nonlocal": ILLEGAL,
-	"raise":    ILLEGAL,
-	"try":      ILLEGAL,
-	"with":     ILLEGAL,
-	"yield":    ILLEGAL,
+	"as": AS,
+	// "assert":   ASSERT, // heavily used by our tests
+	"async":    ASYNC,
+	"await":    AWAIT,
+	"class":    CLASS,
+	"del":      DEL,
+	"except":   EXCEPT,
+	"finally":  FINALLY,
+	"from":     FROM,
+	"global":   GLOBAL,
+	"import":   IMPORT,
+	"is":       IS,
+	"nonlocal": NONLOCAL,
+	"raise":    RAISE,
+	"try":      TRY,
+	"with":     WITH,
+	"yield":    YIELD,
 }
