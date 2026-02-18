@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	models "github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -23,6 +24,9 @@ type restAPIVersionsHandler struct {
 	mustGatherVersions       MustGatherVersions
 	ignoredOpenshiftVersions []string
 	db                       *gorm.DB
+	urlValidator             *validations.ImageURLValidator
+	urlValidatorOnce         sync.Once
+	skipURLValidation        bool // Set to true in tests to skip SSRF validation
 }
 
 // GetReleaseImage retrieves a release image based on a specified OpenShift version and CPU architecture.
@@ -89,6 +93,11 @@ func (h *restAPIVersionsHandler) GetReleaseImage(_ context.Context, openshiftVer
 // GetReleaseImageByURL fetches a release image using the specified URL.
 // It returns an error if no matching image is found.
 func (h *restAPIVersionsHandler) GetReleaseImageByURL(_ context.Context, url, _ string) (*models.ReleaseImage, error) {
+	// Validate URL to prevent SSRF attacks
+	if err := h.validateImageURL(url); err != nil {
+		return nil, errors.Wrapf(err, "invalid release image URL: %s", url)
+	}
+
 	var releaseImage models.ReleaseImage
 	query := h.db.Session(&gorm.Session{})
 	err := query.Model(&models.ReleaseImage{}).Where("url = ?", url).Take(&releaseImage).Error
@@ -101,6 +110,22 @@ func (h *restAPIVersionsHandler) GetReleaseImageByURL(_ context.Context, url, _ 
 	}
 
 	return &releaseImage, nil
+}
+
+// validateImageURL validates an image URL to prevent SSRF attacks.
+func (h *restAPIVersionsHandler) validateImageURL(imageURL string) error {
+	// Skip validation in tests
+	if h.skipURLValidation {
+		return nil
+	}
+	h.urlValidatorOnce.Do(func() {
+		h.urlValidator = validations.DefaultImageURLValidator
+	})
+	if h.urlValidator == nil {
+		// Fail-closed: reject requests if validator is not available
+		return ErrURLValidatorNotInitialized
+	}
+	return h.urlValidator.ValidateImageURL(imageURL)
 }
 
 // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.

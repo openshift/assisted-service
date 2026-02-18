@@ -1,0 +1,20 @@
+# This file should be added to openshift/release repository at:
+# clusters/app.ci/supplemental-ci-images/postgresql-13-c9s_is.yaml
+#
+# This creates the postgresql-13-c9s imagestream tag in the CI namespace
+# that is required by assisted-service edge CI jobs.
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: postgresql
+  namespace: ci
+spec:
+  tags:
+  - name: postgresql-13-c9s
+    from:
+      kind: DockerImage
+      name: quay.io/sclorg/postgresql-13-c9s:latest
+    importPolicy:
+      scheduled: true
+    referencePolicy:
+      type: Source

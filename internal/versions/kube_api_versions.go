@@ -1,7 +1,7 @@
 package versions
 
 import (
-	context "context"
+	"context"
 	"regexp"
 	"runtime/debug"
 	"strings"
@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/validations"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -28,6 +29,9 @@ type kubeAPIVersionsHandler struct {
 	releaseImageMirror string
 	log                logrus.FieldLogger
 	kubeClient         client.Client
+	urlValidator       *validations.ImageURLValidator
+	urlValidatorOnce   sync.Once
+	skipURLValidation  bool // Set to true in tests to skip SSRF validation
 }
 
 // // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.
@@ -102,6 +106,11 @@ func (h *kubeAPIVersionsHandler) GetReleaseImage(ctx context.Context, openshiftV
 // If the image is not present in the cache, it attempts to add the image to the cache by fetching its details
 // (including OpenShift version and CPU architecture) using the specified URL and 'oc' / 'skopeo' CLI tools.
 func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error) {
+	// Validate URL to prevent SSRF attacks
+	if err := h.validateImageURL(url); err != nil {
+		return nil, errors.Wrapf(err, "invalid release image URL: %s", url)
+	}
+
 	for _, image := range h.releaseImages {
 		if swag.StringValue(image.URL) == url {
 			return image, nil
@@ -109,6 +118,27 @@ func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, 
 	}
 
 	return h.addReleaseImage(url, pullSecret)
+}
+
+// ErrURLValidatorNotInitialized is returned when URL validation cannot be performed
+// because the validator was not properly initialized. This ensures fail-closed behavior
+// for SSRF protection.
+var ErrURLValidatorNotInitialized = errors.New("image URL validator not initialized")
+
+// validateImageURL validates an image URL to prevent SSRF attacks.
+func (h *kubeAPIVersionsHandler) validateImageURL(imageURL string) error {
+	// Skip validation in tests
+	if h.skipURLValidation {
+		return nil
+	}
+	h.urlValidatorOnce.Do(func() {
+		h.urlValidator = validations.DefaultImageURLValidator
+	})
+	if h.urlValidator == nil {
+		// Fail-closed: reject requests if validator is not available
+		return ErrURLValidatorNotInitialized
+	}
+	return h.urlValidator.ValidateImageURL(imageURL)
 }
 
 // Finds a release image from the cache that matches the specified version and architecture in the following

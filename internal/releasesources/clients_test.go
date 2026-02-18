@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/validations"
 )
 
 type RequestResponseParameters struct {
@@ -966,5 +967,59 @@ var _ = Describe("Test getSupportLevels", func() {
 		supportLevels, err := client.getSupportLevels("4")
 		Expect(err).To(HaveOccurred())
 		Expect(supportLevels).To(BeNil())
+	})
+})
+
+var _ = Describe("SSRF protection in requestAndDecode", func() {
+	var urlValidator *validations.ImageURLValidator
+
+	BeforeEach(func() {
+		var err error
+		urlValidator, err = validations.NewImageURLValidator(validations.ImageURLValidatorConfig{}, nil)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Should reject URLs with private IP addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://192.168.1.1/api/endpoint", &result, urlValidator)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with loopback addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://127.0.0.1/api/endpoint", &result, urlValidator)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with AWS metadata endpoint", func() {
+		var result interface{}
+		err := requestAndDecode("http://169.254.169.254/latest/meta-data/", &result, urlValidator)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with internal network addresses", func() {
+		var result interface{}
+		err := requestAndDecode("http://10.0.0.1/api/endpoint", &result, urlValidator)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should reject URLs with docker scheme", func() {
+		var result interface{}
+		err := requestAndDecode("docker://registry.example.com/image", &result, urlValidator)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("URL validation failed"))
+	})
+
+	It("Should skip validation when validator is nil", func() {
+		var result interface{}
+		// This will fail to connect, but should NOT fail on validation
+		err := requestAndDecode("http://127.0.0.1:99999/api/endpoint", &result, nil)
+		Expect(err).To(HaveOccurred())
+		// The error should be a connection error, not a validation error
+		Expect(err.Error()).ToNot(ContainSubstring("URL validation failed"))
 	})
 })
