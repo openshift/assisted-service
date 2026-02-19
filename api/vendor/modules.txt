@@ -1,7 +1,7 @@
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
-# github.com/go-logr/logr v1.3.0
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/slogr
