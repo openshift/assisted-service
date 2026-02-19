@@ -31,9 +31,10 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
+	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	gorm.io/gorm v1.25.7 // indirect
+	gorm.io/gorm v1.31.1 // indirect
 )
 
 replace github.com/openshift/assisted-service/models => ../models

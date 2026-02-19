@@ -60,7 +60,7 @@ var tableRegexp = regexp.MustCompile(`(?i)(?:.+? AS (\w+)\s*(?:$|,)|^\w+\s+(\w+)
 // Table specify the table you would like to run db operations
 //
 //	// Get a user
-//	db.Table("users").take(&result)
+//	db.Table("users").Take(&result)
 func (db *DB) Table(name string, args ...interface{}) (tx *DB) {
 	tx = db.getInstance()
 	if strings.Contains(name, " ") || strings.Contains(name, "`") || len(args) > 0 {
@@ -178,10 +178,17 @@ func (db *DB) Omit(columns ...string) (tx *DB) {
 	tx = db.getInstance()
 
 	if len(columns) == 1 && strings.ContainsRune(columns[0], ',') {
-		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsValidDBNameChar)
+		tx.Statement.Omits = strings.FieldsFunc(columns[0], utils.IsInvalidDBNameChar)
 	} else {
 		tx.Statement.Omits = columns
 	}
+	return
+}
+
+// MapColumns modify the column names in the query results to facilitate align to the corresponding structural fields
+func (db *DB) MapColumns(m map[string]string) (tx *DB) {
+	tx = db.getInstance()
+	tx.Statement.ColumnMapping = m
 	return
 }
 
@@ -253,7 +260,10 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 
 	if len(args) == 1 {
 		if db, ok := args[0].(*DB); ok {
-			j := join{Name: query, Conds: args, Selects: db.Statement.Selects, Omits: db.Statement.Omits}
+			j := join{
+				Name: query, Conds: args, Selects: db.Statement.Selects,
+				Omits: db.Statement.Omits, JoinType: joinType,
+			}
 			if where, ok := db.Statement.Clauses["WHERE"].Expression.(clause.Where); ok {
 				j.On = &where
 			}
@@ -273,7 +283,7 @@ func joins(db *DB, joinType clause.JoinType, query string, args ...interface{}) 
 func (db *DB) Group(name string) (tx *DB) {
 	tx = db.getInstance()
 
-	fields := strings.FieldsFunc(name, utils.IsValidDBNameChar)
+	fields := strings.FieldsFunc(name, utils.IsInvalidDBNameChar)
 	tx.Statement.AddClause(clause.GroupBy{
 		Columns: []clause.Column{{Name: name, Raw: len(fields) != 1}},
 	})
@@ -296,10 +306,16 @@ func (db *DB) Having(query interface{}, args ...interface{}) (tx *DB) {
 //
 //	db.Order("name DESC")
 //	db.Order(clause.OrderByColumn{Column: clause.Column{Name: "name"}, Desc: true})
+//	db.Order(clause.OrderBy{Columns: []clause.OrderByColumn{
+//		{Column: clause.Column{Name: "name"}, Desc: true},
+//		{Column: clause.Column{Name: "age"}, Desc: true},
+//	}})
 func (db *DB) Order(value interface{}) (tx *DB) {
 	tx = db.getInstance()
 
 	switch v := value.(type) {
+	case clause.OrderBy:
+		tx.Statement.AddClause(v)
 	case clause.OrderByColumn:
 		tx.Statement.AddClause(clause.OrderBy{
 			Columns: []clause.OrderByColumn{v},
@@ -363,6 +379,15 @@ func (db *DB) Scopes(funcs ...func(*DB) *DB) (tx *DB) {
 	return tx
 }
 
+func (db *DB) executeScopes() (tx *DB) {
+	scopes := db.Statement.scopes
+	db.Statement.scopes = nil
+	for _, scope := range scopes {
+		db = scope(db)
+	}
+	return db
+}
+
 // Preload preload associations with given conditions
 //
 //	// get all users, and preload all non-cancelled orders
@@ -417,6 +442,16 @@ func (db *DB) Assign(attrs ...interface{}) (tx *DB) {
 	return
 }
 
+// Unscoped disables the global scope of soft deletion in a query.
+// By default, GORM uses soft deletion, marking records as "deleted"
+// by setting a timestamp on a specific field (e.g., `deleted_at`).
+// Unscoped allows queries to include records marked as deleted,
+// overriding the soft deletion behavior.
+// Example:
+//
+//	var users []User
+//	db.Unscoped().Find(&users)
+//	// Retrieves all users, including deleted ones.
 func (db *DB) Unscoped() (tx *DB) {
 	tx = db.getInstance()
 	tx.Statement.Unscoped = true

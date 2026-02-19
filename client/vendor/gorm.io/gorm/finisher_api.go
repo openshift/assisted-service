@@ -1,9 +1,11 @@
 package gorm
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
+	"hash/maphash"
 	"reflect"
 	"strings"
 
@@ -463,7 +465,7 @@ func (db *DB) Count(count *int64) (tx *DB) {
 
 		if len(tx.Statement.Selects) == 1 {
 			dbName := tx.Statement.Selects[0]
-			fields := strings.FieldsFunc(dbName, utils.IsValidDBNameChar)
+			fields := strings.FieldsFunc(dbName, utils.IsInvalidDBNameChar)
 			if len(fields) == 1 || (len(fields) == 3 && (strings.ToUpper(fields[1]) == "AS" || fields[1] == ".")) {
 				if tx.Statement.Parse(tx.Statement.Model) == nil {
 					if f := tx.Statement.Schema.LookUpField(dbName); f != nil {
@@ -562,7 +564,7 @@ func (db *DB) Pluck(column string, dest interface{}) (tx *DB) {
 	}
 
 	if len(tx.Statement.Selects) != 1 {
-		fields := strings.FieldsFunc(column, utils.IsValidDBNameChar)
+		fields := strings.FieldsFunc(column, utils.IsInvalidDBNameChar)
 		tx.Statement.AddClauseIfNotExists(clause.Select{
 			Distinct: tx.Statement.Distinct,
 			Columns:  []clause.Column{{Name: column, Raw: len(fields) != 1}},
@@ -623,14 +625,15 @@ func (db *DB) Transaction(fc func(tx *DB) error, opts ...*sql.TxOptions) (err er
 	if committer, ok := db.Statement.ConnPool.(TxCommitter); ok && committer != nil {
 		// nested transaction
 		if !db.DisableNestedTransaction {
-			err = db.SavePoint(fmt.Sprintf("sp%p", fc)).Error
+			spID := new(maphash.Hash).Sum64()
+			err = db.SavePoint(fmt.Sprintf("sp%d", spID)).Error
 			if err != nil {
 				return
 			}
 			defer func() {
 				// Make sure to rollback when panic, Block error or Commit error
 				if panicked || err != nil {
-					db.RollbackTo(fmt.Sprintf("sp%p", fc))
+					db.RollbackTo(fmt.Sprintf("sp%d", spID))
 				}
 			}()
 		}
@@ -671,11 +674,18 @@ func (db *DB) Begin(opts ...*sql.TxOptions) *DB {
 		opt = opts[0]
 	}
 
+	ctx := tx.Statement.Context
+	if db.DefaultTransactionTimeout > 0 {
+		if _, ok := ctx.Deadline(); !ok {
+			ctx, _ = context.WithTimeout(ctx, db.DefaultTransactionTimeout)
+		}
+	}
+
 	switch beginner := tx.Statement.ConnPool.(type) {
 	case TxBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.Statement.ConnPool, err = beginner.BeginTx(ctx, opt)
 	case ConnPoolBeginner:
-		tx.Statement.ConnPool, err = beginner.BeginTx(tx.Statement.Context, opt)
+		tx.Statement.ConnPool, err = beginner.BeginTx(ctx, opt)
 	default:
 		err = ErrInvalidTransaction
 	}
