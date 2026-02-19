@@ -158,9 +158,9 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240102182953-50ed04b92917 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240401170217-c3f982113cda // indirect
-	k8s.io/apiserver v0.29.5 // indirect
-	k8s.io/cli-runtime v0.29.9 // indirect
-	k8s.io/component-base v0.29.9 // indirect
+	k8s.io/apiserver v0.35.1 // indirect
+	k8s.io/cli-runtime v0.35.1 // indirect
+	k8s.io/component-base v0.35.1 // indirect
 	k8s.io/kms v0.29.5 // indirect
 	sigs.k8s.io/gateway-api v1.0.0 // indirect
 	sigs.k8s.io/kustomize/api v0.13.5-0.20230601165947-6ce0bf390ce3 // indirect
