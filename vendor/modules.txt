@@ -894,8 +894,8 @@ github.com/prometheus/common/model
 github.com/prometheus/procfs
 github.com/prometheus/procfs/internal/fs
 github.com/prometheus/procfs/internal/util
-# github.com/rogpeppe/go-internal v1.12.0
-## explicit; go 1.20
+# github.com/rogpeppe/go-internal v1.14.1
+## explicit; go 1.23
 # github.com/rs/cors v1.11.1
 ## explicit; go 1.13
 github.com/rs/cors
