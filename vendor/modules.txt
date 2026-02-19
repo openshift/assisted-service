@@ -1182,7 +1182,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.30.0 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
+# golang.org/x/oauth2 v0.35.0 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
