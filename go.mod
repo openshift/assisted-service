@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.21
+go 1.23
 
 require (
 	github.com/IBM/netaddr v1.5.0
@@ -263,7 +263,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/kube-openapi v0.0.0-20240103051144-eec4567ac022 // indirect
 	sigs.k8s.io/apiserver-network-proxy/konnectivity-client v0.29.0 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
+	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 )

@@ -772,7 +772,7 @@ github.com/openshift/assisted-image-service/pkg/isoeditor
 github.com/openshift/assisted-image-service/pkg/overlay
 github.com/openshift/assisted-image-service/pkg/servers
 # github.com/openshift/assisted-service/api v0.0.0 => ./api
-## explicit; go 1.21
+## explicit; go 1.23
 github.com/openshift/assisted-service/api/common
 github.com/openshift/assisted-service/api/hiveextension/v1beta1
 github.com/openshift/assisted-service/api/v1beta1
@@ -2130,8 +2130,8 @@ sigs.k8s.io/controller-runtime/pkg/webhook/internal/metrics
 # sigs.k8s.io/gateway-api v1.0.0
 ## explicit; go 1.21
 sigs.k8s.io/gateway-api/apis/v1
-# sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd
-## explicit; go 1.18
+# sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730
+## explicit; go 1.23
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
 # sigs.k8s.io/kube-storage-version-migrator v0.0.6-0.20230721195810-5c8923c5ff96
