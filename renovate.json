@@ -9,8 +9,7 @@
     "prConcurrentLimit": 0,
     "enabledManagers": [
         "custom.regex",
-        "tekton",
-        "gomod"
+        "tekton"
     ],
     "tekton": {
         "managerFilePatterns": [
@@ -27,8 +26,8 @@
                 "matchManagers": [
                     "gomod"
                 ],
-                "matchPackageNames": [
-                    "github.com/openshift/hive/apis"
+                "matchDepTypes": [
+                    "indirect"
                 ],
                 "enabled": false
             }
