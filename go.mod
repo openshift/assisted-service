@@ -216,7 +216,7 @@ require (
 	github.com/klauspost/compress v1.17.1 // indirect
 	github.com/lib/pq v1.10.9
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.2.0 // indirect
+	github.com/metal3-io/baremetal-operator/pkg/hardwareutils v0.12.2 // indirect
 	github.com/microcosm-cc/bluemonday v1.0.26 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
