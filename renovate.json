@@ -233,7 +233,8 @@
             "groupName": "Hive API Synchronization",
             "addLabels": [
                 "hive-api",
-                "api-sync"
+                "api-sync",
+                "indirect-deps"
             ],
             "enabled": true
         }
