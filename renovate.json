@@ -10,8 +10,7 @@
     "enabledManagers": [
         "custom.regex",
         "tekton",
-        "gomod",
-        "rpm-lockfile"
+        "gomod"
     ],
     "tekton": {
         "managerFilePatterns": [
