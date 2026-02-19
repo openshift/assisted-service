@@ -43,7 +43,7 @@ require (
 	github.com/openshift/assisted-service v1.0.10-0.20251114000904-3797225d8915 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
-	go.mongodb.org/mongo-driver v1.14.0 // indirect
+	go.mongodb.org/mongo-driver v1.17.9 // indirect
 	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
