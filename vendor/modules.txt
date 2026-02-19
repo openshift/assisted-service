@@ -257,9 +257,10 @@ github.com/felixge/httpsnoop
 # github.com/filanov/stateswitch v1.0.1-0.20221122134945-bfa198e3a83a
 ## explicit; go 1.14
 github.com/filanov/stateswitch
-# github.com/fsnotify/fsnotify v1.7.0
+# github.com/fsnotify/fsnotify v1.9.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
+github.com/fsnotify/fsnotify/internal
 # github.com/ghodss/yaml v1.0.0
 ## explicit
 github.com/ghodss/yaml
