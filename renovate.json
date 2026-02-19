@@ -10,7 +10,6 @@
     "enabledManagers": [
         "custom.regex",
         "tekton",
-        "gomod",
         "rpm-lockfile"
     ],
     "tekton": {
@@ -104,12 +103,6 @@
     ],
     "packageRules": [
         {
-            "matchManagers": [
-                "gomod"
-            ],
-            "enabled": false
-        },
-        {
             "groupName": "Go Builder",
             "addLabels": [
                 "golang"
@@ -194,20 +187,6 @@
                 "registry.access.redhat.com/ubi9/ubi-minimal"
             ],
             "enabled": false
-        },
-        {
-            "matchManagers": [
-                "gomod"
-            ],
-            "matchPackageNames": [
-                "github.com/openshift/hive/apis"
-            ],
-            "groupName": "Hive API Synchronization",
-            "addLabels": [
-                "hive-api",
-                "api-sync"
-            ],
-            "enabled": true
         },
         {
             "groupName": "RPM lockfile refresh",
