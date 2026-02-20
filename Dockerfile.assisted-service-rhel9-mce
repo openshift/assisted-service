@@ -12,7 +12,7 @@ WORKDIR /app
 
 USER 0
 RUN INSTALL_PKGS="gcc git nmstate-devel openssl-devel" && \
-    dnf install -y $INSTALL_PKGS && \
+    dnf install -y --setopt=multilib_policy=best --exclude='*.i686' $INSTALL_PKGS && \
     dnf clean all
 USER ${USER_UID}
 
