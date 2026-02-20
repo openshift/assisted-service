@@ -810,8 +810,49 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
-	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=disable",
-		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	// Warn if SSLMode is set to "disable" as this is insecure
+	if Options.DBConfig.SSLMode == "disable" {
+		log.Warn("Database connection is configured without SSL (sslmode=disable). This transmits credentials and data in cleartext.")
+	}
+
+	// Validate SSL configuration
+	// Certificate path validation is critical for verify modes. If SSLMode is "verify-ca"
+	// or "verify-full" but SSLRootCert is not provided or the file doesn't exist, the
+	// connection must fail immediately rather than falling back to insecure mode.
+	if Options.DBConfig.SSLMode == "verify-full" || Options.DBConfig.SSLMode == "verify-ca" {
+		if Options.DBConfig.SSLRootCert == "" {
+			log.Fatalf("SSLRootCert is required when SSLMode is set to '%s'", Options.DBConfig.SSLMode)
+		}
+	}
+
+	// Validate SSL certificate paths exist and are readable
+	if Options.DBConfig.SSLRootCert != "" {
+		if _, err := os.Stat(Options.DBConfig.SSLRootCert); err != nil {
+			log.Fatalf("SSLRootCert file '%s' is not accessible: %v", Options.DBConfig.SSLRootCert, err)
+		}
+	}
+	if Options.DBConfig.SSLCert != "" {
+		if _, err := os.Stat(Options.DBConfig.SSLCert); err != nil {
+			log.Fatalf("SSLCert file '%s' is not accessible: %v", Options.DBConfig.SSLCert, err)
+		}
+	}
+	if Options.DBConfig.SSLKey != "" {
+		if _, err := os.Stat(Options.DBConfig.SSLKey); err != nil {
+			log.Fatalf("SSLKey file '%s' is not accessible: %v", Options.DBConfig.SSLKey, err)
+		}
+	}
+
+	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=%s",
+		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass, Options.DBConfig.SSLMode)
+	if Options.DBConfig.SSLRootCert != "" {
+		dbConnectionStr += fmt.Sprintf(" sslrootcert=%s", Options.DBConfig.SSLRootCert)
+	}
+	if Options.DBConfig.SSLCert != "" {
+		dbConnectionStr += fmt.Sprintf(" sslcert=%s", Options.DBConfig.SSLCert)
+	}
+	if Options.DBConfig.SSLKey != "" {
+		dbConnectionStr += fmt.Sprintf(" sslkey=%s", Options.DBConfig.SSLKey)
+	}
 	var db *gorm.DB
 	var err error
 	// Tries to open a db connection every 2 seconds

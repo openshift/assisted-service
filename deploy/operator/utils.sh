@@ -154,10 +154,10 @@ function wait_for_object_amount() {
     interval="$3"
     namespace="${4:-}"
 
-    until [ $(oc get ${object} -n "${namespace}" --no-headers | wc -l) -eq ${amount} ]; do
-        sleep ${interval}
+    until [ "$(oc get "${object}" -n "${namespace}" --no-headers | wc -l)" -eq "${amount}" ]; do
+        sleep "${interval}"
     done
-    echo "done" $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
+    echo "done" "$(oc get "${object}" -n "${namespace}" --no-headers | wc -l)"
 }
 
 function wait_for_cmd_amount() {
