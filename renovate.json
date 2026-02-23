@@ -9,13 +9,9 @@
     "prConcurrentLimit": 0,
     "enabledManagers": [
         "custom.regex",
-<<<<<<< HEAD
-        "tekton"
-=======
         "tekton",
         "gomod",
         "rpm-lockfile"
->>>>>>> 40a2da2e5 (Add Hive API Synchronization with mintmaker override)
     ],
     "tekton": {
         "managerFilePatterns": [
@@ -209,18 +205,6 @@
                 "registry.access.redhat.com/ubi9/ubi-minimal"
             ],
             "enabled": false
-        },
-        {
-            "groupName": "RPM lockfile refresh",
-            "addLabels": [
-                "rpm-lockfile"
-            ],
-            "schedule": [
-                "on Saturday"
-            ],
-            "matchManagers": [
-                "rpm-lockfile"
-            ]
         },
         {
             "matchManagers": [
