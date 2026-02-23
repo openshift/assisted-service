@@ -9,7 +9,13 @@
     "prConcurrentLimit": 0,
     "enabledManagers": [
         "custom.regex",
+<<<<<<< HEAD
         "tekton"
+=======
+        "tekton",
+        "gomod",
+        "rpm-lockfile"
+>>>>>>> 40a2da2e5 (Add Hive API Synchronization with mintmaker override)
     ],
     "tekton": {
         "managerFilePatterns": [
