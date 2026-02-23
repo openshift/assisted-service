@@ -1,0 +1,25 @@
+{{ if .Cluster }}
+{{ range .Cluster.MonitoredOperators }}
+{{ if eq .Name "amd-gpu" }}
+apiVersion: infrastructure.opendatahub.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  namespace: redhat-ods-applications
+  name: amd-gpu
+spec:
+  identifiers:
+  - identifier: amd.com/gpu
+    displayName: AMD GPU
+    resourceType: Accelerator
+    defaultCount: 1
+    minCount: 0
+  scheduling:
+    type: Node
+    node:
+      tolerations:
+      - key: amd.com/gpu
+        operator: Exists
+        effect: NoSchedule
+{{ end }}
+{{ end }}
+{{ end }}
