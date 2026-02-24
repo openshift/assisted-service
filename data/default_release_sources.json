@@ -262,35 +262,30 @@
       {
         "cpu_architecture": "x86_64",
         "channels": [
-          "candidate",
           "stable"
         ]
       },
       {
         "cpu_architecture": "arm64",
         "channels": [
-          "candidate",
           "stable"
         ]
       },
       {
         "cpu_architecture": "ppc64le",
         "channels": [
-          "candidate",
           "stable"
         ]
       },
       {
         "cpu_architecture": "s390x",
         "channels": [
-          "candidate",
           "stable"
         ]
       },
       {
         "cpu_architecture": "multi",
         "channels": [
-          "candidate",
           "stable"
         ]
       }
@@ -298,6 +293,47 @@
   },
   {
     "openshift_version": "4.21",
+    "multi_cpu_architectures": [
+      "x86_64",
+      "arm64",
+      "s390x",
+      "ppc64le"
+    ],
+    "upgrade_channels": [
+      {
+        "cpu_architecture": "x86_64",
+        "channels": [
+          "stable"
+        ]
+      },
+      {
+        "cpu_architecture": "arm64",
+        "channels": [
+          "stable"
+        ]
+      },
+      {
+        "cpu_architecture": "ppc64le",
+        "channels": [
+          "stable"
+        ]
+      },
+      {
+        "cpu_architecture": "s390x",
+        "channels": [
+          "stable"
+        ]
+      },
+      {
+        "cpu_architecture": "multi",
+        "channels": [
+          "stable"
+        ]
+      }
+    ]
+  },
+  {
+    "openshift_version": "4.22",
     "multi_cpu_architectures": [
       "x86_64",
       "arm64",
