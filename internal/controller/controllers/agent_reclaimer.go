@@ -283,6 +283,7 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 			Operator: corev1.TolerationOpExists,
 		}}
 		daemonSet.Spec.Template.Spec.PriorityClassName = "system-node-critical"
+		daemonSet.Spec.Template.Spec.HostPID = true
 		daemonSet.Spec.Template.Spec.ServiceAccountName = spokeRBACName
 		daemonSet.Spec.Template.Spec.Containers = containers
 		return nil
