@@ -105,6 +105,7 @@ var _ = Describe("agent reconcile", func() {
 		hr = &AgentReconciler{
 			Client:                c,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 			APIReader:             c,
 			Scheme:                scheme.Scheme,
 			Log:                   common.GetTestLog(),
@@ -1444,6 +1445,77 @@ var _ = Describe("agent reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 			assertAgentConditionsSuccess()
+		})
+
+		It("unbind attempts to reclaim when Metal3 is disabled even if BMH label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			testMAC := "de:ad:be:ef:00:00"
+			bmh := newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{BootMACAddress: testMAC})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			if host.ObjectMeta.Labels == nil {
+				host.ObjectMeta.Labels = make(map[string]string)
+			}
+			host.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
+			Expect(c.Update(ctx, host)).To(Succeed())
+
+			createKubeconfigSecret()
+			expectDBClusterWithKubeKeys()
+
+			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.Role{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.RoleBinding{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
+			mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true, bminventory.NonInteractive).Return(commonHost, nil)
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			assertAgentConditionsSuccess()
+		})
+	})
+
+	Context("Metal3 disabled", func() {
+		It("getBMH returns nil even when BMH exists and label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			bmh := newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			hostId := strfmt.UUID(uuid.New().String())
+			agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{})
+			agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmh.Name}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			result, err := hr.getBMH(ctx, agent)
+			Expect(err).To(BeNil())
+			Expect(result).To(BeNil())
+		})
+
+		It("bmhExists returns false even when BMH exists and label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			bmh := newBMH("testBMH2", &bmh_v1alpha1.BareMetalHostSpec{})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			hostId := strfmt.UUID(uuid.New().String())
+			agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{})
+			agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmh.Name}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			exists, err := hr.bmhExists(ctx, agent)
+			Expect(err).To(BeNil())
+			Expect(exists).To(BeFalse())
 		})
 	})
 
@@ -2997,6 +3069,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			SpokeK8sClientFactory:      mockClientFactory,
 			ApproveCsrsRequeueDuration: time.Minute,
 			ImageServiceEnabled:        true,
+			EnableMetal3:               true,
 		}
 		sId := strfmt.UUID(uuid.New().String())
 		hostId = strfmt.UUID(uuid.New().String())
@@ -4056,6 +4129,7 @@ var _ = Describe("TestConditions", func() {
 		hr = &AgentReconciler{
 			Client:              c,
 			ImageServiceEnabled: true,
+			EnableMetal3:        true,
 			Scheme:              scheme.Scheme,
 			Log:                 common.GetTestLog(),
 			Installer:           mockInstallerInternal,
@@ -4805,6 +4879,7 @@ var _ = Describe("spokeKubeClient", func() {
 			APIReader:             c,
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 		cdSpec = hivev1.ClusterDeploymentSpec{
 			ClusterName:     clusterName,
@@ -4911,6 +4986,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 			Installer:             mockInstallerInternal,
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 
 		agent = &v1beta1.Agent{
@@ -5477,6 +5553,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			SpokeK8sClientFactory: mockClientFactory,
 			AgentContainerImage:   agentImage,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 		sId = strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
