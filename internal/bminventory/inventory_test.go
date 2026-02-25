@@ -9901,6 +9901,15 @@ var _ = Describe("infraEnvs", func() {
 				err := params.Validate(nil)
 				Expect(err.Error()).To(ContainSubstring("should be at most 65535 chars long"))
 			})
+			It("empty mac address is rejected", func() {
+				item := &models.MacInterfaceMapItems0{
+					LogicalNicName: "eth0",
+					MacAddress:     "",
+				}
+				err := item.Validate(nil)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("mac_address"))
+			})
 			It("updates proxy when http and https are the same", func() {
 				var err error
 				mockInfraEnvUpdateSuccess()

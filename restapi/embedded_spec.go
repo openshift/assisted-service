@@ -9991,6 +9991,9 @@ func init() {
       "type": "array",
       "items": {
         "type": "object",
+        "required": [
+          "mac_address"
+        ],
         "properties": {
           "logical_nic_name": {
             "description": "nic name used in the yaml, which relates 1:1 to the mac address",
@@ -9999,7 +10002,8 @@ func init() {
           "mac_address": {
             "description": "mac address present on the host",
             "type": "string",
-            "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
+            "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$",
+            "x-nullable": false
           }
         }
       }
@@ -17899,6 +17903,9 @@ func init() {
     },
     "MacInterfaceMapItems0": {
       "type": "object",
+      "required": [
+        "mac_address"
+      ],
       "properties": {
         "logical_nic_name": {
           "description": "nic name used in the yaml, which relates 1:1 to the mac address",
@@ -17907,7 +17914,8 @@ func init() {
         "mac_address": {
           "description": "mac address present on the host",
           "type": "string",
-          "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
+          "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$",
+          "x-nullable": false
         }
       }
     },
