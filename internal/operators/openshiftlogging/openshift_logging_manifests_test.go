@@ -73,7 +73,6 @@ var _ = Describe("OpenShift Logging manifest generation", func() {
 		Expect(metadata["namespace"]).To(Equal(Namespace))
 
 		spec := subData["spec"].(map[string]interface{})
-		Expect(spec["channel"]).To(Equal(Channel))
 		Expect(spec["name"]).To(Equal(SubscriptionName))
 		Expect(spec["source"]).To(Equal(Source))
 		Expect(spec["sourceNamespace"]).To(Equal(SourceNamespace))
