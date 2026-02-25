@@ -12,5 +12,4 @@ const (
 	SubscriptionName = "loki-operator"
 	Source           = "redhat-operators"
 	SourceNamespace  = "openshift-marketplace"
-	Channel          = "stable-6.3"
 )
