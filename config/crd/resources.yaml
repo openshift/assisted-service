@@ -2050,6 +2050,10 @@ spec:
                   that are used if one the operators fails to be successfully deployed
                 items:
                   properties:
+                    cpuArchitecture:
+                      description: CPUArchitecture is the CPU architecture of the
+                        image (x86_64/arm64/multi/etc).
+                      type: string
                     name:
                       description: |-
                         Name specifies the name of the component (e.g. operator)
@@ -2892,6 +2896,10 @@ spec:
                   that are used if one the operators fails to be successfully deployed
                 items:
                   properties:
+                    cpuArchitecture:
+                      description: CPUArchitecture is the CPU architecture of the
+                        image (x86_64/arm64/multi/etc).
+                      type: string
                     name:
                       description: |-
                         Name specifies the name of the component (e.g. operator)
