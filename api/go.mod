@@ -14,7 +14,6 @@ require (
 	github.com/thoas/go-funk v0.9.2
 	k8s.io/api v0.29.5
 	k8s.io/apimachinery v0.29.5
-	k8s.io/client-go v0.29.2
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -28,7 +27,6 @@ require (
 	github.com/evanphx/json-patch/v5 v5.8.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/go-logr/zapr v1.3.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.4 // indirect
 	github.com/go-openapi/jsonpointer v0.20.0 // indirect
@@ -70,8 +68,6 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
 	go.mongodb.org/mongo-driver v1.12.0 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20220722155223-a9213eeb770e // indirect
 	golang.org/x/net v0.23.0 // indirect
 	golang.org/x/oauth2 v0.12.0 // indirect
@@ -88,6 +84,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.24.5 // indirect
 	k8s.io/apiextensions-apiserver v0.29.2 // indirect
+	k8s.io/client-go v0.29.2 // indirect
 	k8s.io/component-base v0.29.2 // indirect
 	k8s.io/klog/v2 v2.110.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect

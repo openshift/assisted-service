@@ -989,9 +989,13 @@ func createVersionHandlers(
 	if ctrlMgr != nil {
 		versionsClient = ctrlMgr.GetClient()
 	}
-	var mustGatherVersionsMap = make(versions.MustGatherVersions)
+
+	mustGatherVersionCache := versions.NewMustGatherVersionCache()
 	if Options.MustGatherImages != "" {
-		if err := json.Unmarshal([]byte(Options.MustGatherImages), &mustGatherVersionsMap); err != nil {
+		var err error
+
+		mustGatherVersionCache, err = versions.NewMustGatherVersionCacheFromJSON(Options.MustGatherImages)
+		if err != nil {
 			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
 		}
 	}
@@ -1000,7 +1004,7 @@ func createVersionHandlers(
 		log.WithField("pkg", "versions"),
 		releaseHandler,
 		releaseImagesArray,
-		mustGatherVersionsMap,
+		mustGatherVersionCache,
 		Options.ReleaseImageMirror,
 		versionsClient,
 		ignoredOpenshiftVersions,
