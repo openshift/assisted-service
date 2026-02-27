@@ -12,6 +12,7 @@ import (
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	types_31 "github.com/coreos/ignition/v2/config/v3_1/types"
 	config_32 "github.com/coreos/ignition/v2/config/v3_2"
+	types_32 "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -1240,7 +1241,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
-			ignConfig, _, err := config_31.Parse(ign)
+			ignConfig, _, err := config_32.Parse(ign)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("http://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(0))
@@ -1252,7 +1253,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, token, "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
-			ignConfig, _, err := config_31.Parse(ign)
+			ignConfig, _, err := config_32.Parse(ign)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("http://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
@@ -1269,7 +1270,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			ign, err := builder.FormatSecondDayWorkerIgnitionFile("https://url.com", &encodedCa, "", "", mockHost)
 			Expect(err).NotTo(HaveOccurred())
 
-			ignConfig, _, err := config_31.Parse(ign)
+			ignConfig, _, err := config_32.Parse(ign)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(0))
@@ -1287,7 +1288,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 
 			Expect(err).NotTo(HaveOccurred())
 
-			ignConfig, _, err := config_31.Parse(ign)
+			ignConfig, _, err := config_32.Parse(ign)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].Source)).Should(Equal("https://url.com"))
 			Expect(ignConfig.Ignition.Config.Merge[0].HTTPHeaders).Should(HaveLen(1))
@@ -1295,6 +1296,56 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 			Expect(swag.StringValue(ignConfig.Ignition.Config.Merge[0].HTTPHeaders[0].Value)).Should(Equal("Bearer " + token))
 			Expect(ignConfig.Ignition.Security.TLS.CertificateAuthorities).Should(HaveLen(1))
 			Expect(swag.StringValue(ignConfig.Ignition.Security.TLS.CertificateAuthorities[0].Source)).Should(Equal("data:text/plain;base64," + encodedCa))
+		})
+	})
+
+	Context("AddStateRootCleanupToIgnition", func() {
+		It("should not add state root cleanup to ignition if worker is booted from live ISO", func() {
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", "", mockHost)
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Fprint(GinkgoWriter, string(ign))
+
+			config, _, err := config_32.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+
+			var scriptFile *types_32.File
+			for idx, file := range config.Storage.Files {
+				if file.Node.Path == "/usr/local/bin/cleanup-assisted-discovery-stateroot.sh" {
+					scriptFile = &config.Storage.Files[idx]
+				}
+			}
+			Expect(scriptFile).To(BeNil())
+		})
+		It("should add state root cleanup to ignition if worker booted from disk", func() {
+			mockHost.Inventory = `{
+				"boot": {
+					"device_type": "persistent"
+				}
+			}`
+			ign, err := builder.FormatSecondDayWorkerIgnitionFile("http://url.com", nil, "", "", mockHost)
+			Expect(err).NotTo(HaveOccurred())
+			fmt.Fprint(GinkgoWriter, string(ign))
+
+			config, _, err := config_32.Parse(ign)
+			Expect(err).NotTo(HaveOccurred())
+
+			var scriptFile *types_32.File
+			for idx, file := range config.Storage.Files {
+				if file.Node.Path == "/usr/local/bin/cleanup-assisted-discovery-stateroot.sh" {
+					scriptFile = &config.Storage.Files[idx]
+				}
+			}
+			Expect(scriptFile).NotTo(BeNil())
+			Expect(*scriptFile.FileEmbedded1.Contents.Source).To(Equal("data:text/plain;charset=utf-8;base64,IyEvYmluL2Jhc2gKCnNldCAtZXV4CnVuc2hhcmUgLS1tb3VudAptb3VudCAtb3JlbW91bnQscncgL3N5c3Jvb3QKcnBtLW9zdHJlZSBjbGVhbnVwIC0tb3M9cmhjb3MgLXIKcnBtLW9zdHJlZSBjbGVhbnVwIC0tb3M9aW5zdGFsbCAtcgpzeXN0ZW1jdGwgc3RvcCBycG0tb3N0cmVlZApybSAtcmYgL3N5c3Jvb3Qvb3N0cmVlL2RlcGxveS9yaGNvcwpzeXN0ZW1jdGwgc3RhcnQgcnBtLW9zdHJlZWQK"))
+
+			var unit *types_32.Unit
+			for idx, u := range config.Systemd.Units {
+				if u.Name == "cleanup-assisted-discovery-stateroot.service" {
+					unit = &config.Systemd.Units[idx]
+				}
+			}
+			Expect(unit).NotTo(BeNil())
+			Expect(*unit.Contents).To(Equal("[Unit]\nDescription=Cleanup Assisted Installer discovery stateroot\nConditionFirstBoot=yes\nConditionPathExists=/sysroot/ostree/deploy/rhcos\nBefore=first-boot-complete.target\nWants=first-boot-complete.target\n\n[Service]\nType=oneshot\nRemainAfterExit=yes\nExecStart=/usr/local/bin/cleanup-assisted-discovery-stateroot.sh\n\n[Install]\nWantedBy=basic.target\n"))
 		})
 	})
 })
