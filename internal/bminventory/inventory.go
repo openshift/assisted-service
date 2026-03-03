@@ -565,11 +565,9 @@ func (b *bareMetalInventory) getOLMMonitoredOperators(log *logrus.Entry, cluster
 }
 
 func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, params *models.ClusterCreateParams, arch string) (*models.ReleaseImage, error) {
-	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, swag.StringValue(params.OpenshiftVersion),
-		arch, swag.StringValue(params.PullSecret))
+	releaseImage, err := b.getReleaseImage(ctx, params, arch)
 	if err != nil {
-		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
-			swag.StringValue(params.OpenshiftVersion), arch)
+		return nil, err
 	}
 
 	if !b.EnableImageService {
@@ -588,6 +586,37 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 		}
 	}
 
+	return releaseImage, nil
+}
+
+func (b *bareMetalInventory) getReleaseImage(ctx context.Context, params *models.ClusterCreateParams, arch string) (*models.ReleaseImage, error) {
+	if params.OcpReleaseImage != "" {
+		releaseImage, err := b.versionsHandler.GetReleaseImageByURL(ctx, params.OcpReleaseImage, swag.StringValue(params.PullSecret))
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to get release image by URL %s during cluster registration", params.OcpReleaseImage)
+		}
+
+		normalizedArch := common.NormalizeCPUArchitecture(arch)
+		if normalizedArch == common.MultiCPUArchitecture {
+			if len(releaseImage.CPUArchitectures) <= 1 {
+				return nil, errors.Errorf("release image URL %s does not support requested CPU architecture %s", params.OcpReleaseImage, normalizedArch)
+			}
+			return releaseImage, nil
+		}
+		for _, cpuArch := range releaseImage.CPUArchitectures {
+			normalizedCpuArch := common.NormalizeCPUArchitecture(cpuArch)
+			if normalizedCpuArch == normalizedArch {
+				return releaseImage, nil
+			}
+		}
+		return nil, errors.Errorf("Requested CPU architecture %s is not supported for release image URL %s. Supported architectures in release image: %v", normalizedArch, params.OcpReleaseImage, releaseImage.CPUArchitectures)
+	}
+
+	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, swag.StringValue(params.OpenshiftVersion), arch, swag.StringValue(params.PullSecret))
+	if err != nil {
+		return nil, errors.Wrapf(err, "Openshift version %s for CPU architecture %s is not supported",
+			swag.StringValue(params.OpenshiftVersion), arch)
+	}
 	return releaseImage, nil
 }
 
