@@ -12,5 +12,4 @@ const (
 	SubscriptionName = "cluster-logging"
 	Source           = "redhat-operators"
 	SourceNamespace  = "openshift-marketplace"
-	Channel          = "stable-6.3"
 )
