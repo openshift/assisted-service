@@ -265,9 +265,13 @@ func toMac(macStr string) *strfmt.MAC {
 	return &mac
 }
 
-func mockClusterRegisterSteps() {
+func mockClusterRegisterSteps(withReleaseImageURL bool) {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+	if withReleaseImageURL {
+		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+	} else {
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+	}
 
 	mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
@@ -275,7 +279,16 @@ func mockClusterRegisterSteps() {
 }
 
 func mockClusterRegisterSuccess(withEvents bool) {
-	mockClusterRegisterSteps()
+	mockClusterRegisterSteps(false)
+	mockMetric.EXPECT().ClusterRegistered().Times(1)
+
+	if withEvents {
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterRegistrationSucceededEventName))).Times(1)
+	}
+}
+func mockClusterRegisterSuccessWithReleaseImageURL(withEvents bool) {
+	mockClusterRegisterSteps(true)
 	mockMetric.EXPECT().ClusterRegistered().Times(1)
 
 	if withEvents {
@@ -14676,7 +14689,7 @@ var _ = Describe("RegisterCluster", func() {
 		})
 		Context("Pull secret validation", func() {
 			It("Successfully validates the pull secret if it does not contain auth for a mirrored registry", func() {
-				mockClusterRegisterSuccess(true)
+				mockClusterRegisterSuccessWithReleaseImageURL(true)
 				mockAMSSubscription(ctx)
 				conf, _ := getMirrorRegistryConfigurations(getSecureRegistryToml("fake-registry.example.com", mirrorRegistry), mirrorRegistryCertificate)
 				params := getClusterCreateParams()
@@ -16373,7 +16386,7 @@ var _ = Describe("RegisterCluster", func() {
 	It("cluster api failed to register", func() {
 		bm.clusterApi = mockClusterApi
 		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
-		mockClusterRegisterSteps()
+		mockClusterRegisterSteps(false)
 
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
@@ -16426,6 +16439,20 @@ var _ = Describe("RegisterCluster", func() {
 		mockAMSSubscription(ctx)
 		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 			NewClusterParams: getDefaultClusterCreateParams(),
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+		actual := reply.(*installer.V2RegisterClusterCreated)
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+	})
+
+	It("successfully registers cluster with openshift release image URL defined in the cluster create params", func() {
+		mockClusterRegisterSuccessWithReleaseImageURL(true)
+		mockAMSSubscription(ctx)
+		clusterParams := getDefaultClusterCreateParams()
+		clusterParams.OcpReleaseImage = common.TestDefaultConfig.ReleaseImageUrl
+		reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+			NewClusterParams: clusterParams,
 		})
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
@@ -16530,6 +16557,38 @@ var _ = Describe("RegisterCluster", func() {
 		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
 		actual := reply.(*installer.V2RegisterClusterCreated)
 		Expect(actual.Payload.CPUArchitecture).To(Equal(common.TestDefaultConfig.CPUArchitecture))
+	})
+	Context("Register with release image URL", func() {
+		It("should register cluster with release image URL successfully", func() {
+			mockClusterRegisterSuccessWithReleaseImageURL(true)
+			mockAMSSubscription(ctx)
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OcpReleaseImage = common.TestDefaultConfig.ReleaseImageUrl
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewV2RegisterClusterCreated())))
+			actual := reply.(*installer.V2RegisterClusterCreated)
+			Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
+			Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImageUrl))
+		})
+
+		It("should fail if openshift release image is different from cluster architecture", func() {
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				CPUArchitectures: []string{common.ARM64CPUArchitecture},
+				OpenshiftVersion: swag.String("4.12.0"),
+				URL:              swag.String(common.TestDefaultConfig.ReleaseImageUrl),
+				Version:          swag.String("4.12.0"),
+			}, nil).Times(1)
+
+			clusterParams := getDefaultClusterCreateParams()
+			clusterParams.OcpReleaseImage = common.TestDefaultConfig.ReleaseImageUrl
+			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+				NewClusterParams: clusterParams,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("Requested CPU architecture %s is not supported for release image URL %s. Supported architectures in release image: %v", common.ARM64CPUArchitecture, common.TestDefaultConfig.ReleaseImageUrl, []string{common.ARM64CPUArchitecture}))))
+		})
 	})
 
 	Context("Cluster Tags", func() {
@@ -16649,7 +16708,7 @@ var _ = Describe("RegisterCluster", func() {
 			payload.Username = userName1
 			payload.Organization = orgID1
 			authCtx = context.WithValue(ctx, restapi.AuthKey, payload)
-			mockClusterRegisterSteps()
+			mockClusterRegisterSteps(false)
 			mockUsageReports()
 			mockAMSSubscription(authCtx)
 			mockMetric.EXPECT().ClusterRegistered().Times(1)
@@ -17512,7 +17571,7 @@ var _ = Describe("AMS subscriptions", func() {
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
 			bm.clusterApi = mockClusterApi
 			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
-			mockClusterRegisterSteps()
+			mockClusterRegisterSteps(false)
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), clusterName).Return(nil, errors.New("dummy"))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 
@@ -17527,7 +17586,7 @@ var _ = Describe("AMS subscriptions", func() {
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
 			bm.clusterApi = mockClusterApi
 			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
-			mockClusterRegisterSteps()
+			mockClusterRegisterSteps(false)
 			mockAMSSubscription(ctx)
 			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
 			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
