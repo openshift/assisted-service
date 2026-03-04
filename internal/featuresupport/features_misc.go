@@ -98,8 +98,8 @@ func (feature *TnaFeature) GetName() string {
 }
 
 func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	//TNA is only available with baremetal platform
-	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal {
+	//TNA is only available with baremetal/none platform
+	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone {
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
 	}
 
@@ -118,7 +118,6 @@ func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) (models.
 
 func (feature *TnaFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
 	return []models.FeatureSupportLevelID{
-		models.FeatureSupportLevelIDNONEPLATFORM,
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
