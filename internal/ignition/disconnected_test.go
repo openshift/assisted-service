@@ -1,6 +1,7 @@
 package ignition
 
 import (
+	"bytes"
 	"context"
 	"os"
 	"path/filepath"
@@ -440,6 +441,18 @@ var _ = Describe("Disconnected Ignition", func() {
 						{"mac_address": "52:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
 					],
 					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n  ipv4:\n    enabled: true\n    address:\n    - ip: 192.168.1.10\n      prefix-length: 24\n    dhcp: false\n"
+				},
+				{
+					"mac_interface_map": [
+						{"mac_address": "53:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
+					],
+					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n  ipv4:\n    enabled: true\n    address:\n    - ip: 192.168.1.11\n      prefix-length: 24\n    dhcp: false\n"
+				},
+				{
+					"mac_interface_map": [
+						{"mac_address": "54:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
+					],
+					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n  ipv4:\n    enabled: true\n    address:\n    - ip: 192.168.1.12\n      prefix-length: 24\n    dhcp: false\n"
 				}
 			]`
 
@@ -458,20 +471,46 @@ var _ = Describe("Disconnected Ignition", func() {
 				oveDir := args[4]
 
 				By("Verifying NMStateConfig manifest was created")
-				nmstateConfigContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
+				nmstateConfigContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig.yaml"))
 				Expect(err).NotTo(HaveOccurred())
 
-				var nmstateConfig v1beta1.NMStateConfig
-				err = yaml.Unmarshal(nmstateConfigContent, &nmstateConfig)
-				Expect(err).NotTo(HaveOccurred())
+				// Split the YAML content by document separator
+				// Note: We use sigs.k8s.io/yaml (not gopkg.in/yaml.v2) because Kubernetes types
+				// use json struct tags, which sigs.k8s.io/yaml handles correctly but gopkg.in/yaml.v2 doesn't
+				var nmstateConfigs []v1beta1.NMStateConfig
+				docs := bytes.Split(nmstateConfigContent, []byte("---\n"))
+				for _, doc := range docs {
+					doc = bytes.TrimSpace(doc)
+					if len(doc) == 0 {
+						continue
+					}
 
-				Expect(nmstateConfig.APIVersion).To(Equal("agent-install.openshift.io/v1beta1"))
-				Expect(nmstateConfig.Kind).To(Equal("NMStateConfig"))
-				Expect(nmstateConfig.ObjectMeta.Name).To(Equal("nmstate-config-0"))
-				Expect(nmstateConfig.ObjectMeta.Labels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
-				Expect(nmstateConfig.Spec.Interfaces).To(HaveLen(1))
-				Expect(nmstateConfig.Spec.Interfaces[0].Name).To(Equal("eth0"))
-				Expect(nmstateConfig.Spec.Interfaces[0].MacAddress).To(Equal("52:54:00:aa:bb:cc"))
+					var config v1beta1.NMStateConfig
+					err = yaml.Unmarshal(doc, &config)
+					Expect(err).NotTo(HaveOccurred())
+					nmstateConfigs = append(nmstateConfigs, config)
+				}
+
+				Expect(nmstateConfigs).To(HaveLen(3))
+
+				expectedConfigs := []struct {
+					name       string
+					macAddress string
+				}{
+					{"nmstate-config-0", "52:54:00:aa:bb:cc"},
+					{"nmstate-config-1", "53:54:00:aa:bb:cc"},
+					{"nmstate-config-2", "54:54:00:aa:bb:cc"},
+				}
+
+				for i, expected := range expectedConfigs {
+					Expect(nmstateConfigs[i].APIVersion).To(Equal("agent-install.openshift.io/v1beta1"))
+					Expect(nmstateConfigs[i].Kind).To(Equal("NMStateConfig"))
+					Expect(nmstateConfigs[i].ObjectMeta.Name).To(Equal(expected.name))
+					Expect(nmstateConfigs[i].ObjectMeta.Labels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
+					Expect(nmstateConfigs[i].Spec.Interfaces).To(HaveLen(1))
+					Expect(nmstateConfigs[i].Spec.Interfaces[0].Name).To(Equal("eth0"))
+					Expect(nmstateConfigs[i].Spec.Interfaces[0].MacAddress).To(Equal(expected.macAddress))
+				}
 
 				By("Verifying InfraEnv manifest selector references NMStateConfig labels")
 				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
@@ -512,7 +551,7 @@ var _ = Describe("Disconnected Ignition", func() {
 				oveDir := args[4]
 
 				By("Verifying no NMStateConfig manifest was created")
-				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig-0.yaml"))
+				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig.yaml"))
 				Expect(os.IsNotExist(err)).To(BeTrue())
 
 				By("Verifying InfraEnv manifest does not set NMStateConfig selector")
