@@ -1,6 +1,7 @@
 package ignition
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -366,6 +367,7 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 		nmStateConfigInfraEnvLabelKey: infraEnv.ID.String(),
 	}
 
+	var nmStateYAMLs [][]byte
 	for i, config := range staticNetworkConfigs {
 		if config == nil || config.NetworkYaml == "" {
 			continue
@@ -409,9 +411,15 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 			return errors.Wrapf(err, "failed to marshal NMStateConfig %d", i)
 		}
 
-		filename := filepath.Join(manifestsDir, fmt.Sprintf("nmstateconfig-%d.yaml", i))
-		if err = os.WriteFile(filename, nmStateYAML, 0o600); err != nil {
-			return errors.Wrapf(err, "failed to write NMStateConfig %d", i)
+		nmStateYAMLs = append(nmStateYAMLs, nmStateYAML)
+	}
+
+	if len(nmStateYAMLs) > 0 {
+		combinedYAML := bytes.Join(nmStateYAMLs, []byte("---\n"))
+
+		filename := filepath.Join(manifestsDir, "nmstateconfig.yaml")
+		if err := os.WriteFile(filename, combinedYAML, 0o600); err != nil {
+			return errors.Wrap(err, "failed to write NMStateConfig")
 		}
 
 		log.Infof("Created NMStateConfig manifest: %s", filename)
