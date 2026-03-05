@@ -9,9 +9,20 @@ updates:
         applies-to: security-updates
         patterns:
           - "*"
+      k8s:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      openshift:
+        patterns:
+          - "github.com/openshift/*"
       go-dependencies:
         patterns:
           - "*"
+        exclude-patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+          - "github.com/openshift/*"
     labels:
       - "approved"
       - "lgtm"
