@@ -62,7 +62,7 @@ func (c *Config) Complete() error {
 // hostStageTimeoutDefaults contains the built-in default values for the host stage timeouts.
 var hostStageTimeoutDefaults = map[models.HostStage]time.Duration{
 	models.HostStageStartingInstallation:      30 * time.Minute,
-	models.HostStageWaitingForControlPlane:    60 * time.Minute,
+	models.HostStageWaitingForControlPlane:    90 * time.Minute,
 	models.HostStageWaitingForController:      60 * time.Minute,
 	models.HostStageWaitingForBootkube:        60 * time.Minute,
 	models.HostStageInstalling:                60 * time.Minute,

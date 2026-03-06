@@ -65,7 +65,7 @@ var _ = Describe("Host stage timeout configuration", func() {
 		Entry(
 			"Waiting for control plane",
 			models.HostStageWaitingForControlPlane,
-			60*time.Minute,
+			90*time.Minute,
 		),
 	)
 
