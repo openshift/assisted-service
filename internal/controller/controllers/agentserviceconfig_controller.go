@@ -31,7 +31,6 @@ import (
 
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
 	"github.com/go-openapi/swag"
-	"github.com/hashicorp/go-version"
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -2309,29 +2308,25 @@ func getMustGatherImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceCon
 	if spec.MustGatherImages == nil {
 		return MustGatherImages()
 	}
-	mustGatherVersions := make(versions.MustGatherVersions)
-	for _, specImage := range spec.MustGatherImages {
-		versionKey, err := getVersionKey(specImage.OpenshiftVersion)
-		if err != nil {
-			log.WithError(err).Error(fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", specImage.OpenshiftVersion))
-			continue
-		}
-		if mustGatherVersions[versionKey] == nil {
-			mustGatherVersions[versionKey] = make(versions.MustGatherVersion)
-		}
-		mustGatherVersions[versionKey][specImage.Name] = specImage.Url
-	}
 
-	if len(mustGatherVersions) == 0 {
-		return MustGatherImages()
-	}
-	encodedVersions, err := json.Marshal(mustGatherVersions)
+	cache, err := versions.NewMustGatherVersionCacheFromMustGatherImages(spec.MustGatherImages)
 	if err != nil {
-		log.WithError(err).Error(fmt.Sprintf("Problem marshaling must gather images (%v) to string, returning default %v", mustGatherVersions, MustGatherImages()))
+		log.WithError(err).Errorf("Problem creating must gather version cache, returning default %v", MustGatherImages())
+
 		return MustGatherImages()
 	}
 
-	return string(encodedVersions)
+	if cache.Size() == 0 {
+		return MustGatherImages()
+	}
+	encodedVersions, err := cache.ToJSON()
+	if err != nil {
+		log.WithError(err).Errorf("Problem marshaling must gather images to string, returning default %v", MustGatherImages())
+
+		return MustGatherImages()
+	}
+
+	return encodedVersions
 }
 
 // getOSImages returns the value of OS_IMAGES variable
@@ -2416,16 +2411,6 @@ func getCMHash(ctx context.Context, asc ASC, namespacedName types.NamespacedName
 		return "", err
 	}
 	return checksumMap(cm.Data)
-}
-
-func getVersionKey(openshiftVersion string) (string, error) {
-	v, err := version.NewVersion(openshiftVersion)
-	if err != nil {
-		return openshiftVersion, err
-	}
-
-	// put string in x.y format
-	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
 func newStaticSecretEnvVar(name, key, secretName string) corev1.EnvVar {

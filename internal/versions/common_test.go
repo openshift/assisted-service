@@ -1,24 +1,19 @@
 package versions
 
 import (
-	context "context"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/oc"
-	models "github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
+	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("NewHandler", func() {
 	validateNewHandler := func(releaseImages models.ReleaseImages) error {
-		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil, nil, nil, true, nil)
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, NewMustGatherVersionCache(), "", nil, nil, nil, true, nil)
 		return err
 	}
 
@@ -113,7 +108,7 @@ var _ = Describe("NewHandler", func() {
 			},
 		}
 
-		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil, nil, nil, false, nil)
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, NewMustGatherVersionCache(), "", nil, nil, nil, false, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*releaseImages[0].CPUArchitecture).To(Equal(common.X86CPUArchitecture))
 		Expect(*releaseImages[1].CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
@@ -129,7 +124,7 @@ var _ = Describe("NewHandler", func() {
 			},
 		}
 
-		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, nil, "", nil, nil, nil, false, nil)
+		_, err := NewHandler(common.GetTestLog(), nil, releaseImages, NewMustGatherVersionCache(), "", nil, nil, nil, false, nil)
 		Expect(err).To(HaveOccurred())
 	})
 })
@@ -197,202 +192,5 @@ var _ = Describe("validateReleaseImageForRHCOS", func() {
 		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.PowerCPUArchitecture, releaseImages)
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("There are no OCP versions available in release images for arch %s", common.PowerCPUArchitecture)))
-	})
-})
-
-var _ = Describe("GetMustGatherImages", func() {
-	var (
-		log              = common.GetTestLog()
-		imagesLock       = sync.Mutex{}
-		ctrl             *gomock.Controller
-		mockRelease      *oc.MockRelease
-		cpuArchitecture  = common.TestDefaultConfig.CPUArchitecture
-		pullSecret       = "test_pull_secret"
-		ocpVersion       = "4.8.0-fc.1"
-		mirror           = "release-mirror"
-		imagesKey        = fmt.Sprintf("4.8-%s", cpuArchitecture)
-		mustgatherImages MustGatherVersions
-	)
-
-	BeforeEach(func() {
-		var err error
-		ctrl = gomock.NewController(GinkgoT())
-		mockRelease = oc.NewMockRelease(ctrl)
-		Expect(err).ShouldNot(HaveOccurred())
-		mustgatherImages = MustGatherVersions{
-			imagesKey: MustGatherVersion{
-				"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
-				"odf": "registry.redhat.io/ocs4/odf-must-gather-rhel8",
-				"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
-			},
-		}
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-	})
-
-	getReleaseImageMock := func(_ context.Context, openshiftVersion, cpuArch, _ string) (*models.ReleaseImage, error) {
-		if openshiftVersion == ocpVersion && cpuArch == cpuArchitecture {
-			return &models.ReleaseImage{
-				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				CPUArchitectures: []string{common.X86CPUArchitecture},
-				OpenshiftVersion: swag.String("4.8"),
-				URL:              swag.String("release_4.8"),
-				Version:          swag.String("4.8-candidate"),
-			}, nil
-		}
-
-		return nil, errors.New("No release image found")
-	}
-
-	verifyOcpVersion := func(images MustGatherVersion, size int) {
-		Expect(len(images)).To(Equal(size))
-		Expect(images["ocp"]).To(Equal("blah"))
-	}
-
-	It("happy flow", func() {
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.8", mirror, pullSecret).Return("blah", nil).Times(1)
-		images, err := getMustGatherImages(
-			log,
-			ocpVersion,
-			cpuArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		verifyOcpVersion(images, 4)
-		Expect(images["lso"]).To(Equal(mustgatherImages[imagesKey]["lso"]))
-	})
-
-	It("unsupported_key", func() {
-		images, err := getMustGatherImages(
-			log,
-			"unsupported",
-			cpuArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).Should(HaveOccurred())
-		Expect(images).Should(BeEmpty())
-	})
-
-	It("caching", func() {
-		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.8", mirror, pullSecret).Return("blah", nil).Times(1)
-		images, err := getMustGatherImages(
-			log,
-			ocpVersion,
-			cpuArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		verifyOcpVersion(images, 4)
-
-		images, err = getMustGatherImages(
-			log,
-			ocpVersion,
-			cpuArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		verifyOcpVersion(images, 4)
-	})
-
-	It("properly handles separate images for multiple architectures of the same version", func() {
-		mockRelease.EXPECT().GetMustGatherImage(
-			gomock.Any(), "release_4.12.999-multi", mirror, pullSecret).
-			Return("must-gather-multi", nil).
-			AnyTimes()
-		mockRelease.EXPECT().GetMustGatherImage(
-			gomock.Any(), "release_4.12.999-x86_64", mirror, pullSecret).
-			Return("must-gather-x86", nil).
-			AnyTimes()
-
-		getReleaseImageMock = func(_ context.Context, openshiftVersion, cpuArch, _ string) (*models.ReleaseImage, error) {
-			if openshiftVersion == "4.12-multi" && cpuArch == common.MultiCPUArchitecture {
-				return &models.ReleaseImage{
-					CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture, common.PowerCPUArchitecture},
-					OpenshiftVersion: swag.String("4.12-multi"),
-					URL:              swag.String("release_4.12.999-multi"),
-					Version:          swag.String("4.12.999-rc.4"),
-				}, nil
-			}
-
-			if openshiftVersion == "4.12" && cpuArch == common.X86CPUArchitecture {
-				return &models.ReleaseImage{
-					CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-					CPUArchitectures: []string{common.X86CPUArchitecture},
-					OpenshiftVersion: swag.String("4.12"),
-					URL:              swag.String("release_4.12.999-x86_64"),
-					Version:          swag.String("4.12.999-rc.4"),
-				}, nil
-			}
-
-			return nil, errors.New("No release image found")
-		}
-
-		images, err := getMustGatherImages(
-			log,
-			"4.12-multi",
-			common.MultiCPUArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(images["ocp"]).To(Equal("must-gather-multi"))
-
-		images, err = getMustGatherImages(
-			log,
-			"4.12",
-			common.X86CPUArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(images["ocp"]).To(Equal("must-gather-x86"))
-	})
-
-	It("missing release image", func() {
-		images, err := getMustGatherImages(
-			log,
-			"4.7",
-			cpuArchitecture,
-			pullSecret,
-			mirror,
-			mustgatherImages,
-			getReleaseImageMock,
-			mockRelease,
-			&imagesLock,
-		)
-		Expect(err).Should(HaveOccurred())
-		Expect(images).Should(BeEmpty())
 	})
 })

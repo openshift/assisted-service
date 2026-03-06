@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
@@ -48,7 +50,7 @@ var _ = Describe("ValidateUpdate", func() {
 			Name:      "new-cluster-deployment",
 			Namespace: namespace,
 		}
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -62,7 +64,7 @@ var _ = Describe("ValidateUpdate", func() {
 			Name:      "new-cluster-deployment",
 			Namespace: namespace,
 		}
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -77,14 +79,14 @@ var _ = Describe("ValidateUpdate", func() {
 			Name:      "new-cluster-deployment",
 			Namespace: namespace,
 		}
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).To(BeNil())
 	})
 
 	It("succeeds if Agent's ClusterReference is nil and remains the same", func() {
 		newAgent := oldAgent.DeepCopy()
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -95,7 +97,7 @@ var _ = Describe("ValidateUpdate", func() {
 			Namespace: namespace,
 		}
 		newAgent := oldAgent.DeepCopy()
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -106,7 +108,7 @@ var _ = Describe("ValidateUpdate", func() {
 		}
 		oldAgent.Status = AgentStatus{DebugInfo: DebugInfo{State: models.HostStatusInstalling}}
 		newAgent := oldAgent.DeepCopy()
-		warns, err := newAgent.ValidateUpdate(oldAgent)
+		warns, err := newAgent.ValidateUpdate(context.TODO(), oldAgent, newAgent)
 		Expect(warns).To(BeNil())
 		Expect(err).To(BeNil())
 	})

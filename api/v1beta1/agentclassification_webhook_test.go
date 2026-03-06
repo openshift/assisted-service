@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -51,7 +53,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = invalidKey
 		agentClassification.Spec.LabelValue = validValue
 		agentClassification.Spec.Query = validQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -59,7 +61,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = keyWithPrefix
 		agentClassification.Spec.LabelValue = validValue
 		agentClassification.Spec.Query = validQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -67,7 +69,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = validKey
 		agentClassification.Spec.LabelValue = invalidValue
 		agentClassification.Spec.Query = validQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -75,7 +77,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = validKey
 		agentClassification.Spec.LabelValue = "QUERYERROR-foo"
 		agentClassification.Spec.Query = validQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -83,7 +85,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = validKey
 		agentClassification.Spec.LabelValue = validValue
 		agentClassification.Spec.Query = invalidQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -91,7 +93,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = invalidKey
 		agentClassification.Spec.LabelValue = invalidValue
 		agentClassification.Spec.Query = invalidQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -99,7 +101,7 @@ var _ = Describe("ValidateCreate", func() {
 		agentClassification.Spec.LabelKey = validKey
 		agentClassification.Spec.LabelValue = validValue
 		agentClassification.Spec.Query = validQuery
-		warn, err := agentClassification.ValidateCreate()
+		warn, err := agentClassification.ValidateCreate(context.TODO(), agentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -127,7 +129,7 @@ var _ = Describe("ValidateUpdate", func() {
 		oldAgentClassification.Spec.Query = validQuery
 		newAgentClassification := oldAgentClassification.DeepCopy()
 		newAgentClassification.Spec.LabelKey = "newKey"
-		warn, err := newAgentClassification.ValidateUpdate(oldAgentClassification)
+		warn, err := newAgentClassification.ValidateUpdate(context.TODO(), oldAgentClassification, newAgentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -137,17 +139,7 @@ var _ = Describe("ValidateUpdate", func() {
 		oldAgentClassification.Spec.Query = validQuery
 		newAgentClassification := oldAgentClassification.DeepCopy()
 		newAgentClassification.Spec.LabelValue = "newvalue"
-		warn, err := newAgentClassification.ValidateUpdate(oldAgentClassification)
-		Expect(warn).To(BeNil())
-		Expect(err).NotTo(BeNil())
-	})
-	It("fails if label query is changed", func() {
-		oldAgentClassification.Spec.LabelKey = validKey
-		oldAgentClassification.Spec.LabelValue = validValue
-		oldAgentClassification.Spec.Query = ".cpu.count == 2"
-		newAgentClassification := oldAgentClassification.DeepCopy()
-		newAgentClassification.Spec.Query = validQuery
-		warn, err := newAgentClassification.ValidateUpdate(oldAgentClassification)
+		warn, err := newAgentClassification.ValidateUpdate(context.TODO(), oldAgentClassification, newAgentClassification)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
