@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	mcfgv1 "github.com/openshift/machine-config-operator/pkg/apis/machineconfiguration.openshift.io/v1"
@@ -367,6 +368,26 @@ var _ = Describe("dnsmasq manifest", func() {
 	})
 
 	Context("Create dnsmasq Manifest", func() {
+		extractDnsmasqScript := func(machineConfigBytes []byte) string {
+			var machineConfig *mcfgv1.MachineConfig
+			err := yaml.Unmarshal(machineConfigBytes, &machineConfig)
+			Expect(err).ToNot(HaveOccurred())
+			config, _, err := configv31.Parse(machineConfig.Spec.Config.Raw)
+			Expect(err).ToNot(HaveOccurred())
+			var source string
+			for _, file := range config.Storage.Files {
+				if file.Path == "/usr/local/bin/dnsmasq_config.sh" {
+					Expect(file.Contents.Source).ToNot(BeNil())
+					source = *file.Contents.Source
+					break
+				}
+			}
+			Expect(source).ToNot(BeEmpty())
+			data, err := dataurl.DecodeString(source)
+			Expect(err).ToNot(HaveOccurred())
+			return string(data.Data)
+		}
+
 		It("Happy flow", func() {
 			cluster := createCluster("", "3.3.3.0/24",
 				createInventory(createInterface("3.3.3.3/24")))
@@ -497,6 +518,38 @@ var _ = Describe("dnsmasq manifest", func() {
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
 			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("includes RHODS dashboard DNS when OpenShift AI operator is enabled", func() {
+			cluster := createCluster("", "3.3.3.0/24",
+				createInventory(createInterface("3.3.3.3/24")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				{Name: openshiftai.Operator.Name},
+			}
+
+			created, err := createDnsmasqForSingleNode(logrus.New(), cluster)
+			Expect(err).To(Not(HaveOccurred()))
+
+			dnsmasqScript := extractDnsmasqScript(created)
+			Expect(dnsmasqScript).To(ContainSubstring("rhods-dashboard-redhat-ods-applications.apps.${CLUSTER_FULL_DOMAIN}"))
+		})
+
+		It("does not include RHODS dashboard DNS when OpenShift AI operator is not enabled", func() {
+			cluster := createCluster("", "3.3.3.0/24",
+				createInventory(createInterface("3.3.3.3/24")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			cluster.MonitoredOperators = nil
+
+			created, err := createDnsmasqForSingleNode(logrus.New(), cluster)
+			Expect(err).To(Not(HaveOccurred()))
+
+			dnsmasqScript := extractDnsmasqScript(created)
+			Expect(dnsmasqScript).NotTo(ContainSubstring("rhods-dashboard-redhat-ods-applications"))
 		})
 
 		It("no bootstrap", func() {
