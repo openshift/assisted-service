@@ -27,6 +27,7 @@ aliases:
     - cve-automation
     - omer-vishlitzky
     - maorfr
+    - bluesort
   emeritus_approvers:
     - empovit
     - yevgeny-shnaidman
