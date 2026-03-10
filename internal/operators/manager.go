@@ -48,6 +48,12 @@ type Manifest struct {
 	Content string
 }
 
+// GPUFilter defines GPU vendor filtering options
+type GPUFilter struct {
+	NvidiaEnabled *bool
+	AmdEnabled    *bool
+}
+
 // Manager is responsible for performing operations against additional operators
 type Manager struct {
 	log                logrus.FieldLogger
@@ -105,6 +111,10 @@ type API interface {
 	ListBundles(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) []*models.Bundle
 	// GetBundle returns the Bundle object with operators based on feature IDs
 	GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error)
+	// ListBundlesWithGPUFilter returns the list of available bundles filtered by feature support and GPU vendors
+	ListBundlesWithGPUFilter(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) []*models.Bundle
+	// GetBundleWithGPUFilter returns the Bundle object with operators based on feature IDs and GPU vendor filtering
+	GetBundleWithGPUFilter(bundleID string, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) (*models.Bundle, error)
 	// GetOperatorDependenciesFeatureID returns the list of dependencies
 	GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID
 }
@@ -728,6 +738,80 @@ func (mgr *Manager) GetBundle(bundleID string, featureIDs []models.FeatureSuppor
 	}
 
 	return bundle, nil
+}
+
+// ListBundlesWithGPUFilter returns a list of available bundles filtered by feature support and GPU vendors
+func (mgr *Manager) ListBundlesWithGPUFilter(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) []*models.Bundle {
+	var ret []*models.Bundle
+
+	for _, basicBundleDetails := range operatorscommon.Bundles {
+		// Get the bundle with operators based on feature IDs and GPU filter
+		completeBundleDetails, err := mgr.GetBundleWithGPUFilter(basicBundleDetails.ID, featureIDs, gpuFilter)
+		if err != nil {
+			mgr.log.Error(err)
+			continue
+		}
+
+		// Check if all operators in the bundle are supported using featuresupport API
+		if mgr.isBundleSupported(completeBundleDetails, filters, featureIDs) {
+			ret = append(ret, completeBundleDetails)
+		}
+	}
+
+	return ret
+}
+
+// GetBundleWithGPUFilter returns the Bundle object with operators based on feature IDs and GPU vendor filtering
+func (mgr *Manager) GetBundleWithGPUFilter(bundleID string, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) (*models.Bundle, error) {
+	bundle, ok := mgr.lookupBundle(bundleID)
+	if !ok {
+		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
+	}
+
+	// Get all operators for the bundle based on feature IDs
+	for _, operator := range mgr.olmOperators {
+		operatorBundles := operator.GetBundleLabels(featureIDs)
+		for _, operatorBundle := range operatorBundles {
+			if operatorBundle == bundleID {
+				operatorName := operator.GetName()
+
+				// Apply GPU filtering
+				if mgr.shouldSkipOperatorForGPUFilter(operatorName, gpuFilter) {
+					continue
+				}
+
+				bundle.Operators = append(bundle.Operators, operatorName)
+				break
+			}
+		}
+	}
+
+	return bundle, nil
+}
+
+// shouldSkipOperatorForGPUFilter determines if an operator should be skipped based on GPU filter settings
+func (mgr *Manager) shouldSkipOperatorForGPUFilter(operatorName string, gpuFilter *GPUFilter) bool {
+	// If no GPU filter is provided, don't skip any operators
+	if gpuFilter == nil {
+		return false
+	}
+
+	// Check if this is a GPU operator
+	switch operatorName {
+	case "nvidia-gpu":
+		// Skip nvidia-gpu if nvidia is explicitly disabled
+		if gpuFilter.NvidiaEnabled != nil && !*gpuFilter.NvidiaEnabled {
+			return true
+		}
+	case "amd-gpu":
+		// Skip amd-gpu if amd is explicitly disabled
+		if gpuFilter.AmdEnabled != nil && !*gpuFilter.AmdEnabled {
+			return true
+		}
+	}
+
+	// Don't skip non-GPU operators or when GPU support is enabled
+	return false
 }
 
 // lookupBundle tries to find a bundle with the given identifier. Returns a pointer to the basic information of the

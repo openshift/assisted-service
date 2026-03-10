@@ -18,7 +18,9 @@ import (
 type V2GetBundleURL struct {
 	ID string
 
-	FeatureIds []string
+	AmdEnabled    *bool
+	FeatureIds    []string
+	NvidiaEnabled *bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -61,6 +63,14 @@ func (o *V2GetBundleURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
+	var amdEnabledQ string
+	if o.AmdEnabled != nil {
+		amdEnabledQ = swag.FormatBool(*o.AmdEnabled)
+	}
+	if amdEnabledQ != "" {
+		qs.Set("amd_enabled", amdEnabledQ)
+	}
+
 	var featureIdsIR []string
 	for _, featureIdsI := range o.FeatureIds {
 		featureIdsIS := featureIdsI
@@ -73,6 +83,14 @@ func (o *V2GetBundleURL) Build() (*url.URL, error) {
 
 	for _, qsv := range featureIds {
 		qs.Add("feature_ids", qsv)
+	}
+
+	var nvidiaEnabledQ string
+	if o.NvidiaEnabled != nil {
+		nvidiaEnabledQ = swag.FormatBool(*o.NvidiaEnabled)
+	}
+	if nvidiaEnabledQ != "" {
+		qs.Set("nvidia_enabled", nvidiaEnabledQ)
 	}
 
 	_result.RawQuery = qs.Encode()

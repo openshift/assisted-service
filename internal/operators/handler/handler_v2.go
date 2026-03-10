@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
@@ -123,8 +124,22 @@ func (h *Handler) V2ListBundles(_ context.Context, params restoperators.V2ListBu
 		featureIDs = append(featureIDs, models.FeatureSupportLevelID(featureID))
 	}
 
-	// Get filtered bundles using featuresupport API
-	filteredBundles := h.operatorsAPI.ListBundles(filters, featureIDs)
+	// Create GPU filter from nvidia/amd parameters
+	var gpuFilter *operators.GPUFilter
+	if params.NvidiaEnabled != nil || params.AmdEnabled != nil {
+		gpuFilter = &operators.GPUFilter{
+			NvidiaEnabled: params.NvidiaEnabled,
+			AmdEnabled:    params.AmdEnabled,
+		}
+	}
+
+	// Get filtered bundles using GPU filter
+	var filteredBundles []*models.Bundle
+	if gpuFilter != nil {
+		filteredBundles = h.operatorsAPI.ListBundlesWithGPUFilter(filters, featureIDs, gpuFilter)
+	} else {
+		filteredBundles = h.operatorsAPI.ListBundles(filters, featureIDs)
+	}
 
 	return restoperators.NewV2ListBundlesOK().WithPayload(filteredBundles)
 }
@@ -139,7 +154,23 @@ func (h *Handler) V2GetBundle(ctx context.Context, params restoperators.V2GetBun
 		featureIDs = append(featureIDs, models.FeatureSupportLevelID(featureID))
 	}
 
-	bundle, err := h.operatorsAPI.GetBundle(params.ID, featureIDs)
+	// Create GPU filter from nvidia/amd parameters (same as V2ListBundles)
+	var gpuFilter *operators.GPUFilter
+	if params.NvidiaEnabled != nil || params.AmdEnabled != nil {
+		gpuFilter = &operators.GPUFilter{
+			NvidiaEnabled: params.NvidiaEnabled,
+			AmdEnabled:    params.AmdEnabled,
+		}
+	}
+
+	// Get bundle using GPU filter
+	var bundle *models.Bundle
+	var err error
+	if gpuFilter != nil {
+		bundle, err = h.operatorsAPI.GetBundleWithGPUFilter(params.ID, featureIDs, gpuFilter)
+	} else {
+		bundle, err = h.operatorsAPI.GetBundle(params.ID, featureIDs)
+	}
 	if err != nil {
 		log.Errorf("Failed to get operators for bundle %s: %v", params.ID, err)
 		return common.GenerateErrorResponder(err)
