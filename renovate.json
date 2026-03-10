@@ -207,6 +207,13 @@
             "enabled": false
         },
         {
+            "groupName": "RPM lockfile refresh",
+            "addLabels": [
+                "rpm-lockfile"
+            ],
+            "schedule": [
+                "on Saturday"
+            ],
             "matchManagers": [
                 "gomod"
             ],
