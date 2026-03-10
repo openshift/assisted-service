@@ -13,15 +13,27 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
 // NewV2GetBundleParams creates a new V2GetBundleParams object
-//
-// There are no default values defined in the spec.
+// with the default values initialized.
 func NewV2GetBundleParams() V2GetBundleParams {
 
-	return V2GetBundleParams{}
+	var (
+		// initialize parameters with default values
+
+		amdEnabledDefault = bool(true)
+
+		nvidiaEnabledDefault = bool(true)
+	)
+
+	return V2GetBundleParams{
+		AmdEnabled: &amdEnabledDefault,
+
+		NvidiaEnabled: &nvidiaEnabledDefault,
+	}
 }
 
 // V2GetBundleParams contains all the bound params for the v2 get bundle operation
@@ -33,6 +45,11 @@ type V2GetBundleParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+	  In: query
+	  Default: true
+	*/
+	AmdEnabled *bool
 	/*Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
 	  In: query
 	  Collection Format: multi
@@ -43,6 +60,11 @@ type V2GetBundleParams struct {
 	  In: path
 	*/
 	ID string
+	/*Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+	  In: query
+	  Default: true
+	*/
+	NvidiaEnabled *bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -56,6 +78,11 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAmdEnabled, qhkAmdEnabled, _ := qs.GetOK("amd_enabled")
+	if err := o.bindAmdEnabled(qAmdEnabled, qhkAmdEnabled, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qFeatureIds, qhkFeatureIds, _ := qs.GetOK("feature_ids")
 	if err := o.bindFeatureIds(qFeatureIds, qhkFeatureIds, route.Formats); err != nil {
 		res = append(res, err)
@@ -65,9 +92,38 @@ func (o *V2GetBundleParams) BindRequest(r *http.Request, route *middleware.Match
 	if err := o.bindID(rID, rhkID, route.Formats); err != nil {
 		res = append(res, err)
 	}
+
+	qNvidiaEnabled, qhkNvidiaEnabled, _ := qs.GetOK("nvidia_enabled")
+	if err := o.bindNvidiaEnabled(qNvidiaEnabled, qhkNvidiaEnabled, route.Formats); err != nil {
+		res = append(res, err)
+	}
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAmdEnabled binds and validates parameter AmdEnabled from query.
+func (o *V2GetBundleParams) bindAmdEnabled(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2GetBundleParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("amd_enabled", "query", "bool", raw)
+	}
+	o.AmdEnabled = &value
+
 	return nil
 }
 
@@ -107,6 +163,30 @@ func (o *V2GetBundleParams) bindID(rawData []string, hasKey bool, formats strfmt
 	// Required: true
 	// Parameter is provided by construction from the route
 	o.ID = raw
+
+	return nil
+}
+
+// bindNvidiaEnabled binds and validates parameter NvidiaEnabled from query.
+func (o *V2GetBundleParams) bindNvidiaEnabled(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2GetBundleParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("nvidia_enabled", "query", "bool", raw)
+	}
+	o.NvidiaEnabled = &value
 
 	return nil
 }

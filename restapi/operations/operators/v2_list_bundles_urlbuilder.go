@@ -15,9 +15,11 @@ import (
 
 // V2ListBundlesURL generates an URL for the v2 list bundles operation
 type V2ListBundlesURL struct {
+	AmdEnabled           *bool
 	CPUArchitecture      *string
 	ExternalPlatformName *string
 	FeatureIds           []string
+	NvidiaEnabled        *bool
 	OpenshiftVersion     *string
 	PlatformType         *string
 
@@ -55,6 +57,14 @@ func (o *V2ListBundlesURL) Build() (*url.URL, error) {
 
 	qs := make(url.Values)
 
+	var amdEnabledQ string
+	if o.AmdEnabled != nil {
+		amdEnabledQ = swag.FormatBool(*o.AmdEnabled)
+	}
+	if amdEnabledQ != "" {
+		qs.Set("amd_enabled", amdEnabledQ)
+	}
+
 	var cPUArchitectureQ string
 	if o.CPUArchitecture != nil {
 		cPUArchitectureQ = *o.CPUArchitecture
@@ -83,6 +93,14 @@ func (o *V2ListBundlesURL) Build() (*url.URL, error) {
 
 	for _, qsv := range featureIds {
 		qs.Add("feature_ids", qsv)
+	}
+
+	var nvidiaEnabledQ string
+	if o.NvidiaEnabled != nil {
+		nvidiaEnabledQ = swag.FormatBool(*o.NvidiaEnabled)
+	}
+	if nvidiaEnabledQ != "" {
+		qs.Set("nvidia_enabled", nvidiaEnabledQ)
 	}
 
 	var openshiftVersionQ string
