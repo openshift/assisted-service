@@ -100,6 +100,7 @@ const (
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 	MCS_CERT_NAME                       = "ca.crt"
+	MCS_CA_BUNDLE_NAME                  = "ca-bundle.crt"
 	OPENSHIFT_MACHINE_API_NAMESPACE     = "openshift-machine-api"
 	ASSISTED_DEPLOY_METHOD              = "start_assisted_install"
 	NODE_LABEL_PREFIX                   = "bmac.agent-install.openshift.io.node-label."
@@ -1533,46 +1534,58 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeClient client.Client) (string, string, error) {
 	configMap := &corev1.ConfigMap{}
 	var encodedMCSCrt, ignitionWithMCSCert string
-	key := types.NamespacedName{
-		Namespace: "kube-system",
-		Name:      "root-ca",
+	var certData string
+
+	// MCS CA certificate lookup. In OCP 4.19, the MCO introduced a cert controller
+	// that manages machine-config-server-ca separately from kube-system/root-ca.
+	// When a pre-4.19 cluster upgrades to 4.19+, the cert controller creates
+	// machine-config-server-ca with a new CA, but kube-system/root-ca is not
+	// updated, causing them to diverge. We read machine-config-server-ca first
+	// since it is the authoritative source for the MCS TLS certificate CA.
+	// Fallbacks:
+	// - kube-system/root-ca: pre-4.19 clusters where machine-config-server-ca does not exist
+	// - openshift-config/kube-root-ca or kube-root-ca.crt: Hypershift hosted clusters
+	type caSource struct {
+		namespace string
+		name      string
+		key       string
 	}
-	if err := spokeClient.Get(ctx, key, configMap); err != nil {
-		if k8serrors.IsNotFound(err) {
-			// Hypershift stores root ca in a different configmap and different namespace
-			found := false
-			for _, keyName := range kubeRootCAHypershiftNames {
-				key = types.NamespacedName{
-					Namespace: "openshift-config",
-					Name:      keyName,
-				}
-				if err = spokeClient.Get(ctx, key, configMap); err == nil {
-					found = true
-					break
-				}
-			}
-			if !found {
-				if k8serrors.IsNotFound(err) {
-					return encodedMCSCrt, ignitionWithMCSCert, err
-				}
-			}
+	sources := []caSource{
+		{"openshift-machine-config-operator", "machine-config-server-ca", MCS_CA_BUNDLE_NAME},
+		{"kube-system", "root-ca", MCS_CERT_NAME},
+	}
+	for _, hs := range kubeRootCAHypershiftNames {
+		sources = append(sources, caSource{"openshift-config", hs, MCS_CERT_NAME})
+	}
+
+	var err error
+	for _, src := range sources {
+		key := types.NamespacedName{
+			Namespace: src.namespace,
+			Name:      src.name,
+		}
+		if err = spokeClient.Get(ctx, key, configMap); err == nil {
+			certData = configMap.Data[src.key]
+			break
+		}
+		// Only try the next source if the configmap doesn't exist.
+		// fail fast on other errors
+		if !k8serrors.IsNotFound(err) {
+			return encodedMCSCrt, ignitionWithMCSCert, err
 		}
 	}
-	if configMap.Data == nil {
-		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Configmap %s/%s  does not contain any data", configMap.Namespace, configMap.Name)
+	if err != nil {
+		return encodedMCSCrt, ignitionWithMCSCert, err
 	}
-	certData, ok := configMap.Data[MCS_CERT_NAME]
-	if !ok || len(certData) == 0 {
-		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Configmap data for %s/%s  does not contain %s", configMap.Namespace, configMap.Name, MCS_CERT_NAME)
+	if len(certData) == 0 {
+		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Configmap %s/%s does not contain CA certificate data", configMap.Namespace, configMap.Name)
 	}
-	mcsCrt := configMap.Data[MCS_CERT_NAME]
-	encodedMCSCrt = base64.StdEncoding.EncodeToString([]byte(mcsCrt))
-	ignitionWithMCSCert, err := r.formatMCSCertificateIgnition(encodedMCSCrt)
+	encodedMCSCrt = base64.StdEncoding.EncodeToString([]byte(certData))
+	ignitionWithMCSCert, err = r.formatMCSCertificateIgnition(encodedMCSCrt)
 	if err != nil {
 		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Failed to create ignition string with MCS cert")
 	}
 	return encodedMCSCrt, ignitionWithMCSCert, nil
-
 }
 
 func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, machineName types.NamespacedName, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
