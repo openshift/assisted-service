@@ -16,6 +16,7 @@ import (
 
 var _ = Describe("apivipconnectivitycheckcmd", func() {
 	ctx := context.Background()
+	const validCACert = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSURFRENDQWZpZ0F3SUJBZ0lJUk90aUgvOC82ckF3RFFZSktvWklodmNOQVFFTEJRQXdKakVTTUJBR0ExVUUKQ3hNSmIzQmxibk5vYVdaME1SQXdEZ1lEVlFRREV3ZHliMjkwTFdOaE1CNFhEVEl3TURreE9ERTVORFV3TVZvWApEVE13TURreE5qRTVORFV3TVZvd0pqRVNNQkFHQTFVRUN4TUpiM0JsYm5Ob2FXWjBNUkF3RGdZRFZRUURFd2R5CmIyOTBMV05oTUlJQklqQU5CZ2txaGtpRzl3MEJBUUVGQUFPQ0FROEFNSUlCQ2dLQ0FRRUE1c1orVWtaaGsxUWQKeFU3cWI3YXArNFczaS9ZWTFzZktURC8ybDVJTjFJeVhPajlSL1N2VG5SOGYvajNJa1JHMWN5ZXR4bnNlNm1aZwpaOW1IRDJMV0srSEFlTTJSYXpuRkEwVmFwOWxVbVRrd3Vza2Z3QzhnMWJUZUVHUlEyQmFId09KekpvdjF4a0ZICmU2TUZCMlcxek1rTWxLTkwycnlzMzRTeVYwczJpNTFmTTJvTEM2SXRvWU91RVVVa2o0dnVUbThPYm5rV0t4ZnAKR1VGMThmNzVYeHJId0tVUEd0U0lYMGxpVGJNM0tiTDY2V2lzWkFIeStoN1g1dnVaaFYzYXhwTVFMdlczQ2xvcQpTaG9zSXY4SWNZbUJxc210d2t1QkN3cWxibEo2T2gzblFrelorVHhQdGhkdWsrZytzaVBUNi9va0JKU2M2cURjClBaNUNyN3FrR3dJREFRQUJvMEl3UURBT0JnTlZIUThCQWY4RUJBTUNBcVF3RHdZRFZSMFRBUUgvQkFVd0F3RUIKL3pBZEJnTlZIUTRFRmdRVWNSbHFHT1g3MWZUUnNmQ0tXSGFuV3NwMFdmRXdEUVlKS29aSWh2Y05BUUVMQlFBRApnZ0VCQU5Xc0pZMDY2RnNYdzFOdXluMEkwNUtuVVdOMFY4NVJVV2drQk9Wd0J5bHluTVRneGYyM3RaY1FsS0U4CjVHMlp4Vzl5NmpBNkwzMHdSNWhOcnBzM2ZFcUhobjg3UEM3L2tWQWlBOWx6NjBwV2ovTE5GU1hobDkyejBGMEIKcGNUQllFc1JNYU0zTFZOK0tZb3Q2cnJiamlXdmxFMU9hS0Q4dnNBdkk5YXVJREtOdTM0R2pTaUJGWXMrelRjSwphUUlTK3UzRHVYMGpVY001aUgrMmwzNGxNR0hlY2tjS1hnUWNXMGJiT28xNXY1Q2ExenJtQ2hIUHUwQ2NhMU1MCjJaM2MxMHVXZnR2OVZnbC9LcEpzSjM3b0phbTN1Mmp6MXN0K3hHby9iTmVSdHpOMjdXQSttaDZ6bXFwRldYKzUKdWFjZUY1SFRWc0FkbmtJWHpwWXBuek5qb0lFPQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
 	var host models.Host
 	var cluster common.Cluster
 	var db *gorm.DB
@@ -74,14 +75,15 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 
 	It("get_step custom ignition endpoint and CA cert", func() {
 		customEndpoint := "https://foo.bar:33735/acme"
-		customCACert := "somecertificatestring"
+		customCACert := validCACert
 		expectedArgs := fmt.Sprintf("{\"ca_certificate\":\"%s\",\"url\":\"%s/worker\"}", customCACert, customEndpoint)
 		Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&cluster).Update("ignition_endpoint_ca_certificate", customCACert).Error).ShouldNot(HaveOccurred())
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply).ShouldNot(BeNil())
 		Expect(stepReply[0]).ShouldNot(BeNil())
 		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedArgs))
-		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	It("get_step custom ignition endpoint and pool name", func() {
@@ -110,7 +112,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 		token := "verysecrettoken"
 		poolName := "testpool"
 		customEndpoint := "https://foo.bar:33735/acme"
-		customCACert := "somecertificatestring"
+		customCACert := validCACert
 		expectedArgs := fmt.Sprintf("{\"ca_certificate\":\"%s\",\"ignition_endpoint_token\":\"%s\",\"request_headers\":[{\"key\":\"Authorization\",\"value\":\"Bearer %s\"}],\"url\":\"%s/%s\"}",
 			customCACert, token, token, customEndpoint, poolName)
 		Expect(db.Model(&host).Update("MachineConfigPoolName", poolName).Error).ShouldNot(HaveOccurred())
@@ -118,9 +120,10 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 		Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
 		Expect(db.Model(&cluster).Update("ignition_endpoint_ca_certificate", customCACert).Error).ShouldNot(HaveOccurred())
 		stepReply, stepErr = apivipConnectivityCheckCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply).ShouldNot(BeNil())
 		Expect(stepReply[0]).ShouldNot(BeNil())
 		Expect(stepReply[0].Args[len(stepReply[0].Args)-1]).Should(Equal(expectedArgs))
-		Expect(stepErr).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {

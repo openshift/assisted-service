@@ -1,6 +1,7 @@
 package hostutil
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/coreos/ignition/v2/config/v3_2"
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
@@ -362,31 +364,28 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 	}
 
 	// Determine the certificate to use
-	// Priority order for certificate:
-	// 1. Cluster-level certificate (if provided)
-	// 2. Host-level certificate from ignition config overrides
+	// If both cluster-level and host-level certificates are present, combine them.
 	protocol := "http"
 	port := constants.InsecureMCSPort
-	var cert *string
-	var err error
-	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.CaCertificate != nil {
-		logger.Infof("Using cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
-		cert = cluster.IgnitionEndpoint.CaCertificate
+	clusterCert, err := getClusterCertificate(cluster, cluster.ID, host.ID)
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to get cluster ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		return "", nil, err
+	}
+	hostCert, err := getHostCertificate(host.IgnitionConfigOverrides)
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to get host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		return "", nil, err
+	}
+
+	cert, err := combineCerts(clusterCert, hostCert, logger, cluster.ID, host.ID)
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to select ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
+		return "", nil, err
+	}
+	if cert != nil {
 		protocol = "https"
 		port = constants.SecureMCSPort
-	} else {
-		cert, err = ignition.GetCACertInIgnition(host.IgnitionConfigOverrides)
-		if err != nil {
-			logger.Errorf("Failed to get Ignition certificate for host %s: %s", host.ID, err)
-			return "", nil, err
-		}
-		if cert != nil {
-			logger.Infof("Using host ignition certificate for cluster %s, host %s", cluster.ID, host.ID)
-			protocol = "https"
-			port = constants.SecureMCSPort
-		} else {
-			logger.Infof("No ignition certificate found for cluster %s, host %s; using HTTP", cluster.ID, host.ID)
-		}
 	}
 
 	// Use custom ignition endpoint if provided
@@ -422,6 +421,47 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 		poolName)
 
 	return ignitionEndpointUrl, cert, nil
+}
+
+func getClusterCertificate(cluster *common.Cluster, clusterID *strfmt.UUID, hostID *strfmt.UUID) (*string, error) {
+	if cluster.IgnitionEndpoint == nil || cluster.IgnitionEndpoint.CaCertificate == nil || strings.TrimSpace(*cluster.IgnitionEndpoint.CaCertificate) == "" {
+		return nil, nil
+	}
+
+	decoded, err := base64.StdEncoding.DecodeString(*cluster.IgnitionEndpoint.CaCertificate)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to decode cluster ignition certificate for cluster %s, host %s", clusterID, hostID)
+	}
+	cert := string(decoded)
+	return &cert, nil
+}
+
+func getHostCertificate(ignitionConfigOverrides string) (*string, error) {
+	cert, err := ignition.GetCACertInIgnition(ignitionConfigOverrides)
+	if err != nil {
+		return nil, err
+	}
+	if cert == nil || strings.TrimSpace(*cert) == "" {
+		return nil, nil
+	}
+	return cert, nil
+}
+
+func combineCerts(clusterCert, hostCert *string, logger logrus.FieldLogger, clusterID *strfmt.UUID, hostID *strfmt.UUID) (*string, error) {
+	clusterPem := swag.StringValue(clusterCert)
+	hostPem := swag.StringValue(hostCert)
+
+	deduped, _, err := common.RemoveDuplicatesFromCaBundle(strings.Join([]string{clusterPem, hostPem}, "\n"))
+	if err != nil {
+		logger.WithError(err).Errorf("Failed to remove duplicate ignition certificates for cluster %s, host %s", clusterID, hostID)
+		return nil, err
+	}
+	encoded := base64.StdEncoding.EncodeToString([]byte(deduped))
+	if encoded == "" {
+		logger.Infof("No ignition certificate found for cluster %s, host %s; using HTTP", clusterID, hostID)
+		return nil, nil
+	}
+	return swag.String(encoded), nil
 }
 
 func GetDisksOfHolderByType(allDisks []*models.Disk, holderDisk *models.Disk, driveTypeFilter models.DriveType) []*models.Disk {

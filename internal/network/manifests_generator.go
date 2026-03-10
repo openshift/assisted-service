@@ -13,6 +13,8 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	operatorcommon "github.com/openshift/assisted-service/internal/operators/common"
+	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/tang"
@@ -109,6 +111,7 @@ cat << EOF > /etc/dnsmasq.d/single-node.conf
 address=/apps.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
 address=/api-int.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
 address=/api.${CLUSTER_FULL_DOMAIN}/${HOST_IP}
+{{if .RHODS_DASHBOARD_ENABLED}}address=/rhods-dashboard-redhat-ods-applications.apps.${CLUSTER_FULL_DOMAIN}/${HOST_IP}{{end}}
 EOF
 `
 
@@ -434,14 +437,17 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 		return nil, err
 	}
 
+	rhodsEnabled := operatorcommon.HasOperator(cluster.MonitoredOperators, openshiftai.Operator.Name)
+
 	var manifestParams = map[string]interface{}{
-		"CLUSTER_NAME": cluster.Cluster.Name,
-		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
-		"HOST_IP":      hostIp,
+		"CLUSTER_NAME":            cluster.Cluster.Name,
+		"DNS_DOMAIN":              cluster.Cluster.BaseDNSDomain,
+		"HOST_IP":                 hostIp,
+		"RHODS_DASHBOARD_ENABLED": rhodsEnabled,
 	}
 
-	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q",
-		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp)
+	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q, rhods dashboard enabled - %t",
+		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp, rhodsEnabled)
 
 	content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
 	if err != nil {

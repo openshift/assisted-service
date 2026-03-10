@@ -1,6 +1,7 @@
 package hostutil
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -13,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
 	"gorm.io/gorm"
 )
 
@@ -201,7 +203,7 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 		})
 
 		Context("HTTPS scenarios for Day 2 workers", func() {
-			testCert := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCnRlc3QgY2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+			testCert := encodedSingleCAcert1
 
 			It("should use api-int for day2/imported cluster with api.cluster.domain format", func() {
 				// Simulate day2 imported cluster: has Name but no BaseDNSDomain
@@ -232,7 +234,11 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cert).ShouldNot(BeNil())
-				Expect(*cert).Should(Equal(testCert))
+				actualRawCerts, err := getRawCertsFromEncodedBundle(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedRawCerts, err := getRawCertsFromEncodedBundle(testCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(actualRawCerts).Should(Equal(expectedRawCerts))
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
@@ -261,7 +267,47 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cert).ShouldNot(BeNil())
-				Expect(*cert).Should(Equal(testCert))
+				actualRawCerts, err := getRawCertsFromEncodedBundle(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedRawCerts, err := getRawCertsFromEncodedBundle(testCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(actualRawCerts).Should(Equal(expectedRawCerts))
+				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
+			})
+
+			It("should use api-int endpoint for HTTPS when host has ignition certificate in non-base64 data URL", func() {
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":             "test-cluster",
+					"base_dns_domain":  "example.com",
+					"api_vip_dns_name": "api.test-cluster.example.com",
+				}).Error).ShouldNot(HaveOccurred())
+
+				pemCert, err := base64.StdEncoding.DecodeString(testCert)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8,` + dataurl.EscapeString(string(pemCert)) + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+				actualRawCerts, err := getRawCertsFromEncodedBundle(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedRawCerts, err := getRawCertsFromEncodedBundle(testCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(actualRawCerts).Should(Equal(expectedRawCerts))
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
@@ -327,9 +373,9 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
-			It("should prefer cluster certificate over host certificate when both exist", func() {
-				clusterCert := "Y2x1c3RlciBjZXJ0aWZpY2F0ZQo="
-				hostCert := "aG9zdCBjZXJ0aWZpY2F0ZQo="
+			It("should merge cluster and host certificates when both exist", func() {
+				clusterCert := encodedSingleCAcert1
+				hostCert := encodedSingleCAcert2
 
 				// Setup cluster with certificate
 				Expect(db.Model(&cluster).Updates(map[string]interface{}{
@@ -357,13 +403,130 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(cert).ShouldNot(BeNil())
-				// Should use cluster certificate, not host certificate
-				Expect(*cert).Should(Equal(clusterCert))
+				Expect(*cert).ShouldNot(Equal(clusterCert))
+				Expect(*cert).ShouldNot(Equal(hostCert))
+
+				mergedBundle, err := base64.StdEncoding.DecodeString(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				mergedCerts, ok := common.ParsePemCerts(mergedBundle)
+				Expect(ok).Should(BeTrue())
+				Expect(mergedCerts).Should(HaveLen(2))
+
+				expectedClusterBundle, err := base64.StdEncoding.DecodeString(clusterCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedClusterCerts, ok := common.ParsePemCerts(expectedClusterBundle)
+				Expect(ok).Should(BeTrue())
+				Expect(expectedClusterCerts).Should(HaveLen(1))
+
+				expectedHostBundle, err := base64.StdEncoding.DecodeString(hostCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedHostCerts, ok := common.ParsePemCerts(expectedHostBundle)
+				Expect(ok).Should(BeTrue())
+				Expect(expectedHostCerts).Should(HaveLen(1))
+
+				mergedRawCerts := []string{
+					base64.StdEncoding.EncodeToString(mergedCerts[0].Raw),
+					base64.StdEncoding.EncodeToString(mergedCerts[1].Raw),
+				}
+				Expect(mergedRawCerts).Should(ContainElements(
+					base64.StdEncoding.EncodeToString(expectedClusterCerts[0].Raw),
+					base64.StdEncoding.EncodeToString(expectedHostCerts[0].Raw),
+				))
 				Expect(url).Should(Equal("https://api-int.test-cluster.example.com:22623/config/worker"))
 			})
 
+			It("should remove duplicate certificates when cluster and host certificates are identical", func() {
+				sharedCert := encodedSingleCAcert1
+
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "test-cluster",
+					"base_dns_domain":                  "example.com",
+					"api_vip_dns_name":                 "api.test-cluster.example.com",
+					"ignition_endpoint_ca_certificate": sharedCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8;base64,` + sharedCert + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				_, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cert).ShouldNot(BeNil())
+
+				mergedBundle, err := base64.StdEncoding.DecodeString(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				mergedCerts, ok := common.ParsePemCerts(mergedBundle)
+				Expect(ok).Should(BeTrue())
+				Expect(mergedCerts).Should(HaveLen(1))
+
+				expectedBundle, err := base64.StdEncoding.DecodeString(sharedCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedCerts, ok := common.ParsePemCerts(expectedBundle)
+				Expect(ok).Should(BeTrue())
+				Expect(expectedCerts).Should(HaveLen(1))
+
+				Expect(base64.StdEncoding.EncodeToString(mergedCerts[0].Raw)).Should(
+					Equal(base64.StdEncoding.EncodeToString(expectedCerts[0].Raw)))
+			})
+
+			It("should fail when cluster certificate is invalid and host certificate is valid", func() {
+				hostCert := encodedSingleCAcert2
+				clusterCert := "invalid"
+
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "test-cluster",
+					"base_dns_domain":                  "example.com",
+					"api_vip_dns_name":                 "api.test-cluster.example.com",
+					"ignition_endpoint_ca_certificate": clusterCert,
+				}).Error).ShouldNot(HaveOccurred())
+
+				hostIgnitionOverride := `{
+					"ignition": {
+						"version": "3.2.0",
+						"security": {
+							"tls": {
+								"certificateAuthorities": [{
+									"source": "data:text/plain;charset=utf-8;base64,` + hostCert + `"
+								}]
+							}
+						}
+					}
+				}`
+				Expect(db.Model(&host).Update("ignition_config_overrides", hostIgnitionOverride).Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).Should(HaveOccurred())
+				Expect(cert).Should(BeNil())
+				Expect(url).Should(Equal(""))
+			})
+
+			It("should fail when host ignition certificate override is invalid", func() {
+				Expect(db.Model(&cluster).Updates(map[string]interface{}{
+					"name":                             "test-cluster",
+					"base_dns_domain":                  "example.com",
+					"api_vip_dns_name":                 "api.test-cluster.example.com",
+					"ignition_endpoint_ca_certificate": encodedSingleCAcert1,
+				}).Error).ShouldNot(HaveOccurred())
+				Expect(db.Model(&host).Update("ignition_config_overrides", "{invalid-json").Error).ShouldNot(HaveOccurred())
+
+				url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+				Expect(err).Should(HaveOccurred())
+				Expect(cert).Should(BeNil())
+				Expect(url).Should(Equal(""))
+			})
+
 			It("should use custom endpoint with cluster certificate", func() {
-				testCert := "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCnRlc3QgY2VydGlmaWNhdGUKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+				testCert := encodedSingleCAcert1
 				customEndpoint := "https://custom.endpoint.com/ignition"
 
 				Expect(db.Model(&cluster).Updates(map[string]interface{}{
@@ -375,11 +538,15 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(url).Should(Equal(customEndpoint + "/worker"))
 				Expect(cert).ShouldNot(BeNil())
-				Expect(*cert).Should(Equal(testCert))
+				actualRawCerts, err := getRawCertsFromEncodedBundle(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedRawCerts, err := getRawCertsFromEncodedBundle(testCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(actualRawCerts).Should(Equal(expectedRawCerts))
 			})
 
 			It("should use custom endpoint with host certificate when no cluster certificate", func() {
-				hostCert := "aG9zdCBjZXJ0aWZpY2F0ZSBmb3IgY3VzdG9tIGVuZHBvaW50Cg=="
+				hostCert := encodedSingleCAcert2
 				customEndpoint := "https://private.ignition.server:8443/configs"
 
 				// Setup custom endpoint without cluster certificate
@@ -404,12 +571,37 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(url).Should(Equal(customEndpoint + "/worker"))
 				Expect(cert).ShouldNot(BeNil())
-				Expect(*cert).Should(Equal(hostCert))
+				actualRawCerts, err := getRawCertsFromEncodedBundle(*cert)
+				Expect(err).ShouldNot(HaveOccurred())
+				expectedRawCerts, err := getRawCertsFromEncodedBundle(hostCert)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(actualRawCerts).Should(Equal(expectedRawCerts))
 			})
 
 		})
 	})
 })
+
+const encodedSingleCAcert1 = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUVORENDQXh5Z0F3SUJBZ0lKQU51bkkwRDY2MmNuTUEwR0NTcUdTSWIzRFFFQkN3VUFNSUdsTVFzd0NRWUQKVlFRR0V3SlZVekVYTUJVR0ExVUVDQXdPVG05eWRHZ2dRMkZ5YjJ4cGJtRXhFREFPQmdOVkJBY01CMUpoYkdWcApaMmd4RmpBVUJnTlZCQW9NRFZKbFpDQklZWFFzSUVsdVl5NHhFekFSQmdOVkJBc01DbEpsWkNCSVlYUWdTVlF4Ckd6QVpCZ05WQkFNTUVsSmxaQ0JJWVhRZ1NWUWdVbTl2ZENCRFFURWhNQjhHQ1NxR1NJYjNEUUVKQVJZU2FXNW0KYjNObFkwQnlaV1JvWVhRdVkyOXRNQ0FYRFRFMU1EY3dOakUzTXpneE1Wb1lEekl3TlRVd05qSTJNVGN6T0RFeApXakNCcFRFTE1Ba0dBMVVFQmhNQ1ZWTXhGekFWQmdOVkJBZ01EazV2Y25Sb0lFTmhjbTlzYVc1aE1SQXdEZ1lEClZRUUhEQWRTWVd4bGFXZG9NUll3RkFZRFZRUUtEQTFTWldRZ1NHRjBMQ0JKYm1NdU1STXdFUVlEVlFRTERBcFMKWldRZ1NHRjBJRWxVTVJzd0dRWURWUVFEREJKU1pXUWdTR0YwSUVsVUlGSnZiM1FnUTBFeElUQWZCZ2txaGtpRwo5dzBCQ1FFV0VtbHVabTl6WldOQWNtVmthR0YwTG1OdmJUQ0NBU0l3RFFZSktvWklodmNOQVFFQkJRQURnZ0VQCkFEQ0NBUW9DZ2dFQkFMUXQ5T0pRaDZHQzVMVDFnODBxTmgwdTUwQlE0c1oveVo4YUVUeHQrNWxuUFZYNk1IS3oKYmZ3STZuTzFhTUc2ajliU3crNlVVeVBCSFA3OTYrRlQvcFRTK0swd3NEVjdjOVh2SG94SkJKSlUzOGNkTGtJMgpjL2k3bERxVGZUY2ZMTDJueVVCZDJmUURrMUIwZnhyc2toR0lJWjNpZlAxUHM0bHRUa3Y4aFJTb2IzVnROcVNvCkd4a0tmdkQyUEtqVFB4RFBXWXlydXk5aXJMWmlvTWZmaTNpL2dDdXQwWld0QXlPM01WSDVxV0YvZW5Ld2dQRVMKWDlwbytUZEN2UkIvUlVPYkJhTTc2MUVjckxTTTFHcUhOdWVTZnFuaG8zQWpMUTZkQm5QV2xvNjM4Wm0xVmViSwpCRUx5aGtMV01TRmtLd0RtbmUwalEwMlk0ZzA3NXZDS3ZDc0NBd0VBQWFOak1HRXdIUVlEVlIwT0JCWUVGSDdSCjR5QytVZWhJSVBldUw4WnF3M1B6YmdjWk1COEdBMVVkSXdRWU1CYUFGSDdSNHlDK1VlaElJUGV1TDhacXczUHoKYmdjWk1BOEdBMVVkRXdFQi93UUZNQU1CQWY4d0RnWURWUjBQQVFIL0JBUURBZ0dHTUEwR0NTcUdTSWIzRFFFQgpDd1VBQTRJQkFRQkROdkQyVm05c0E1QTlBbE9KUjgrZW41WHo5aFhjeEpCNXBoeGNaUThqRm9HMDRWc2h2ZDBlCkxFblVyTWNmRmdJWjRuak1LVFFDTTRaRlVQQWlleUx4NGY1Mkh1RG9wcDNlNUp5SU1mVytLRmNOSXBLd0NzYWsKb1NvS3RJVU9zVUpLN3FCVlp4Y3JJeWVRVjJxY1lPZVpodFM1d0JxSXdPQWhGd2xDRVQ3WmU1OFFIbVM0OHNsagpTOUswSkFjcHMyeGRuR3UwZmt6aFNReFk4R1BRTkZUbHI2cllsZDUrSUQvaEhlUzc2Z3EwWUczcTZSTFdSa0hmCjRlVGtSaml2QWxFeHJGektjbGpDNGF4S1Fsbk92VkF6eitHbTMyVTB4UEJGNEJ5ZVBWeENKVUh3MVRzeVRtZWwKUnhORXA3eUhvWGN3bitmWG5hK3Q1SldoMWd4VVp0eTMKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+const encodedSingleCAcert2 = "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUQ2RENDQXRDZ0F3SUJBZ0lCRkRBTkJna3Foa2lHOXcwQkFRc0ZBRENCcFRFTE1Ba0dBMVVFQmhNQ1ZWTXgKRnpBVkJnTlZCQWdNRGs1dmNuUm9JRU5oY205c2FXNWhNUkF3RGdZRFZRUUhEQWRTWVd4bGFXZG9NUll3RkFZRApWUVFLREExU1pXUWdTR0YwTENCSmJtTXVNUk13RVFZRFZRUUxEQXBTWldRZ1NHRjBJRWxVTVJzd0dRWURWUVFECkRCSlNaV1FnU0dGMElFbFVJRkp2YjNRZ1EwRXhJVEFmQmdrcWhraUc5dzBCQ1FFV0VtbHVabTl6WldOQWNtVmsKYUdGMExtTnZiVEFlRncweE5URXdNVFF4TnpJNU1EZGFGdzAwTlRFd01EWXhOekk1TURkYU1FNHhFREFPQmdOVgpCQW9NQjFKbFpDQklZWFF4RFRBTEJnTlZCQXNNQkhCeWIyUXhLekFwQmdOVkJBTU1Ja2x1ZEdWeWJXVmthV0YwClpTQkRaWEowYVdacFkyRjBaU0JCZFhSb2IzSnBkSGt3Z2dFaU1BMEdDU3FHU0liM0RRRUJBUVVBQTRJQkR3QXcKZ2dFS0FvSUJBUURZcFZmZytqalEzNTQ2R0hGNnN4d01Pakl3cE9tZ0FYaUhTNHBnYUNtdStBUXdCczRyd3h2RgpTK1NzREhEVFZEdnB4SllCd0o2aDhTM0xLOXhrNzB5R3NPQXUzMEVxSVRqNlQrWlBiSkc2Qy8wSTV1a0VWSWVBCnhrZ1BlQ0JZaWlQd29OYy90ZTZSeTJ3bGFlSDlpVFZYOGZ4MzJ4cm9Ta2w2NVA1OS9kTXR0clF0U3VRWDhqTFMKNXJCU2pCZklMU3NhVXl3TkQzMTlFL0drcXZoNmxvM1RFYXg5cmhxYk5oMnMrMjZBZkJKb3VrWnN0ZzNUV2xJLwpwaTh2L0QzWkZEREVJT1hyUDBKRWZlOEVUbW04N1QxQ1BkUElaOSsvYzRBRFBIamRtZUJBSmRkbVQwSXNIOWU2CkdlYTJSL2ZRYVNySVFQVm1tLzBRWDJ3bFk0SmZ4eUxKQWdNQkFBR2plVEIzTUIwR0ExVWREZ1FXQkJRdzNnUlUKb1lZQ254SDZVUGtGY0tjb3dNQlAvREFmQmdOVkhTTUVHREFXZ0JSKzBlTWd2bEhvU0NEM3JpL0dhc056ODI0SApHVEFTQmdOVkhSTUJBZjhFQ0RBR0FRSC9BZ0VCTUE0R0ExVWREd0VCL3dRRUF3SUJoakFSQmdsZ2hrZ0JodmhDCkFRRUVCQU1DQVFZd0RRWUpLb1pJaHZjTkFRRUxCUUFEZ2dFQkFEd2FYTElPcW95UW9CVmNrOC81MkFqV3cxQ3YKYXRoOU5HVUVGUk9ZbTE1VmJBYUZtZVkyb1EwRVYzdFFSbTMyQzlxZTlSeFZVOERCRGpCdU55WWhMZzNrNi8xWgpKWGdndFNNdGZmcjVUODNieGdmaCt2TnhGN281b054RWdSVVlUQmk0YVY3djlMaURkMWI3WUFzVXdqNE5QV1laCmRidXlwRlNXQ29WN1JlTnQrMzdtdU1FWndpK3lHSVU5dWc4aExPcnZyaUVkVTNSWHQ1WE5JU01NdUM4SlVMZEUKM0dWem9OdGt6bnF2NXlTRWo0TTlXc2RCaUc2Ym00YUJZSU9FMFhLRTZRWXRsc2pUTUI5VVRYeG1sVXZERTB3Qwp6OVlZS2ZDMXZMeEwyd0FnTWhPQ2RLWk0rUWx1MXN0YjBCL0VGM294Yy9pWnJoRHZKTGppamJNcHBodz0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo="
+
+func getRawCertsFromEncodedBundle(encodedBundle string) ([]string, error) {
+	decoded, err := base64.StdEncoding.DecodeString(encodedBundle)
+	if err != nil {
+		return nil, err
+	}
+
+	certs, ok := common.ParsePemCerts(decoded)
+	if !ok {
+		return nil, fmt.Errorf("failed to parse certificate bundle")
+	}
+
+	rawCerts := make([]string, 0, len(certs))
+	for _, cert := range certs {
+		rawCerts = append(rawCerts, base64.StdEncoding.EncodeToString(cert.Raw))
+	}
+	return rawCerts, nil
+}
 
 var _ = Describe("Validations", func() {
 	Context("Role validity", func() {

@@ -12,6 +12,7 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/pkg/errors"
+	"github.com/vincent-petithory/dataurl"
 )
 
 // ParseToLatest takes the Ignition config and tries to parse it as v3.2 and if that fails,
@@ -152,11 +153,21 @@ func extractCerts(ignition config_latest_types.Ignition) (*string, error) {
 		if ca.Source == nil {
 			continue
 		}
-		source := *ca.Source
-		if strings.HasPrefix(source, "data:text/plain;charset=utf-8;base64,") {
-			encoded := strings.TrimPrefix(source, "data:text/plain;charset=utf-8;base64,")
-			return &encoded, nil
+		source := strings.TrimSpace(*ca.Source)
+		if !strings.HasPrefix(source, "data:") {
+			continue
 		}
+
+		decoded, err := dataurl.DecodeString(source)
+		if err != nil {
+			return nil, err
+		}
+
+		cert := string(decoded.Data)
+		if strings.TrimSpace(cert) == "" {
+			continue
+		}
+		return &cert, nil
 	}
 	return nil, nil // No certificate found
 }

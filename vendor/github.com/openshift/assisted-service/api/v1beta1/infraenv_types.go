@@ -25,11 +25,11 @@ import (
 )
 
 const (
-	ImageCreatedReason       	      = "ImageCreated"
-	ImageStateCreated        	      = "Image has been created"
-	ImageCreationErrorReason 	      = "ImageCreationError"
-	ImageStateFailedToCreate 	      = "Failed to create image"
-	InfraEnvNameLabel        	      = "infraenvs.agent-install.openshift.io"
+	ImageCreatedReason                = "ImageCreated"
+	ImageStateCreated                 = "Image has been created"
+	ImageCreationErrorReason          = "ImageCreationError"
+	ImageStateFailedToCreate          = "Failed to create image"
+	InfraEnvNameLabel                 = "infraenvs.agent-install.openshift.io"
 	MissingClusterDeploymentReason    = "MissingClusterDeployment"
 	MissingClusterDeploymentReference = "ClusterDeployment is missing"
 	InfraEnvAvailableReason           = "InfraEnvAvailable"
@@ -50,7 +50,6 @@ type ClusterReference struct {
 const (
 	ImageCreatedCondition      conditionsv1.ConditionType = "ImageCreated"
 	ClusterDeploymentReference conditionsv1.ConditionType = "ClusterDeploymentReference"
-
 )
 
 type InfraEnvSpec struct {
@@ -122,7 +121,7 @@ type InfraEnvSpec struct {
 	// OSImageVersion is the version of OS image to use when generating the InfraEnv.
 	// The version should refer to an OSImage specified in the AgentServiceConfig
 	// (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
-	// Note: OSImageVersion can't be specified along with ClusterRef.
+	// Note: OSImageVersion can't be specified along with ClusterRef while creating an InfraEnv.
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`
 

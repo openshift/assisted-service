@@ -10,7 +10,8 @@
     "enabledManagers": [
         "custom.regex",
         "tekton",
-        "gomod"
+        "gomod",
+        "rpm-lockfile"
     ],
     "tekton": {
         "managerFilePatterns": [
@@ -204,6 +205,11 @@
                 "registry.access.redhat.com/ubi9/ubi-minimal"
             ],
             "enabled": false
+        },
+        {
+            "matchManagers": [
+                "rpm-lockfile"
+            ]
         },
         {
             "matchManagers": [
