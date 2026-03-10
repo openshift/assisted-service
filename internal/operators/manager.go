@@ -768,24 +768,58 @@ func (mgr *Manager) GetBundleWithGPUFilter(bundleID string, featureIDs []models.
 		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
 	}
 
-	// Get all operators for the bundle based on feature IDs
+	var includedOperators []string
+	var filteredGPUOperators []string
+
+	// First pass: collect operators and identify filtered GPU operators
 	for _, operator := range mgr.olmOperators {
 		operatorBundles := operator.GetBundleLabels(featureIDs)
 		for _, operatorBundle := range operatorBundles {
 			if operatorBundle == bundleID {
 				operatorName := operator.GetName()
 
-				// Apply GPU filtering
+				// Check if this operator should be filtered due to GPU settings
 				if mgr.shouldSkipOperatorForGPUFilter(operatorName, gpuFilter) {
+					// Track filtered GPU operators so we can remove their dependencies
+					if operatorName == "nvidia-gpu" || operatorName == "amd-gpu" {
+						filteredGPUOperators = append(filteredGPUOperators, operatorName)
+					}
 					continue
 				}
 
-				bundle.Operators = append(bundle.Operators, operatorName)
+				includedOperators = append(includedOperators, operatorName)
 				break
 			}
 		}
 	}
 
+	// Second pass: remove dependencies of filtered GPU operators
+	if len(filteredGPUOperators) > 0 && gpuFilter != nil {
+		dependenciesToRemove := make(map[string]bool)
+
+		for _, filteredGPU := range filteredGPUOperators {
+			if gpuOperator, exists := mgr.olmOperators[filteredGPU]; exists {
+				// Get dependencies of the filtered GPU operator
+				deps, err := gpuOperator.GetDependencies(&common.Cluster{})
+				if err == nil {
+					for _, dep := range deps {
+						dependenciesToRemove[dep] = true
+					}
+				}
+			}
+		}
+
+		// Filter out dependencies of removed GPU operators
+		filteredOperators := make([]string, 0, len(includedOperators))
+		for _, op := range includedOperators {
+			if !dependenciesToRemove[op] {
+				filteredOperators = append(filteredOperators, op)
+			}
+		}
+		includedOperators = filteredOperators
+	}
+
+	bundle.Operators = includedOperators
 	return bundle, nil
 }
 
