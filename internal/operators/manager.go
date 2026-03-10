@@ -542,8 +542,8 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 // GPUFilterProperties represents the GPU filter configuration in operator properties
 type GPUFilterProperties struct {
 	GPUFilter struct {
-		NvidiaEnabled bool `json:"nvidia_enabled"`
-		AmdEnabled    bool `json:"amd_enabled"`
+		NvidiaEnabled *bool `json:"nvidia_enabled"`
+		AmdEnabled    *bool `json:"amd_enabled"`
 	} `json:"gpu_filter"`
 }
 
@@ -560,10 +560,13 @@ func (mgr *Manager) applyGPUFilterFromProperties(operators []*models.MonitoredOp
 				return mgr.ensureAllGPUOperators(operators), nil
 			}
 
-			// Convert properties to GPUFilter
-			gpuFilter = &GPUFilter{
-				NvidiaEnabled: &props.GPUFilter.NvidiaEnabled,
-				AmdEnabled:    &props.GPUFilter.AmdEnabled,
+			// Convert properties to GPUFilter - only set fields that were explicitly provided
+			gpuFilter = &GPUFilter{}
+			if props.GPUFilter.NvidiaEnabled != nil {
+				gpuFilter.NvidiaEnabled = props.GPUFilter.NvidiaEnabled
+			}
+			if props.GPUFilter.AmdEnabled != nil {
+				gpuFilter.AmdEnabled = props.GPUFilter.AmdEnabled
 			}
 			break
 		}
