@@ -254,6 +254,19 @@ func (a *InfraEnvValidatingAdmissionHook) validateUpdate(admissionSpec *admissio
 		}
 	}
 
+	if oldObject.Spec.CpuArchitecture != newObject.Spec.CpuArchitecture {
+		message := "Attempted to change Spec.CpuArchitecture which is immutable after InfraEnv creation."
+		contextLogger.Infof("Failed validation: %v", message)
+		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
 	if !a.osImageVersionValid(contextLogger, oldObject, newObject) {
 		message := "spec.OSImageVersion is not valid. It can't be added alongside with a clusterRef when the cluster is not installed yet."
 		contextLogger.Infof("Failed validation: %v", message)
