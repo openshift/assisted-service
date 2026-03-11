@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	v1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -225,6 +226,17 @@ var _ = Describe("infraenv web validate", func() {
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: false,
+		},
+		{
+			name: "Test InfraEnv update does not fail when CpuArchitecture is set from empty to default",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: common.DefaultCPUArchitecture,
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
 		},
 		{
 			name: "Test InfraEnv update does not fail when CpuArchitecture is set and remains the same",
