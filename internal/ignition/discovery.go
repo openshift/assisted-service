@@ -18,7 +18,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -486,6 +485,11 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(url string, caCert 
 		return []byte(""), errors.Wrapf(err, "Failed to set hostname in ignition for host %s", host.ID)
 	}
 
+	res, err = AddStateRootCleanupToIgnition(ib.log, res, host)
+	if err != nil {
+		return []byte(""), errors.Wrapf(err, "Failed to add state root cleanup to ignition for host %s", host.ID)
+	}
+
 	ib.log.Debugf("Final ignition for day2 host %s: %s", host.ID, string(res))
 	return res, nil
 }
@@ -502,26 +506,6 @@ func GetProfileProxyEntries(http_proxy string, https_proxy string, no_proxy stri
 		entries = append(entries, fmt.Sprintf("export NO_PROXY=%[1]s\nexport no_proxy=%[1]s", no_proxy))
 	}
 	return strings.Join(entries, "\n") + "\n"
-}
-
-func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, error) {
-	config, err := ignitioncommon.ParseToLatest(ignition)
-	if err != nil {
-		return nil, errors.Errorf("error parsing ignition: %v", err)
-	}
-
-	hostname, err := hostutil.GetCurrentHostName(host)
-	if err != nil {
-		return nil, errors.Errorf("failed to get hostname for host %s", host.ID)
-	}
-
-	ignitioncommon.SetFileInIgnition(config, "/etc/hostname", fmt.Sprintf("data:,%s", hostname), false, 420, true)
-
-	configBytes, err := json.Marshal(config)
-	if err != nil {
-		return nil, err
-	}
-	return configBytes, nil
 }
 
 func getUserSSHKey(sshKey string) (string, error) {
