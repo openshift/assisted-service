@@ -519,9 +519,9 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 			continue
 		}
 
-		operator, err := mgr.getDependency(operatorName, currentDependencies)
-		if err != nil {
-			return nil, err
+		operator, depErr := mgr.getDependency(operatorName, currentDependencies)
+		if depErr != nil {
+			return nil, depErr
 		}
 
 		operator.DependencyOnly = true
