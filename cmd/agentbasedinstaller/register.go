@@ -103,7 +103,7 @@ func RegisterCluster(ctx context.Context, log *log.Logger, bmInventory *client.A
 		operatorInfo = operatorsToArray(operatorList)
 	}
 
-	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, releaseImageVersion, releaseImageCPUArch, nil, operatorInfo)
+	clusterParams := controllers.CreateClusterParams(&cd, &aci, pullSecret, &models.ReleaseImage{Version: &releaseImageVersion, CPUArchitecture: &releaseImageCPUArch, URL: &releaseImage}, nil, operatorInfo)
 
 	if aci.Spec.Networking.NetworkType != "" {
 		clusterParams.NetworkType = &aci.Spec.Networking.NetworkType
