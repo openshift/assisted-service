@@ -1,0 +1,31 @@
+apiVersion: nfd.openshift.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: amd-gpu
+  namespace: {{ .Operator.Namespace }}
+spec:
+  rules:
+  - name: amd-gpu
+    labels:
+      feature.node.kubernetes.io/amd-gpu: "true"
+    matchFeatures:
+    - feature: pci.device
+      matchExpressions:
+        vendor: {op: In, value: ["1002"]}
+        device:
+          op: In
+          value:
+          - "75a3" # MI355X
+          - "75a0" # MI350X
+          - "74a5" # MI325X
+          - "74a2" # MI308X
+          - "74a8" # MI308X-HF
+          - "74a0" # MI300A
+          - "74a1" # MI300X
+          - "74a9" # MI300X-HF
+          - "74bd" # MI300X-HF
+          - "740f" # MI210
+          - "7408" # MI250X
+          - "740c" # MI250/MI250X
+          - "738c" # MI100
+          - "738e" # MI100
