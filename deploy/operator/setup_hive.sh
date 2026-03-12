@@ -3,10 +3,13 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/common.sh
 source ${__dir}/utils.sh
+source ${__dir}/mirror_utils.sh
+
 
 set -o xtrace
 
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
+INDEX_TAG="${INDEX_TAG:-v4.21}"
 
 function print_help() {
     ALL_FUNCS="with_olm|from_upstream|enable_agent_install_strategy|print_help"
@@ -18,10 +21,19 @@ function print_help() {
 }
 
 function with_olm() {
-    if [ "${DISCONNECTED}" = "true" ]; then
-        echo "Not yet implemented"
-        return 1
+  catalog_source_name="community-operators"
+  if [ "${DISCONNECTED}" = "true" ]; then
+    if ! which opm; then
+        install_opm
     fi
+
+    disable_default_indexes
+
+    index_image="registry.redhat.io/redhat/community-operator-index:${INDEX_TAG}"
+    catalog_source_name="mirror-catalog-for-hive"
+    mirror_package "hive-operator" \
+      "${index_image}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+  fi
 
     cat <<EOCR | oc apply -f -
 apiVersion: v1
@@ -48,7 +60,7 @@ metadata:
 spec:
   installPlanApproval: Automatic
   name: hive-operator
-  source: community-operators
+  source: ${catalog_source_name}
   sourceNamespace: openshift-marketplace
   channel: alpha
 EOCR
