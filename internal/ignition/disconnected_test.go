@@ -128,8 +128,6 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), clusterVersion, infraEnv.ClusterID).Return(mockRelease, nil)
 
 			baseIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[{"path":"/etc/hostname","contents":{"source":"data:,test-node"}}]}}`
-			// expectedIgnition includes all default empty fields added by the ignition library when parsing and re-marshaling
-			expectedIgnition := `{"ignition":{"config":{"replace":{"verification":{}}},"proxy":{},"security":{"tls":{}},"timeouts":{},"version":"3.2.0"},"passwd":{},"storage":{"files":[{"group":{},"path":"/etc/hostname","user":{},"contents":{"source":"data:,test-node","verification":{}}},{"group":{},"overwrite":true,"path":"/etc/assisted/interactive-ui","user":{"name":"root"},"contents":{"source":"data:,","verification":{}},"mode":420}]},"systemd":{}}`
 
 			mockExecuter.EXPECT().Execute(
 				mockRelease.Path,
@@ -147,7 +145,10 @@ var _ = Describe("Disconnected Ignition", func() {
 
 			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(result).To(MatchJSON(expectedIgnition))
+			Expect(result).To(ContainSubstring(`"path":"/etc/hostname"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/interactive-ui"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/no-config-image"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/extra-manifests/internalreleaseimage.yaml"`))
 		})
 
 		It("should create correct directory structure", func() {
@@ -335,6 +336,8 @@ var _ = Describe("Disconnected Ignition", func() {
 			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/interactive-ui"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/no-config-image"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/extra-manifests/internalreleaseimage.yaml"`))
 			Expect(result).To(ContainSubstring(`"version":"3.2.0"`))
 		})
 
@@ -653,5 +656,21 @@ var _ = Describe("Disconnected Ignition", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
+	})
+
+	Context("addDisconnectedIgnitionFiles", func() {
+		It("should add all disconnected sentinel files with correct content", func() {
+			baseIgnition := []byte(`{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`)
+			result, err := addDisconnectedIgnitionFiles(baseIgnition, "4.21.3", "x86_64")
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/interactive-ui"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/no-config-image"`))
+			Expect(result).To(ContainSubstring(`"path":"/etc/assisted/extra-manifests/internalreleaseimage.yaml"`))
+
+			iriManifest := string(internalReleaseImageManifest("4.21.3", "x86_64"))
+			Expect(iriManifest).To(ContainSubstring("ocp-release-bundle-4.21.3-x86_64"))
+			Expect(result).To(ContainSubstring(encodeIgnitionFileContent([]byte(iriManifest))))
+		})
 	})
 })

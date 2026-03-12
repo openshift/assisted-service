@@ -3,6 +3,7 @@ package ignition
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -101,7 +102,7 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 		}
 	}()
 
-	ignitionContent, err := generateUnconfiguredIgnition(g.executer, release.Path, disconnectedManifestsDir, log)
+	ignitionContent, err := generateUnconfiguredIgnition(g.executer, release.Path, disconnectedManifestsDir, clusterVersion, infraEnv.CPUArchitecture, log)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate ignition")
 	}
@@ -311,7 +312,7 @@ func getInstallerRelease(
 	return release, nil
 }
 
-func generateUnconfiguredIgnition(executer executer.Executer, releasePath string, disconnectedDir string, log logrus.FieldLogger) (string, error) {
+func generateUnconfiguredIgnition(executer executer.Executer, releasePath string, disconnectedDir string, clusterVersion string, cpuArchitecture string, log logrus.FieldLogger) (string, error) {
 	stdout, stderr, exitCode := executer.Execute(releasePath, "agent", "create", "unconfigured-ignition", "--dir", disconnectedDir)
 	if exitCode != 0 {
 		log.Errorf("error running %s agent create unconfigured-ignition, stdout: %s, stderr: %s, exit code: %d", releasePath, stdout, stderr, exitCode)
@@ -324,28 +325,46 @@ func generateUnconfiguredIgnition(executer executer.Executer, releasePath string
 		return "", errors.Wrap(err, "failed to read generated unconfigured-ignition")
 	}
 
-	modifiedIgnition, err := addInteractiveSentinelFile(ignitionContent)
+	modifiedIgnition, err := addDisconnectedIgnitionFiles(ignitionContent, clusterVersion, cpuArchitecture)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to add interactive sentinel file to ignition")
+		return "", errors.Wrap(err, "failed to add disconnected files to ignition")
 	}
 
 	return modifiedIgnition, nil
 }
 
-func addInteractiveSentinelFile(ignitionContent []byte) (string, error) {
+func addDisconnectedIgnitionFiles(ignitionContent []byte, clusterVersion string, cpuArchitecture string) (string, error) {
 	config, err := commonignition.ParseToLatest(ignitionContent)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse ignition config")
 	}
 
-	// data:, is a data URI representing an empty file
 	commonignition.SetFileInIgnition(config, "/etc/assisted/interactive-ui", "data:,", false, 0644, true)
+	commonignition.SetFileInIgnition(config, "/etc/assisted/no-config-image", "data:,", false, 0644, true)
+	commonignition.SetFileInIgnition(config, "/etc/assisted/extra-manifests/internalreleaseimage.yaml",
+		encodeIgnitionFileContent(internalReleaseImageManifest(clusterVersion, cpuArchitecture)), false, 0644, true)
+
 	modifiedContent, err := json.Marshal(config)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal modified ignition config")
 	}
 
 	return string(modifiedContent), nil
+}
+
+func internalReleaseImageManifest(clusterVersion string, cpuArchitecture string) []byte {
+	return []byte(fmt.Sprintf(`apiVersion: machineconfiguration.openshift.io/v1alpha1
+kind: InternalReleaseImage
+metadata:
+  name: cluster
+spec:
+  releases:
+  - name: ocp-release-bundle-%s-%s
+`, clusterVersion, cpuArchitecture))
+}
+
+func encodeIgnitionFileContent(content []byte) string {
+	return "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(content)
 }
 
 func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string, log logrus.FieldLogger) error {
