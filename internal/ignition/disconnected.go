@@ -3,6 +3,7 @@ package ignition
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -79,7 +80,7 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 		}
 	}()
 
-	if err = createManifests(infraEnv, disconnectedManifestsDir, log); err != nil {
+	if err = createManifests(infraEnv, disconnectedManifestsDir); err != nil {
 		return "", errors.Wrap(err, "failed to create manifests")
 	}
 
@@ -101,7 +102,7 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 		}
 	}()
 
-	ignitionContent, err := generateUnconfiguredIgnition(g.executer, release.Path, disconnectedManifestsDir, log)
+	ignitionContent, err := generateUnconfiguredIgnition(g.executer, release.Path, disconnectedManifestsDir, infraEnv, log)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate ignition")
 	}
@@ -164,17 +165,6 @@ func createInfraEnvManifest(infraEnv *common.InfraEnv, manifestsDir string) erro
 	}
 	spec.AdditionalNTPSources = additionalNtpSources
 
-	if strings.TrimSpace(infraEnv.StaticNetworkConfig) != "" {
-		if infraEnv.ID == nil {
-			return errors.New("infraEnv ID is required when static network configuration is provided")
-		}
-		spec.NMStateConfigLabelSelector = metav1.LabelSelector{
-			MatchLabels: map[string]string{
-				nmStateConfigInfraEnvLabelKey: infraEnv.ID.String(),
-			},
-		}
-	}
-
 	infraEnvManifest := &v1beta1.InfraEnv{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "InfraEnv",
@@ -210,7 +200,7 @@ func createDisconnectedManifestsDir(workDir string, infraEnv *common.InfraEnv) (
 	return disconnectedManifestsDir, nil
 }
 
-func createManifests(infraEnv *common.InfraEnv, disconnectedDir string, log logrus.FieldLogger) error {
+func createManifests(infraEnv *common.InfraEnv, disconnectedDir string) error {
 	manifestsDir := filepath.Join(disconnectedDir, "cluster-manifests")
 	if err := os.MkdirAll(manifestsDir, 0o755); err != nil {
 		return errors.Wrap(err, "failed to create manifests directory")
@@ -222,10 +212,6 @@ func createManifests(infraEnv *common.InfraEnv, disconnectedDir string, log logr
 
 	if err := createPullSecretManifest(infraEnv, manifestsDir); err != nil {
 		return errors.Wrap(err, "failed to create pull secret manifest")
-	}
-
-	if err := createNMStateConfigManifests(infraEnv, manifestsDir, log); err != nil {
-		return errors.Wrap(err, "failed to create NMStateConfig manifests")
 	}
 
 	return nil
@@ -244,22 +230,27 @@ func createMirrorConfig(disconnectedDir string) error {
 	return nil
 }
 
-// AgentConfig represents the agent-config.yaml structure
+// AgentConfig represents the agent-config.yaml structure.
+// Field names must match the installer's pkg/types/agent.Config struct
+// (sigs.k8s.io/yaml uses json tags under the hood).
 type AgentConfig struct {
-	APIVersion   string              `yaml:"apiVersion"`
-	Kind         string              `yaml:"kind"`
-	Metadata     AgentConfigMetadata `yaml:"metadata"`
-	RendezvousIP string              `yaml:"rendezvousIP"`
+	APIVersion   string              `json:"apiVersion"`
+	Kind         string              `json:"kind"`
+	Metadata     AgentConfigMetadata `json:"metadata"`
+	RendezvousIP string              `json:"rendezvousIP,omitempty"`
+	Hosts        []AgentConfigHost   `json:"hosts,omitempty"`
 }
 
 type AgentConfigMetadata struct {
-	Name string `yaml:"name"`
+	Name string `json:"name"`
+}
+
+type AgentConfigHost struct {
+	Interfaces    []*v1beta1.Interface `json:"interfaces,omitempty"`
+	NetworkConfig v1beta1.NetConfig    `json:"networkConfig,omitempty"`
 }
 
 func createAgentConfig(infraEnv *common.InfraEnv, clusterName string, disconnectedDir string) error {
-	if swag.StringValue(infraEnv.RendezvousIP) == "" {
-		return nil
-	}
 	agentConfig := AgentConfig{
 		APIVersion: "v1beta1",
 		Kind:       "AgentConfig",
@@ -267,6 +258,36 @@ func createAgentConfig(infraEnv *common.InfraEnv, clusterName string, disconnect
 			Name: clusterName,
 		},
 		RendezvousIP: swag.StringValue(infraEnv.RendezvousIP),
+	}
+
+	if strings.TrimSpace(infraEnv.StaticNetworkConfig) != "" {
+		var staticNetworkConfigs []*models.HostStaticNetworkConfig
+		if err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfigs); err != nil {
+			return errors.Wrap(err, "failed to unmarshal static network config for agent-config")
+		}
+		for _, config := range staticNetworkConfigs {
+			if config == nil || config.NetworkYaml == "" {
+				continue
+			}
+			interfaces := make([]*v1beta1.Interface, 0, len(config.MacInterfaceMap))
+			for _, macInterface := range config.MacInterfaceMap {
+				if macInterface != nil && macInterface.MacAddress != "" && macInterface.LogicalNicName != "" {
+					interfaces = append(interfaces, &v1beta1.Interface{
+						Name:       macInterface.LogicalNicName,
+						MacAddress: macInterface.MacAddress,
+					})
+				}
+			}
+			if len(interfaces) == 0 {
+				continue
+			}
+			agentConfig.Hosts = append(agentConfig.Hosts, AgentConfigHost{
+				Interfaces: interfaces,
+				NetworkConfig: v1beta1.NetConfig{
+					Raw: v1beta1.RawNetConfig(config.NetworkYaml),
+				},
+			})
+		}
 	}
 
 	agentConfigYAML, err := yaml.Marshal(agentConfig)
@@ -311,7 +332,7 @@ func getInstallerRelease(
 	return release, nil
 }
 
-func generateUnconfiguredIgnition(executer executer.Executer, releasePath string, disconnectedDir string, log logrus.FieldLogger) (string, error) {
+func generateUnconfiguredIgnition(executer executer.Executer, releasePath string, disconnectedDir string, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	stdout, stderr, exitCode := executer.Execute(releasePath, "agent", "create", "unconfigured-ignition", "--dir", disconnectedDir)
 	if exitCode != 0 {
 		log.Errorf("error running %s agent create unconfigured-ignition, stdout: %s, stderr: %s, exit code: %d", releasePath, stdout, stderr, exitCode)
@@ -324,22 +345,33 @@ func generateUnconfiguredIgnition(executer executer.Executer, releasePath string
 		return "", errors.Wrap(err, "failed to read generated unconfigured-ignition")
 	}
 
-	modifiedIgnition, err := addInteractiveSentinelFile(ignitionContent)
+	modifiedIgnition, err := addDisconnectedIgnitionFiles(ignitionContent, infraEnv, log)
 	if err != nil {
-		return "", errors.Wrap(err, "failed to add interactive sentinel file to ignition")
+		return "", errors.Wrap(err, "failed to add disconnected files to ignition")
 	}
 
 	return modifiedIgnition, nil
 }
 
-func addInteractiveSentinelFile(ignitionContent []byte) (string, error) {
+func addDisconnectedIgnitionFiles(ignitionContent []byte, infraEnv *common.InfraEnv, log logrus.FieldLogger) (string, error) {
 	config, err := commonignition.ParseToLatest(ignitionContent)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to parse ignition config")
 	}
 
-	// data:, is a data URI representing an empty file
 	commonignition.SetFileInIgnition(config, "/etc/assisted/interactive-ui", "data:,", false, 0644, true)
+
+	nmstateYAML, err := buildNMStateConfigYAML(infraEnv)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to build NMStateConfig YAML for ignition")
+	}
+	if len(nmstateYAML) > 0 {
+		dataURI := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(nmstateYAML)
+		commonignition.SetFileInIgnition(config, "/etc/assisted/manifests/nmstateconfig.yaml",
+			dataURI, false, 0600, true)
+		log.Info("Injected NMStateConfig manifest into ignition at /etc/assisted/manifests/nmstateconfig.yaml")
+	}
+
 	modifiedContent, err := json.Marshal(config)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to marshal modified ignition config")
@@ -348,19 +380,14 @@ func addInteractiveSentinelFile(ignitionContent []byte) (string, error) {
 	return string(modifiedContent), nil
 }
 
-func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string, log logrus.FieldLogger) error {
-	if strings.TrimSpace(infraEnv.StaticNetworkConfig) == "" {
-		log.Debug("No static network configuration present, skipping NMStateConfig manifests")
-		return nil
-	}
-
-	if infraEnv.ID == nil {
-		return errors.New("infraEnv ID is required when static network configuration is provided")
+func buildNMStateConfigYAML(infraEnv *common.InfraEnv) ([]byte, error) {
+	if strings.TrimSpace(infraEnv.StaticNetworkConfig) == "" || infraEnv.ID == nil {
+		return nil, nil
 	}
 
 	var staticNetworkConfigs []*models.HostStaticNetworkConfig
 	if err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfigs); err != nil {
-		return errors.Wrap(err, "failed to unmarshal static network config")
+		return nil, errors.Wrap(err, "failed to unmarshal static network config")
 	}
 
 	labelSelector := map[string]string{
@@ -373,7 +400,6 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 			continue
 		}
 
-		// Convert mac_interface_map to v1beta1.Interface format
 		interfaces := make([]*v1beta1.Interface, 0, len(config.MacInterfaceMap))
 		for _, macInterface := range config.MacInterfaceMap {
 			if macInterface != nil && macInterface.MacAddress != "" && macInterface.LogicalNicName != "" {
@@ -385,7 +411,6 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 		}
 
 		if len(interfaces) == 0 {
-			log.Warnf("Skipping static network config %d: no valid interfaces found", i)
 			continue
 		}
 
@@ -408,22 +433,15 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 
 		nmStateYAML, err := yaml.Marshal(nmStateConfig)
 		if err != nil {
-			return errors.Wrapf(err, "failed to marshal NMStateConfig %d", i)
+			return nil, errors.Wrapf(err, "failed to marshal NMStateConfig %d", i)
 		}
 
 		nmStateYAMLs = append(nmStateYAMLs, nmStateYAML)
 	}
 
-	if len(nmStateYAMLs) > 0 {
-		combinedYAML := bytes.Join(nmStateYAMLs, []byte("---\n"))
-
-		filename := filepath.Join(manifestsDir, "nmstateconfig.yaml")
-		if err := os.WriteFile(filename, combinedYAML, 0o600); err != nil {
-			return errors.Wrap(err, "failed to write NMStateConfig")
-		}
-
-		log.Infof("Created NMStateConfig manifest: %s", filename)
+	if len(nmStateYAMLs) == 0 {
+		return nil, nil
 	}
 
-	return nil
+	return bytes.Join(nmStateYAMLs, []byte("---\n")), nil
 }

@@ -1,8 +1,8 @@
 package ignition
 
 import (
-	"bytes"
 	"context"
+	"encoding/json"
 	"os"
 	"path/filepath"
 
@@ -434,7 +434,7 @@ var _ = Describe("Disconnected Ignition", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create NMStateConfig manifests from static network config", func() {
+		It("should embed static network config as hosts in agent-config.yaml and inject nmstateconfig into ignition", func() {
 			infraEnv.StaticNetworkConfig = `[
 				{
 					"mac_interface_map": [
@@ -455,6 +455,7 @@ var _ = Describe("Disconnected Ignition", func() {
 					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n  ipv4:\n    enabled: true\n    address:\n    - ip: 192.168.1.12\n      prefix-length: 24\n    dhcp: false\n"
 				}
 			]`
+			infraEnv.RendezvousIP = swag.String("192.168.1.100")
 
 			releaseImage := &models.ReleaseImage{
 				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
@@ -470,56 +471,27 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
 				oveDir := args[4]
 
-				By("Verifying NMStateConfig manifest was created")
-				nmstateConfigContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig.yaml"))
+				By("Verifying no separate nmstateconfig.yaml in cluster-manifests")
+				_, err := os.Stat(filepath.Join(oveDir, "cluster-manifests", "nmstateconfig.yaml"))
+				Expect(os.IsNotExist(err)).To(BeTrue())
+
+				By("Verifying agent-config.yaml contains hosts with network config")
+				agentConfigContent, err := os.ReadFile(filepath.Join(oveDir, "agent-config.yaml"))
 				Expect(err).NotTo(HaveOccurred())
 
-				// Split the YAML content by document separator
-				// Note: We use sigs.k8s.io/yaml (not gopkg.in/yaml.v2) because Kubernetes types
-				// use json struct tags, which sigs.k8s.io/yaml handles correctly but gopkg.in/yaml.v2 doesn't
-				var nmstateConfigs []v1beta1.NMStateConfig
-				docs := bytes.Split(nmstateConfigContent, []byte("---\n"))
-				for _, doc := range docs {
-					doc = bytes.TrimSpace(doc)
-					if len(doc) == 0 {
-						continue
-					}
-
-					var config v1beta1.NMStateConfig
-					err = yaml.Unmarshal(doc, &config)
-					Expect(err).NotTo(HaveOccurred())
-					nmstateConfigs = append(nmstateConfigs, config)
-				}
-
-				Expect(nmstateConfigs).To(HaveLen(3))
-
-				expectedConfigs := []struct {
-					name       string
-					macAddress string
-				}{
-					{"nmstate-config-0", "52:54:00:aa:bb:cc"},
-					{"nmstate-config-1", "53:54:00:aa:bb:cc"},
-					{"nmstate-config-2", "54:54:00:aa:bb:cc"},
-				}
-
-				for i, expected := range expectedConfigs {
-					Expect(nmstateConfigs[i].APIVersion).To(Equal("agent-install.openshift.io/v1beta1"))
-					Expect(nmstateConfigs[i].Kind).To(Equal("NMStateConfig"))
-					Expect(nmstateConfigs[i].ObjectMeta.Name).To(Equal(expected.name))
-					Expect(nmstateConfigs[i].ObjectMeta.Labels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
-					Expect(nmstateConfigs[i].Spec.Interfaces).To(HaveLen(1))
-					Expect(nmstateConfigs[i].Spec.Interfaces[0].Name).To(Equal("eth0"))
-					Expect(nmstateConfigs[i].Spec.Interfaces[0].MacAddress).To(Equal(expected.macAddress))
-				}
-
-				By("Verifying InfraEnv manifest selector references NMStateConfig labels")
-				infraEnvContent, err := os.ReadFile(filepath.Join(oveDir, "cluster-manifests", "infraenv.yaml"))
+				var agentConfig AgentConfig
+				err = yaml.Unmarshal(agentConfigContent, &agentConfig)
 				Expect(err).NotTo(HaveOccurred())
 
-				var infraEnvManifest v1beta1.InfraEnv
-				err = yaml.Unmarshal(infraEnvContent, &infraEnvManifest)
-				Expect(err).NotTo(HaveOccurred())
-				Expect(infraEnvManifest.Spec.NMStateConfigLabelSelector.MatchLabels).To(HaveKeyWithValue(nmStateConfigInfraEnvLabelKey, infraEnv.ID.String()))
+				Expect(agentConfig.RendezvousIP).To(Equal("192.168.1.100"))
+				Expect(agentConfig.Hosts).To(HaveLen(3))
+
+				expectedMacs := []string{"52:54:00:aa:bb:cc", "53:54:00:aa:bb:cc", "54:54:00:aa:bb:cc"}
+				for i, expected := range expectedMacs {
+					Expect(agentConfig.Hosts[i].Interfaces).To(HaveLen(1))
+					Expect(agentConfig.Hosts[i].Interfaces[0].MacAddress).To(Equal(expected))
+					Expect(agentConfig.Hosts[i].NetworkConfig.Raw).NotTo(BeEmpty())
+				}
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
 				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
@@ -529,11 +501,27 @@ var _ = Describe("Disconnected Ignition", func() {
 				return "success", "", 0
 			})
 
-			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
+
+			By("Verifying NMStateConfig manifest was injected into the ignition")
+			var ignitionConfig map[string]any
+			err = json.Unmarshal([]byte(result), &ignitionConfig)
+			Expect(err).NotTo(HaveOccurred())
+			storage := ignitionConfig["storage"].(map[string]any)
+			files := storage["files"].([]any)
+			foundNMState := false
+			for _, f := range files {
+				file := f.(map[string]any)
+				if file["path"] == "/etc/assisted/manifests/nmstateconfig.yaml" {
+					foundNMState = true
+					break
+				}
+			}
+			Expect(foundNMState).To(BeTrue(), "nmstateconfig.yaml should be injected into ignition")
 		})
 
-		It("should skip NMStateConfig manifests when static network config is whitespace", func() {
+		It("should skip NMStateConfig when static network config is whitespace", func() {
 			infraEnv.StaticNetworkConfig = "   "
 
 			releaseImage := &models.ReleaseImage{
@@ -619,7 +607,7 @@ var _ = Describe("Disconnected Ignition", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should not create agent-config.yaml when rendezvous IP is not provided", func() {
+		It("should create agent-config.yaml without rendezvousIP when not provided", func() {
 			infraEnv.RendezvousIP = nil
 
 			releaseImage := &models.ReleaseImage{
@@ -636,10 +624,14 @@ var _ = Describe("Disconnected Ignition", func() {
 			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
 				oveDir := args[4]
 
-				By("Verifying agent-config.yaml was NOT created")
-				agentConfigPath := filepath.Join(oveDir, "agent-config.yaml")
-				_, err := os.Stat(agentConfigPath)
-				Expect(os.IsNotExist(err)).To(BeTrue(), "agent-config.yaml should not exist when rendezvous IP is not provided")
+				By("Verifying agent-config.yaml was created without rendezvousIP")
+				agentConfigContent, err := os.ReadFile(filepath.Join(oveDir, "agent-config.yaml"))
+				Expect(err).NotTo(HaveOccurred())
+
+				var agentConfig AgentConfig
+				err = yaml.Unmarshal(agentConfigContent, &agentConfig)
+				Expect(err).NotTo(HaveOccurred())
+				Expect(agentConfig.RendezvousIP).To(BeEmpty())
 
 				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
 				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
