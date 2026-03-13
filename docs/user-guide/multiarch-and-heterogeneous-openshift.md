@@ -83,6 +83,8 @@ aicli create infraenv ${CLUSTER_NAME}-arm \
 -P cpu_architecture=arm64
 ```
 
+**IMPORTANT:** The `cpu_architecture` field is immutable after InfraEnv creation. If you need to change the architecture, delete the InfraEnv and create a new one with the desired architecture.
+
 ## Boot the nodes
 
 Once cluster and InfraEnv is created, the nodes can be booted using the generated ISO. This process is no different from the regular host discovery known from single-arch topologies. Once the hosts are discovered, the installation can begin as usual.

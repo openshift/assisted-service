@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/common"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	log "github.com/sirupsen/logrus"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -162,6 +163,16 @@ func areClusterRefsEqual(clusterRef1 *v1beta1.ClusterReference, clusterRef2 *v1b
 	}
 }
 
+func areCpuArchsEqual(oldArch, newArch string) bool {
+	if oldArch == "" {
+		oldArch = common.DefaultCPUArchitecture
+	}
+	if newArch == "" {
+		newArch = common.DefaultCPUArchitecture
+	}
+	return oldArch == newArch
+}
+
 // validateUpdate specifically validates create operations for InfraEnv objects.
 func (a *InfraEnvValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	contextLogger := log.WithFields(log.Fields{
@@ -243,6 +254,19 @@ func (a *InfraEnvValidatingAdmissionHook) validateUpdate(admissionSpec *admissio
 
 	if !areClusterRefsEqual(oldObject.Spec.ClusterRef, newObject.Spec.ClusterRef) {
 		message := "Attempted to change Spec.ClusterRef which is immutable after InfraEnv creation."
+		contextLogger.Infof("Failed validation: %v", message)
+		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
+	if !areCpuArchsEqual(oldObject.Spec.CpuArchitecture, newObject.Spec.CpuArchitecture) {
+		message := "Attempted to change Spec.CpuArchitecture which is immutable after InfraEnv creation."
 		contextLogger.Infof("Failed validation: %v", message)
 		contextLogger.Error(message)
 		return &admissionv1.AdmissionResponse{
