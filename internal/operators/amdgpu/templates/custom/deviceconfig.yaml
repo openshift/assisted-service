@@ -1,7 +1,7 @@
 apiVersion: amd.com/v1alpha1
 kind: DeviceConfig
 metadata:
-  namespace: kube-amd-gpu
+  namespace: {{ .Operator.Namespace }}
   name: default
 spec:
   devicePlugin:
