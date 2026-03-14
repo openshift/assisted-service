@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,7 +44,7 @@ var _ = Describe("ValidateCreate", func() {
 			Namespace: namespace,
 		}
 		infraEnv.Spec.OSImageVersion = "4.14"
-		warn, err := infraEnv.ValidateCreate()
+		warn, err := infraEnv.ValidateCreate(context.TODO(), infraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -53,20 +55,20 @@ var _ = Describe("ValidateCreate", func() {
 			Namespace: namespace,
 		}
 
-		warn, err := infraEnv.ValidateCreate()
+		warn, err := infraEnv.ValidateCreate(context.TODO(), infraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})
 
 	It("succeeds if only OsImageVersion is set", func() {
 		infraEnv.Spec.OSImageVersion = "4.14"
-		warn, err := infraEnv.ValidateCreate()
+		warn, err := infraEnv.ValidateCreate(context.TODO(), infraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})
 
 	It("succeeds if neither ClusterRef or OsImageVersion is set", func() {
-		warn, err := infraEnv.ValidateCreate()
+		warn, err := infraEnv.ValidateCreate(context.TODO(), infraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -92,7 +94,7 @@ var _ = Describe("ValidateUpdate", func() {
 			Name:      "cluster-deployment",
 			Namespace: namespace,
 		}
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -103,7 +105,7 @@ var _ = Describe("ValidateUpdate", func() {
 		}
 		newInfraEnv := oldInfraEnv.DeepCopy()
 		newInfraEnv.Spec.ClusterRef = nil
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -117,7 +119,7 @@ var _ = Describe("ValidateUpdate", func() {
 			Name:      "new-cluster-deployment",
 			Namespace: namespace,
 		}
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -130,7 +132,7 @@ var _ = Describe("ValidateUpdate", func() {
 		oldInfraEnv.Spec.ClusterRef = cdRef
 		newInfraEnv := oldInfraEnv.DeepCopy()
 		cdRef.Name = "new-cluster-deployment"
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -143,7 +145,7 @@ var _ = Describe("ValidateUpdate", func() {
 		oldInfraEnv.Spec.ClusterRef = cdRef
 		newInfraEnv := oldInfraEnv.DeepCopy()
 		cdRef.Namespace = "new-cluster-deployment-namespace"
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).NotTo(BeNil())
 	})
@@ -156,7 +158,7 @@ var _ = Describe("ValidateUpdate", func() {
 		oldInfraEnv.Spec.ClusterRef = cdRef
 		newInfraEnv := oldInfraEnv.DeepCopy()
 		newInfraEnv.Spec.SSHAuthorizedKey = "different-ssh-key"
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})
@@ -164,7 +166,7 @@ var _ = Describe("ValidateUpdate", func() {
 	It("succeeds if ClusterRef was not set and is not changed", func() {
 		newInfraEnv := oldInfraEnv.DeepCopy()
 		newInfraEnv.Spec.SSHAuthorizedKey = "different-ssh-key"
-		warn, err := newInfraEnv.ValidateUpdate(oldInfraEnv)
+		warn, err := newInfraEnv.ValidateUpdate(context.TODO(), oldInfraEnv, newInfraEnv)
 		Expect(warn).To(BeNil())
 		Expect(err).To(BeNil())
 	})

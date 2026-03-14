@@ -557,6 +557,9 @@ run-db-container:
 run-unit-test:
 	SKIP_UT_DB=1 $(MAKE) _unit_test TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))"
 
+run-unit-test-api:
+	cd api/ && go test ./...
+
 ci-unit-test:
 	./hack/start_db.sh
 	$(MAKE) run-unit-test

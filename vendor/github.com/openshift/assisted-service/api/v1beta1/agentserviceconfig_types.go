@@ -45,6 +45,9 @@ type MustGatherImage struct {
 	// OpenshiftVersion is the Major.Minor version of OpenShift that this image
 	// is to be associated with.
 	OpenshiftVersion string `json:"openshiftVersion"`
+	// CPUArchitecture is the CPU architecture of the image (x86_64/arm64/multi/etc).
+	// +optional
+	CPUArchitecture string `json:"cpuArchitecture"`
 	// Name specifies the name of the component (e.g. operator)
 	// that the image is used to collect information about.
 	Name string `json:"name"`
@@ -255,8 +258,8 @@ const (
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
 type AgentServiceConfigStatus struct {
-	Conditions []conditionsv1.Condition `json:"conditions,omitempty"`
-	ImmutableAnnotations map[string]string `json:"immutableAnnotations,omitempty"`
+	Conditions           []conditionsv1.Condition `json:"conditions,omitempty"`
+	ImmutableAnnotations map[string]string        `json:"immutableAnnotations,omitempty"`
 }
 
 // +kubebuilder:object:root=true
