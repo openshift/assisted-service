@@ -5839,6 +5839,20 @@ func init() {
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5893,6 +5907,20 @@ func init() {
             "collectionFormat": "multi",
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
             "in": "query"
           }
         ],
@@ -17307,6 +17335,20 @@ func init() {
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -17361,6 +17403,20 @@ func init() {
             "collectionFormat": "multi",
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
             "in": "query"
           }
         ],

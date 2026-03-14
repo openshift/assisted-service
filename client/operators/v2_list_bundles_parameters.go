@@ -62,6 +62,14 @@ V2ListBundlesParams contains all the parameters to send to the API endpoint
 */
 type V2ListBundlesParams struct {
 
+	/* AmdEnabled.
+
+	   Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+
+	   Default: true
+	*/
+	AmdEnabled *bool
+
 	/* CPUArchitecture.
 
 	   The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
@@ -81,6 +89,14 @@ type V2ListBundlesParams struct {
 	   Array of feature IDs that affect bundle composition (e.g., ["SNO"] for Single Node OpenShift).
 	*/
 	FeatureIds []string
+
+	/* NvidiaEnabled.
+
+	   Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+
+	   Default: true
+	*/
+	NvidiaEnabled *bool
 
 	/* OpenshiftVersion.
 
@@ -112,11 +128,17 @@ func (o *V2ListBundlesParams) WithDefaults() *V2ListBundlesParams {
 // All values with no default are reset to their zero value.
 func (o *V2ListBundlesParams) SetDefaults() {
 	var (
+		amdEnabledDefault = bool(true)
+
 		cPUArchitectureDefault = string("x86_64")
+
+		nvidiaEnabledDefault = bool(true)
 	)
 
 	val := V2ListBundlesParams{
+		AmdEnabled:      &amdEnabledDefault,
 		CPUArchitecture: &cPUArchitectureDefault,
+		NvidiaEnabled:   &nvidiaEnabledDefault,
 	}
 
 	val.timeout = o.timeout
@@ -158,6 +180,17 @@ func (o *V2ListBundlesParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAmdEnabled adds the amdEnabled to the v2 list bundles params
+func (o *V2ListBundlesParams) WithAmdEnabled(amdEnabled *bool) *V2ListBundlesParams {
+	o.SetAmdEnabled(amdEnabled)
+	return o
+}
+
+// SetAmdEnabled adds the amdEnabled to the v2 list bundles params
+func (o *V2ListBundlesParams) SetAmdEnabled(amdEnabled *bool) {
+	o.AmdEnabled = amdEnabled
+}
+
 // WithCPUArchitecture adds the cPUArchitecture to the v2 list bundles params
 func (o *V2ListBundlesParams) WithCPUArchitecture(cPUArchitecture *string) *V2ListBundlesParams {
 	o.SetCPUArchitecture(cPUArchitecture)
@@ -191,6 +224,17 @@ func (o *V2ListBundlesParams) SetFeatureIds(featureIds []string) {
 	o.FeatureIds = featureIds
 }
 
+// WithNvidiaEnabled adds the nvidiaEnabled to the v2 list bundles params
+func (o *V2ListBundlesParams) WithNvidiaEnabled(nvidiaEnabled *bool) *V2ListBundlesParams {
+	o.SetNvidiaEnabled(nvidiaEnabled)
+	return o
+}
+
+// SetNvidiaEnabled adds the nvidiaEnabled to the v2 list bundles params
+func (o *V2ListBundlesParams) SetNvidiaEnabled(nvidiaEnabled *bool) {
+	o.NvidiaEnabled = nvidiaEnabled
+}
+
 // WithOpenshiftVersion adds the openshiftVersion to the v2 list bundles params
 func (o *V2ListBundlesParams) WithOpenshiftVersion(openshiftVersion *string) *V2ListBundlesParams {
 	o.SetOpenshiftVersion(openshiftVersion)
@@ -220,6 +264,23 @@ func (o *V2ListBundlesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		return err
 	}
 	var res []error
+
+	if o.AmdEnabled != nil {
+
+		// query param amd_enabled
+		var qrAmdEnabled bool
+
+		if o.AmdEnabled != nil {
+			qrAmdEnabled = *o.AmdEnabled
+		}
+		qAmdEnabled := swag.FormatBool(qrAmdEnabled)
+		if qAmdEnabled != "" {
+
+			if err := r.SetQueryParam("amd_enabled", qAmdEnabled); err != nil {
+				return err
+			}
+		}
+	}
 
 	if o.CPUArchitecture != nil {
 
@@ -263,6 +324,23 @@ func (o *V2ListBundlesParams) WriteToRequest(r runtime.ClientRequest, reg strfmt
 		// query array param feature_ids
 		if err := r.SetQueryParam("feature_ids", joinedFeatureIds...); err != nil {
 			return err
+		}
+	}
+
+	if o.NvidiaEnabled != nil {
+
+		// query param nvidia_enabled
+		var qrNvidiaEnabled bool
+
+		if o.NvidiaEnabled != nil {
+			qrNvidiaEnabled = *o.NvidiaEnabled
+		}
+		qNvidiaEnabled := swag.FormatBool(qrNvidiaEnabled)
+		if qNvidiaEnabled != "" {
+
+			if err := r.SetQueryParam("nvidia_enabled", qNvidiaEnabled); err != nil {
+				return err
+			}
 		}
 	}
 

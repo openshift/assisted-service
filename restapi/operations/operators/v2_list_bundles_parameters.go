@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
@@ -23,11 +24,18 @@ func NewV2ListBundlesParams() V2ListBundlesParams {
 	var (
 		// initialize parameters with default values
 
+		amdEnabledDefault      = bool(true)
 		cPUArchitectureDefault = string("x86_64")
+
+		nvidiaEnabledDefault = bool(true)
 	)
 
 	return V2ListBundlesParams{
+		AmdEnabled: &amdEnabledDefault,
+
 		CPUArchitecture: &cPUArchitectureDefault,
+
+		NvidiaEnabled: &nvidiaEnabledDefault,
 	}
 }
 
@@ -40,6 +48,11 @@ type V2ListBundlesParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+	  In: query
+	  Default: true
+	*/
+	AmdEnabled *bool
 	/*The CPU architecture of the image (x86_64/arm64/etc). openshift_version must be set.
 	  In: query
 	  Default: "x86_64"
@@ -54,6 +67,11 @@ type V2ListBundlesParams struct {
 	  Collection Format: multi
 	*/
 	FeatureIds []string
+	/*Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.
+	  In: query
+	  Default: true
+	*/
+	NvidiaEnabled *bool
 	/*Version of the OpenShift cluster. If the parameter is not specified, no filtering is applied.
 	  In: query
 	*/
@@ -75,6 +93,11 @@ func (o *V2ListBundlesParams) BindRequest(r *http.Request, route *middleware.Mat
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAmdEnabled, qhkAmdEnabled, _ := qs.GetOK("amd_enabled")
+	if err := o.bindAmdEnabled(qAmdEnabled, qhkAmdEnabled, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qCPUArchitecture, qhkCPUArchitecture, _ := qs.GetOK("cpu_architecture")
 	if err := o.bindCPUArchitecture(qCPUArchitecture, qhkCPUArchitecture, route.Formats); err != nil {
 		res = append(res, err)
@@ -90,6 +113,11 @@ func (o *V2ListBundlesParams) BindRequest(r *http.Request, route *middleware.Mat
 		res = append(res, err)
 	}
 
+	qNvidiaEnabled, qhkNvidiaEnabled, _ := qs.GetOK("nvidia_enabled")
+	if err := o.bindNvidiaEnabled(qNvidiaEnabled, qhkNvidiaEnabled, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	qOpenshiftVersion, qhkOpenshiftVersion, _ := qs.GetOK("openshift_version")
 	if err := o.bindOpenshiftVersion(qOpenshiftVersion, qhkOpenshiftVersion, route.Formats); err != nil {
 		res = append(res, err)
@@ -102,6 +130,30 @@ func (o *V2ListBundlesParams) BindRequest(r *http.Request, route *middleware.Mat
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAmdEnabled binds and validates parameter AmdEnabled from query.
+func (o *V2ListBundlesParams) bindAmdEnabled(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2ListBundlesParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("amd_enabled", "query", "bool", raw)
+	}
+	o.AmdEnabled = &value
+
 	return nil
 }
 
@@ -178,6 +230,30 @@ func (o *V2ListBundlesParams) bindFeatureIds(rawData []string, hasKey bool, form
 	}
 
 	o.FeatureIds = featureIdsIR
+
+	return nil
+}
+
+// bindNvidiaEnabled binds and validates parameter NvidiaEnabled from query.
+func (o *V2ListBundlesParams) bindNvidiaEnabled(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewV2ListBundlesParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("nvidia_enabled", "query", "bool", raw)
+	}
+	o.NvidiaEnabled = &value
 
 	return nil
 }

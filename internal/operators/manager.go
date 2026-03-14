@@ -48,6 +48,12 @@ type Manifest struct {
 	Content string
 }
 
+// GPUFilter defines GPU vendor filtering options
+type GPUFilter struct {
+	NvidiaEnabled *bool
+	AmdEnabled    *bool
+}
+
 // Manager is responsible for performing operations against additional operators
 type Manager struct {
 	log                logrus.FieldLogger
@@ -105,6 +111,10 @@ type API interface {
 	ListBundles(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) []*models.Bundle
 	// GetBundle returns the Bundle object with operators based on feature IDs
 	GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error)
+	// ListBundlesWithGPUFilter returns the list of available bundles filtered by feature support and GPU vendors
+	ListBundlesWithGPUFilter(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) []*models.Bundle
+	// GetBundleWithGPUFilter returns the Bundle object with operators based on feature IDs and GPU vendor filtering
+	GetBundleWithGPUFilter(bundleID string, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) (*models.Bundle, error)
 	// GetOperatorDependenciesFeatureID returns the list of dependencies
 	GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID
 }
@@ -509,9 +519,9 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 			continue
 		}
 
-		operator, err := mgr.getDependency(operatorName, currentDependencies)
-		if err != nil {
-			return nil, err
+		operator, depErr := mgr.getDependency(operatorName, currentDependencies)
+		if depErr != nil {
+			return nil, depErr
 		}
 
 		operator.DependencyOnly = true
@@ -520,16 +530,134 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 		alreadyPresent = append(alreadyPresent, operatorName)
 	}
 
-	// If openshift-ai is included, mark nvidia-gpu & amd-gpu as dependency only
-	if operatorscommon.HasOperator(ret, openshiftai.Operator.Name) {
-		for _, operator := range ret {
-			if operator.Name == nvidiagpu.Operator.Name || operator.Name == amdgpu.Operator.Name {
-				operator.DependencyOnly = true
-			}
-		}
+	// Apply GPU filtering based on openshift-ai properties
+	ret, err = mgr.applyGPUFilterFromProperties(ret)
+	if err != nil {
+		return nil, err
 	}
 
 	return ret, nil
+}
+
+// GPUFilterProperties represents the GPU filter configuration in operator properties
+type GPUFilterProperties struct {
+	GPUFilter struct {
+		NvidiaEnabled *bool `json:"nvidia_enabled"`
+		AmdEnabled    *bool `json:"amd_enabled"`
+	} `json:"gpu_filter"`
+}
+
+// applyGPUFilterFromProperties parses openshift-ai operator properties and applies GPU filtering
+func (mgr *Manager) applyGPUFilterFromProperties(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+	// Find openshift-ai operator and parse its properties
+	var gpuFilter *GPUFilter
+	for _, operator := range operators {
+		if operator.Name == openshiftai.Operator.Name && operator.Properties != "" {
+			var props GPUFilterProperties
+			if err := json.Unmarshal([]byte(operator.Properties), &props); err != nil {
+				mgr.log.Warnf("Failed to parse openshift-ai properties: %v", err)
+				// Fall back to ensuring all GPU operators are included
+				return mgr.ensureAllGPUOperators(operators), nil
+			}
+
+			// Convert properties to GPUFilter - only set fields that were explicitly provided
+			gpuFilter = &GPUFilter{}
+			if props.GPUFilter.NvidiaEnabled != nil {
+				gpuFilter.NvidiaEnabled = props.GPUFilter.NvidiaEnabled
+			}
+			if props.GPUFilter.AmdEnabled != nil {
+				gpuFilter.AmdEnabled = props.GPUFilter.AmdEnabled
+			}
+			break
+		}
+	}
+
+	// If no GPU filter found in properties, ensure both GPU operators are included (backward compatibility)
+	if gpuFilter == nil {
+		if operatorscommon.HasOperator(operators, openshiftai.Operator.Name) {
+			return mgr.ensureAllGPUOperators(operators), nil
+		}
+		return operators, nil
+	}
+
+	// Apply GPU filtering and remove filtered operators
+	filtered := make([]*models.MonitoredOperator, 0, len(operators))
+	filteredGPUOperators := make([]string, 0)
+
+	for _, operator := range operators {
+		if mgr.shouldSkipOperatorForGPUFilter(operator.Name, gpuFilter) {
+			mgr.log.Infof("Filtering out operator %s based on GPU properties", operator.Name)
+			if operator.Name == nvidiagpu.Operator.Name || operator.Name == amdgpu.Operator.Name {
+				filteredGPUOperators = append(filteredGPUOperators, operator.Name)
+			}
+			continue
+		}
+		filtered = append(filtered, operator)
+	}
+
+	// Remove dependencies of filtered GPU operators
+	if len(filteredGPUOperators) > 0 {
+		dependenciesToRemove := make(map[string]bool)
+		for _, filteredGPU := range filteredGPUOperators {
+			if gpuOperator, exists := mgr.olmOperators[filteredGPU]; exists {
+				deps, err := gpuOperator.GetDependencies(&common.Cluster{})
+				if err == nil {
+					for _, dep := range deps {
+						dependenciesToRemove[dep] = true
+						mgr.log.Infof("Filtering out dependency %s of GPU operator %s", dep, filteredGPU)
+					}
+				}
+			}
+		}
+
+		// Apply dependency filtering
+		finalFiltered := make([]*models.MonitoredOperator, 0, len(filtered))
+		for _, operator := range filtered {
+			if !dependenciesToRemove[operator.Name] {
+				finalFiltered = append(finalFiltered, operator)
+			}
+		}
+		filtered = finalFiltered
+	}
+
+	return filtered, nil
+}
+
+// ensureAllGPUOperators ensures both nvidia-gpu and amd-gpu operators are included as dependencies (backward compatibility)
+func (mgr *Manager) ensureAllGPUOperators(operators []*models.MonitoredOperator) []*models.MonitoredOperator {
+	result := make([]*models.MonitoredOperator, len(operators))
+	copy(result, operators)
+
+	// Track which GPU operators are already present
+	hasNvidia := false
+	hasAmd := false
+
+	for _, operator := range result {
+		if operator.Name == nvidiagpu.Operator.Name {
+			operator.DependencyOnly = true
+			hasNvidia = true
+		} else if operator.Name == amdgpu.Operator.Name {
+			operator.DependencyOnly = true
+			hasAmd = true
+		}
+	}
+
+	// Add missing GPU operators as dependencies
+	if !hasNvidia {
+		if nvidiaOperator, err := mgr.GetOperatorByName(nvidiagpu.Operator.Name); err == nil {
+			nvidiaOperator.DependencyOnly = true
+			result = append(result, nvidiaOperator)
+		}
+	}
+
+	if !hasAmd {
+		if amdOperator, err := mgr.GetOperatorByName(amdgpu.Operator.Name); err == nil {
+			amdOperator.DependencyOnly = true
+			result = append(result, amdOperator)
+		}
+	}
+
+	return result
 }
 
 func (mgr *Manager) getDependency(name string, definitions map[string]*models.MonitoredOperator) (*models.MonitoredOperator, error) {
@@ -728,6 +856,114 @@ func (mgr *Manager) GetBundle(bundleID string, featureIDs []models.FeatureSuppor
 	}
 
 	return bundle, nil
+}
+
+// ListBundlesWithGPUFilter returns a list of available bundles filtered by feature support and GPU vendors
+func (mgr *Manager) ListBundlesWithGPUFilter(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) []*models.Bundle {
+	var ret []*models.Bundle
+
+	for _, basicBundleDetails := range operatorscommon.Bundles {
+		// Get the bundle with operators based on feature IDs and GPU filter
+		completeBundleDetails, err := mgr.GetBundleWithGPUFilter(basicBundleDetails.ID, featureIDs, gpuFilter)
+		if err != nil {
+			mgr.log.Error(err)
+			continue
+		}
+
+		// Check if all operators in the bundle are supported using featuresupport API
+		if mgr.isBundleSupported(completeBundleDetails, filters, featureIDs) {
+			ret = append(ret, completeBundleDetails)
+		}
+	}
+
+	return ret
+}
+
+// GetBundleWithGPUFilter returns the Bundle object with operators based on feature IDs and GPU vendor filtering
+func (mgr *Manager) GetBundleWithGPUFilter(bundleID string, featureIDs []models.FeatureSupportLevelID, gpuFilter *GPUFilter) (*models.Bundle, error) {
+	bundle, ok := mgr.lookupBundle(bundleID)
+	if !ok {
+		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
+	}
+
+	var includedOperators []string
+	var filteredGPUOperators []string
+
+	// First pass: collect operators and identify filtered GPU operators
+	for _, operator := range mgr.olmOperators {
+		operatorBundles := operator.GetBundleLabels(featureIDs)
+		for _, operatorBundle := range operatorBundles {
+			if operatorBundle == bundleID {
+				operatorName := operator.GetName()
+
+				// Check if this operator should be filtered due to GPU settings
+				if mgr.shouldSkipOperatorForGPUFilter(operatorName, gpuFilter) {
+					// Track filtered GPU operators so we can remove their dependencies
+					if operatorName == "nvidia-gpu" || operatorName == "amd-gpu" {
+						filteredGPUOperators = append(filteredGPUOperators, operatorName)
+					}
+					continue
+				}
+
+				includedOperators = append(includedOperators, operatorName)
+				break
+			}
+		}
+	}
+
+	// Second pass: remove dependencies of filtered GPU operators
+	if len(filteredGPUOperators) > 0 && gpuFilter != nil {
+		dependenciesToRemove := make(map[string]bool)
+
+		for _, filteredGPU := range filteredGPUOperators {
+			if gpuOperator, exists := mgr.olmOperators[filteredGPU]; exists {
+				// Get dependencies of the filtered GPU operator
+				deps, err := gpuOperator.GetDependencies(&common.Cluster{})
+				if err == nil {
+					for _, dep := range deps {
+						dependenciesToRemove[dep] = true
+					}
+				}
+			}
+		}
+
+		// Filter out dependencies of removed GPU operators
+		filteredOperators := make([]string, 0, len(includedOperators))
+		for _, op := range includedOperators {
+			if !dependenciesToRemove[op] {
+				filteredOperators = append(filteredOperators, op)
+			}
+		}
+		includedOperators = filteredOperators
+	}
+
+	bundle.Operators = includedOperators
+	return bundle, nil
+}
+
+// shouldSkipOperatorForGPUFilter determines if an operator should be skipped based on GPU filter settings
+func (mgr *Manager) shouldSkipOperatorForGPUFilter(operatorName string, gpuFilter *GPUFilter) bool {
+	// If no GPU filter is provided, don't skip any operators
+	if gpuFilter == nil {
+		return false
+	}
+
+	// Check if this is a GPU operator
+	switch operatorName {
+	case "nvidia-gpu":
+		// Skip nvidia-gpu if nvidia is explicitly disabled
+		if gpuFilter.NvidiaEnabled != nil && !*gpuFilter.NvidiaEnabled {
+			return true
+		}
+	case "amd-gpu":
+		// Skip amd-gpu if amd is explicitly disabled
+		if gpuFilter.AmdEnabled != nil && !*gpuFilter.AmdEnabled {
+			return true
+		}
+	}
+
+	// Don't skip non-GPU operators or when GPU support is enabled
+	return false
 }
 
 // lookupBundle tries to find a bundle with the given identifier. Returns a pointer to the basic information of the
