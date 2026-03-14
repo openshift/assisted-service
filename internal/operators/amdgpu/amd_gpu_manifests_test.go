@@ -45,4 +45,13 @@ var _ = Describe("Manifest generation", func() {
 		err = yaml.Unmarshal(customManifest, &object)
 		Expect(err).ToNot(HaveOccurred())
 	})
+
+	It("Includes MachineConfig for amdgpu kernel module blacklist", func() {
+		_, customManifest, err := operator.GenerateManifests(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(string(customManifest)).To(ContainSubstring("kind: MachineConfig"))
+		Expect(string(customManifest)).To(ContainSubstring("99-amdgpu-module-blacklist-worker"))
+		Expect(string(customManifest)).To(ContainSubstring("99-amdgpu-module-blacklist-master"))
+		Expect(string(customManifest)).To(ContainSubstring("/etc/modprobe.d/amdgpu-blacklist.conf"))
+	})
 })

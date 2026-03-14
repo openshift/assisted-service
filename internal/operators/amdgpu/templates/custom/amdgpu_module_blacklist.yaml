@@ -1,0 +1,35 @@
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: worker
+  name: 99-amdgpu-module-blacklist-worker
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - path: /etc/modprobe.d/amdgpu-blacklist.conf
+        mode: 420
+        overwrite: true
+        contents:
+          source: data:text/plain;base64,YmxhY2tsaXN0IGFtZGdwdQo=
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-amdgpu-module-blacklist-master
+spec:
+  config:
+    ignition:
+      version: 3.2.0
+    storage:
+      files:
+      - path: /etc/modprobe.d/amdgpu-blacklist.conf
+        mode: 420
+        overwrite: true
+        contents:
+          source: data:text/plain;base64,YmxhY2tsaXN0IGFtZGdwdQo=
