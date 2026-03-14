@@ -1,0 +1,25 @@
+{{ if .Cluster }}
+{{ range .Cluster.MonitoredOperators }}
+{{ if eq .Name "nvidia-gpu" }}
+apiVersion: infrastructure.opendatahub.io/v1alpha1
+kind: HardwareProfile
+metadata:
+  namespace: redhat-ods-applications
+  name: nvidia-gpu
+spec:
+  identifiers:
+  - identifier: nvidia.com/gpu
+    displayName: NVIDIA GPU
+    resourceType: Accelerator
+    defaultCount: 1
+    minCount: 0
+  scheduling:
+    type: Node
+    node:
+      tolerations:
+      - key: nvidia.com/gpu
+        operator: Exists
+        effect: NoSchedule
+{{ end }}
+{{ end }}
+{{ end }}
