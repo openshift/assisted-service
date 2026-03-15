@@ -196,7 +196,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 			ValidationId: o.GetHostValidationID(),
 			Reasons: []string{
 				fmt.Sprintf(
-					"Insufficient disks, ODF requires at least one non-installation SSD or HDD disk on each host in %s mode.",
+					"Insufficient disks, ODF requires at least one non-installation SSD or HDD or FC disk on each host in %s mode.",
 					strings.ToLower(string(mode)),
 				),
 			}}, nil
