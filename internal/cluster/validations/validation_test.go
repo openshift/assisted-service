@@ -1164,6 +1164,37 @@ var _ = Describe("ValidateClusterUpdateVIPAddresses - partial network updates", 
 	})
 })
 
+var _ = Describe("ValidateControlPlaneCountWithPlatform", func() {
+	It("should allow single node cluster with none platform", func() {
+		controlPlaneCount := int64(1)
+		platform := &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		err := ValidateControlPlaneCountWithPlatform(&controlPlaneCount, platform)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should reject single node cluster with baremetal platform", func() {
+		controlPlaneCount := int64(1)
+		platform := &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}
+		err := ValidateControlPlaneCountWithPlatform(&controlPlaneCount, platform)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Single node cluster is not supported alongside baremetal platform"))
+	})
+
+	It("should allow TNA cluster with any platform", func() {
+		controlPlaneCount := int64(2)
+		platform := &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		err := ValidateControlPlaneCountWithPlatform(&controlPlaneCount, platform)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("should allow standard HA cluster with any platform", func() {
+		controlPlaneCount := int64(3)
+		platform := &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		err := ValidateControlPlaneCountWithPlatform(&controlPlaneCount, platform)
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

@@ -10841,7 +10841,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal", hostID, infraEnvID)))
 		})
 
 		Context("Hostname", func() {

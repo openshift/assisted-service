@@ -770,6 +770,35 @@ var _ = Describe("IsClusterTopologyTwoNodesWithFencing", func() {
 	})
 })
 
+var _ = Describe("ValidateClusterSupportsArbiterHosts", func() {
+	It("should reject none platform with OCP 4.21 (before 4.22 boundary)", func() {
+		cluster := Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion: "4.21",
+				Platform: &models.Platform{
+					Type: PlatformTypePtr(models.PlatformTypeNone),
+				},
+			},
+		}
+		err := ValidateClusterSupportsArbiterHosts(&cluster)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("platform must be baremetal"))
+	})
+
+	It("should accept none platform with OCP 4.22 (at 4.22 boundary)", func() {
+		cluster := Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion: "4.22",
+				Platform: &models.Platform{
+					Type: PlatformTypePtr(models.PlatformTypeNone),
+				},
+			},
+		}
+		err := ValidateClusterSupportsArbiterHosts(&cluster)
+		Expect(err).ToNot(HaveOccurred())
+	})
+})
+
 func createHost(hostRole models.HostRole, state string) *models.Host {
 	hostId := strfmt.UUID(uuid.New().String())
 	clusterId := strfmt.UUID(uuid.New().String())
