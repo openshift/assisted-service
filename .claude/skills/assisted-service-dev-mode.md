@@ -1,0 +1,1 @@
+../../.cursor/skills/assisted-service-dev-mode/SKILL.md
