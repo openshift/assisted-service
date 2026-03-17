@@ -639,33 +639,35 @@ func (mgr *Manager) applyGPUFilterFromProperties(operators []*models.MonitoredOp
 }
 
 func (mgr *Manager) ensureAllGPUOperators(operators []*models.MonitoredOperator) []*models.MonitoredOperator {
-	result := make([]*models.MonitoredOperator, len(operators))
-	copy(result, operators)
-
+	result := make([]*models.MonitoredOperator, 0, len(operators)+2)
 	hasNvidia, hasAmd := false, false
 
-	for _, operator := range result {
+	for _, operator := range operators {
+		operatorCopy := *operator
 		switch operator.Name {
 		case nvidiagpu.Operator.Name:
-			operator.DependencyOnly = true
+			operatorCopy.DependencyOnly = true
 			hasNvidia = true
 		case amdgpu.Operator.Name:
-			operator.DependencyOnly = true
+			operatorCopy.DependencyOnly = true
 			hasAmd = true
 		}
+		result = append(result, &operatorCopy)
 	}
 
 	if !hasNvidia {
 		if nvidiaOperator, err := mgr.GetOperatorByName(nvidiagpu.Operator.Name); err == nil {
-			nvidiaOperator.DependencyOnly = true
-			result = append(result, nvidiaOperator)
+			nvidiaOperatorCopy := *nvidiaOperator
+			nvidiaOperatorCopy.DependencyOnly = true
+			result = append(result, &nvidiaOperatorCopy)
 		}
 	}
 
 	if !hasAmd {
 		if amdOperator, err := mgr.GetOperatorByName(amdgpu.Operator.Name); err == nil {
-			amdOperator.DependencyOnly = true
-			result = append(result, amdOperator)
+			amdOperatorCopy := *amdOperator
+			amdOperatorCopy.DependencyOnly = true
+			result = append(result, &amdOperatorCopy)
 		}
 	}
 
