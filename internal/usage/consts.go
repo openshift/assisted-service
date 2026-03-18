@@ -19,6 +19,14 @@ const (
 	OVNNetworkTypeUsage string = "OVN network type"
 	//cluster is using SDN network type
 	SDNNetworkTypeUsage string = "SDN network type"
+	//cluster is using CiscoACI network type
+	CiscoACINetworkTypeUsage string = "CiscoACI network type"
+	//cluster is using Cilium network type
+	CiliumNetworkTypeUsage string = "Cilium network type"
+	//cluster is using Calico network type
+	CalicoNetworkTypeUsage string = "Calico network type"
+	//cluster is using None network type (user provides custom CNI)
+	NoneNetworkTypeUsage string = "None network type"
 	//cluster is dual-stack
 	DualStackUsage string = "Dual-stack"
 	//usage of platform provider other than baremetal
