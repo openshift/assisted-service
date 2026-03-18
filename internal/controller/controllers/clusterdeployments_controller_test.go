@@ -418,6 +418,10 @@ var _ = Describe("processMirrorRegistryConfig", func() {
 
 		Expect(err.Error()).To(Equal("failed to load value of registries.conf into toml tree; incorrectly formatted toml: (6, 13): cannot have two dots in one float"))
 	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
 })
 
 var _ = Describe("cluster reconcile", func() {
@@ -2049,6 +2053,10 @@ var _ = Describe("cluster reconcile", func() {
 			result, err = cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		AfterEach(func() {
+			mockCtrl.Finish()
 		})
 	})
 
@@ -5198,6 +5206,10 @@ var _ = Describe("unbindAgents", func() {
 		agent = &aiv1beta1.Agent{}
 		err = c.Get(ctx, types.NamespacedName{Name: "test-agent2", Namespace: testNamespace}, agent)
 		Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
 	})
 })
 

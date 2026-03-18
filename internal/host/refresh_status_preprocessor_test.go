@@ -82,6 +82,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	createHost := func() models.Host {

@@ -81,7 +81,6 @@ var _ = Describe("domainNameResolution", func() {
 	It("Missing cluster name", func() {
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, BaseDNSDomain: baseDNSDomain}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{URL: swag.String("quay.io/release")}, nil)
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
@@ -90,7 +89,6 @@ var _ = Describe("domainNameResolution", func() {
 	It("Missing domain base name", func() {
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, Name: name}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{URL: swag.String("quay.io/release")}, nil)
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).To(BeNil())
 		Expect(stepErr).To(HaveOccurred())
@@ -100,5 +98,6 @@ var _ = Describe("domainNameResolution", func() {
 		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
+		ctrl.Finish()
 	})
 })
