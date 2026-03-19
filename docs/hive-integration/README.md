@@ -282,6 +282,24 @@ You will likely need to adapt those for your own needs.
 * [ClusterImageSet](crds/clusterImageSet.yaml)
 
 
+### Selecting a Network Type (CNI)
+
+The `spec.networking.networkType` field on `AgentClusterInstall` controls which CNI plugin is installed.
+Supported values: `OpenShiftSDN`, `OVNKubernetes`, `CiscoACI`, `Cilium`, `Calico`, `None`.
+
+If omitted, the default is auto-selected (OVN-Kubernetes for OCP 4.12+, IPv6, or SNO clusters).
+
+Third-party CNIs (`CiscoACI`, `Cilium`, `Calico`, `None`) require custom manifests — see
+[Third-Party CNI Support](../user-guide/third-party-cni.md) for full details and examples.
+
+```yaml
+spec:
+  networking:
+    networkType: Cilium  # or OVNKubernetes, OpenShiftSDN, CiscoACI, Calico, None
+  manifestsConfigMapRefs:
+  - name: cilium-cni-manifests  # required for third-party CNIs
+```
+
 ### Creating InstallConfig overrides
 
 In order to alter the default install config yaml used when running `openshift-install create` commands.
