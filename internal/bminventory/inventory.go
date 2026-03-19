@@ -6556,7 +6556,17 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 				return common.GenerateErrorResponder(common.NewApiError(http.StatusInternalServerError, waitErr))
 			}
 
-			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
+			// Download directly from S3 without re-validating cluster state.
+			// We just generated this file and confirmed it exists, so state validation is unnecessary
+			// and could fail if the cluster transitioned states during the generation window.
+			log.Infof("Downloading file %s directly from S3 after generation for cluster %s", fileName, params.ClusterID)
+			respBody, contentLength, err = b.objectHandler.Download(ctx, objectName)
+			if err != nil {
+				log.WithError(err).Errorf("failed to download file %s from cluster: %s", fileName, params.ClusterID)
+				err = common.NewApiError(http.StatusConflict, err)
+			} else {
+				log.Infof("Successfully downloaded file %s for cluster %s (size: %d bytes)", fileName, params.ClusterID, contentLength)
+			}
 		}
 	}
 
@@ -6585,11 +6595,31 @@ func (b *bareMetalInventory) V2DownloadClusterCredentialsInternal(ctx context.Co
 
 func (b *bareMetalInventory) v2DownloadClusterFilesInternal(ctx context.Context, fileName, clusterId string) (io.ReadCloser, int64, error) {
 	log := logutil.FromContext(ctx, b.log)
+	objectName := fmt.Sprintf("%s/%s", clusterId, fileName)
+
+	// For agent-installer, check if file exists first to avoid database lock contention
+	// during concurrent download attempts while generation is in progress
+	if b.installerInvoker == "agent-installer" {
+		exists, existsErr := b.objectHandler.DoesObjectExist(ctx, objectName)
+		if existsErr != nil {
+			log.WithError(existsErr).Warnf("Failed to check if object %s exists, will proceed with normal validation", objectName)
+		} else if exists {
+			log.Infof("File %s exists for agent-installer, downloading directly without state validation", fileName)
+			respBody, contentLength, err := b.objectHandler.Download(ctx, objectName)
+			if err == nil {
+				return respBody, contentLength, nil
+			}
+			// If download fails despite file existing, fall through to normal path with validation
+			log.WithError(err).Warnf("Failed to download existing file %s, falling back to validation path", fileName)
+		}
+	}
+
+	// Normal path: validate cluster state before download
 	if err := b.checkFileForDownload(ctx, clusterId, fileName); err != nil {
 		return nil, 0, err
 	}
 
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterId, fileName))
+	respBody, contentLength, err := b.objectHandler.Download(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s from cluster: %s", fileName, clusterId)
 		return nil, 0, common.NewApiError(http.StatusConflict, err)
