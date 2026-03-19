@@ -598,33 +598,49 @@ func (mgr *Manager) applyGPUFilterFromProperties(operators []*models.MonitoredOp
 
 	neededDeps := make(map[string]bool, len(GPUOperators)*2)
 	for _, operator := range filtered {
-		if slices.Contains(GPUOperators, operator.Name) {
-			if gpuOperator, exists := mgr.olmOperators[operator.Name]; exists {
-				if deps, err := gpuOperator.GetDependencies(&common.Cluster{}); err == nil {
-					for _, dep := range deps {
-						neededDeps[dep] = true
-					}
-				}
-			}
+		if !slices.Contains(GPUOperators, operator.Name) {
+			continue
+		}
+
+		gpuOperator, exists := mgr.olmOperators[operator.Name]
+		if !exists {
+			mgr.log.Warnf("GPU operator %s not found in olmOperators", operator.Name)
+			continue
+		}
+
+		deps, err := gpuOperator.GetDependencies(&common.Cluster{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get dependencies for GPU operator %s: %w", operator.Name, err)
+		}
+
+		for _, dep := range deps {
+			neededDeps[dep] = true
 		}
 	}
 
 	dependenciesToRemove := make(map[string]bool, len(filteredGPUOperators)*2)
 	for _, filteredGPU := range filteredGPUOperators {
-		if gpuOperator, exists := mgr.olmOperators[filteredGPU]; exists {
-			if deps, err := gpuOperator.GetDependencies(&common.Cluster{}); err == nil {
-				for _, dep := range deps {
-					if neededDeps[dep] {
-						continue
-					}
-					if depOperator, exists := mgr.olmOperators[dep]; exists {
-						if slices.Contains(depOperator.GetBundleLabels(nil), operatorscommon.BundleOpenShiftAI.ID) {
-							continue
-						}
-					}
-					dependenciesToRemove[dep] = true
+		gpuOperator, exists := mgr.olmOperators[filteredGPU]
+		if !exists {
+			mgr.log.Warnf("GPU operator %s not found in olmOperators", filteredGPU)
+			continue
+		}
+
+		deps, err := gpuOperator.GetDependencies(&common.Cluster{})
+		if err != nil {
+			return nil, fmt.Errorf("failed to get dependencies for filtered GPU operator %s: %w", filteredGPU, err)
+		}
+
+		for _, dep := range deps {
+			if neededDeps[dep] {
+				continue
+			}
+			if depOperator, exists := mgr.olmOperators[dep]; exists {
+				if slices.Contains(depOperator.GetBundleLabels(nil), operatorscommon.BundleOpenShiftAI.ID) {
+					continue
 				}
 			}
+			dependenciesToRemove[dep] = true
 		}
 	}
 
@@ -831,40 +847,12 @@ func (mgr *Manager) EnsureOperatorPrerequisite(cluster *common.Cluster, openshif
 
 // ListBundles returns a list of available bundles filtered by feature support.
 func (mgr *Manager) ListBundles(filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) []*models.Bundle {
-	var ret []*models.Bundle
-
-	for _, basicBundleDetails := range operatorscommon.Bundles {
-		// Get the bundle with operators based on feature IDs
-		completeBundleDetails, err := mgr.GetBundle(basicBundleDetails.ID, featureIDs)
-		if err != nil {
-			mgr.log.Error(err)
-			continue
-		}
-
-		// Check if all operators in the bundle are supported using featuresupport API
-		if mgr.isBundleSupported(completeBundleDetails, filters, featureIDs) {
-			ret = append(ret, completeBundleDetails)
-		}
-	}
-
-	return ret
+	return mgr.ListBundlesWithGPUFilter(filters, featureIDs, nil)
 }
 
 // GetBundle returns the Bundle object with operators based on feature IDs
 func (mgr *Manager) GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error) {
-	bundle, ok := mgr.lookupBundle(bundleID)
-	if !ok {
-		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
-	}
-
-	for _, operator := range mgr.olmOperators {
-		operatorBundles := operator.GetBundleLabels(featureIDs)
-		if slices.Contains(operatorBundles, bundleID) {
-			bundle.Operators = append(bundle.Operators, operator.GetName())
-		}
-	}
-
-	return bundle, nil
+	return mgr.GetBundleWithGPUFilter(bundleID, featureIDs, nil)
 }
 
 // ListBundlesWithGPUFilter returns a list of available bundles filtered by feature support and GPU vendors
