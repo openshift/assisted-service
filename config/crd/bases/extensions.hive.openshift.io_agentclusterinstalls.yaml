@@ -462,6 +462,10 @@ spec:
                     enum:
                     - OpenShiftSDN
                     - OVNKubernetes
+                    - CiscoACI
+                    - Cilium
+                    - Calico
+                    - None
                     type: string
                   serviceNetwork:
                     description: |-
