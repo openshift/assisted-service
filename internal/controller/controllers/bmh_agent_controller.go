@@ -1064,6 +1064,27 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// in case of converged flow set the custom deploy instead of the annotations
 	if r.ConvergedFlowEnabled {
 		if bmh.Spec.CustomDeploy == nil || bmh.Spec.CustomDeploy.Method != ASSISTED_DEPLOY_METHOD {
+			// Before setting customDeploy, verify the PreprovisioningImage has been
+			// updated with the assisted-service ISO. Without this check, BMO may use
+			// its own IPA image (previously set on the PPI) to boot the host, causing
+			// the deploy step to fail and requiring an extra reboot cycle.
+			if infraEnv.Status.ISODownloadURL == "" {
+				log.Debugf("InfraEnv ISO download URL not yet available, waiting")
+				return reconcileComplete{stop: true}
+			}
+			ppi := &bmh_v1alpha1.PreprovisioningImage{}
+			ppiKey := types.NamespacedName{Name: bmh.Name, Namespace: bmh.Namespace}
+			if err := r.Get(ctx, ppiKey, ppi); err != nil {
+				if !k8serrors.IsNotFound(err) {
+					return reconcileError{err: err}
+				}
+				log.Debugf("PreprovisioningImage not found, waiting for it to be created")
+				return reconcileComplete{stop: true}
+			}
+			if ppi.Status.ImageUrl != infraEnv.Status.ISODownloadURL {
+				log.Infof("PreprovisioningImage URL does not match InfraEnv ISO URL, waiting for update")
+				return reconcileComplete{stop: true}
+			}
 			log.Infof("Updating BMH CustomDeploy to %s", ASSISTED_DEPLOY_METHOD)
 			bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 			dirty = true
@@ -1781,6 +1802,16 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return requests
 	}
 
+	mapPPItoBMH := func(ctx context.Context, a client.Object) []reconcile.Request {
+		// PreprovisioningImage has the same name/namespace as its owning BMH
+		return []reconcile.Request{{
+			NamespacedName: types.NamespacedName{
+				Name:      a.GetName(),
+				Namespace: a.GetNamespace(),
+			},
+		}}
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("baremetal-agent-controller").
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles}).
@@ -1788,6 +1819,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&aiv1beta1.Agent{}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
 		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
 		Watches(&hivev1.ClusterDeployment{}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
+		Watches(&bmh_v1alpha1.PreprovisioningImage{}, handler.EnqueueRequestsFromMapFunc(mapPPItoBMH)).
 		Complete(r)
 }
 
