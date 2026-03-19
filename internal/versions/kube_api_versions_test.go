@@ -445,17 +445,18 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		})
 
 		It("when release image already exists", func() {
+			url := "release_4.9.1"
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(existingOcpVersion, nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
 
 			releaseImageFromCache := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
-				return *releaseImage.OpenshiftVersion == existingOcpVersion && *releaseImage.CPUArchitecture == cpuArchitecture
+				return *releaseImage.OpenshiftVersion == existingOcpVersion && *releaseImage.CPUArchitecture == cpuArchitecture && *releaseImage.URL == url
 			})
 			Expect(releaseImageFromCache).ShouldNot(BeNil())
 
-			_, err := h.GetReleaseImageByURL(ctx, releaseImageUrl, pullSecret)
+			_, err := h.GetReleaseImageByURL(ctx, url, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			releaseImage, err := h.GetReleaseImage(ctx, existingOcpVersion, cpuArchitecture, pullSecret)
@@ -472,6 +473,29 @@ var _ = Describe("GetReleaseImageByURL", func() {
 
 			_, err := h.GetReleaseImageByURL(ctx, "invalidRelease", pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("adds successfully even if another image with the same version and architecture exists", func() {
+			url := "release_4.10-alternative"
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("4.10.1", nil).AnyTimes()
+			mockRelease.EXPECT().GetReleaseArchitecture(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture}, nil).AnyTimes()
+
+			By("Checking if the release image with the same architecture and version is already in the cache")
+			releaseImageFromCache := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
+				return *releaseImage.OpenshiftVersion == "4.10.1" && *releaseImage.CPUArchitecture == cpuArchitecture
+			})
+			Expect(releaseImageFromCache).ShouldNot(BeNil())
+
+			By("Calling GetReleaseImageByURL to add the release image to the cache")
+			releaseImage, err := h.GetReleaseImageByURL(ctx, url, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("Checking the release image returned is not the one in the cache")
+			Expect(releaseImage.URL).ShouldNot(Equal(releaseImageFromCache.(*models.ReleaseImage).URL))
+			Expect(releaseImage.OpenshiftVersion).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).OpenshiftVersion))
+			Expect(releaseImage.CPUArchitecture).Should(Equal(releaseImageFromCache.(*models.ReleaseImage).CPUArchitecture))
 		})
 	})
 
@@ -497,13 +521,13 @@ var _ = Describe("GetReleaseImageByURL", func() {
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("4.11.1", nil).AnyTimes()
 			mockRelease.EXPECT().GetReleaseArchitecture(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]string{cpuArchitecture, common.ARM64CPUArchitecture}, nil).AnyTimes()
-
+			url := "release_4.11.1"
 			releaseImageFromCache := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
-				return *releaseImage.OpenshiftVersion == "4.11.1" && *releaseImage.CPUArchitecture == common.MultiCPUArchitecture
+				return *releaseImage.OpenshiftVersion == "4.11.1" && *releaseImage.CPUArchitecture == common.MultiCPUArchitecture && *releaseImage.URL == url
 			})
 			Expect(releaseImageFromCache).ShouldNot(BeNil())
 
-			_, err := h.GetReleaseImageByURL(ctx, releaseImageUrl, pullSecret)
+			_, err := h.GetReleaseImageByURL(ctx, url, pullSecret)
 			Expect(err).ShouldNot(HaveOccurred())
 
 			// Query for multi-arch release image using generic multiarch
