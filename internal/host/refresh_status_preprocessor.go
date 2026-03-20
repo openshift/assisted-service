@@ -116,8 +116,8 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 		conditions[cn.id.String()] = cn.fn(c)
 	}
 
-	if c.infraEnv == nil {
-		// Validate operators
+	// Only run operator validation for day1 clusters
+	if c.cluster != nil && !common.IsDay2Cluster(c.cluster) {
 		results, err := r.operatorsApi.ValidateHost(ctx, c.cluster, c.host)
 		if err != nil {
 			return nil, nil, err
