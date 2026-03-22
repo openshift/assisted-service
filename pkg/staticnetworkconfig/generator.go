@@ -373,7 +373,7 @@ func (s *StaticNetworkConfigGenerator) validateInterfaceNamesExistenceYAML(macIn
 							} else if !predicatableIfaceNamePattern.MatchString(port.(string)) {
 								return errors.Errorf("mac-interface mapping for interface %s is missing and not a physical interface", interfaceName)
 							} else {
-								s.log.Infof("Interface %s has no mac-interface mapping but matches a physical interface", interfaceName)
+								s.log.Infof("Interface %s in bond %s has no mac-interface mapping but matches a physical interface", port.(string), interfaceName)
 							}
 						}
 					}
