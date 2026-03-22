@@ -51,6 +51,7 @@ var _ = Describe("Feature Usage", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	readUsages := func() map[string]models.Usage {

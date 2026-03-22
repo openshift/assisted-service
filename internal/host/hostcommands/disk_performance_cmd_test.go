@@ -72,5 +72,6 @@ var _ = Describe("disk_performance", func() {
 		common.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
+		ctrl.Finish()
 	})
 })

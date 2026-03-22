@@ -102,5 +102,6 @@ var _ = Describe("update_host_state", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 })

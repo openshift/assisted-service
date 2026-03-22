@@ -368,6 +368,18 @@ The project has three main test categories:
    - Upstream: [assisted-test-infra](https://github.com/openshift/assisted-test-infra)
    - Downstream: QE maintained tests
 
+### Test Patterns
+
+#### Mock Testing with Gomock
+
+All tests using gomock controllers MUST call `ctrl.Finish()` to verify mock expectations.
+Without `ctrl.Finish()`, gomock EXPECT() calls with constraints are not verified:
+- `.Times(N)` - Expected call count won't be checked
+- `.MaxTimes(0)` - Unexpected calls won't be caught
+- `.Do()` / `.DoAndReturn()` - Mock behavior runs without verification
+
+Each context that creates a controller needs its own `AfterEach` with `ctrl.Finish()`.
+
 ### Environment Variables
 
 #### Test Execution
