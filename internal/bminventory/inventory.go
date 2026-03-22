@@ -3170,14 +3170,19 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) error {
 	return nil
 }
 
+var networkTypeToUsage = map[string]string{
+	models.ClusterNetworkTypeOVNKubernetes: usage.OVNNetworkTypeUsage,
+	models.ClusterNetworkTypeOpenShiftSDN:  usage.SDNNetworkTypeUsage,
+	models.ClusterNetworkTypeCiscoACI:      usage.CiscoACINetworkTypeUsage,
+	models.ClusterNetworkTypeCilium:        usage.CiliumNetworkTypeUsage,
+	models.ClusterNetworkTypeCalico:        usage.CalicoNetworkTypeUsage,
+	models.ClusterNetworkTypeNone:          usage.NoneNetworkTypeUsage,
+}
+
 func (b *bareMetalInventory) setNetworkTypeUsage(networkType *string, usages map[string]models.Usage) {
-	switch swag.StringValue(networkType) {
-	case models.ClusterNetworkTypeOVNKubernetes:
-		b.setUsage(true, usage.OVNNetworkTypeUsage, nil, usages)
-		b.setUsage(false, usage.SDNNetworkTypeUsage, nil, usages)
-	case models.ClusterNetworkTypeOpenShiftSDN:
-		b.setUsage(true, usage.SDNNetworkTypeUsage, nil, usages)
-		b.setUsage(false, usage.OVNNetworkTypeUsage, nil, usages)
+	selected := swag.StringValue(networkType)
+	for netType, usageName := range networkTypeToUsage {
+		b.setUsage(selected == netType, usageName, nil, usages)
 	}
 }
 
