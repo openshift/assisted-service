@@ -468,7 +468,7 @@ func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.
 
 	if common.GetEffectiveRole(host) == models.HostRoleMaster {
 		if common.IsSingleNodeCluster(cluster) {
-			return *requirements.SNORequirements, nil
+			return *v.getSNORequirements(cluster.OpenshiftVersion, requirements.SNORequirements), nil
 		}
 		return *requirements.MasterRequirements, nil
 	}
@@ -547,9 +547,21 @@ func (v *validator) getInfraEnvPreflightOCPRequirements(infraEnv *common.InfraEn
 
 func (v *validator) getMasterRequirements(cluster *common.Cluster, requirements *models.VersionedHostRequirements) *models.ClusterHostRequirementsDetails {
 	if common.IsSingleNodeCluster(cluster) {
-		return requirements.SNORequirements
+		return v.getSNORequirements(cluster.OpenshiftVersion, requirements.SNORequirements)
 	}
 	return requirements.MasterRequirements
+}
+
+// getSNORequirements returns SNO host requirements, applying version-specific overrides.
+// OCP 4.22+ lowers the minimum vCPU from 8 to 4 to support edge deployments with limited hardware.
+func (v *validator) getSNORequirements(openshiftVersion string, snoReqs *models.ClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
+	isAtLeast422, err := common.BaseVersionGreaterOrEqual("4.22.0", openshiftVersion)
+	if err != nil || !isAtLeast422 {
+		return snoReqs
+	}
+	reqs := *snoReqs
+	reqs.CPUCores = 4
+	return &reqs
 }
 
 func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*models.VersionedHostRequirements, error) {
