@@ -3395,6 +3395,25 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 		}
 
 		operator.Properties = newOperator.Properties
+		if newOperator.Name == "openshift-ai" && (newOperator.NvidiaEnabled != nil || newOperator.AmdEnabled != nil) {
+			var props operators.GPUFilterProperties
+			if newOperator.Properties != "" {
+				if err := json.Unmarshal([]byte(newOperator.Properties), &props); err != nil {
+					return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to parse openshift-ai properties: %w", err))
+				}
+			}
+			if newOperator.NvidiaEnabled != nil {
+				props.GPUFilter.NvidiaEnabled = newOperator.NvidiaEnabled
+			}
+			if newOperator.AmdEnabled != nil {
+				props.GPUFilter.AmdEnabled = newOperator.AmdEnabled
+			}
+			propsJSON, err := json.Marshal(props)
+			if err != nil {
+				return nil, fmt.Errorf("failed to serialize GPU filter for openshift-ai: %w", err)
+			}
+			operator.Properties = string(propsJSON)
+		}
 		monitoredOperators = append(monitoredOperators, operator)
 	}
 

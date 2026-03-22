@@ -5839,6 +5839,20 @@ func init() {
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -5893,6 +5907,20 @@ func init() {
             "collectionFormat": "multi",
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
             "in": "query"
           }
         ],
@@ -10338,8 +10366,18 @@ func init() {
     "operator-create-params": {
       "type": "object",
       "properties": {
+        "amd_enabled": {
+          "description": "Enable AMD GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "name": {
           "type": "string"
+        },
+        "nvidia_enabled": {
+          "description": "Enable NVIDIA GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
@@ -17307,6 +17345,20 @@ func init() {
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
+            "in": "query"
           }
         ],
         "responses": {
@@ -17361,6 +17413,20 @@ func init() {
             "collectionFormat": "multi",
             "description": "Array of feature IDs that affect bundle composition (e.g., [\"SNO\"] for Single Node OpenShift).",
             "name": "feature_ids",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable NVIDIA GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "nvidia_enabled",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable AMD GPU support for OpenShift AI bundle. Only applies to openshift-ai bundle.",
+            "name": "amd_enabled",
             "in": "query"
           }
         ],
@@ -21882,8 +21948,18 @@ func init() {
     "operator-create-params": {
       "type": "object",
       "properties": {
+        "amd_enabled": {
+          "description": "Enable AMD GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "name": {
           "type": "string"
+        },
+        "nvidia_enabled": {
+          "description": "Enable NVIDIA GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
