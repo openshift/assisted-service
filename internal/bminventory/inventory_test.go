@@ -21196,6 +21196,51 @@ var _ = Describe("Update cluster - feature usage flags", func() {
 			bm.setUserManagedNetworkingAndMultiNodeUsage(userManagedNetwork, controlPlaneCount, usages)
 		})
 	})
+
+	Context("Network type usage", func() {
+		allNetworkUsages := []string{
+			usage.OVNNetworkTypeUsage,
+			usage.SDNNetworkTypeUsage,
+			usage.CiscoACINetworkTypeUsage,
+			usage.CiliumNetworkTypeUsage,
+			usage.CalicoNetworkTypeUsage,
+			usage.NoneNetworkTypeUsage,
+		}
+
+		DescribeTable("should enable only the matching network type usage",
+			func(networkType string, expectedUsage string) {
+				for _, u := range allNetworkUsages {
+					if u == expectedUsage {
+						mockUsage.EXPECT().Add(usages, u, nil).Times(1)
+					} else {
+						mockUsage.EXPECT().Remove(usages, u).Times(1)
+					}
+				}
+				bm.setNetworkTypeUsage(&networkType, usages)
+			},
+			Entry("OVNKubernetes", models.ClusterNetworkTypeOVNKubernetes, usage.OVNNetworkTypeUsage),
+			Entry("OpenShiftSDN", models.ClusterNetworkTypeOpenShiftSDN, usage.SDNNetworkTypeUsage),
+			Entry("CiscoACI", models.ClusterNetworkTypeCiscoACI, usage.CiscoACINetworkTypeUsage),
+			Entry("Cilium", models.ClusterNetworkTypeCilium, usage.CiliumNetworkTypeUsage),
+			Entry("Calico", models.ClusterNetworkTypeCalico, usage.CalicoNetworkTypeUsage),
+			Entry("None", models.ClusterNetworkTypeNone, usage.NoneNetworkTypeUsage),
+		)
+
+		It("should disable all network type usages for unknown network type", func() {
+			for _, u := range allNetworkUsages {
+				mockUsage.EXPECT().Remove(usages, u).Times(1)
+			}
+			unknown := "SomeUnknownCNI"
+			bm.setNetworkTypeUsage(&unknown, usages)
+		})
+
+		It("should disable all network type usages for nil network type", func() {
+			for _, u := range allNetworkUsages {
+				mockUsage.EXPECT().Remove(usages, u).Times(1)
+			}
+			bm.setNetworkTypeUsage(nil, usages)
+		})
+	})
 })
 
 var _ = Describe("Download presigned cluster credentials", func() {
