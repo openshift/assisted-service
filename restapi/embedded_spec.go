@@ -10366,8 +10366,18 @@ func init() {
     "operator-create-params": {
       "type": "object",
       "properties": {
+        "amd_enabled": {
+          "description": "Enable AMD GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "name": {
           "type": "string"
+        },
+        "nvidia_enabled": {
+          "description": "Enable NVIDIA GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
@@ -21938,8 +21948,18 @@ func init() {
     "operator-create-params": {
       "type": "object",
       "properties": {
+        "amd_enabled": {
+          "description": "Enable AMD GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "name": {
           "type": "string"
+        },
+        "nvidia_enabled": {
+          "description": "Enable NVIDIA GPU support. Applies only to the openshift-ai operator.",
+          "type": "boolean",
+          "x-nullable": true
         },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",

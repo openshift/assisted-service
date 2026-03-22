@@ -119,47 +119,37 @@ print(f"infra_env_id: {infra_env_id}")
 
 ### GPU Vendor Selection
 
-OpenShift AI supports both NVIDIA and AMD GPU operators. You can control which GPU vendors to include by adding a `gpu_filter` to the operator properties:
+OpenShift AI supports both NVIDIA and AMD GPU operators. By default both are included. You can
+control which GPU vendors to install using the `nvidia_enabled` and `amd_enabled` fields on the
+operator entry:
+
+- Both fields default to `true` — omitting them keeps the existing behavior unchanged.
+- Setting `nvidia_enabled: false` excludes the NVIDIA GPU operator and its exclusive dependencies.
+- Setting `amd_enabled: false` excludes the AMD GPU operator and its exclusive dependencies.
+- Setting both to `false` installs OpenShift AI without any GPU operator.
+
+This applies to both cluster creation (`POST /v2/clusters`) and cluster updates
+(`PATCH /v2/clusters/{cluster_id}`):
 
 ```json
 {
   "olm_operators": [
     {
       "name": "openshift-ai",
-      "properties": "{\"gpu_filter\":{\"nvidia_enabled\":true,\"amd_enabled\":false}}"
+      "nvidia_enabled": true,
+      "amd_enabled": false
     }
   ]
 }
 ```
 
-**GPU Filter Options:**
-- `nvidia_enabled: true` - Include NVIDIA GPU operator (nvidia-gpu) and its dependencies
-- `amd_enabled: true` - Include AMD GPU operator (amd-gpu) and its dependencies
-- **Default behavior**: Both GPU operators are included if no `gpu_filter` is specified
+To preview which operators would be included before creating a cluster, use the bundle endpoints
+with the same parameters:
 
-**Examples:**
-
-NVIDIA only:
-```json
-"properties": "{\"gpu_filter\":{\"nvidia_enabled\":true,\"amd_enabled\":false}}"
 ```
-
-AMD only:
-```json
-"properties": "{\"gpu_filter\":{\"nvidia_enabled\":false,\"amd_enabled\":true}}"
+GET /v2/operators/bundles/openshift-ai?nvidia_enabled=true&amd_enabled=false
+GET /v2/operators/bundles?nvidia_enabled=true&amd_enabled=false
 ```
-
-Both GPU vendors:
-```json
-"properties": "{\"gpu_filter\":{\"nvidia_enabled\":true,\"amd_enabled\":true}}"
-```
-
-Neither GPU vendor:
-```json
-"properties": "{\"gpu_filter\":{\"nvidia_enabled\":false,\"amd_enabled\":false}}"
-```
-
-This filtering applies to both cluster creation (`POST /v2/clusters`) and cluster updates (`PATCH /v2/clusters/{cluster_id}`).
 
 Once the cluster and the _OpenShift API_ operator are installed you will need to enable the
 components that you want to use as explained in the [installation

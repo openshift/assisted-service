@@ -4332,6 +4332,14 @@ definitions:
         type: string
         description: Blob of operator-dependent parameters that are required for installation.
         x-go-custom-tag: gorm:"type:text"
+      nvidia_enabled:
+        type: boolean
+        x-nullable: true
+        description: Enable NVIDIA GPU support. Applies only to the openshift-ai operator.
+      amd_enabled:
+        type: boolean
+        x-nullable: true
+        description: Enable AMD GPU support. Applies only to the openshift-ai operator.
 
   monitored-operators-list:
     type: array
