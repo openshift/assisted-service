@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -30,13 +29,12 @@ type Handler interface {
 }
 
 type MustGatherVersion map[string]string
-type MustGatherVersions map[string]MustGatherVersion
 
 func NewHandler(
 	log logrus.FieldLogger,
 	releaseHandler oc.Release,
 	releaseImages models.ReleaseImages,
-	mustGatherVersions MustGatherVersions,
+	mustGatherVersionCache MustGatherVersionCache,
 	releaseImageMirror string,
 	kubeClient client.Client,
 	ignoredOpenshiftVersions []string,
@@ -54,13 +52,13 @@ func NewHandler(
 
 	if enableKubeAPI {
 		h := &kubeAPIVersionsHandler{
-			mustGatherVersions: mustGatherVersions,
-			releaseImages:      releaseImages,
-			releaseHandler:     releaseHandler,
-			releaseImageMirror: releaseImageMirror,
-			log:                log,
-			kubeClient:         kubeClient,
-			sem:                semaphore.NewWeighted(30),
+			mustGatherVersionCache: mustGatherVersionCache,
+			releaseImages:          releaseImages,
+			releaseHandler:         releaseHandler,
+			releaseImageMirror:     releaseImageMirror,
+			log:                    log,
+			kubeClient:             kubeClient,
+			sem:                    semaphore.NewWeighted(30),
 		}
 
 		return h, nil
@@ -69,59 +67,12 @@ func NewHandler(
 	restHandler := &restAPIVersionsHandler{
 		log:                      log,
 		releaseHandler:           releaseHandler,
-		mustGatherVersions:       mustGatherVersions,
+		mustGatherVersionCache:   mustGatherVersionCache,
 		ignoredOpenshiftVersions: ignoredOpenshiftVersions,
 		db:                       db,
 	}
 
 	return restHandler, nil
-}
-
-func getMustGatherImages(
-	log logrus.FieldLogger,
-	openshiftVersion,
-	cpuArchitecture,
-	pullSecret,
-	releaseImageMirror string,
-	mustGatherVersions MustGatherVersions,
-	getReleaseImage func(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error),
-	releaseHandler oc.Release,
-	imagesLock *sync.Mutex,
-) (MustGatherVersion, error) {
-	imagesLock.Lock()
-	defer imagesLock.Unlock()
-
-	majMinorVersion, err := common.GetMajorMinorVersion(openshiftVersion)
-	if err != nil {
-		return nil, err
-	}
-	cacheKey := fmt.Sprintf("%s-%s", *majMinorVersion, cpuArchitecture)
-
-	if mustGatherVersions == nil {
-		mustGatherVersions = make(MustGatherVersions)
-	}
-	if mustGatherVersions[cacheKey] == nil {
-		mustGatherVersions[cacheKey] = make(MustGatherVersion)
-	}
-
-	//check if ocp must-gather image is already in the cache
-	if mustGatherVersions[cacheKey]["ocp"] != "" {
-		versions := mustGatherVersions[cacheKey]
-		return versions, nil
-	}
-	//if not, fetch it from the release image and add it to the cache
-	releaseImage, err := getReleaseImage(context.Background(), openshiftVersion, cpuArchitecture, pullSecret)
-	if err != nil {
-		return nil, err
-	}
-	ocpMustGatherImage, err := releaseHandler.GetMustGatherImage(log, *releaseImage.URL, releaseImageMirror, pullSecret)
-	if err != nil {
-		return nil, err
-	}
-	mustGatherVersions[cacheKey]["ocp"] = ocpMustGatherImage
-
-	versions := mustGatherVersions[cacheKey]
-	return versions, nil
 }
 
 func validateReleaseImageForRHCOS(

@@ -25,7 +25,7 @@ var _ = Describe("GetReleaseImage", func() {
 		handler = &restAPIVersionsHandler{
 			log:                      common.GetTestLog(),
 			releaseHandler:           nil,
-			mustGatherVersions:       nil,
+			mustGatherVersionCache:   NewMustGatherVersionCache(),
 			ignoredOpenshiftVersions: nil,
 			db:                       db,
 		}
@@ -682,7 +682,7 @@ var _ = Describe("GetReleaseImageByURL", func() {
 		handler = &restAPIVersionsHandler{
 			log:                      common.GetTestLog(),
 			releaseHandler:           nil,
-			mustGatherVersions:       nil,
+			mustGatherVersionCache:   NewMustGatherVersionCache(),
 			ignoredOpenshiftVersions: nil,
 			db:                       db,
 		}
