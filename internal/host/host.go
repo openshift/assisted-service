@@ -1497,13 +1497,16 @@ type DisabledHostValidations map[string]struct{}
 
 func (d *DisabledHostValidations) Decode(value string) error {
 	disabledHostValidations := DisabledHostValidations{}
-	if len(strings.Trim(value, "")) == 0 {
-		*d = disabledHostValidations
-		return nil
+	if value == `""` {
+		value = ""
 	}
-	for _, element := range strings.Split(value, ",") {
-		if len(element) == 0 {
-			return fmt.Errorf("empty host validation ID found in '%s'", value)
+	validationIDs, err := common.ParseCommaSeparatedUniqueValues(value, "host validation ID")
+	if err != nil {
+		return err
+	}
+	for _, element := range validationIDs {
+		if err := models.HostValidationID(element).Validate(nil); err != nil {
+			return fmt.Errorf("disabled host validation ID '%s' is not a known host validation", element)
 		}
 		disabledHostValidations[element] = struct{}{}
 	}

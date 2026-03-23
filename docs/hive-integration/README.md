@@ -330,6 +330,131 @@ metadata:
 ...
 ```
 
+### Ignoring cluster and host validations
+
+The Assisted Service runs a set of validations on clusters and hosts before allowing installation to proceed.
+In some cases, specific validations may need to be bypassed. There are two mechanisms for this:
+**disabling** validations at the service level, and **ignoring** validations on a per-cluster basis.
+
+> [!WARNING]
+> Using either of the mechanisms below is unsupported and voids support for the affected cluster.
+> Assisted Service validations exist to ensure that cluster provisioning can succeed safely and predictably.
+> If validations are disabled or ignored, we cannot support customers using that configuration, because the installation may proceed despite known issues that would normally block provisioning.
+
+#### Semantics: disabled vs. ignored
+
+These two mechanisms have different effects:
+
+| | Disabled (service-level) | Ignored (per-cluster) |
+|---|---|---|
+| **Scope** | All clusters managed by the service instance | A single cluster |
+| **Behaviour** | Validation is **not executed**; reported as `disabled` | Validation **runs** and reports its actual result, but does not block installation |
+| **Configuration** | Environment variable on the Assisted Service deployment | Annotation on `AgentClusterInstall` (Kube API) or REST API call |
+
+In both cases, the state machine treats the affected validation as passing, allowing the cluster to proceed to installation even if the underlying condition is not met.
+
+**Per-cluster overrides service-level**: when per-cluster ignored validations are set for a cluster (even if the list is empty), the service-level disabled validations do not apply to that cluster. For example, if `DISABLED_CLUSTER_VALIDATIONS=A,B,C` is set globally and a cluster has `ignored-cluster-validations: B`, only validation B is ignored for that cluster — A and C run normally. Setting the annotation to an empty value explicitly overrides the service-level configuration with zero ignored validations.
+
+Validation IDs are checked for validity: unknown or misspelled IDs are rejected with an error in both the REST API and Kube API paths.
+
+#### Service-level: disabling validations via environment variables
+
+Validations can be disabled globally (for all clusters) by setting environment variables on the Assisted Service deployment.
+Disabled validations are skipped entirely and reported with a `disabled` status.
+
+| Environment Variable | Description |
+|---|---|
+| `DISABLED_HOST_VALIDATIONS` | Comma-separated list of host validation IDs to disable |
+| `DISABLED_CLUSTER_VALIDATIONS` | Comma-separated list of cluster validation IDs to disable |
+
+Example:
+```
+DISABLED_HOST_VALIDATIONS=valid-platform,container-images-available
+DISABLED_CLUSTER_VALIDATIONS=ntp-server-configured,dns-domain-defined
+```
+
+See [Specifying environmental variables via ConfigMap](../operator.md#specifying-environmental-variables-via-configmap) for how to set these in an operator-based deployment.
+
+#### Per-cluster: ignoring validations via annotations
+
+Validations can be ignored on a per-cluster basis by setting annotations on the AgentClusterInstall CR.
+Ignored validations still run and report their actual result, but they do not block installation.
+This leverages the same mechanism available in the REST API (`PUT /v2/clusters/{cluster_id}/ignored-validations`).
+
+> [!NOTE]
+> In the REST API, ignoring validations requires the organization to have the `IgnoreValidations` capability enabled.
+> In the Kube API, no such capability check is performed — any user with permission to annotate the `AgentClusterInstall` CR can ignore validations.
+
+| Annotation | Description |
+|---|---|
+| `agent-install.openshift.io/ignored-cluster-validations` | Comma-separated list of cluster validation IDs to ignore |
+| `agent-install.openshift.io/ignored-host-validations` | Comma-separated list of host validation IDs to ignore |
+
+Example:
+```sh
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io my-cluster -n mynamespace \
+    agent-install.openshift.io/ignored-cluster-validations="dns-domain-defined,ntp-server-configured" \
+    agent-install.openshift.io/ignored-host-validations="has-cpu-cores-for-role,has-memory-for-role"
+```
+
+```sh
+$ kubectl get agentclusterinstalls.extensions.hive.openshift.io my-cluster -n mynamespace -o yaml
+```
+```yaml
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  annotations:
+    agent-install.openshift.io/ignored-cluster-validations: dns-domain-defined,ntp-server-configured
+    agent-install.openshift.io/ignored-host-validations: has-cpu-cores-for-role,has-memory-for-role
+  name: my-cluster
+  namespace: mynamespace
+...
+```
+
+To remove ignored validations, delete the annotations:
+```sh
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io my-cluster -n mynamespace \
+    agent-install.openshift.io/ignored-cluster-validations- \
+    agent-install.openshift.io/ignored-host-validations-
+```
+
+Note that certain mandatory validations cannot be ignored. For cluster validations these are:
+`api-vips-defined`, `ingress-vips-defined`, `all-hosts-are-ready-to-install`, `sufficient-masters-count`, `pull-secret-set`.
+For host validations: `connected`, `has-inventory`, `machine-cidr-defined`, `hostname-unique`, `hostname-valid`.
+
+#### Annotation format and database representation
+
+The annotation value is a **comma-separated list** of validation IDs. The controller converts it to a **JSON array** before persisting it to the database. The table below shows how different annotation states map to what is stored in the `clusters` table:
+
+| Scenario | Annotation on AgentClusterInstall | Value stored in DB (`ignored_cluster_validations`) |
+|---|---|---|
+| Ignore specific validations | `"dns-domain-defined,ntp-server-configured"` | `["dns-domain-defined","ntp-server-configured"]` |
+| Ignore a single validation | `"ntp-server-configured"` | `["ntp-server-configured"]` |
+| Annotation present but empty (explicit override with zero ignores) | `""` | `[]` |
+| Annotation absent (no override; service-level disabled validations still apply) | *(annotation not set)* | *(empty string — no value stored)* |
+
+The same format applies to `ignored-host-validations` / `ignored_host_validations`.
+
+> [!NOTE]
+> There is an important distinction between an **absent annotation** and an **empty annotation**.
+> When the annotation is absent, the service-level disabled validations (set via `DISABLED_CLUSTER_VALIDATIONS` / `DISABLED_HOST_VALIDATIONS`) still apply to the cluster.
+> When the annotation is explicitly set to an empty value (`""`), it overrides the service-level configuration: no validations are ignored or disabled for that cluster, even if the environment variables list some.
+
+**Example: setting an explicit empty override**
+```sh
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io my-cluster -n mynamespace \
+    agent-install.openshift.io/ignored-cluster-validations=""
+```
+
+**Example: removing the override (reverting to service-level defaults)**
+```sh
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io my-cluster -n mynamespace \
+    agent-install.openshift.io/ignored-cluster-validations-
+```
+
+For more background on the ignored validations feature, see the [enhancement proposal](../enhancements/api-for-ignoring-validations.md).
+
 ### Creating host installer args overrides
 
 In order to alter the default coreos-installer arguments used when running `coreos-installer`openshift-install create command.

@@ -3769,8 +3769,8 @@ var _ = Describe("ResetHostValidation", func() {
 var _ = Describe("Disabled Host Validation", func() {
 	const (
 		disabledHostValidationEnvironmentName = "DISABLED_HOST_VALIDATIONS"
-		twoValidationIDs                      = "validation-1,validation-2"
-		malformedValue                        = "validation-1,,"
+		twoValidationIDs                      = "connected,has-inventory"
+		malformedValue                        = "connected,,"
 	)
 
 	AfterEach(func() {
@@ -3780,15 +3780,30 @@ var _ = Describe("Disabled Host Validation", func() {
 		Expect(os.Setenv(disabledHostValidationEnvironmentName, twoValidationIDs)).NotTo(HaveOccurred())
 		cfg := Config{}
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
-		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-1")).To(BeTrue())
-		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-2")).To(BeTrue())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("connected")).To(BeTrue())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("has-inventory")).To(BeTrue())
+	})
+	It("should trim whitespace around environment values", func() {
+		Expect(os.Setenv(disabledHostValidationEnvironmentName, "connected, has-inventory")).NotTo(HaveOccurred())
+		cfg := Config{}
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("connected")).To(BeTrue())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("has-inventory")).To(BeTrue())
 	})
 	It("should error when environment value is malformed", func() {
 		Expect(os.Setenv(disabledHostValidationEnvironmentName, malformedValue)).NotTo(HaveOccurred())
 		cfg := Config{}
 		err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(Equal("envconfig.Process: assigning MYAPP_DISABLED_HOST_VALIDATIONS to DisabledHostvalidations: converting 'validation-1,,' to type host.DisabledHostValidations. details: empty host validation ID found in 'validation-1,,'"))
+		Expect(err.Error()).To(ContainSubstring("empty host validation ID found in"))
+	})
+	It("should error when environment value contains an unknown validation ID", func() {
+		Expect(os.Setenv(disabledHostValidationEnvironmentName, "connected,not-a-real-validation")).NotTo(HaveOccurred())
+		cfg := Config{}
+		err := envconfig.Process(common.EnvConfigPrefix, &cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not-a-real-validation"))
+		Expect(err.Error()).To(ContainSubstring("not a known host validation"))
 	})
 
 })
