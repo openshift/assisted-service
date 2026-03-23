@@ -121,12 +121,18 @@ func (feature *NonePlatformFeature) getFeatureActiveLevel(cluster *common.Cluste
 	return activeLevelNotActive
 }
 
-func (feature *NonePlatformFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{
+func (feature *NonePlatformFeature) getIncompatibleFeatures(openshiftVersion string) []models.FeatureSupportLevelID {
+	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDVIPAUTOALLOC,
 		models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING,
 		models.FeatureSupportLevelIDUSERMANAGEDLOADBALANCER,
 	}
+
+	if supportsNonePlatform, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClustersWithNonePlatform, openshiftVersion); !supportsNonePlatform {
+		incompatibleFeatures = append(incompatibleFeatures, models.FeatureSupportLevelIDTNA)
+	}
+
+	return incompatibleFeatures
 }
 
 func (feature *NonePlatformFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
