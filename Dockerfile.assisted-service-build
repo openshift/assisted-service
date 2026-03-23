@@ -1,4 +1,4 @@
-FROM registry.ci.openshift.org/openshift/release:golang-1.18 AS golang
+FROM registry.ci.openshift.org/openshift/release:golang-1.20 AS golang
 RUN chmod g+xw -R /usr/local/go
 
 FROM quay.io/centos/centos:stream8
@@ -35,7 +35,9 @@ COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bi
 COPY --from=registry.k8s.io/kustomize/kustomize:v4.3.0 /app/kustomize /usr/bin/
 COPY --from=quay.io/coreos/shellcheck-alpine:v0.5.0 /bin/shellcheck /usr/bin/shellcheck
 
-RUN dnf install -y 'dnf-command(config-manager)' && \
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+    dnf install -y 'dnf-command(config-manager)' && \
     dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo && \
     dnf install -y --enablerepo=powertools \
         openssl postgresql nmstate-devel sqlite gcc genisoimage git docker-ce-cli libvirt-client libvirt-devel java && \
