@@ -211,5 +211,12 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				Expect(unskippableHostValidationSkipped).To(BeFalse(), unskippableHostValidation+" was ignored when this should not be possible")
 			}
 		})
+
+		It("Should skip operator validations for day2 clusters", func() {
+			validationContext.cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).MaxTimes(0)
+			_, _, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 })
