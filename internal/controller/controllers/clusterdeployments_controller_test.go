@@ -4074,6 +4074,205 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
+
+		It("add ignored cluster validations annotation", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, clusterID strfmt.UUID, ignoredCluster, ignoredHost string) {
+					Expect(clusterID).To(Equal(sId))
+					Expect(ignoredCluster).To(Equal(`["dns-domain-defined","ntp-server-configured"]`))
+					Expect(ignoredHost).To(Equal(""))
+				}).Return(nil)
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredClusterValidationsAnnotation: "dns-domain-defined,ntp-server-configured",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("add ignored host validations annotation", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, clusterID strfmt.UUID, ignoredCluster, ignoredHost string) {
+					Expect(clusterID).To(Equal(sId))
+					Expect(ignoredCluster).To(Equal(""))
+					Expect(ignoredHost).To(Equal(`["has-cpu-cores-for-role","has-memory-for-role"]`))
+				}).Return(nil)
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredHostValidationsAnnotation: "has-cpu-cores-for-role,has-memory-for-role",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("add both ignored cluster and host validations annotations", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, clusterID strfmt.UUID, ignoredCluster, ignoredHost string) {
+					Expect(clusterID).To(Equal(sId))
+					Expect(ignoredCluster).To(Equal(`["dns-domain-defined"]`))
+					Expect(ignoredHost).To(Equal(`["has-cpu-cores-for-role"]`))
+				}).Return(nil)
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredClusterValidationsAnnotation: "dns-domain-defined",
+				IgnoredHostValidationsAnnotation:    "has-cpu-cores-for-role",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("remove ignored validations annotation clears ignored validations", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			backEndCluster.IgnoredClusterValidations = `["dns-domain-defined"]`
+			backEndCluster.IgnoredHostValidations = `["has-cpu-cores-for-role"]`
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, clusterID strfmt.UUID, ignoredCluster, ignoredHost string) {
+					Expect(clusterID).To(Equal(sId))
+					Expect(ignoredCluster).To(Equal(""))
+					Expect(ignoredHost).To(Equal(""))
+				}).Return(nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("empty annotation explicitly overrides with empty JSON array", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			backEndCluster.IgnoredClusterValidations = `["dns-domain-defined"]`
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, clusterID strfmt.UUID, ignoredCluster, ignoredHost string) {
+					Expect(clusterID).To(Equal(sId))
+					Expect(ignoredCluster).To(Equal("[]"))
+					Expect(ignoredHost).To(Equal(""))
+				}).Return(nil)
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredClusterValidationsAnnotation: "",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("no change in ignored validations does not call SetIgnoredValidationsInternal", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("invalid ignored validations annotation reports an input error", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredClusterValidationsAnnotation: "dns-domain-defined,,ntp-server-configured",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(ContainSubstring(
+				"Failed to parse 'agent-install.openshift.io/ignored-cluster-validations' annotation"))
+		})
+
+		It("unknown validation ID in annotation is rejected by the service", func() {
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+
+			backEndCluster := getDefaultTestCluster()
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().SetIgnoredValidationsInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(common.NewApiError(http.StatusBadRequest, errors.New("Validation ID 'not-a-real-validation' is not a known cluster validation")))
+
+			aci.ObjectMeta.SetAnnotations(map[string]string{
+				IgnoredClusterValidationsAnnotation: "not-a-real-validation",
+			})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(ContainSubstring(
+				"not a known cluster validation"))
+		})
 	})
 
 	Context("cluster update not needed", func() {

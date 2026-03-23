@@ -80,11 +80,13 @@ import (
 )
 
 const (
-	adminPasswordSecretStringTemplate = "%s-admin-password"
-	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
-	InstallConfigOverrides            = aiv1beta1.Group + "/install-config-overrides"
-	ClusterDeploymentFinalizerName    = "clusterdeployments." + aiv1beta1.Group + "/ai-deprovision"
-	AgentClusterInstallFinalizerName  = "agentclusterinstall." + aiv1beta1.Group + "/ai-deprovision"
+	adminPasswordSecretStringTemplate   = "%s-admin-password"
+	adminKubeConfigStringTemplate       = "%s-admin-kubeconfig"
+	InstallConfigOverrides              = aiv1beta1.Group + "/install-config-overrides"
+	IgnoredClusterValidationsAnnotation = aiv1beta1.Group + "/ignored-cluster-validations"
+	IgnoredHostValidationsAnnotation    = aiv1beta1.Group + "/ignored-host-validations"
+	ClusterDeploymentFinalizerName      = "clusterdeployments." + aiv1beta1.Group + "/ai-deprovision"
+	AgentClusterInstallFinalizerName    = "agentclusterinstall." + aiv1beta1.Group + "/ai-deprovision"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -256,10 +258,9 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
-	// check for install config overrides and update if needed
-	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster)
+	err = r.applyClusterInstallAnnotations(ctx, log, clusterInstall, cluster)
 	if err != nil {
-		log.WithError(err).Error("failed to update install config overrides")
+		log.WithError(err).Error("failed to apply AgentClusterInstall annotations")
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
@@ -1266,6 +1267,81 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		log.Infof("Updated InstallConfig overrides on clusterInstall %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 		return nil
 	}
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) applyClusterInstallAnnotations(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
+	if err := r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster); err != nil {
+		return err
+	}
+	if err := r.updateIgnoredValidations(ctx, log, clusterInstall, cluster); err != nil {
+		return err
+	}
+	return nil
+}
+
+func commaSeparatedToJSONArray(csv string) (string, error) {
+	items, err := common.ParseCommaSeparatedUniqueValues(csv, "ignored validation ID")
+	if err != nil {
+		return "", err
+	}
+	if len(items) == 0 {
+		return "", nil
+	}
+	data, err := json.Marshal(items)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
+func annotationToIgnoredJSON(annotations map[string]string, key string) (string, error) {
+	value, exists := annotations[key]
+	if !exists {
+		return "", nil
+	}
+	jsonArray, err := commaSeparatedToJSONArray(value)
+	if err != nil {
+		return "", err
+	}
+	if jsonArray == "" {
+		return "[]", nil
+	}
+	return jsonArray, nil
+}
+
+func (r *ClusterDeploymentsReconciler) updateIgnoredValidations(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
+
+	annotations := clusterInstall.ObjectMeta.GetAnnotations()
+
+	newIgnoredCluster, err := annotationToIgnoredJSON(annotations, IgnoredClusterValidationsAnnotation)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Failed to parse '%s' annotation", IgnoredClusterValidationsAnnotation))
+	}
+	newIgnoredHost, err := annotationToIgnoredJSON(annotations, IgnoredHostValidationsAnnotation)
+	if err != nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Failed to parse '%s' annotation", IgnoredHostValidationsAnnotation))
+	}
+
+	if newIgnoredCluster == cluster.IgnoredClusterValidations && newIgnoredHost == cluster.IgnoredHostValidations {
+		return nil
+	}
+
+	log.Infof("Updating ignored validations on cluster %s/%s (cluster: %q, host: %q)",
+		clusterInstall.Namespace, clusterInstall.Name, newIgnoredCluster, newIgnoredHost)
+
+	err = r.Installer.SetIgnoredValidationsInternal(ctx, *cluster.ID, newIgnoredCluster, newIgnoredHost)
+	if err != nil {
+		if IsUserError(err) {
+			return err
+		}
+		return errors.Wrapf(err, "failed to update ignored validations for cluster %s", cluster.ID)
+	}
+
+	cluster.IgnoredClusterValidations = newIgnoredCluster
+	cluster.IgnoredHostValidations = newIgnoredHost
 	return nil
 }
 

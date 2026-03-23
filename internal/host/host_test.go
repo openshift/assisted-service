@@ -3783,6 +3783,13 @@ var _ = Describe("Disabled Host Validation", func() {
 		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-1")).To(BeTrue())
 		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-2")).To(BeTrue())
 	})
+	It("should trim whitespace around environment values", func() {
+		Expect(os.Setenv(disabledHostValidationEnvironmentName, "validation-1, validation-2")).NotTo(HaveOccurred())
+		cfg := Config{}
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-1")).To(BeTrue())
+		Expect(cfg.DisabledHostvalidations.IsDisabled("validation-2")).To(BeTrue())
+	})
 	It("should error when environment value is malformed", func() {
 		Expect(os.Setenv(disabledHostValidationEnvironmentName, malformedValue)).NotTo(HaveOccurred())
 		cfg := Config{}

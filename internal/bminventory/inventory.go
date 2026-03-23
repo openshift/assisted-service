@@ -189,6 +189,7 @@ type InstallerInternals interface {
 	V2UpdateHostInstallProgressInternal(ctx context.Context, params installer.V2UpdateHostInstallProgressParams) error
 	CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error
 	GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error)
+	SetIgnoredValidationsInternal(ctx context.Context, clusterID strfmt.UUID, ignoredClusterValidations, ignoredHostValidations string) error
 }
 
 //go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
