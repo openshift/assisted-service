@@ -225,7 +225,7 @@ func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret str
 
 	// Fetch ReleaseImage if exists (not using GetReleaseImage as we search for the x.y.z image only)
 	releaseImage := funk.Find(h.releaseImages, func(releaseImage *models.ReleaseImage) bool {
-		return *releaseImage.OpenshiftVersion == ocpReleaseVersion && *releaseImage.CPUArchitecture == cpuArchitecture
+		return *releaseImage.OpenshiftVersion == ocpReleaseVersion && *releaseImage.CPUArchitecture == cpuArchitecture && *releaseImage.URL == releaseImageUrl
 	})
 	if releaseImage == nil {
 		// Create a new ReleaseImage
@@ -239,7 +239,7 @@ func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret str
 
 		// Store in releaseImages array
 		h.releaseImages = append(h.releaseImages, releaseImage.(*models.ReleaseImage))
-		h.log.Infof("Stored release version %s for architecture %s", ocpReleaseVersion, cpuArchitecture)
+		h.log.Infof("Stored release version %s for architecture %s with url %s", ocpReleaseVersion, cpuArchitecture, releaseImageUrl)
 		if len(cpuArchitectures) > 1 {
 			h.log.Infof("Full list or architectures: %s", cpuArchitectures)
 		}
