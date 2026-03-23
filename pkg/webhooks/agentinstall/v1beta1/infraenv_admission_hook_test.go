@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	v1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/models"
 	apiserver "github.com/openshift/generic-admission-server/pkg/apiserver"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	admissionv1 "k8s.io/api/admission/v1"
@@ -210,6 +211,61 @@ var _ = Describe("infraenv web validate", func() {
 			},
 			oldSpec: v1beta1.InfraEnvSpec{
 				ClusterRef: nil,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test InfraEnv.Spec.CpuArchitecture is immutable",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: models.ClusterCPUArchitectureS390x,
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: models.ClusterCPUArchitectureX8664,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test InfraEnv update fails when CpuArchitecture is set from empty to non-default",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: models.ClusterCPUArchitectureS390x,
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test InfraEnv update does not fail when CpuArchitecture is set from empty to default",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: defaultCPUArchitecture,
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: "",
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test InfraEnv update does not fail when CpuArchitecture is set from default to empty",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: "",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: defaultCPUArchitecture,
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test InfraEnv update does not fail when CpuArchitecture is set and remains the same",
+			newSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: models.ClusterCPUArchitectureX8664,
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				CpuArchitecture: models.ClusterCPUArchitectureX8664,
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: true,

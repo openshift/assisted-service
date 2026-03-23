@@ -26,6 +26,10 @@ const (
 
 	infraEnvAdmissionGroup   = "admission.agentinstall.openshift.io"
 	infraEnvAdmissionVersion = "v1"
+
+	// defaultCPUArchitecture matches the kubebuilder default in
+	// api/v1beta1/infraenv_types.go and the CRD schema
+	defaultCPUArchitecture = "x86_64"
 )
 
 // InfraEnvValidatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
@@ -162,6 +166,16 @@ func areClusterRefsEqual(clusterRef1 *v1beta1.ClusterReference, clusterRef2 *v1b
 	}
 }
 
+func areCpuArchsEqual(oldArch, newArch string) bool {
+	if oldArch == "" {
+		oldArch = defaultCPUArchitecture
+	}
+	if newArch == "" {
+		newArch = defaultCPUArchitecture
+	}
+	return oldArch == newArch
+}
+
 // validateUpdate specifically validates create operations for InfraEnv objects.
 func (a *InfraEnvValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1.AdmissionRequest) *admissionv1.AdmissionResponse {
 	contextLogger := log.WithFields(log.Fields{
@@ -245,6 +259,19 @@ func (a *InfraEnvValidatingAdmissionHook) validateUpdate(admissionSpec *admissio
 		message := "Attempted to change Spec.ClusterRef which is immutable after InfraEnv creation."
 		contextLogger.Infof("Failed validation: %v", message)
 		contextLogger.Error(message)
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
+	if !areCpuArchsEqual(oldObject.Spec.CpuArchitecture, newObject.Spec.CpuArchitecture) {
+		message := "Attempted to change Spec.CpuArchitecture which is immutable after InfraEnv creation."
+		contextLogger.Infof("Failed validation: %v", message)
+
 		return &admissionv1.AdmissionResponse{
 			Allowed: false,
 			Result: &metav1.Status{
