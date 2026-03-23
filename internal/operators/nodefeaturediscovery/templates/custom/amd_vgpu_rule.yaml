@@ -1,0 +1,25 @@
+apiVersion: nfd.openshift.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: amd-vgpu
+  namespace: {{ .Operator.Namespace }}
+spec:
+  rules:
+  - name: amd-vgpu
+    labels:
+      feature.node.kubernetes.io/amd-vgpu: "true"
+    matchFeatures:
+    - feature: pci.device
+      matchExpressions:
+        vendor: {op: In, value: ["1002"]}
+        device:
+          op: In
+          value:
+          - "75b3" # MI355X VF
+          - "75b0" # MI350X VF
+          - "74b9" # MI325X VF
+          - "74b6" # MI308X VF
+          - "74bc" # MI308X-HF VF
+          - "74b5" # MI300X VF
+          - "74bd" # MI300X-HF VF
+          - "7410" # MI210 VF
