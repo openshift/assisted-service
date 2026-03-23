@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -1545,11 +1546,11 @@ var _ = Describe("bmac reconcile", func() {
 
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "root-ca",
-						Namespace: "kube-system",
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca-bundle.crt": BASIC_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1605,11 +1606,11 @@ var _ = Describe("bmac reconcile", func() {
 			It("should create spoke BMH & Machine for day 2 host with master role when it's installing - happy flow", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "root-ca",
-						Namespace: "kube-system",
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca-bundle.crt": BASIC_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1741,11 +1742,11 @@ var _ = Describe("bmac reconcile", func() {
 			It("should not create spoke BMH when agent is not installing", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "root-ca",
-						Namespace: "kube-system",
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca-bundle.crt": BASIC_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1781,11 +1782,11 @@ var _ = Describe("bmac reconcile", func() {
 
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "root-ca",
-						Namespace: "kube-system",
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca-bundle.crt": BASIC_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1898,11 +1899,11 @@ var _ = Describe("bmac reconcile", func() {
 			It("validate label on Secrets", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "root-ca",
-						Namespace: "kube-system",
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca-bundle.crt": BASIC_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1929,6 +1930,66 @@ var _ = Describe("bmac reconcile", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("should prefer machine-config-server-ca over kube-system/root-ca", func() {
+				mcsCert := "mcs-ca-cert"
+				kubeCert := "kube-root-cert"
+
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
+					},
+					Data: map[string]string{"ca-bundle.crt": mcsCert},
+				})).ShouldNot(HaveOccurred())
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{"ca.crt": kubeCert},
+				})).ShouldNot(HaveOccurred())
+
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+
+				overrides := updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]
+				encodedMCS := base64.StdEncoding.EncodeToString([]byte(mcsCert))
+				encodedKube := base64.StdEncoding.EncodeToString([]byte(kubeCert))
+				Expect(overrides).To(ContainSubstring(encodedMCS))
+				Expect(overrides).NotTo(ContainSubstring(encodedKube))
+			})
+
+			It("should fall back to kube-system/root-ca when machine-config-server-ca does not exist", func() {
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{"ca.crt": BASIC_CERT},
+				})).ShouldNot(HaveOccurred())
+
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				encodedCert := base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(encodedCert))
 			})
 
 			It("should fall back to Hypershift root CA storage", func() {
