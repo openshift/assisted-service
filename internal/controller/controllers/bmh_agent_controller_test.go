@@ -2808,7 +2808,18 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
 
-		It("should set custom deploy method in the BMH", func() {
+		It("should set custom deploy method in the BMH when PPI has correct image", func() {
+			// Create PPI with the correct assisted ISO URL matching the InfraEnv
+			ppi := &bmh_v1alpha1.PreprovisioningImage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      host.Name,
+					Namespace: host.Namespace,
+				},
+				Status: bmh_v1alpha1.PreprovisioningImageStatus{
+					ImageUrl: isoImageURL,
+				},
+			}
+			Expect(c.Create(ctx, ppi)).To(BeNil())
 
 			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
 			Expect(c.Update(ctx, host)).To(BeNil())
@@ -2823,6 +2834,64 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.Spec.CustomDeploy.Method).To(Equal(ASSISTED_DEPLOY_METHOD))
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
+		})
+
+		It("should not set custom deploy method when PPI does not exist", func() {
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
+		})
+
+		It("should not set custom deploy method when PPI has wrong image URL", func() {
+			// Create PPI with BMO's IPA image URL (not the assisted ISO)
+			ppi := &bmh_v1alpha1.PreprovisioningImage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      host.Name,
+					Namespace: host.Namespace,
+				},
+				Status: bmh_v1alpha1.PreprovisioningImageStatus{
+					ImageUrl: "http://metal3-image-customization-service.openshift-machine-api.svc.cluster.local/some-ipa-image",
+				},
+			}
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
+		})
+
+		It("should not set custom deploy method when InfraEnv has no ISO URL", func() {
+			// Clear the ISODownloadURL
+			infraEnv.Status.ISODownloadURL = ""
+			Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
 		})
 		Context("with a provisioned agent", func() {
 			var agent *v1beta1.Agent
@@ -2943,6 +3012,18 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 					Expect(updatedHost.Spec.CustomDeploy).To(BeNil())
 				})
 				It("resets customDeploy when the BMH is available", func() {
+					// Create PPI with the correct assisted ISO URL
+					ppi := &bmh_v1alpha1.PreprovisioningImage{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      host.Name,
+							Namespace: host.Namespace,
+						},
+						Status: bmh_v1alpha1.PreprovisioningImageStatus{
+							ImageUrl: isoImageURL,
+						},
+					}
+					Expect(c.Create(ctx, ppi)).To(BeNil())
+
 					host.Spec.CustomDeploy = nil
 					host.Status.Provisioning.State = bmh_v1alpha1.StateAvailable
 					Expect(c.Update(ctx, host)).To(Succeed())
