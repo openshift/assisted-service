@@ -467,10 +467,10 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(*requirements).To(BeEquivalentTo(expected))
 		})
 
-		It("should fail when requested and default versions not defined", func() {
+		It("should fail when no entry is <= requested version and no default exists", func() {
 			jsonSpec := []map[string]interface{}{
 				{
-					"version": "4.5.0",
+					"version": "4.7.0",
 					"master": map[string]interface{}{
 						"cpu_cores":                            4,
 						"ram_mib":                              16384,
@@ -497,6 +497,63 @@ var _ = Describe("Versioned Requirements", func() {
 			_, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return best range match when no exact version is defined", func() {
+			jsonSpec := []map[string]interface{}{
+				{
+					"version": "default",
+					"master":  map[string]interface{}{"cpu_cores": 4, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
+					"arbiter": map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
+					"worker":  map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 3},
+					"sno":     map[string]interface{}{"cpu_cores": 8, "ram_mib": 32768, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 4},
+				},
+				{
+					"version": "4.22",
+					"sno":     map[string]interface{}{"cpu_cores": 4},
+				},
+			}
+			cfg, err := configureRequirements(jsonSpec)
+			Expect(err).ToNot(HaveOccurred())
+
+			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.22.1")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+
+			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.23.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+
+			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.21.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(8))
+		})
+
+		It("should merge partial role fields and unspecified roles from default", func() {
+			jsonSpec := []map[string]interface{}{
+				{
+					"version": "default",
+					"master":  map[string]interface{}{"cpu_cores": 4, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
+					"arbiter": map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
+					"worker":  map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 3},
+					"sno":     map[string]interface{}{"cpu_cores": 8, "ram_mib": 32768, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 4},
+				},
+				{
+					"version": "4.22",
+					"sno":     map[string]interface{}{"cpu_cores": 4},
+				},
+			}
+			cfg, err := configureRequirements(jsonSpec)
+			Expect(err).ToNot(HaveOccurred())
+
+			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.22")
+			Expect(err).ToNot(HaveOccurred())
+			// sno.cpu_cores overridden; other sno fields and all other roles inherited from default
+			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(requirements.SNORequirements.RAMMib).To(BeEquivalentTo(conversions.GibToMib(32)))
+			Expect(requirements.SNORequirements.DiskSizeGb).To(BeEquivalentTo(100))
+			Expect(requirements.MasterRequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(requirements.WorkerRequirements.CPUCores).To(BeEquivalentTo(2))
 		})
 	})
 })

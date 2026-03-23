@@ -36,4 +36,10 @@
     "disk_size_gb": 15,
     "installation_disk_speed_threshold_ms": 10
   }
+},
+{
+  "version": "4.22",
+  "sno": {
+    "cpu_cores": 4
+  }
 }]

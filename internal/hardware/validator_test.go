@@ -1265,40 +1265,6 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 	})
 
-	It("should use 4 vCPU minimum for SNO master host on OCP 4.22+", func() {
-		role := models.HostRoleMaster
-		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
-		cluster.ControlPlaneCount = 1
-		cluster.OpenshiftVersion = "4.22.0"
-
-		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return([]*models.OperatorHostRequirements{}, nil)
-
-		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(result).ToNot(BeNil())
-		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(4))
-		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultSnoRam))
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize))
-	})
-
-	It("should use 8 vCPU minimum for SNO master host on OCP 4.21 and below", func() {
-		role := models.HostRoleMaster
-		id1 := strfmt.UUID(uuid.New().String())
-		host = &models.Host{ID: &id1, ClusterID: cluster.ID, Role: role}
-		cluster.ControlPlaneCount = 1
-		cluster.OpenshiftVersion = "4.21.0"
-
-		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return([]*models.OperatorHostRequirements{}, nil)
-
-		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(result).ToNot(BeNil())
-		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultSnoCores))
-	})
-
 	It("should contain correct default requirements for arbiter host", func() {
 		role := models.HostRoleArbiter
 		id1 := strfmt.UUID(uuid.New().String())
