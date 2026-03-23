@@ -96,7 +96,7 @@ var _ = Describe("Manifest generation", func() {
 		Expect(clusters).To(HaveLen(1))
 	})
 
-	It("Includes the NVIDIA GPU accelerator profile if the NVIDIA GPU operator is enabled", func() {
+	It("Includes the NVIDIA GPU hardware profile if the NVIDIA GPU operator is enabled", func() {
 		// Enable the NVIDIA GPU operator:
 		cluster.MonitoredOperators = []*models.MonitoredOperator{
 			{
@@ -109,10 +109,10 @@ var _ = Describe("Manifest generation", func() {
 		Expect(err).ToNot(HaveOccurred())
 		objects := decodeManifests(manifests)
 
-		// Try to find the accelerator profile:
+		// Try to find the hardware profile:
 		var profiles []any
 		err = jqTool.Evaluate(
-			`.[] | select(.kind == "AcceleratorProfile") | .metadata.name`,
+			`.[] | select(.kind == "HardwareProfile") | .metadata.name`,
 			objects,
 			&profiles,
 		)
@@ -120,16 +120,16 @@ var _ = Describe("Manifest generation", func() {
 		Expect(profiles).To(ContainElement("nvidia-gpu"))
 	})
 
-	It("Doesn't include the NVIDIA GPU accelerator profile if the NVIDIA GPU operator isn't enabled", func() {
+	It("Doesn't include the NVIDIA GPU hardware profile if the NVIDIA GPU operator isn't enabled", func() {
 		// Convert the manifests into a list of objects:
 		_, manifests, err := operator.GenerateManifests(cluster)
 		Expect(err).ToNot(HaveOccurred())
 		objects := decodeManifests(manifests)
 
-		// Try to find the accelerator profile:
+		// Try to find the hardware profile:
 		var names []any
 		err = jqTool.Evaluate(
-			`.[] | select(.kind == "AcceleratorProfile") | .metadata.name`,
+			`.[] | select(.kind == "HardwareProfile") | .metadata.name`,
 			objects,
 			&names,
 		)
@@ -137,7 +137,7 @@ var _ = Describe("Manifest generation", func() {
 		Expect(names).ToNot(ContainElement("nvidia-gpu"))
 	})
 
-	It("Includes the AMD GPU accelerator profile if the AMD GPU operator is enabled", func() {
+	It("Includes the AMD GPU hardware profile if the AMD GPU operator is enabled", func() {
 		// Enable the AMD GPU operator:
 		cluster.MonitoredOperators = []*models.MonitoredOperator{
 			{
@@ -150,10 +150,10 @@ var _ = Describe("Manifest generation", func() {
 		Expect(err).ToNot(HaveOccurred())
 		objects := decodeManifests(manifests)
 
-		// Try to find the accelerator profile:
+		// Try to find the hardware profile:
 		var names []string
 		err = jqTool.Evaluate(
-			`.[] | select(.kind == "AcceleratorProfile") | .metadata.name`,
+			`.[] | select(.kind == "HardwareProfile") | .metadata.name`,
 			objects,
 			&names,
 		)
@@ -161,16 +161,16 @@ var _ = Describe("Manifest generation", func() {
 		Expect(names).To(ContainElement("amd-gpu"))
 	})
 
-	It("Doesn't include the AMD GPU accelerator profile if the AMD GPU operator isn't enabled", func() {
+	It("Doesn't include the AMD GPU hardware profile if the AMD GPU operator isn't enabled", func() {
 		// Convert the manifests into a list of objects:
 		_, manifests, err := operator.GenerateManifests(cluster)
 		Expect(err).ToNot(HaveOccurred())
 		objects := decodeManifests(manifests)
 
-		// Try to find the accelerator profile:
+		// Try to find the hardware profile:
 		var names []string
 		err = jqTool.Evaluate(
-			`.[] | select(.kind == "AcceleratorProfile") | .metadata.name`,
+			`.[] | select(.kind == "HardwareProfile") | .metadata.name`,
 			objects,
 			&names,
 		)
@@ -178,8 +178,8 @@ var _ = Describe("Manifest generation", func() {
 		Expect(names).ToNot(ContainElement("amd-gpu"))
 	})
 
-	It("Includes all accelerator profiles if all GPU operators are enabled", func() {
-		// Enable the AMD GPU operator:
+	It("Includes all hardware profiles if all GPU operators are enabled", func() {
+		// Enable AMD and NVIDIA GPU operators:
 		cluster.MonitoredOperators = []*models.MonitoredOperator{
 			{
 				Name: nvidiagpu.Operator.Name,
@@ -193,10 +193,10 @@ var _ = Describe("Manifest generation", func() {
 		Expect(err).ToNot(HaveOccurred())
 		objects := decodeManifests(manifests)
 
-		// Try to find the accelerator profile:
+		// Try to find the hardware profile:
 		var names []string
 		err = jqTool.Evaluate(
-			`.[] | select(.kind == "AcceleratorProfile") | .metadata.name`,
+			`.[] | select(.kind == "HardwareProfile") | .metadata.name`,
 			objects,
 			&names,
 		)
