@@ -4,6 +4,9 @@
 package common
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 )
@@ -58,4 +61,28 @@ func MayIgnoreValidations(validationIDs []string, nonIgnorables []string) (bool,
 		}
 	}
 	return result, cantBeIgnored
+}
+
+func ParseCommaSeparatedUniqueValues(value string, itemDescription string) ([]string, error) {
+	value = strings.TrimSpace(value)
+	if value == "" {
+		return nil, nil
+	}
+
+	result := make([]string, 0)
+	seen := make(map[string]struct{})
+
+	for _, item := range strings.Split(value, ",") {
+		item = strings.TrimSpace(item)
+		if item == "" {
+			return nil, fmt.Errorf("empty %s found in '%s'", itemDescription, value)
+		}
+		if _, exists := seen[item]; exists {
+			continue
+		}
+		seen[item] = struct{}{}
+		result = append(result, item)
+	}
+
+	return result, nil
 }

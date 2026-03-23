@@ -36,30 +36,34 @@ type stringer interface {
 }
 
 type refreshPreprocessor struct {
-	log           logrus.FieldLogger
-	validations   []validation
-	conditions    []condition
-	operatorsAPI  operators.API
-	usageAPI      usage.API
-	eventsHandler eventsapi.Handler
+	log                        logrus.FieldLogger
+	validations                []validation
+	conditions                 []condition
+	operatorsAPI               operators.API
+	usageAPI                   usage.API
+	eventsHandler              eventsapi.Handler
+	disabledClusterValidations DisabledClusterValidations
 }
 
 func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsAPI operators.API, usageAPI usage.API,
-	eventsHandler eventsapi.Handler) *refreshPreprocessor {
+	eventsHandler eventsapi.Handler, disabledClusterValidations DisabledClusterValidations) *refreshPreprocessor {
 	v := clusterValidator{
 		log:     log,
 		hostAPI: hostAPI,
 	}
 
 	return &refreshPreprocessor{
-		log:           log,
-		validations:   newValidations(&v),
-		conditions:    newConditions(&v),
-		operatorsAPI:  operatorsAPI,
-		usageAPI:      usageAPI,
-		eventsHandler: eventsHandler,
+		log:                        log,
+		validations:                newValidations(&v),
+		conditions:                 newConditions(&v),
+		operatorsAPI:               operatorsAPI,
+		usageAPI:                   usageAPI,
+		eventsHandler:              eventsHandler,
+		disabledClusterValidations: disabledClusterValidations,
 	}
 }
+
+const validationDisabledByConfiguration = "Validation disabled by configuration"
 
 func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreprocessContext) (map[string]bool, map[string][]ValidationResult, error) {
 	stateMachineInput := make(map[string]bool)
@@ -69,11 +73,13 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	}
 	var ignoredValidations []string
 	var err error
+	hasPerClusterOverride := false
 	if c.cluster != nil {
 		ignoredValidations, err = common.DeserializeJSONList(c.cluster.IgnoredClusterValidations)
 		if err != nil {
 			return nil, nil, fmt.Errorf("unable to deserialize ignored cluster validations for cluster %s: %w", c.cluster.ID.String(), err)
 		}
+		hasPerClusterOverride = c.cluster.IgnoredClusterValidations != ""
 	}
 
 	//if the cluster is not on discovery stages - skip the validations check
@@ -81,8 +87,16 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		return stateMachineInput, validationsOutput, nil
 	}
 	for _, v := range r.validations {
-		st, message := v.condition(c)
-		stateMachineInput[v.id.String()] = st == ValidationSuccess
+		var st ValidationStatus
+		var message string
+		if !hasPerClusterOverride && r.disabledClusterValidations.IsDisabled(v.id) {
+			st = ValidationDisabled
+			message = validationDisabledByConfiguration
+			stateMachineInput[v.id.String()] = true
+		} else {
+			st, message = v.condition(c)
+			stateMachineInput[v.id.String()] = st == ValidationSuccess
+		}
 		var category string
 		category, err = v.id.Category()
 		if err != nil {

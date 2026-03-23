@@ -367,6 +367,20 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterInfraEnvInternal(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterInfraEnvInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterInfraEnvInternal), arg0, arg1, arg2, arg3)
 }
 
+// SetIgnoredValidationsInternal mocks base method.
+func (m *MockInstallerInternals) SetIgnoredValidationsInternal(arg0 context.Context, arg1 strfmt.UUID, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetIgnoredValidationsInternal", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetIgnoredValidationsInternal indicates an expected call of SetIgnoredValidationsInternal.
+func (mr *MockInstallerInternalsMockRecorder) SetIgnoredValidationsInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetIgnoredValidationsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).SetIgnoredValidationsInternal), arg0, arg1, arg2, arg3)
+}
+
 // TransformClusterToDay2Internal mocks base method.
 func (m *MockInstallerInternals) TransformClusterToDay2Internal(arg0 context.Context, arg1 strfmt.UUID) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

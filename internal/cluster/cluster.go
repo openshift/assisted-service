@@ -154,7 +154,32 @@ type Config struct {
 	// MonitorBlacklistDuration is how long to blacklist a cluster after a deadline is exceeded
 	MonitorBlacklistDuration time.Duration `envconfig:"CLUSTER_MONITOR_BLACKLIST_DURATION" default:"15m"`
 	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
-	MonitorCycleDeadline time.Duration `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
+	MonitorCycleDeadline       time.Duration              `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
+	DisabledClusterValidations DisabledClusterValidations `envconfig:"DISABLED_CLUSTER_VALIDATIONS" default:""`
+}
+
+type DisabledClusterValidations map[string]struct{}
+
+func (d *DisabledClusterValidations) Decode(value string) error {
+	disabledClusterValidations := DisabledClusterValidations{}
+	validationIDs, err := common.ParseCommaSeparatedUniqueValues(value, "cluster validation ID")
+	if err != nil {
+		return err
+	}
+	if len(validationIDs) == 0 {
+		*d = disabledClusterValidations
+		return nil
+	}
+	for _, element := range validationIDs {
+		disabledClusterValidations[element] = struct{}{}
+	}
+	*d = disabledClusterValidations
+	return nil
+}
+
+func (d DisabledClusterValidations) IsDisabled(id ValidationID) bool {
+	_, ok := d[id.String()]
+	return ok
 }
 
 type Manager struct {
@@ -213,7 +238,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
 		hostAPI:               hostAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler, cfg.DisabledClusterValidations),
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Time{},
 		ocmClient:             ocmClient,

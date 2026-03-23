@@ -2,11 +2,13 @@ package cluster
 
 import (
 	"context"
+	"os"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -48,6 +50,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			mockOperatorManager,
 			mockUsageApi,
 			nil,
+			DisabledClusterValidations{},
 		)
 	})
 
@@ -240,5 +243,209 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			}).First(&models.MonitoredOperator{}).Error
 			Expect(err).ToNot(HaveOccurred())
 		})
+	})
+
+	Context("Disabled Cluster Validations", func() {
+		var validationContext *clusterPreprocessContext
+
+		BeforeEach(func() {
+			createCluster()
+			validationContext = newClusterValidationContext(cluster, db)
+		})
+
+		AfterEach(func() {
+			deleteCluster()
+		})
+
+		It("Should mark disabled validations with disabled status and pass them in the state machine", func() {
+			disabledValidations := DisabledClusterValidations{
+				string(IsDNSDomainDefined):    {},
+				string(IsNtpServerConfigured): {},
+			}
+			preprocessor = newRefreshPreprocessor(
+				logrus.New(),
+				mockHostApi,
+				mockOperatorManager,
+				mockUsageApi,
+				nil,
+				disabledValidations,
+			)
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
+
+			conditions, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, disabledID := range []string{string(IsDNSDomainDefined), string(IsNtpServerConfigured)} {
+				conditionState, conditionPresent := conditions[disabledID]
+				Expect(conditionPresent).To(BeTrue(), disabledID+" was not present in conditions")
+				Expect(conditionState).To(BeTrue(), disabledID+" was not forced to true")
+			}
+
+			for _, results := range validationsOutput {
+				for _, v := range results {
+					if v.ID == IsDNSDomainDefined || v.ID == IsNtpServerConfigured {
+						Expect(v.Status).To(Equal(ValidationDisabled), string(v.ID)+" was not disabled")
+						Expect(v.Message).To(Equal(validationDisabledByConfiguration))
+					}
+				}
+			}
+		})
+
+		It("Should run non-disabled validations normally", func() {
+			disabledValidations := DisabledClusterValidations{
+				string(IsDNSDomainDefined): {},
+			}
+			preprocessor = newRefreshPreprocessor(
+				logrus.New(),
+				mockHostApi,
+				mockOperatorManager,
+				mockUsageApi,
+				nil,
+				disabledValidations,
+			)
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
+
+			_, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, results := range validationsOutput {
+				for _, v := range results {
+					if v.ID == IsNtpServerConfigured {
+						Expect(v.Status).ToNot(Equal(ValidationDisabled), "non-disabled validation should not be disabled")
+					}
+				}
+			}
+		})
+
+		It("Should work with empty disabled set", func() {
+			preprocessor = newRefreshPreprocessor(
+				logrus.New(),
+				mockHostApi,
+				mockOperatorManager,
+				mockUsageApi,
+				nil,
+				DisabledClusterValidations{},
+			)
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
+
+			_, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, results := range validationsOutput {
+				for _, v := range results {
+					Expect(v.Status).ToNot(Equal(ValidationDisabled))
+				}
+			}
+		})
+
+		It("Per-cluster ignored validations override service-level disabled validations", func() {
+			disabledValidations := DisabledClusterValidations{
+				string(IsDNSDomainDefined):    {},
+				string(IsNtpServerConfigured): {},
+				string(IsMachineCidrDefined):  {},
+			}
+			preprocessor = newRefreshPreprocessor(
+				logrus.New(),
+				mockHostApi,
+				mockOperatorManager,
+				mockUsageApi,
+				nil,
+				disabledValidations,
+			)
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
+
+			cluster.IgnoredClusterValidations = `["ntp-server-configured"]`
+			validationContext = newClusterValidationContext(cluster, db)
+
+			conditions, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, results := range validationsOutput {
+				for _, v := range results {
+					Expect(v.Status).ToNot(Equal(ValidationDisabled),
+						string(v.ID)+" should not be disabled when per-cluster override is set")
+				}
+			}
+
+			ntpCondition, ntpPresent := conditions[string(IsNtpServerConfigured)]
+			Expect(ntpPresent).To(BeTrue())
+			Expect(ntpCondition).To(BeTrue(), "ignored validation should be forced to true in state machine")
+		})
+
+		It("Per-cluster empty ignored list overrides service-level disabled validations", func() {
+			disabledValidations := DisabledClusterValidations{
+				string(IsDNSDomainDefined):    {},
+				string(IsNtpServerConfigured): {},
+			}
+			preprocessor = newRefreshPreprocessor(
+				logrus.New(),
+				mockHostApi,
+				mockOperatorManager,
+				mockUsageApi,
+				nil,
+				disabledValidations,
+			)
+			mockNoChangeInOperatorDependencies()
+			mockOperatorValidationsSuccess()
+
+			cluster.IgnoredClusterValidations = `[]`
+			validationContext = newClusterValidationContext(cluster, db)
+
+			_, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
+			Expect(err).ToNot(HaveOccurred())
+
+			for _, results := range validationsOutput {
+				for _, v := range results {
+					Expect(v.Status).ToNot(Equal(ValidationDisabled),
+						string(v.ID)+" should not be disabled when per-cluster override is explicitly empty")
+				}
+			}
+		})
+	})
+})
+
+var _ = Describe("Disabled Cluster Validation Config", func() {
+	const (
+		disabledClusterValidationEnvironmentName = "DISABLED_CLUSTER_VALIDATIONS"
+		twoValidationIDs                         = "validation-1,validation-2"
+		malformedValue                           = "validation-1,,"
+	)
+
+	AfterEach(func() {
+		os.Unsetenv(disabledClusterValidationEnvironmentName)
+	})
+
+	It("should have values when environment is defined", func() {
+		Expect(os.Setenv(disabledClusterValidationEnvironmentName, twoValidationIDs)).NotTo(HaveOccurred())
+		cfg := Config{}
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
+		Expect(cfg.DisabledClusterValidations.IsDisabled("validation-1")).To(BeTrue())
+		Expect(cfg.DisabledClusterValidations.IsDisabled("validation-2")).To(BeTrue())
+	})
+
+	It("should trim whitespace around environment values", func() {
+		Expect(os.Setenv(disabledClusterValidationEnvironmentName, "validation-1, validation-2")).NotTo(HaveOccurred())
+		cfg := Config{}
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
+		Expect(cfg.DisabledClusterValidations.IsDisabled("validation-1")).To(BeTrue())
+		Expect(cfg.DisabledClusterValidations.IsDisabled("validation-2")).To(BeTrue())
+	})
+
+	It("should have no values when environment is not defined", func() {
+		cfg := Config{}
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ToNot(HaveOccurred())
+		Expect(cfg.DisabledClusterValidations.IsDisabled("validation-1")).To(BeFalse())
+	})
+
+	It("should error when environment value is malformed", func() {
+		Expect(os.Setenv(disabledClusterValidationEnvironmentName, malformedValue)).NotTo(HaveOccurred())
+		cfg := Config{}
+		err := envconfig.Process(common.EnvConfigPrefix, &cfg)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("empty cluster validation ID found in"))
 	})
 })
