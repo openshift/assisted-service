@@ -347,9 +347,7 @@ func generateEventsURL(baseURL string, authType auth.AuthType, signParams gencry
 	return signURL(u.String(), authType, signParams.JWTKeyValue, signParams.JWTKeyType)
 }
 
-//
-//  In assisted installer, UserManagedNetworking implicates none platform.  This flag is part of AgentClusterInstall spec.
-//
+// In assisted installer, UserManagedNetworking implicates none platform.  This flag is part of AgentClusterInstall spec.
 func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1.ClusterDeployment) (isNone, propagateError bool, err error) {
 	if cd.Spec.ClusterInstallRef == nil {
 		return false, false, errors.Errorf("Cluster Install Reference is null for cluster deployment ns=%s name=%s", cd.Namespace, cd.Name)
@@ -365,9 +363,7 @@ func isNonePlatformCluster(ctx context.Context, client client.Client, cd *hivev1
 	return isUserManagedNetwork(&clusterInstall), false, nil
 }
 
-//
-//  We get first agent's cluster deployment and then we query if it belongs to none platform cluster
-//
+// We get first agent's cluster deployment and then we query if it belongs to none platform cluster
 func isAgentInNonePlatformCluster(ctx context.Context, client client.Client, agent *aiv1beta1.Agent) (isNone bool, err error) {
 	var cd hivev1.ClusterDeployment
 	if agent.Spec.ClusterDeploymentName == nil {
