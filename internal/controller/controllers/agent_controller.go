@@ -103,6 +103,7 @@ type AgentReconciler struct {
 	HostFSMountDir             string
 	reclaimer                  *agentReclaimer
 	ImageServiceEnabled        bool
+	EnableMetal3               bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -682,6 +683,9 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 }
 
 func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	if !r.EnableMetal3 {
+		return nil, nil
+	}
 	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
 	if !ok {
 		return nil, nil
@@ -698,6 +702,9 @@ func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*
 }
 
 func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	if !r.EnableMetal3 {
+		return false, nil
+	}
 	bmh, err := r.getBMH(ctx, agent)
 	if err != nil {
 		return false, err
