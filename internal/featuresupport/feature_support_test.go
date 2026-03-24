@@ -260,9 +260,9 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			),
 
 			Entry(
-				"none platform",
+				"none platform - incompatible at OCP < 4.22",
 				[]SupportLevelFeature{&NonePlatformFeature{}},
-				true,
+				false,
 			),
 
 			Entry(
@@ -283,6 +283,15 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				false,
 			),
 		)
+
+		It("none platform - compatible at OCP >= 4.22", func() {
+			activeFeatures := []SupportLevelFeature{&TnaFeature{}, &NonePlatformFeature{}}
+			Expect(
+				isFeaturesCompatibleWithFeatures(
+					common.MinimumVersionForArbiterClustersWithNonePlatform,
+					activeFeatures),
+			).ToNot(HaveOccurred())
+		})
 
 		DescribeTable(
 			"test feature architecture support",
@@ -396,12 +405,21 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			),
 
 			Entry(
-				"tech preview openshift version with none platform",
+				"unavailable - none platform with OCP version below 4.22",
 				SupportLevelFilters{
 					OpenshiftVersion: common.MinimumVersionForArbiterClusters,
 					PlatformType:     models.PlatformTypeNone.Pointer(),
 				},
-				models.SupportLevelTechPreview,
+				models.SupportLevelUnavailable,
+			),
+
+			Entry(
+				"supported - none platform with OCP version 4.22+",
+				SupportLevelFilters{
+					OpenshiftVersion: common.MinimumVersionForArbiterClustersWithNonePlatform,
+					PlatformType:     models.PlatformTypeNone.Pointer(),
+				},
+				models.SupportLevelSupported,
 			),
 
 			Entry(

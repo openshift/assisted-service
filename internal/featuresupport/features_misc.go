@@ -98,9 +98,16 @@ func (feature *TnaFeature) GetName() string {
 }
 
 func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	//TNA is only available with baremetal/none platform
-	if filters.PlatformType != nil && *filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone {
-		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+	if filters.PlatformType != nil {
+		if *filters.PlatformType != models.PlatformTypeBaremetal && *filters.PlatformType != models.PlatformTypeNone {
+			return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+		}
+		if *filters.PlatformType == models.PlatformTypeNone {
+			supportsNonePlatform, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClustersWithNonePlatform, filters.OpenshiftVersion)
+			if !supportsNonePlatform {
+				return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
+			}
+		}
 	}
 
 	// If we equal minimum version then we are in TechPreview support
@@ -116,13 +123,19 @@ func (feature *TnaFeature) getSupportLevel(filters SupportLevelFilters) (models.
 	return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
 }
 
-func (feature *TnaFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{
+func (feature *TnaFeature) getIncompatibleFeatures(openshiftVersion string) []models.FeatureSupportLevelID {
+	incompatibleFeatures := []models.FeatureSupportLevelID{
 		models.FeatureSupportLevelIDNUTANIXINTEGRATION,
 		models.FeatureSupportLevelIDVSPHEREINTEGRATION,
 		models.FeatureSupportLevelIDEXTERNALPLATFORM,
 		models.FeatureSupportLevelIDEXTERNALPLATFORMOCI,
 	}
+
+	if supportsNonePlatform, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForArbiterClustersWithNonePlatform, openshiftVersion); !supportsNonePlatform {
+		incompatibleFeatures = append(incompatibleFeatures, models.FeatureSupportLevelIDNONEPLATFORM)
+	}
+
+	return incompatibleFeatures
 }
 
 func (feature *TnaFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
