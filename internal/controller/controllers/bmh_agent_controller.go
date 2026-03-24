@@ -46,6 +46,7 @@ import (
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -1064,6 +1065,25 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// in case of converged flow set the custom deploy instead of the annotations
 	if r.ConvergedFlowEnabled {
 		if bmh.Spec.CustomDeploy == nil || bmh.Spec.CustomDeploy.Method != ASSISTED_DEPLOY_METHOD {
+			// Before setting customDeploy, verify the PreprovisioningImage has been
+			// updated by the assisted-service PPI controller with the correct ISO.
+			// Without this check, BMO may use its own IPA image (previously set on
+			// the PPI) to boot the host, causing the deploy step to fail and
+			// requiring an extra reboot cycle.
+			ppi := &bmh_v1alpha1.PreprovisioningImage{}
+			ppiKey := types.NamespacedName{Name: bmh.Name, Namespace: bmh.Namespace}
+			if err := r.Get(ctx, ppiKey, ppi); err != nil {
+				if !k8serrors.IsNotFound(err) {
+					return reconcileError{err: err}
+				}
+				log.Debug("PreprovisioningImage not found, waiting for it to be created")
+				return reconcileComplete{stop: true}
+			}
+			readyCondition := meta.FindStatusCondition(ppi.Status.Conditions, string(bmh_v1alpha1.ConditionImageReady))
+			if readyCondition == nil || readyCondition.Status != metav1.ConditionTrue || readyCondition.Reason != aiv1beta1.InfraEnvAvailableReason {
+				log.WithField("condition", readyCondition).Info("PreprovisioningImage is not ready with assisted-service image, waiting for update")
+				return reconcileComplete{stop: true}
+			}
 			log.Infof("Updating BMH CustomDeploy to %s", ASSISTED_DEPLOY_METHOD)
 			bmh.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{Method: ASSISTED_DEPLOY_METHOD}
 			dirty = true
@@ -1781,6 +1801,16 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return requests
 	}
 
+	mapPPItoBMH := func(ctx context.Context, a client.Object) []reconcile.Request {
+		// PreprovisioningImage has the same name/namespace as its owning BMH
+		return []reconcile.Request{{
+			NamespacedName: types.NamespacedName{
+				Name:      a.GetName(),
+				Namespace: a.GetNamespace(),
+			},
+		}}
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("baremetal-agent-controller").
 		WithOptions(controller.Options{MaxConcurrentReconciles: r.Config.MaxConcurrentReconciles}).
@@ -1788,6 +1818,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&aiv1beta1.Agent{}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
 		Watches(&aiv1beta1.InfraEnv{}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
 		Watches(&hivev1.ClusterDeployment{}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
+		Watches(&bmh_v1alpha1.PreprovisioningImage{}, handler.EnqueueRequestsFromMapFunc(mapPPItoBMH)).
 		Complete(r)
 }
 
