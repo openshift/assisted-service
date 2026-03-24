@@ -725,6 +725,169 @@ var _ = Describe("agent reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 			})
+
+			It("day2 - installing-pending-user-action host with node ready should reconcile to Done", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installing-pending-user-action host with node not found should keep current stage", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageWaitingForControlPlane))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installing-pending-user-action host with node not ready should set stage to Joined", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageJoined))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installed host with stale progress stage should reconcile to Done", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstalled)
+				commonHost.StatusInfo = swag.String("Done")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstalled))
+			})
 		})
 	})
 
