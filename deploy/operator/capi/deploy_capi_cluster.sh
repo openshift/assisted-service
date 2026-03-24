@@ -4,6 +4,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(realpath ${__dir}/../../..)"
 source ${__dir}/../common.sh
 source ${__dir}/../utils.sh
+source ${__dir}/../mirror_utils.sh
 
 set -x
 
@@ -65,6 +66,7 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
+    install_oc_mirrorv2
     # Disconnected hypershift requires:
     export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # 1. pull secret in hypershift namespace for the hypershift operator
@@ -82,6 +84,22 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
+  
+    # [TEMP]. mirrored release image and CAPI operator image in that release image to local mirror registry until 
+    # https://github.com/openshift/hypershift/blob/825484eb33d14b4ab849b428d134582320655fcf/support/backwardcompat/backwardcompat.go#L42 is removed
+    # This requires oc mirror v2 which copies the images along with its digest and the digest is needed because hypershift hard-coded these images
+    RELEASE_IMAGE_HCP_OVERRIDE="${RELEASE_IMAGE_HCP_OVERRIDE:-quay.io/openshift-release-dev/ocp-release@sha256:7f183e9b5610a2c9f9aabfd5906b418adfbe659f441b019933426a19bf6a5962}"
+    CAPI_IMAGE="${CAPI_IMAGE:-quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:b573d5ddf848eca57fae686f6ca2297b2424b8431bbcb08d3e2cdb19fe1a146a}"
+    cat << EOM > isc.yaml
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  additionalImages:
+  - name: ${RELEASE_IMAGE_HCP_OVERRIDE}
+  - name: ${CAPI_IMAGE}
+EOM
+    oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace file://$PWD/mirror docker://"${OCP_MIRROR_REGISTRY}" --v2
+
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
@@ -97,9 +115,11 @@ spec:
   imageDigestMirrors:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     else
@@ -112,9 +132,11 @@ spec:
   repositoryDigestMirrors:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     fi
@@ -123,9 +145,11 @@ EOM
   cat << EOM >> /tmp/ics-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
+  - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
   source: quay.io/openshift-release-dev/ocp-release
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
+  - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
