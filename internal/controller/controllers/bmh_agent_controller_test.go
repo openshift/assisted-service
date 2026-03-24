@@ -2808,7 +2808,25 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
 		})
 
-		It("should set custom deploy method in the BMH", func() {
+		It("should set custom deploy method in the BMH when PPI is ready with assisted-service image", func() {
+			// Create PPI with the Ready condition set by the assisted-service PPI controller
+			ppi := &bmh_v1alpha1.PreprovisioningImage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      host.Name,
+					Namespace: host.Namespace,
+				},
+				Status: bmh_v1alpha1.PreprovisioningImageStatus{
+					ImageUrl: isoImageURL,
+					Conditions: []metav1.Condition{
+						{
+							Type:   string(bmh_v1alpha1.ConditionImageReady),
+							Status: metav1.ConditionTrue,
+							Reason: aiv1beta1.InfraEnvAvailableReason,
+						},
+					},
+				},
+			}
+			Expect(c.Create(ctx, ppi)).To(BeNil())
 
 			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
 			Expect(c.Update(ctx, host)).To(BeNil())
@@ -2823,6 +2841,85 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 			Expect(updatedHost.Spec.CustomDeploy.Method).To(Equal(ASSISTED_DEPLOY_METHOD))
 			// check that the host isn't detached
 			Expect(updatedHost.ObjectMeta.Annotations).To(BeNil())
+		})
+
+		It("should not set custom deploy method when PPI does not exist", func() {
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
+		})
+
+		It("should not set custom deploy method when PPI is ready but set by BMO (not assisted-service)", func() {
+			// Create PPI with BMO's IPA image and BMO's Ready condition (reason=ImageSuccess)
+			ppi := &bmh_v1alpha1.PreprovisioningImage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      host.Name,
+					Namespace: host.Namespace,
+				},
+				Status: bmh_v1alpha1.PreprovisioningImageStatus{
+					ImageUrl: "http://metal3-image-customization-service.openshift-machine-api.svc.cluster.local/some-ipa-image",
+					Conditions: []metav1.Condition{
+						{
+							Type:   string(bmh_v1alpha1.ConditionImageReady),
+							Status: metav1.ConditionTrue,
+							Reason: "ImageSuccess",
+						},
+					},
+				},
+			}
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
+		})
+
+		It("should not set custom deploy method when PPI Ready condition is not true", func() {
+			// Create PPI with Ready=False (image not yet available)
+			ppi := &bmh_v1alpha1.PreprovisioningImage{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      host.Name,
+					Namespace: host.Namespace,
+				},
+				Status: bmh_v1alpha1.PreprovisioningImageStatus{
+					Conditions: []metav1.Condition{
+						{
+							Type:   string(bmh_v1alpha1.ConditionImageReady),
+							Status: metav1.ConditionFalse,
+							Reason: "WaitingForInfraEnvImageToBeCreated",
+						},
+					},
+				},
+			}
+			Expect(c.Create(ctx, ppi)).To(BeNil())
+
+			host.Spec.CustomDeploy = &bmh_v1alpha1.CustomDeploy{}
+			Expect(c.Update(ctx, host)).To(BeNil())
+
+			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+			Expect(err).To(BeNil())
+			Expect(updatedHost.Spec.CustomDeploy.Method).ToNot(Equal(ASSISTED_DEPLOY_METHOD))
 		})
 		Context("with a provisioned agent", func() {
 			var agent *v1beta1.Agent
@@ -2943,6 +3040,25 @@ var _ = Describe("bmac reconcile - converged flow enabled", func() {
 					Expect(updatedHost.Spec.CustomDeploy).To(BeNil())
 				})
 				It("resets customDeploy when the BMH is available", func() {
+					// Create PPI with the Ready condition set by assisted-service
+					ppi := &bmh_v1alpha1.PreprovisioningImage{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      host.Name,
+							Namespace: host.Namespace,
+						},
+						Status: bmh_v1alpha1.PreprovisioningImageStatus{
+							ImageUrl: isoImageURL,
+							Conditions: []metav1.Condition{
+								{
+									Type:   string(bmh_v1alpha1.ConditionImageReady),
+									Status: metav1.ConditionTrue,
+									Reason: aiv1beta1.InfraEnvAvailableReason,
+								},
+							},
+						},
+					}
+					Expect(c.Create(ctx, ppi)).To(BeNil())
+
 					host.Spec.CustomDeploy = nil
 					host.Status.Provisioning.State = bmh_v1alpha1.StateAvailable
 					Expect(c.Update(ctx, host)).To(Succeed())
