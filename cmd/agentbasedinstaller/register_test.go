@@ -14,11 +14,14 @@ import (
 	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/client"
 	installerclient "github.com/openshift/assisted-service/client/installer"
 	manifestsclient "github.com/openshift/assisted-service/client/manifests"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus/hooks/test"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var _ = Describe("ApplyInstallConfigOverrides", func() {
@@ -665,3 +668,281 @@ func (m *mockManifestTransport) SetDownloadError(errMsg string) {
 func (m *mockManifestTransport) SetCreateError(errMsg string) {
 	m.createError = fmt.Errorf("%s", errMsg)
 }
+
+var _ = Describe("processNMStateConfig", func() {
+	var (
+		infraEnv aiv1beta1.InfraEnv
+	)
+
+	BeforeEach(func() {
+		infraEnv = aiv1beta1.InfraEnv{
+			ObjectMeta: v1.ObjectMeta{
+				Name: "test-infraenv",
+			},
+			Spec: aiv1beta1.InfraEnvSpec{
+				NMStateConfigLabelSelector: v1.LabelSelector{
+					MatchLabels: map[string]string{
+						"infraenvs.agent-install.openshift.io": "test-infraenv",
+					},
+				},
+			},
+		}
+	})
+
+	Context("when NMStateConfig has matching labels", func() {
+		It("should successfully process the config and return static network config", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			nmStateConfig := aiv1beta1.NMStateConfig{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "nmstate-1",
+					Labels: map[string]string{
+						"infraenvs.agent-install.openshift.io": "test-infraenv",
+					},
+				},
+				Spec: aiv1beta1.NMStateConfigSpec{
+					NetConfig: aiv1beta1.NetConfig{
+						Raw: []byte(`{"interfaces":[{"name":"eth0","type":"ethernet"}]}`),
+					},
+				},
+			}
+
+			result, err := processNMStateConfig(fakeLogger, infraEnv, nmStateConfig)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(result).To(HaveLen(1))
+			Expect(result[0].NetworkYaml).To(Equal(`{"interfaces":[{"name":"eth0","type":"ethernet"}]}`))
+		})
+	})
+
+	Context("when NMStateConfig labels don't match InfraEnv", func() {
+		It("should return validation error", func() {
+			fakeLogger, _ := test.NewNullLogger()
+			nmStateConfig := aiv1beta1.NMStateConfig{
+				ObjectMeta: v1.ObjectMeta{
+					Name: "nmstate-1",
+					Labels: map[string]string{
+						"infraenvs.agent-install.openshift.io": "different-infraenv",
+					},
+				},
+			}
+
+			result, err := processNMStateConfig(fakeLogger, infraEnv, nmStateConfig)
+
+			Expect(err).To(HaveOccurred())
+			Expect(result).To(BeNil())
+		})
+	})
+})
+
+var _ = Describe("NMStateConfig file parsing", func() {
+	var (
+		tempDir       string
+		nmStateFile   string
+		singleDoc     string
+		multiDoc      string
+		multiDocMixed string
+	)
+
+	BeforeEach(func() {
+		var err error
+		tempDir, err = os.MkdirTemp("", "nmstate-test-*")
+		Expect(err).NotTo(HaveOccurred())
+
+		nmStateFile = filepath.Join(tempDir, "nmstate.yaml")
+
+		// Single document
+		singleDoc = `apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node1
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.10
+              prefix-length: 24
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:01"
+`
+
+		// Multi-document YAML
+		multiDoc = `apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node1
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:01"
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node2
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:02"
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node3
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:03"
+`
+
+		// Multi-document with empty documents
+		multiDocMixed = `apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node1
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:01"
+---
+---
+apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: nmstate-node2
+  labels:
+    infraenvs.agent-install.openshift.io: "test-infraenv"
+spec:
+  config:
+    interfaces:
+      - name: eth0
+        type: ethernet
+  interfaces:
+    - name: eth0
+      macAddress: "02:00:00:00:00:02"
+`
+	})
+
+	AfterEach(func() {
+		if tempDir != "" {
+			os.RemoveAll(tempDir)
+		}
+	})
+
+	Context("when file contains a single YAML document", func() {
+		It("should successfully parse and return one NMStateConfig", func() {
+			err := os.WriteFile(nmStateFile, []byte(singleDoc), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			contents, err := os.ReadFile(nmStateFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			configs, err := common.GetMultipleYamls[aiv1beta1.NMStateConfig](contents)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configs).To(HaveLen(1))
+			Expect(configs[0].Name).To(Equal("nmstate-node1"))
+			Expect(configs[0].Spec.Interfaces).To(HaveLen(1))
+			Expect(configs[0].Spec.Interfaces[0].MacAddress).To(Equal("02:00:00:00:00:01"))
+		})
+	})
+
+	Context("when file contains multiple YAML documents", func() {
+		It("should parse all documents and return all NMStateConfigs", func() {
+			err := os.WriteFile(nmStateFile, []byte(multiDoc), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			contents, err := os.ReadFile(nmStateFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			configs, err := common.GetMultipleYamls[aiv1beta1.NMStateConfig](contents)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configs).To(HaveLen(3))
+
+			Expect(configs[0].Name).To(Equal("nmstate-node1"))
+			Expect(configs[0].Spec.Interfaces[0].MacAddress).To(Equal("02:00:00:00:00:01"))
+
+			Expect(configs[1].Name).To(Equal("nmstate-node2"))
+			Expect(configs[1].Spec.Interfaces[0].MacAddress).To(Equal("02:00:00:00:00:02"))
+
+			Expect(configs[2].Name).To(Equal("nmstate-node3"))
+			Expect(configs[2].Spec.Interfaces[0].MacAddress).To(Equal("02:00:00:00:00:03"))
+		})
+
+		It("should skip empty document separators and parse valid documents", func() {
+			err := os.WriteFile(nmStateFile, []byte(multiDocMixed), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			contents, err := os.ReadFile(nmStateFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			configs, err := common.GetMultipleYamls[aiv1beta1.NMStateConfig](contents)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(configs).To(HaveLen(2))
+			Expect(configs[0].Name).To(Equal("nmstate-node1"))
+			Expect(configs[1].Name).To(Equal("nmstate-node2"))
+		})
+	})
+
+	Context("when file does not exist", func() {
+		It("should return file read error", func() {
+			nonExistentFile := filepath.Join(tempDir, "does-not-exist.yaml")
+
+			_, err := os.ReadFile(nonExistentFile)
+
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("when file contains invalid YAML", func() {
+		It("should return parsing error", func() {
+			invalidYAML := `apiVersion: agent-install.openshift.io/v1beta1
+kind: NMStateConfig
+metadata:
+  name: invalid
+  invalid: yaml: structure::`
+
+			err := os.WriteFile(nmStateFile, []byte(invalidYAML), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			contents, err := os.ReadFile(nmStateFile)
+			Expect(err).NotTo(HaveOccurred())
+
+			_, err = common.GetMultipleYamls[aiv1beta1.NMStateConfig](contents)
+
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
