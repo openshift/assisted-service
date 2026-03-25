@@ -20,16 +20,15 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -191,16 +190,12 @@ func (r *UpgradePolicyPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *UpgradePolicyPollResponse) Body() *UpgradePolicy {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *UpgradePolicyPollResponse) GetBody() (value *UpgradePolicy, ok bool) {
 	return r.response.GetBody()
 }
@@ -230,6 +225,13 @@ func (r *UpgradePolicyDeleteRequest) Parameter(name string, value interface{}) *
 // Header adds a request header.
 func (r *UpgradePolicyDeleteRequest) Header(name string, value interface{}) *UpgradePolicyDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *UpgradePolicyDeleteRequest) Impersonate(user string) *UpgradePolicyDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -265,8 +267,14 @@ func (r *UpgradePolicyDeleteRequest) SendContext(ctx context.Context) (result *U
 	result = &UpgradePolicyDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -327,6 +335,13 @@ func (r *UpgradePolicyGetRequest) Header(name string, value interface{}) *Upgrad
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *UpgradePolicyGetRequest) Impersonate(user string) *UpgradePolicyGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -359,15 +374,21 @@ func (r *UpgradePolicyGetRequest) SendContext(ctx context.Context) (result *Upgr
 	result = &UpgradePolicyGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readUpgradePolicyGetResponse(result, response.Body)
+	err = readUpgradePolicyGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -407,8 +428,6 @@ func (r *UpgradePolicyGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *UpgradePolicyGetResponse) Body() *UpgradePolicy {
 	if r == nil {
 		return nil
@@ -418,8 +437,6 @@ func (r *UpgradePolicyGetResponse) Body() *UpgradePolicy {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *UpgradePolicyGetResponse) GetBody() (value *UpgradePolicy, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -449,9 +466,14 @@ func (r *UpgradePolicyUpdateRequest) Header(name string, value interface{}) *Upg
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *UpgradePolicyUpdateRequest) Impersonate(user string) *UpgradePolicyUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *UpgradePolicyUpdateRequest) Body(value *UpgradePolicy) *UpgradePolicyUpdateRequest {
 	r.body = value
 	return r
@@ -482,7 +504,7 @@ func (r *UpgradePolicyUpdateRequest) SendContext(ctx context.Context) (result *U
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -495,29 +517,25 @@ func (r *UpgradePolicyUpdateRequest) SendContext(ctx context.Context) (result *U
 	result = &UpgradePolicyUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readUpgradePolicyUpdateResponse(result, response.Body)
+	err = readUpgradePolicyUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *UpgradePolicyUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *UpgradePolicyUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // UpgradePolicyUpdateResponse is the response for the 'update' method.
@@ -553,8 +571,6 @@ func (r *UpgradePolicyUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *UpgradePolicyUpdateResponse) Body() *UpgradePolicy {
 	if r == nil {
 		return nil
@@ -564,8 +580,6 @@ func (r *UpgradePolicyUpdateResponse) Body() *UpgradePolicy {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *UpgradePolicyUpdateResponse) GetBody() (value *UpgradePolicy, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
