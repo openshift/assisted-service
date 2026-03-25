@@ -7,6 +7,7 @@ import (
 	"io"
 	"path"
 	"regexp"
+	"strings"
 
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
@@ -70,6 +71,25 @@ func (i *internalReleaseImagePatcher) patchMirror(origMirror string, host string
 
 func (i *internalReleaseImagePatcher) patchImageMirror(mirror configv1.ImageMirror, host string) configv1.ImageMirror {
 	return configv1.ImageMirror(i.patchMirror(string(mirror), host))
+}
+
+// mirrorHasLocalhost returns true if the mirror reference uses localhost as the host.
+func mirrorHasLocalhost(m configv1.ImageMirror) bool {
+	s := string(m)
+	if idx := strings.Index(s, "/"); idx >= 0 {
+		s = s[:idx]
+	}
+	return s == "localhost" || strings.HasPrefix(s, "localhost:")
+}
+
+// mirrorsContainLocalhost returns true if any mirror in the slice uses localhost as the host.
+func mirrorsContainLocalhost(mirrors []configv1.ImageMirror) bool {
+	for _, m := range mirrors {
+		if mirrorHasLocalhost(m) {
+			return true
+		}
+	}
+	return false
 }
 
 func (i *internalReleaseImagePatcher) uploadManifests(ctx context.Context, key string, obj interface{}) error {
@@ -193,10 +213,13 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 			i.markAsPatched(&idms)
 			for j, group := range idms.Spec.ImageDigestMirrors {
 				iriMirrors := []configv1.ImageMirror{}
-				// For every mirror found, let's add another one for api-int and localhost.
+				hasLocalhost := mirrorsContainLocalhost(group.Mirrors)
+				// For every mirror found, let's add another one for api-int and localhost (if missing).
 				for _, m := range group.Mirrors {
 					iriMirrors = append(iriMirrors, i.patchImageMirror(m, i.iriRegistryDomain))
-					iriMirrors = append(iriMirrors, i.patchImageMirror(m, "localhost"))
+					if !hasLocalhost {
+						iriMirrors = append(iriMirrors, i.patchImageMirror(m, "localhost"))
+					}
 				}
 				idms.Spec.ImageDigestMirrors[j].Mirrors = append(idms.Spec.ImageDigestMirrors[j].Mirrors, iriMirrors...)
 			}
@@ -214,10 +237,13 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 			i.markAsPatched(&itms)
 			for j, group := range itms.Spec.ImageTagMirrors {
 				iriMirrors := []configv1.ImageMirror{}
-				// For every mirror found, let's add another one for api-int and localhost.
+				hasLocalhost := mirrorsContainLocalhost(group.Mirrors)
+				// For every mirror found, let's add another one for api-int and localhost (if missing).
 				for _, m := range group.Mirrors {
 					iriMirrors = append(iriMirrors, i.patchImageMirror(m, i.iriRegistryDomain))
-					iriMirrors = append(iriMirrors, i.patchImageMirror(m, "localhost"))
+					if !hasLocalhost {
+						iriMirrors = append(iriMirrors, i.patchImageMirror(m, "localhost"))
+					}
 				}
 				itms.Spec.ImageTagMirrors[j].Mirrors = append(itms.Spec.ImageTagMirrors[j].Mirrors, iriMirrors...)
 			}
