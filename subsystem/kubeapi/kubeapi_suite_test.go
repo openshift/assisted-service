@@ -3,7 +3,6 @@ package kubeapi
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	dbpkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/subsystem/utils_test"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
@@ -108,8 +108,7 @@ func init() {
 	userClientCfg := clientcfg(auth.UserAuthHeaderWriter("bearer " + Options.TestToken))
 	agentClientCfg := clientcfg(auth.AgentAuthHeaderWriter(utils_test.FakePS))
 
-	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",
-		Options.DBHost, Options.DBPort)), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(dbpkg.LibpqDSN(Options.DBHost, Options.DBPort, "admin", "admin", "installer")), &gorm.Config{})
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}
