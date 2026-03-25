@@ -20,22 +20,21 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
 
 // MachinePoolClient is the client of the 'machine_pool' resource.
 //
-// Manages a specific ingress.
+// Manages a specific machine pool.
 type MachinePoolClient struct {
 	transport http.RoundTripper
 	path      string
@@ -180,16 +179,12 @@ func (r *MachinePoolPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolPollResponse) Body() *MachinePool {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachinePoolPollResponse) GetBody() (value *MachinePool, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +214,13 @@ func (r *MachinePoolDeleteRequest) Parameter(name string, value interface{}) *Ma
 // Header adds a request header.
 func (r *MachinePoolDeleteRequest) Header(name string, value interface{}) *MachinePoolDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *MachinePoolDeleteRequest) Impersonate(user string) *MachinePoolDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +256,14 @@ func (r *MachinePoolDeleteRequest) SendContext(ctx context.Context) (result *Mac
 	result = &MachinePoolDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +324,13 @@ func (r *MachinePoolGetRequest) Header(name string, value interface{}) *MachineP
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *MachinePoolGetRequest) Impersonate(user string) *MachinePoolGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +363,21 @@ func (r *MachinePoolGetRequest) SendContext(ctx context.Context) (result *Machin
 	result = &MachinePoolGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readMachinePoolGetResponse(result, response.Body)
+	err = readMachinePoolGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +417,6 @@ func (r *MachinePoolGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolGetResponse) Body() *MachinePool {
 	if r == nil {
 		return nil
@@ -407,8 +426,6 @@ func (r *MachinePoolGetResponse) Body() *MachinePool {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachinePoolGetResponse) GetBody() (value *MachinePool, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +455,14 @@ func (r *MachinePoolUpdateRequest) Header(name string, value interface{}) *Machi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *MachinePoolUpdateRequest) Impersonate(user string) *MachinePoolUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolUpdateRequest) Body(value *MachinePool) *MachinePoolUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +493,7 @@ func (r *MachinePoolUpdateRequest) SendContext(ctx context.Context) (result *Mac
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +506,25 @@ func (r *MachinePoolUpdateRequest) SendContext(ctx context.Context) (result *Mac
 	result = &MachinePoolUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readMachinePoolUpdateResponse(result, response.Body)
+	err = readMachinePoolUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *MachinePoolUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *MachinePoolUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // MachinePoolUpdateResponse is the response for the 'update' method.
@@ -542,8 +560,6 @@ func (r *MachinePoolUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *MachinePoolUpdateResponse) Body() *MachinePool {
 	if r == nil {
 		return nil
@@ -553,8 +569,6 @@ func (r *MachinePoolUpdateResponse) Body() *MachinePool {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *MachinePoolUpdateResponse) GetBody() (value *MachinePool, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

@@ -21,7 +21,6 @@ package configuration
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -121,7 +120,7 @@ func (b *Builder) processVariableTag(node *yaml.Node) error {
 // content of the file.
 func (b *Builder) processFileTag(node *yaml.Node) error {
 	file := node.Value
-	data, err := ioutil.ReadFile(file) // #nosec G304
+	data, err := os.ReadFile(file) // #nosec G304
 	if err != nil {
 		return b.nodeError(node, "%w", err)
 	}

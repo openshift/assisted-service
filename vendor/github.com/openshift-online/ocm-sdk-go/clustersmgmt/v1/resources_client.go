@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -58,11 +60,11 @@ func (c *ResourcesClient) Get() *ResourcesGetRequest {
 	}
 }
 
-// Live returns the target 'resource' resource.
+// Live returns the target 'cluster_resources' resource.
 //
 // Retrieves a list of currently available resources for a cluster
-func (c *ResourcesClient) Live() *ResourceClient {
-	return NewResourceClient(
+func (c *ResourcesClient) Live() *ClusterResourcesClient {
+	return NewClusterResourcesClient(
 		c.transport,
 		path.Join(c.path, "live"),
 	)
@@ -169,7 +171,7 @@ func (r *ResourcesPollResponse) Error() *errors.Error {
 // Body returns the value of the 'body' parameter.
 //
 // List of cluster resources
-func (r *ResourcesPollResponse) Body() *Resource {
+func (r *ResourcesPollResponse) Body() *ClusterResources {
 	return r.response.Body()
 }
 
@@ -177,7 +179,7 @@ func (r *ResourcesPollResponse) Body() *Resource {
 // a flag indicating if the parameter has a value.
 //
 // List of cluster resources
-func (r *ResourcesPollResponse) GetBody() (value *Resource, ok bool) {
+func (r *ResourcesPollResponse) GetBody() (value *ClusterResources, ok bool) {
 	return r.response.GetBody()
 }
 
@@ -206,6 +208,13 @@ func (r *ResourcesGetRequest) Parameter(name string, value interface{}) *Resourc
 // Header adds a request header.
 func (r *ResourcesGetRequest) Header(name string, value interface{}) *ResourcesGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourcesGetRequest) Impersonate(user string) *ResourcesGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -241,15 +250,21 @@ func (r *ResourcesGetRequest) SendContext(ctx context.Context) (result *Resource
 	result = &ResourcesGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readResourcesGetResponse(result, response.Body)
+	err = readResourcesGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -261,7 +276,7 @@ type ResourcesGetResponse struct {
 	status int
 	header http.Header
 	err    *errors.Error
-	body   *Resource
+	body   *ClusterResources
 }
 
 // Status returns the response status code.
@@ -291,7 +306,7 @@ func (r *ResourcesGetResponse) Error() *errors.Error {
 // Body returns the value of the 'body' parameter.
 //
 // List of cluster resources
-func (r *ResourcesGetResponse) Body() *Resource {
+func (r *ResourcesGetResponse) Body() *ClusterResources {
 	if r == nil {
 		return nil
 	}
@@ -302,7 +317,7 @@ func (r *ResourcesGetResponse) Body() *Resource {
 // a flag indicating if the parameter has a value.
 //
 // List of cluster resources
-func (r *ResourcesGetResponse) GetBody() (value *Resource, ok bool) {
+func (r *ResourcesGetResponse) GetBody() (value *ClusterResources, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
 		value = r.body

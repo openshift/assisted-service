@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -104,6 +103,13 @@ func (r *ClustersAddRequest) Header(name string, value interface{}) *ClustersAdd
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClustersAddRequest) Impersonate(user string) *ClustersAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Description of the cluster.
@@ -137,7 +143,7 @@ func (r *ClustersAddRequest) SendContext(ctx context.Context) (result *ClustersA
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -150,29 +156,25 @@ func (r *ClustersAddRequest) SendContext(ctx context.Context) (result *ClustersA
 	result = &ClustersAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClustersAddResponse(result, response.Body)
+	err = readClustersAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *ClustersAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *ClustersAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // ClustersAddResponse is the response for the 'add' method.
@@ -253,6 +255,13 @@ func (r *ClustersListRequest) Header(name string, value interface{}) *ClustersLi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClustersListRequest) Impersonate(user string) *ClustersListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -262,10 +271,9 @@ func (r *ClustersListRequest) Header(name string, value interface{}) *ClustersLi
 // the names of the columns of a table. For example, in order to sort the clusters
 // descending by region identifier the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // region.id desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -292,10 +300,9 @@ func (r *ClustersListRequest) Page(value int) *ClustersListRequest {
 // clusters with a name starting with `my` in the `us-east-1` region the value
 // should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name like 'my%' and region.id = 'us-east-1'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // clusters that the user has permission to see will be returned.
@@ -356,15 +363,21 @@ func (r *ClustersListRequest) SendContext(ctx context.Context) (result *Clusters
 	result = &ClustersListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClustersListResponse(result, response.Body)
+	err = readClustersListResponse(result, reader)
 	if err != nil {
 		return
 	}
