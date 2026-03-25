@@ -8,11 +8,11 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"net"
+	"net/netip"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
-	"github.com/jackc/pgtype"
 	modelvalidations "github.com/openshift/assisted-service/models/validations"
 )
 
@@ -74,20 +74,18 @@ func (m *DomainResolutionRequestDomain) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// Value implements driver.Valuer for IP to convert Go string to PostgreSQL inet
+// Value implements driver.Valuer for IP to convert Go string to PostgreSQL inet.
+// Returns inet text (e.g. 203.0.113.1/32); works with database/sql drivers that accept string parameters.
 func (m IP) Value() (driver.Value, error) {
 	if m == "" {
 		return nil, nil
 	}
-
-	// Create a pgtype.Inet and set the value - it knows how to encode for PostgreSQL
-	var inet pgtype.Inet
-	if err := inet.Set(string(m)); err != nil {
+	addr, err := netip.ParseAddr(string(m))
+	if err != nil {
 		return nil, fmt.Errorf("invalid IP address %q: %w", m, err)
 	}
-
-	// Return the pgtype.Inet's driver.Value
-	return inet.Value()
+	prefix := netip.PrefixFrom(addr, addr.BitLen())
+	return prefix.String(), nil
 }
 
 // Scan implements sql.Scanner for IP to convert PostgreSQL inet to Go string
@@ -102,7 +100,6 @@ func (m *IP) Scan(value interface{}) error {
 	case []byte:
 		*m = IP(string(v))
 	case *net.IPNet:
-		// pgx may return *net.IPNet for inet columns
 		if v != nil {
 			*m = IP(v.IP.String())
 		} else {
@@ -110,46 +107,35 @@ func (m *IP) Scan(value interface{}) error {
 		}
 	case net.IP:
 		*m = IP(v.String())
-	case *pgtype.Inet:
-		// pgtype.Inet is used by pgx for inet/cidr columns
-		if v != nil && v.Status == pgtype.Present && v.IPNet != nil {
-			*m = IP(v.IPNet.IP.String())
-		} else {
+	case netip.Prefix:
+		if !v.IsValid() {
 			*m = ""
+			return nil
 		}
-	case pgtype.Inet:
-		if v.Status == pgtype.Present && v.IPNet != nil {
-			*m = IP(v.IPNet.IP.String())
-		} else {
+		*m = IP(v.Addr().String())
+	case *netip.Prefix:
+		if v == nil || !v.IsValid() {
 			*m = ""
+			return nil
 		}
+		*m = IP(v.Addr().String())
 	default:
 		return fmt.Errorf("cannot convert %T to IP", value)
 	}
 	return nil
 }
 
-// Value implements driver.Valuer for Subnet to convert Go string to PostgreSQL cidr
+// Value implements driver.Valuer for Subnet to convert Go string to PostgreSQL cidr.
 func (m Subnet) Value() (driver.Value, error) {
 	if m == "" {
 		return nil, nil
 	}
-
-	// Parse and normalize the CIDR to ensure host bits are zero
-	// This is required for PostgreSQL cidr type which is strict about network addresses
-	_, ipnet, err := net.ParseCIDR(string(m))
+	prefix, err := netip.ParsePrefix(string(m))
 	if err != nil {
 		return nil, fmt.Errorf("invalid CIDR %q: %w", m, err)
 	}
-
-	// Create a pgtype.Inet with the normalized network address
-	var inet pgtype.Inet
-	if err := inet.Set(ipnet.String()); err != nil {
-		return nil, fmt.Errorf("invalid CIDR %q: %w", m, err)
-	}
-
-	// Return the pgtype.Inet's driver.Value
-	return inet.Value()
+	prefix = prefix.Masked()
+	return prefix.String(), nil
 }
 
 // Scan implements sql.Scanner for Subnet to convert PostgreSQL cidr to Go string
@@ -164,7 +150,6 @@ func (m *Subnet) Scan(value interface{}) error {
 	case []byte:
 		*m = Subnet(string(v))
 	case *net.IPNet:
-		// pgx may return *net.IPNet for cidr columns
 		if v != nil {
 			*m = Subnet(v.String())
 		} else {
@@ -172,19 +157,18 @@ func (m *Subnet) Scan(value interface{}) error {
 		}
 	case net.IPNet:
 		*m = Subnet(v.String())
-	case *pgtype.Inet:
-		// pgtype.Inet is used by pgx for inet/cidr columns
-		if v != nil && v.Status == pgtype.Present && v.IPNet != nil {
-			*m = Subnet(v.IPNet.String())
-		} else {
+	case netip.Prefix:
+		if !v.IsValid() {
 			*m = ""
+			return nil
 		}
-	case pgtype.Inet:
-		if v.Status == pgtype.Present && v.IPNet != nil {
-			*m = Subnet(v.IPNet.String())
-		} else {
+		*m = Subnet(v.Masked().String())
+	case *netip.Prefix:
+		if v == nil || !v.IsValid() {
 			*m = ""
+			return nil
 		}
+		*m = Subnet(v.Masked().String())
 	default:
 		return fmt.Errorf("cannot convert %T to Subnet", value)
 	}

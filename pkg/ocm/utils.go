@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -92,6 +93,21 @@ func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response respo
 			}
 		}
 		return common.NewApiError(http.StatusServiceUnavailable, err)
+	}
+	// Production safeguard: newer ocm-sdk-go accountsmgmt clients can return err == nil together with an HTTP
+	// error status when the response body is empty — SendContext uses Peek(1); on io.EOF it returns before
+	// unmarshalling an errors.Error (see e.g. accountsmgmt/v1 subscription_client.go SubscriptionUpdateRequest.SendContext).
+	// Callers must treat non-success HTTP status as failure even when err is nil.
+	if response != nil {
+		st := response.Status()
+		if st >= 400 {
+			oerr := fmt.Errorf("%s request failed with HTTP status %d", requestType, st)
+			log.Error(ctx, "OCM %s returned HTTP status %d", requestType, st)
+			if st < 500 {
+				return common.NewInfraError(http.StatusUnauthorized, oerr)
+			}
+			return common.NewApiError(http.StatusServiceUnavailable, oerr)
+		}
 	}
 	return nil
 }
