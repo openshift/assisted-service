@@ -50,15 +50,15 @@ import (
 // To calculate the average request duration during the last 10 minutes, for example, use a
 // Prometheus expression like this:
 //
-//      rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
+//	rate(api_outbound_request_duration_sum[10m]) / rate(api_outbound_request_duration_count[10m])
 //
 // In order to reduce the cardinality of the metrics the path label is modified to remove the
 // identifiers of the objects. For example, if the original path is .../clusters/123 then it will
 // be replaced by .../clusters/-, and the values will be accumulated. The line returned by the
 // metrics server will be like this:
 //
-//      <subsystem>_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-",
-//		apiservice="ocm-clusters-service"} 56
+//	     <subsystem>_request_count{code="200",method="GET",path="/api/clusters_mgmt/v1/clusters/-",
+//			apiservice="ocm-clusters-service"} 56
 //
 // The meaning of that is that there were a total of 56 requests to get specific clusters,
 // independently of the specific identifier of the cluster.
@@ -169,7 +169,7 @@ func (b *HandlerWrapperBuilder) Build() (result *HandlerWrapper, err error) {
 		registered, ok := err.(prometheus.AlreadyRegisteredError)
 		if ok {
 			requestCount = registered.ExistingCollector.(*prometheus.CounterVec)
-			err = nil
+			err = nil //nolint:all
 		} else {
 			return
 		}

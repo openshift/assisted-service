@@ -84,6 +84,32 @@ var (
 	subscriptionPath string = filepath.Join(subscriptionPrefix, FakeSubscriptionID.String())
 )
 
+// subscriptionPatchWiremockResponse builds PATCH stub bodies: success uses subscription JSON; HTTP errors use
+// ocm-sdk Error JSON so UnmarshalErrorStatus succeeds (subscription-shaped 401 bodies break parsing and UTF-8 DB writes).
+func subscriptionPatchWiremockResponse(resStatus int, ok subscription) (string, error) {
+	if resStatus >= http.StatusBadRequest {
+		payload := struct {
+			Kind   string `json:"kind"`
+			ID     string `json:"id"`
+			Href   string `json:"href"`
+			Code   string `json:"code"`
+			Reason string `json:"reason"`
+			Status int    `json:"status"`
+		}{
+			Kind:   "Error",
+			ID:     "subsystem-wiremock",
+			Href:   "/api/accounts_mgmt/v1/errors/subsystem-wiremock",
+			Code:   "SUBSCRIPTION_UPDATE_FAILED",
+			Reason: "WireMock simulated subscription PATCH failure (subsystem)",
+			Status: resStatus,
+		}
+		b, err := json.Marshal(payload)
+		return string(b), err
+	}
+	b, err := json.Marshal(ok)
+	return string(b), err
+}
+
 func (w *WireMock) CreateWiremockStubsForOCM() error {
 	if err := w.createStubsForAccessReview(); err != nil {
 		return err
@@ -209,6 +235,15 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 	if _, err := w.createStubMultiarchCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
 		return err
 	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadUsername2, OrgId2, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadClusterEditor, OrgId1, false); err != nil {
+		return err
+	}
 	if _, err := w.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
 		return err
 	}
@@ -219,6 +254,9 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 		return err
 	}
 	if _, err := w.createStubAccountsMgmt(fakePayloadUsername2, OrgId2); err != nil {
+		return err
+	}
+	if _, err := w.createStubAccountsMgmt(fakePayloadClusterEditor, OrgId1); err != nil {
 		return err
 	}
 	return nil
@@ -317,13 +355,12 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 
@@ -347,43 +384,45 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 
 	case subscriptionUpdateOpenshiftClusterID:
 
-		type subscriptionUpdateRequest struct {
-			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
-		}
-
-		subRequest := subscriptionUpdateRequest{
-			ExternalClusterID: "${json-unit.any-string}",
-		}
-
 		subResponse := subscription{
 			ID: FakeSubscriptionID,
 		}
 
-		var reqBody []byte
-		reqBody, err := json.Marshal(subRequest)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		// matchesJsonPath matches PATCH bodies produced across ocm-sdk-go / ocm-api-model versions (they always
+		// include "kind" and may add fields). equalToJson against a minimal template is brittle and can let older
+		// duplicate 200 stubs win over a newly added 401 stub when many mappings accumulate.
+		amsSubscriptionStub := &StubDefinition{
+			Request: &RequestDefinition{
+				URL:    subscriptionPath,
+				Method: "PATCH",
+				BodyPatterns: []map[string]string{
+					{"matchesJsonPath": "$.external_cluster_id"},
+				},
+			},
+			Response: &ResponseDefinition{
+				Status: resStatus,
+				Body:   resBodyStr,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+			},
 		}
-
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 
@@ -407,13 +446,12 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 
@@ -530,6 +568,31 @@ func (w *WireMock) createStubIgnoreValidationsCapabilityReview(username string, 
 
 	capabilityRequest := CapabilityRequest{
 		Name:     ocm.IgnoreValidationsCapabilityName,
+		Type:     ocm.OrganizationCapabilityType,
+		Username: username,
+		Org:      orgId,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Result: strconv.FormatBool(result),
+	}
+	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+}
+
+func (w *WireMock) createStubSoftTimeoutsOrgCapabilityReview(username string, orgId string, result bool) (string, error) {
+	type CapabilityRequest struct {
+		Name     string `json:"capability"`
+		Type     string `json:"type"`
+		Username string `json:"account_username"`
+		Org      string `json:"organization_id"`
+	}
+
+	type CapabilityResponse struct {
+		Result string `json:"result"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Name:     ocm.SoftTimeoutsCapabilityName,
 		Type:     ocm.OrganizationCapabilityType,
 		Username: username,
 		Org:      orgId,
