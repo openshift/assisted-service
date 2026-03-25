@@ -20,14 +20,13 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -52,9 +51,9 @@ func NewVpcsInquiryClient(transport http.RoundTripper, path string) *VpcsInquiry
 
 // Search creates a request for the 'search' method.
 //
-// Retrieves the list of available regions of the cloud provider.
+// Retrieves the list of available vpcs of the cloud provider for specific region.
 // IMPORTANT: This collection doesn't currently support paging or searching, so the returned
-// `page` will always be 1 and `size` and `total` will always be the total number of available regions
+// `page` will always be 1 and `size` and `total` will always be the total number of available vpcs
 // of the provider.
 func (c *VpcsInquiryClient) Search() *VpcsInquirySearchRequest {
 	return &VpcsInquirySearchRequest{
@@ -86,6 +85,13 @@ func (r *VpcsInquirySearchRequest) Header(name string, value interface{}) *VpcsI
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *VpcsInquirySearchRequest) Impersonate(user string) *VpcsInquirySearchRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Cloud provider data needed for the inquiry
@@ -107,7 +113,7 @@ func (r *VpcsInquirySearchRequest) Page(value int) *VpcsInquirySearchRequest {
 //
 // Number of items that will be contained in the returned page. As this collection
 // doesn't support paging or searching the result will always be the total number of
-// regions of the provider.
+// vpcs of the provider.
 func (r *VpcsInquirySearchRequest) Size(value int) *VpcsInquirySearchRequest {
 	r.size = &value
 	return r
@@ -144,7 +150,7 @@ func (r *VpcsInquirySearchRequest) SendContext(ctx context.Context) (result *Vpc
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -157,29 +163,25 @@ func (r *VpcsInquirySearchRequest) SendContext(ctx context.Context) (result *Vpc
 	result = &VpcsInquirySearchResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readVpcsInquirySearchResponse(result, response.Body)
+	err = readVpcsInquirySearchResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'search' method.
-func (r *VpcsInquirySearchRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *VpcsInquirySearchRequest) stream(stream *jsoniter.Stream) {
 }
 
 // VpcsInquirySearchResponse is the response for the 'search' method.
@@ -267,7 +269,7 @@ func (r *VpcsInquirySearchResponse) GetPage() (value int, ok bool) {
 //
 // Number of items that will be contained in the returned page. As this collection
 // doesn't support paging or searching the result will always be the total number of
-// regions of the provider.
+// vpcs of the provider.
 func (r *VpcsInquirySearchResponse) Size() int {
 	if r != nil && r.size != nil {
 		return *r.size
@@ -280,7 +282,7 @@ func (r *VpcsInquirySearchResponse) Size() int {
 //
 // Number of items that will be contained in the returned page. As this collection
 // doesn't support paging or searching the result will always be the total number of
-// regions of the provider.
+// vpcs of the provider.
 func (r *VpcsInquirySearchResponse) GetSize() (value int, ok bool) {
 	ok = r != nil && r.size != nil
 	if ok {
@@ -293,7 +295,7 @@ func (r *VpcsInquirySearchResponse) GetSize() (value int, ok bool) {
 //
 // Total number of items of the collection that match the search criteria,
 // regardless of the size of the page. As this collection doesn't support paging or
-// searching the result will always be the total number of available regions of the provider.
+// searching the result will always be the total number of available vpcs of the provider.
 func (r *VpcsInquirySearchResponse) Total() int {
 	if r != nil && r.total != nil {
 		return *r.total
@@ -306,7 +308,7 @@ func (r *VpcsInquirySearchResponse) Total() int {
 //
 // Total number of items of the collection that match the search criteria,
 // regardless of the size of the page. As this collection doesn't support paging or
-// searching the result will always be the total number of available regions of the provider.
+// searching the result will always be the total number of available vpcs of the provider.
 func (r *VpcsInquirySearchResponse) GetTotal() (value int, ok bool) {
 	ok = r != nil && r.total != nil
 	if ok {

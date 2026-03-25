@@ -5686,8 +5686,15 @@ spec:
 			}
 
 			Eventually(func() error {
-				agent.Spec.Approved = true
-				return kubeClient.Update(ctx, agent)
+				latestAgent := getAgentCRD(ctx, kubeClient, hostkey)
+				if latestAgent == nil {
+					return fmt.Errorf("failed to get agent %s", host.ID.String())
+				}
+				if latestAgent.Spec.Approved {
+					return nil
+				}
+				latestAgent.Spec.Approved = true
+				return kubeClient.Update(ctx, latestAgent)
 			}, "30s", "10s").Should(BeNil())
 		}
 

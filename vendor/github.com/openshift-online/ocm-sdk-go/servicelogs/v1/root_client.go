@@ -59,3 +59,13 @@ func (c *Client) ClusterLogs() *ClusterLogsClient {
 		path.Join(c.path, "cluster_logs"),
 	)
 }
+
+// Clusters returns the target 'clusters' resource.
+//
+// Reference to the resource that manages the collection of clusters for clusters logs.
+func (c *Client) Clusters() *ClustersClient {
+	return NewClustersClient(
+		c.transport,
+		path.Join(c.path, "clusters"),
+	)
+}
