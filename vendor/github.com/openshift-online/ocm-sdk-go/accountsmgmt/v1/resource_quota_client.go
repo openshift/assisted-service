@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"time"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -180,16 +179,12 @@ func (r *ResourceQuotaPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ResourceQuotaPollResponse) Body() *ResourceQuota {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ResourceQuotaPollResponse) GetBody() (value *ResourceQuota, ok bool) {
 	return r.response.GetBody()
 }
@@ -219,6 +214,13 @@ func (r *ResourceQuotaDeleteRequest) Parameter(name string, value interface{}) *
 // Header adds a request header.
 func (r *ResourceQuotaDeleteRequest) Header(name string, value interface{}) *ResourceQuotaDeleteRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourceQuotaDeleteRequest) Impersonate(user string) *ResourceQuotaDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -254,8 +256,14 @@ func (r *ResourceQuotaDeleteRequest) SendContext(ctx context.Context) (result *R
 	result = &ResourceQuotaDeleteResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
@@ -316,6 +324,13 @@ func (r *ResourceQuotaGetRequest) Header(name string, value interface{}) *Resour
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourceQuotaGetRequest) Impersonate(user string) *ResourceQuotaGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -348,15 +363,21 @@ func (r *ResourceQuotaGetRequest) SendContext(ctx context.Context) (result *Reso
 	result = &ResourceQuotaGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readResourceQuotaGetResponse(result, response.Body)
+	err = readResourceQuotaGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -396,8 +417,6 @@ func (r *ResourceQuotaGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ResourceQuotaGetResponse) Body() *ResourceQuota {
 	if r == nil {
 		return nil
@@ -407,8 +426,6 @@ func (r *ResourceQuotaGetResponse) Body() *ResourceQuota {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ResourceQuotaGetResponse) GetBody() (value *ResourceQuota, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
@@ -438,9 +455,14 @@ func (r *ResourceQuotaUpdateRequest) Header(name string, value interface{}) *Res
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourceQuotaUpdateRequest) Impersonate(user string) *ResourceQuotaUpdateRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
-//
-//
 func (r *ResourceQuotaUpdateRequest) Body(value *ResourceQuota) *ResourceQuotaUpdateRequest {
 	r.body = value
 	return r
@@ -471,7 +493,7 @@ func (r *ResourceQuotaUpdateRequest) SendContext(ctx context.Context) (result *R
 		Method: "PATCH",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -484,29 +506,25 @@ func (r *ResourceQuotaUpdateRequest) SendContext(ctx context.Context) (result *R
 	result = &ResourceQuotaUpdateResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readResourceQuotaUpdateResponse(result, response.Body)
+	err = readResourceQuotaUpdateResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'update' method.
-func (r *ResourceQuotaUpdateRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *ResourceQuotaUpdateRequest) stream(stream *jsoniter.Stream) {
 }
 
 // ResourceQuotaUpdateResponse is the response for the 'update' method.
@@ -542,8 +560,6 @@ func (r *ResourceQuotaUpdateResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *ResourceQuotaUpdateResponse) Body() *ResourceQuota {
 	if r == nil {
 		return nil
@@ -553,8 +569,6 @@ func (r *ResourceQuotaUpdateResponse) Body() *ResourceQuota {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *ResourceQuotaUpdateResponse) GetBody() (value *ResourceQuota, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

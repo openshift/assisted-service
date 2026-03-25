@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -44,6 +46,16 @@ func NewRegistryCredentialClient(transport http.RoundTripper, path string) *Regi
 	return &RegistryCredentialClient{
 		transport: transport,
 		path:      path,
+	}
+}
+
+// Delete creates a request for the 'delete' method.
+//
+// Delete the registry credential
+func (c *RegistryCredentialClient) Delete() *RegistryCredentialDeleteRequest {
+	return &RegistryCredentialDeleteRequest{
+		transport: c.transport,
+		path:      c.path,
 	}
 }
 
@@ -156,16 +168,12 @@ func (r *RegistryCredentialPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RegistryCredentialPollResponse) Body() *RegistryCredential {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RegistryCredentialPollResponse) GetBody() (value *RegistryCredential, ok bool) {
 	return r.response.GetBody()
 }
@@ -176,6 +184,113 @@ func (c *RegistryCredentialClient) Poll() *RegistryCredentialPollRequest {
 	return &RegistryCredentialPollRequest{
 		request: c.Get(),
 	}
+}
+
+// RegistryCredentialDeleteRequest is the request for the 'delete' method.
+type RegistryCredentialDeleteRequest struct {
+	transport http.RoundTripper
+	path      string
+	query     url.Values
+	header    http.Header
+}
+
+// Parameter adds a query parameter.
+func (r *RegistryCredentialDeleteRequest) Parameter(name string, value interface{}) *RegistryCredentialDeleteRequest {
+	helpers.AddValue(&r.query, name, value)
+	return r
+}
+
+// Header adds a request header.
+func (r *RegistryCredentialDeleteRequest) Header(name string, value interface{}) *RegistryCredentialDeleteRequest {
+	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RegistryCredentialDeleteRequest) Impersonate(user string) *RegistryCredentialDeleteRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// Send sends this request, waits for the response, and returns it.
+//
+// This is a potentially lengthy operation, as it requires network communication.
+// Consider using a context and the SendContext method.
+func (r *RegistryCredentialDeleteRequest) Send() (result *RegistryCredentialDeleteResponse, err error) {
+	return r.SendContext(context.Background())
+}
+
+// SendContext sends this request, waits for the response, and returns it.
+func (r *RegistryCredentialDeleteRequest) SendContext(ctx context.Context) (result *RegistryCredentialDeleteResponse, err error) {
+	query := helpers.CopyQuery(r.query)
+	header := helpers.CopyHeader(r.header)
+	uri := &url.URL{
+		Path:     r.path,
+		RawQuery: query.Encode(),
+	}
+	request := &http.Request{
+		Method: "DELETE",
+		URL:    uri,
+		Header: header,
+	}
+	if ctx != nil {
+		request = request.WithContext(ctx)
+	}
+	response, err := r.transport.RoundTrip(request)
+	if err != nil {
+		return
+	}
+	defer response.Body.Close()
+	result = &RegistryCredentialDeleteResponse{}
+	result.status = response.StatusCode
+	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
+	if result.status >= 400 {
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
+		if err != nil {
+			return
+		}
+		err = result.err
+		return
+	}
+	return
+}
+
+// RegistryCredentialDeleteResponse is the response for the 'delete' method.
+type RegistryCredentialDeleteResponse struct {
+	status int
+	header http.Header
+	err    *errors.Error
+}
+
+// Status returns the response status code.
+func (r *RegistryCredentialDeleteResponse) Status() int {
+	if r == nil {
+		return 0
+	}
+	return r.status
+}
+
+// Header returns header of the response.
+func (r *RegistryCredentialDeleteResponse) Header() http.Header {
+	if r == nil {
+		return nil
+	}
+	return r.header
+}
+
+// Error returns the response error.
+func (r *RegistryCredentialDeleteResponse) Error() *errors.Error {
+	if r == nil {
+		return nil
+	}
+	return r.err
 }
 
 // RegistryCredentialGetRequest is the request for the 'get' method.
@@ -195,6 +310,13 @@ func (r *RegistryCredentialGetRequest) Parameter(name string, value interface{})
 // Header adds a request header.
 func (r *RegistryCredentialGetRequest) Header(name string, value interface{}) *RegistryCredentialGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RegistryCredentialGetRequest) Impersonate(user string) *RegistryCredentialGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -230,15 +352,21 @@ func (r *RegistryCredentialGetRequest) SendContext(ctx context.Context) (result 
 	result = &RegistryCredentialGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRegistryCredentialGetResponse(result, response.Body)
+	err = readRegistryCredentialGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -278,8 +406,6 @@ func (r *RegistryCredentialGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *RegistryCredentialGetResponse) Body() *RegistryCredential {
 	if r == nil {
 		return nil
@@ -289,8 +415,6 @@ func (r *RegistryCredentialGetResponse) Body() *RegistryCredential {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *RegistryCredentialGetResponse) GetBody() (value *RegistryCredential, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

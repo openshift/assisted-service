@@ -72,7 +72,7 @@ limitations under the License.
 // This can be used with the following Go code:
 //
 //	type MyConfig struct {
-// 		MyId      int  `yaml:"myid"`
+//		MyId      int  `yaml:"myid"`
 //		MyEnabled bool `yaml:"myenabled"`
 //	}
 //	var myCfg MyConfig

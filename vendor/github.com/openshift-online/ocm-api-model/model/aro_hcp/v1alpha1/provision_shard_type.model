@@ -1,0 +1,67 @@
+/*
+Copyright (c) 2026 Red Hat, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
+// Contains the properties of the provision shard
+class ProvisionShard {
+	// Contains the cloud-provider region in which the provisioner spins up the cluster.
+	// Required during creation.
+	// Immutable.
+	link Region CloudRegion
+
+	// Contains the cloud provider name.
+	// Required during creation.
+	// Immutable.
+	link CloudProvider CloudProvider
+
+	// Topology sets how the control plane workloads that are request serving
+	// (those receiving communication from outside the control plane)
+	// are mapped to Nodes in the control plane K8s Cluster.
+	// Required during creation.
+	Topology String
+
+	// The Azure related configuration of the Provision Shard.
+	// Required during creation.
+	AzureShard AzureShard
+
+	// The Maestro related configuration of the Provision Shard.
+	// Required during creation.
+	MaestroConfig ProvisionShardMaestroConfig
+
+	// Status of the provision shard.
+	// Optional. By default it is set to `maintenance`.
+	// During creation the possible values are: `maintenance`.
+	// During update the possible values are: `active`, `maintenance`, `offline`.
+	// Adding a new shard and activating it requires creating it
+	// in `maintenance` status and then perform an aditional update call setting it
+	// to `active` status.
+	// A shard in `active` status is available for selection when a Cluster needs
+	// to be allocated to a shard.
+	// A shard in `maintenance` status is not available for selection when a Cluster
+	// needs to be allocated to a shard.
+	// A shard in `offline` status is not available for selection when a Cluster
+	// needs to be allocated to a shard.
+	Status String
+
+	// Date and time when the provision shard was initially created, using the
+	// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+	// Readonly.
+	CreationTimestamp Date
+
+	// Date and time when the provision shard was last updated, using the
+	// format defined in [RFC3339](https://www.ietf.org/rfc/rfc3339.txt).
+	// Readonly.
+	LastUpdateTimestamp Date
+}
