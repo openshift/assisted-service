@@ -17,6 +17,7 @@ package provisioning
 
 import (
 	"crypto/rand"
+	"fmt"
 	"math/big"
 	"time"
 
@@ -32,8 +33,8 @@ type TlsCertificate struct {
 }
 
 const (
-	tlsExpirationDays = 365 * 2
-	tlsRefreshDays    = 180
+	tlsExpiration = 365 * 2 * 24 * time.Hour // 2 years
+	tlsRefresh    = 180 * 24 * time.Hour     // 180 days
 )
 
 func generateRandomPassword() (string, error) {
@@ -53,8 +54,12 @@ func generateRandomPassword() (string, error) {
 	return string(buf), nil
 }
 
-func generateTlsCertificate(provisioningIP string) (TlsCertificate, error) {
-	caConfig, err := crypto.MakeSelfSignedCAConfig("metal3-ironic", tlsExpirationDays)
+func generateTlsCertificate(hosts sets.Set[string]) (TlsCertificate, error) {
+	if hosts.Len() == 0 {
+		return TlsCertificate{}, fmt.Errorf("at least one Subject Alternative Name (SAN) host is required for TLS certificate generation")
+	}
+
+	caConfig, err := crypto.MakeSelfSignedCAConfig("metal3-ironic", tlsExpiration)
 	if err != nil {
 		return TlsCertificate{}, err
 	}
@@ -64,14 +69,7 @@ func generateTlsCertificate(provisioningIP string) (TlsCertificate, error) {
 		SerialGenerator: &crypto.RandomSerialGenerator{},
 	}
 
-	var host string
-	if provisioningIP == "" {
-		host = "localhost"
-	} else {
-		host = provisioningIP
-	}
-
-	config, err := ca.MakeServerCert(sets.NewString(host), tlsExpirationDays)
+	config, err := ca.MakeServerCert(hosts, tlsExpiration)
 	if err != nil {
 		return TlsCertificate{}, err
 	}
@@ -93,7 +91,7 @@ func isTlsCertificateExpired(certificate []byte) (bool, error) {
 		return false, err
 	}
 
-	refreshAfter := time.Now().AddDate(0, 0, tlsRefreshDays)
+	refreshAfter := time.Now().Add(tlsRefresh)
 	for _, cert := range certs {
 		if cert.NotAfter.Before(refreshAfter) {
 			return true, nil
@@ -101,4 +99,27 @@ func isTlsCertificateExpired(certificate []byte) (bool, error) {
 	}
 
 	return false, nil
+}
+
+// tlsCertificateSANsMatch checks whether the SANs in the existing certificate
+// match the expected hosts. Returns false if they differ (certificate is stale).
+func tlsCertificateSANsMatch(certificate []byte, expectedHosts sets.Set[string]) (bool, error) {
+	certs, err := cert.ParseCertsPEM(certificate)
+	if err != nil {
+		return false, err
+	}
+	if len(certs) == 0 {
+		return false, nil
+	}
+
+	serverCert := certs[0]
+	certHosts := sets.New[string]()
+	for _, name := range serverCert.DNSNames {
+		certHosts.Insert(name)
+	}
+	for _, ip := range serverCert.IPAddresses {
+		certHosts.Insert(ip.String())
+	}
+
+	return certHosts.Equal(expectedHosts), nil
 }

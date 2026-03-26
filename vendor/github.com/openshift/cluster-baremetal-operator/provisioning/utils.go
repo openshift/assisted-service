@@ -76,26 +76,29 @@ func getPodIPs(podClient coreclientv1.PodsGetter, targetNamespace string) (ips [
 }
 
 // getServerInternalIPs returns virtual IPs on which Kubernetes is accessible.
-// These are the IPs on which the proxied services (currently Ironic and Inspector) should be accessed by external consumers.
+// These are the IPs on which the proxied services (currently Ironic) should be accessed by external consumers.
 func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 	infra, err := osclient.ConfigV1().Infrastructures().Get(context.Background(), "cluster", metav1.GetOptions{})
 	if err != nil {
-		err = fmt.Errorf("Cannot get the 'cluster' object from infrastructure API: %w", err)
+		err = fmt.Errorf("cannot get the 'cluster' object from infrastructure API: %w", err)
 		return nil, err
+	}
+	if infra.Status.PlatformStatus == nil {
+		return nil, nil
 	}
 	switch infra.Status.PlatformStatus.Type {
 	case osconfigv1.BareMetalPlatformType:
-		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.BareMetal == nil {
+		if infra.Status.PlatformStatus.BareMetal == nil {
 			return nil, nil
 		}
 		return infra.Status.PlatformStatus.BareMetal.APIServerInternalIPs, nil
 	case osconfigv1.OpenStackPlatformType:
-		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.OpenStack == nil {
+		if infra.Status.PlatformStatus.OpenStack == nil {
 			return nil, nil
 		}
 		return infra.Status.PlatformStatus.OpenStack.APIServerInternalIPs, nil
 	case osconfigv1.VSpherePlatformType:
-		if infra.Status.PlatformStatus == nil || infra.Status.PlatformStatus.VSphere == nil {
+		if infra.Status.PlatformStatus.VSphere == nil {
 			return nil, nil
 		}
 		return infra.Status.PlatformStatus.VSphere.APIServerInternalIPs, nil
@@ -105,10 +108,12 @@ func getServerInternalIPs(osclient osclientset.Interface) ([]string, error) {
 		return nil, nil
 	case osconfigv1.GCPPlatformType:
 		return nil, nil
+	case osconfigv1.KubevirtPlatformType:
+		return nil, nil
 	case osconfigv1.NonePlatformType:
 		return nil, nil
 	default:
-		err = fmt.Errorf("Cannot detect server API VIP: Attribute not supported on platform: %v", infra.Status.PlatformStatus.Type)
+		err = fmt.Errorf("cannot detect server API VIP: attribute not supported on platform: %v", infra.Status.PlatformStatus.Type)
 		return nil, err
 	}
 }
@@ -126,13 +131,19 @@ func GetRealIronicIPs(info *ProvisioningInfo) ([]string, error) {
 
 // GetIronicIPs returns Ironic IPs for external consumption, potentially behind an HA proxy.
 // Without a proxy, the provisioning IP is used when present and not disallowed for virtual media via configuration.
-func GetIronicIPs(info *ProvisioningInfo) (ironicIPs []string, inspectorIPs []string, err error) {
+func GetIronicIPs(info *ProvisioningInfo) (ironicIPs []string, err error) {
+	externalIPs := info.ProvConfig.Spec.ExternalIPs
+	if len(externalIPs) > 0 {
+		ironicIPs = externalIPs
+		return ironicIPs, nil
+	}
+
 	podIPs, err := GetRealIronicIPs(info)
 	if err != nil {
 		return
 	}
 
-	if UseIronicProxy(&info.ProvConfig.Spec) {
+	if UseIronicProxy(info) {
 		ironicIPs, err = getServerInternalIPs(info.OSClient)
 		if err != nil {
 			err = fmt.Errorf("error fetching internalIPs: %w", err)
@@ -146,8 +157,21 @@ func GetIronicIPs(info *ProvisioningInfo) (ironicIPs []string, inspectorIPs []st
 		ironicIPs = podIPs
 	}
 
-	inspectorIPs = ironicIPs // keep returning separate variables for future enhancements
-	return ironicIPs, inspectorIPs, err
+	return ironicIPs, err
+}
+
+func GetImageServerIPs(info *ProvisioningInfo) (imageServerIPs []string, err error) {
+	if len(info.ProvConfig.Spec.ExternalIPs) > 0 {
+		imageServerIPs = info.ProvConfig.Spec.ExternalIPs
+		return imageServerIPs, nil
+	}
+
+	imageServerIPs, err = GetRealIronicIPs(info)
+	if err != nil {
+		return []string{}, fmt.Errorf("failed to get real Ironic IP when setting external url: %w", err)
+	}
+
+	return imageServerIPs, nil
 }
 
 func IpOptionForProvisioning(config *metal3iov1alpha1.ProvisioningSpec, networkStack NetworkStackType) string {

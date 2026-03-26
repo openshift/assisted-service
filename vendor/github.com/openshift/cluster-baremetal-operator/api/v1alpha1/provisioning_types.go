@@ -67,6 +67,36 @@ type PreProvisioningOSDownloadURLs struct {
 	RootfsURL string `json:"rootfsURL,omitempty"`
 }
 
+// UnsupportedConfigOverrides define possible overrides that are not officially
+// supported and may break the deployment
+type UnsupportedConfigOverrides struct {
+	// Override for the IPA container image.
+	// The image must be based on openshift/ironic-agent-image of the same
+	// release as the cluster. After each cluster upgrade, it must be
+	// rebased and updated immediately, before any BareMetalHosts are
+	// enrolled, provisioned or deprovisioned.
+	IronicAgentImage string `json:"ironicAgentImage,omitempty"`
+}
+
+// PrometheusExporter defines configuration for Prometheus metrics export
+type PrometheusExporter struct {
+	// Enabled controls whether sensor data collection is active.
+	// When true, configures Ironic to collect sensor data, deploys the
+	// ironic-prometheus-exporter container, and creates supporting resources.
+	Enabled bool `json:"enabled"`
+
+	// SensorCollectionInterval defines how often (in seconds) sensor data
+	// is collected from BMCs using Ironic. Must be at least 60 seconds.
+	// +kubebuilder:default=60
+	// +kubebuilder:validation:Minimum=60
+	SensorCollectionInterval int `json:"sensorCollectionInterval,omitempty"`
+
+	// DisableDefaultPrometheusRules controls whether default hardware health
+	// alerting rules should NOT be deployed alongside the prometheus exporter.
+	// When false (default), default prometheus rules are deployed.
+	DisableDefaultPrometheusRules bool `json:"disableDefaultPrometheusRules,omitempty"`
+}
+
 // ProvisioningSpec defines the desired state of Provisioning
 type ProvisioningSpec struct {
 	// ProvisioningInterface is the name of the network interface
@@ -147,6 +177,10 @@ type ProvisioningSpec struct {
 	// for layered products (e.g. ZTP).
 	ProvisioningDNS bool `json:"provisioningDNS,omitempty"`
 
+	// AdditionalNTPServers is a list of NTP Servers to be used by the
+	// provisioning service
+	AdditionalNTPServers []string `json:"additionalNTPServers,omitempty"`
+
 	// WatchAllNamespaces provides a way to explicitly allow use of this
 	// Provisioning configuration across all Namespaces. It is an
 	// optional configuration which defaults to false and in that state
@@ -183,6 +217,26 @@ type ProvisioningSpec struct {
 	// DisableVirtualMediaTLS turns off TLS on the virtual media server,
 	// which may be required for hardware that cannot accept HTTPS links.
 	DisableVirtualMediaTLS bool `json:"disableVirtualMediaTLS,omitempty"`
+
+	// UnsupportedConfigOverrides are site-specific overrides that are not
+	// officially supported in the Metal platform and may cause the
+	// deployment to fail. Carefully check the description of each field
+	// you modify to understand its implications for stability and
+	// upgradability of your cluster.
+	// When reporting a bug, please make sure to reproduce it with
+	// UnsupportedConfigOverrides set to nil.
+	UnsupportedConfigOverrides *UnsupportedConfigOverrides `json:"unsupportedConfigOverrides,omitempty"`
+
+	// PrometheusExporter configures sensor data collection and Prometheus metrics export.
+	// When enabled, this configures Ironic to collect sensor data, deploys the
+	// ironic-prometheus-exporter container, and creates supporting resources
+	// (ServiceMonitor, Service ports) to expose hardware sensor metrics for Prometheus.
+	PrometheusExporter *PrometheusExporter `json:"prometheusExporter,omitempty"`
+
+	// ExternalIPs are the external-facing IP addresses used to access the Ironic service.
+	// Most users will not need this set. It is recommended to leave this unset unless
+	// actually necessary.
+	ExternalIPs []string `json:"externalIPs,omitempty"`
 }
 
 // ProvisioningStatus defines the observed state of Provisioning

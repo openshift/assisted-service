@@ -240,7 +240,7 @@ func recordEvent(ctx context.Context, sink EventSink, event *eventsv1.Event) (*e
 		newEvent, err = sink.Patch(ctx, event, patch)
 	}
 	// Update can fail because the event may have been removed and it no longer exists.
-	if !isEventSeries || (isEventSeries && util.IsKeyNotFoundError(err)) {
+	if !isEventSeries || util.IsKeyNotFoundError(err) {
 		// Making sure that ResourceVersion is empty on creation
 		event.ResourceVersion = ""
 		newEvent, err = sink.Create(ctx, event)
@@ -404,7 +404,15 @@ type eventBroadcasterAdapterImpl struct {
 
 // NewEventBroadcasterAdapter creates a wrapper around new and legacy broadcasters to simplify
 // migration of individual components to the new Event API.
+//
+//logcheck:context // NewEventBroadcasterAdapterWithContext should be used instead because record.NewBroadcaster is called and works better when a context is supplied (contextual logging, cancellation).
 func NewEventBroadcasterAdapter(client clientset.Interface) EventBroadcasterAdapter {
+	return NewEventBroadcasterAdapterWithContext(context.Background(), client)
+}
+
+// NewEventBroadcasterAdapterWithContext creates a wrapper around new and legacy broadcasters to simplify
+// migration of individual components to the new Event API.
+func NewEventBroadcasterAdapterWithContext(ctx context.Context, client clientset.Interface) EventBroadcasterAdapter {
 	eventClient := &eventBroadcasterAdapterImpl{}
 	if _, err := client.Discovery().ServerResourcesForGroupVersion(eventsv1.SchemeGroupVersion.String()); err == nil {
 		eventClient.eventsv1Client = client.EventsV1()
@@ -414,7 +422,7 @@ func NewEventBroadcasterAdapter(client clientset.Interface) EventBroadcasterAdap
 	// we create it unconditionally because its overhead is minor and will simplify using usage
 	// patterns of this library in all components.
 	eventClient.coreClient = client.CoreV1()
-	eventClient.coreBroadcaster = record.NewBroadcaster()
+	eventClient.coreBroadcaster = record.NewBroadcaster(record.WithContext(ctx))
 	return eventClient
 }
 

@@ -2,6 +2,7 @@ package provisioning
 
 import (
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	configv1 "github.com/openshift/api/config/v1"
@@ -34,16 +35,19 @@ func (ns NetworkStackType) IpOption() string {
 
 type ProvisioningInfo struct {
 	Client                  kubernetes.Interface
+	DynamicClient           dynamic.Interface
 	EventRecorder           events.Recorder
 	ProvConfig              *metal3iov1alpha1.Provisioning
 	Scheme                  *runtime.Scheme
 	Namespace               string
 	Images                  *Images
 	Proxy                   *configv1.Proxy
+	TLSProfileSpec          configv1.TLSProfileSpec
 	NetworkStack            NetworkStackType
 	MasterMacAddresses      []string
 	SSHKey                  string
 	BaremetalWebhookEnabled bool
 	OSClient                osclientset.Interface
 	ResourceCache           resourceapply.ResourceCache
+	IsHyperShift            bool
 }

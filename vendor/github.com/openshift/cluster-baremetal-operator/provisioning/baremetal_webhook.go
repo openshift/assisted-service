@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	osclientset "github.com/openshift/client-go/config/clientset/versioned"
@@ -127,7 +127,7 @@ func newBaremetalOperatorWebhook(targetNamespace string) *admissionregistration.
 					Service: &admissionregistration.ServiceReference{
 						Name:      validatingWebhookService,
 						Namespace: targetNamespace,
-						Path:      pointer.StringPtr("/validate-metal3-io-v1alpha1-baremetalhost"),
+						Path:      ptr.To("/validate-metal3-io-v1alpha1-baremetalhost"),
 					},
 				},
 				SideEffects:             &sideEffect,
@@ -153,7 +153,7 @@ func newBaremetalOperatorWebhook(targetNamespace string) *admissionregistration.
 					Service: &admissionregistration.ServiceReference{
 						Name:      validatingWebhookService,
 						Namespace: targetNamespace,
-						Path:      pointer.StringPtr("/validate-metal3-io-v1alpha1-bmceventsubscription"),
+						Path:      ptr.To("/validate-metal3-io-v1alpha1-bmceventsubscription"),
 					},
 				},
 				SideEffects:             &sideEffect,

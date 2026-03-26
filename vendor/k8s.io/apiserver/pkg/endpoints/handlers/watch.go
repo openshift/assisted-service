@@ -17,9 +17,11 @@ limitations under the License.
 package handlers
 
 import (
-	"bytes"
+	"context"
 	"fmt"
+	"io"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"golang.org/x/net/websocket"
@@ -36,10 +38,8 @@ import (
 	"k8s.io/apiserver/pkg/features"
 	"k8s.io/apiserver/pkg/storage"
 	utilfeature "k8s.io/apiserver/pkg/util/feature"
+	compbasemetrics "k8s.io/component-base/metrics"
 )
-
-// nothing will ever be sent down this channel
-var neverExitWatch <-chan time.Time = make(chan time.Time)
 
 // timeoutFactory abstracts watch timeout logic for testing
 type TimeoutFactory interface {
@@ -55,85 +55,99 @@ type realTimeoutFactory struct {
 // and a cleanup function to call when this happens.
 func (w *realTimeoutFactory) TimeoutCh() (<-chan time.Time, func() bool) {
 	if w.timeout == 0 {
-		return neverExitWatch, func() bool { return false }
+		// nothing will ever be sent down this channel
+		return nil, func() bool { return false }
 	}
 	t := time.NewTimer(w.timeout)
 	return t.C, t.Stop
 }
 
-// serveWatch will serve a watch response.
+// serveWatchHandler returns a handle to serve a watch response.
 // TODO: the functionality in this method and in WatchServer.Serve is not cleanly decoupled.
-func serveWatch(watcher watch.Interface, scope *RequestScope, mediaTypeOptions negotiation.MediaTypeOptions, req *http.Request, w http.ResponseWriter, timeout time.Duration, metricsScope string) {
-	defer watcher.Stop()
-
+func serveWatchHandler(watcher watch.Interface, scope *RequestScope, mediaTypeOptions negotiation.MediaTypeOptions, req *http.Request, w http.ResponseWriter, timeout time.Duration, metricsScope string) (http.Handler, error) {
 	options, err := optionsForTransform(mediaTypeOptions, req)
 	if err != nil {
-		scope.err(err, w, req)
-		return
+		return nil, err
 	}
 
 	// negotiate for the stream serializer from the scope's serializer
 	serializer, err := negotiation.NegotiateOutputMediaTypeStream(req, scope.Serializer, scope)
 	if err != nil {
-		scope.err(err, w, req)
-		return
+		return nil, err
 	}
 	framer := serializer.StreamSerializer.Framer
-	streamSerializer := serializer.StreamSerializer.Serializer
-	encoder := scope.Serializer.EncoderForVersion(streamSerializer, scope.Kind.GroupVersion())
+	var encoder runtime.Encoder
+	if utilfeature.DefaultFeatureGate.Enabled(features.CBORServingAndStorage) {
+		encoder = scope.Serializer.EncoderForVersion(runtime.UseNondeterministicEncoding(serializer.StreamSerializer.Serializer), scope.Kind.GroupVersion())
+	} else {
+		encoder = scope.Serializer.EncoderForVersion(serializer.StreamSerializer.Serializer, scope.Kind.GroupVersion())
+	}
 	useTextFraming := serializer.EncodesAsText
 	if framer == nil {
-		scope.err(fmt.Errorf("no framer defined for %q available for embedded encoding", serializer.MediaType), w, req)
-		return
+		return nil, fmt.Errorf("no framer defined for %q available for embedded encoding", serializer.MediaType)
 	}
 	// TODO: next step, get back mediaTypeOptions from negotiate and return the exact value here
 	mediaType := serializer.MediaType
-	if mediaType != runtime.ContentTypeJSON {
+	switch mediaType {
+	case runtime.ContentTypeJSON:
+		// as-is
+	case runtime.ContentTypeCBOR:
+		// If a client indicated it accepts application/cbor (exactly one data item) on a
+		// watch request, set the conformant application/cbor-seq media type the watch
+		// response. RFC 9110 allows an origin server to deviate from the indicated
+		// preference rather than send a 406 (Not Acceptable) response (see
+		// https://www.rfc-editor.org/rfc/rfc9110.html#section-12.1-5).
+		mediaType = runtime.ContentTypeCBORSequence
+	default:
 		mediaType += ";stream=watch"
 	}
 
 	ctx := req.Context()
 
 	// locate the appropriate embedded encoder based on the transform
-	var embeddedEncoder runtime.Encoder
+	var negotiatedEncoder runtime.Encoder
 	contentKind, contentSerializer, transform := targetEncodingForTransform(scope, mediaTypeOptions, req)
 	if transform {
 		info, ok := runtime.SerializerInfoForMediaType(contentSerializer.SupportedMediaTypes(), serializer.MediaType)
 		if !ok {
-			scope.err(fmt.Errorf("no encoder for %q exists in the requested target %#v", serializer.MediaType, contentSerializer), w, req)
-			return
+			return nil, fmt.Errorf("no encoder for %q exists in the requested target %#v", serializer.MediaType, contentSerializer)
 		}
-		embeddedEncoder = contentSerializer.EncoderForVersion(info.Serializer, contentKind.GroupVersion())
+		if utilfeature.DefaultFeatureGate.Enabled(features.CBORServingAndStorage) {
+			negotiatedEncoder = contentSerializer.EncoderForVersion(runtime.UseNondeterministicEncoding(info.Serializer), contentKind.GroupVersion())
+		} else {
+			negotiatedEncoder = contentSerializer.EncoderForVersion(info.Serializer, contentKind.GroupVersion())
+		}
 	} else {
-		embeddedEncoder = scope.Serializer.EncoderForVersion(serializer.Serializer, contentKind.GroupVersion())
+		if utilfeature.DefaultFeatureGate.Enabled(features.CBORServingAndStorage) {
+			negotiatedEncoder = scope.Serializer.EncoderForVersion(runtime.UseNondeterministicEncoding(serializer.Serializer), contentKind.GroupVersion())
+		} else {
+			negotiatedEncoder = scope.Serializer.EncoderForVersion(serializer.Serializer, contentKind.GroupVersion())
+		}
 	}
 
 	var memoryAllocator runtime.MemoryAllocator
 
-	if encoderWithAllocator, supportsAllocator := embeddedEncoder.(runtime.EncoderWithAllocator); supportsAllocator {
+	if encoderWithAllocator, supportsAllocator := negotiatedEncoder.(runtime.EncoderWithAllocator); supportsAllocator {
 		// don't put the allocator inside the embeddedEncodeFn as that would allocate memory on every call.
 		// instead, we allocate the buffer for the entire watch session and release it when we close the connection.
 		memoryAllocator = runtime.AllocatorPool.Get().(*runtime.Allocator)
-		defer runtime.AllocatorPool.Put(memoryAllocator)
-		embeddedEncoder = runtime.NewEncoderWithAllocator(encoderWithAllocator, memoryAllocator)
+		negotiatedEncoder = runtime.NewEncoderWithAllocator(encoderWithAllocator, memoryAllocator)
 	}
 	var tableOptions *metav1.TableOptions
 	if options != nil {
 		if passedOptions, ok := options.(*metav1.TableOptions); ok {
 			tableOptions = passedOptions
 		} else {
-			scope.err(fmt.Errorf("unexpected options type: %T", options), w, req)
-			return
+			return nil, fmt.Errorf("unexpected options type: %T", options)
 		}
 	}
-	embeddedEncoder = newWatchEmbeddedEncoder(ctx, embeddedEncoder, mediaTypeOptions.Convert, tableOptions, scope)
+	embeddedEncoder := newWatchEmbeddedEncoder(ctx, negotiatedEncoder, mediaTypeOptions.Convert, tableOptions, scope)
 
 	if encoderWithAllocator, supportsAllocator := encoder.(runtime.EncoderWithAllocator); supportsAllocator {
 		if memoryAllocator == nil {
 			// don't put the allocator inside the embeddedEncodeFn as that would allocate memory on every call.
 			// instead, we allocate the buffer for the entire watch session and release it when we close the connection.
 			memoryAllocator = runtime.AllocatorPool.Get().(*runtime.Allocator)
-			defer runtime.AllocatorPool.Put(memoryAllocator)
 		}
 		encoder = runtime.NewEncoderWithAllocator(encoderWithAllocator, memoryAllocator)
 	}
@@ -153,13 +167,18 @@ func serveWatch(watcher watch.Interface, scope *RequestScope, mediaTypeOptions n
 		Encoder:         encoder,
 		EmbeddedEncoder: embeddedEncoder,
 
+		MemoryAllocator:      memoryAllocator,
 		TimeoutFactory:       &realTimeoutFactory{timeout},
 		ServerShuttingDownCh: serverShuttingDownCh,
 
 		metricsScope: metricsScope,
 	}
 
-	server.ServeHTTP(w, req)
+	if wsstream.IsWebSocketRequest(req) {
+		w.Header().Set("Content-Type", server.MediaType)
+		return websocket.Handler(server.HandleWS), nil
+	}
+	return http.HandlerFunc(server.HandleHTTP), nil
 }
 
 // WatchServer serves a watch.Interface over a websocket or vanilla HTTP.
@@ -178,22 +197,44 @@ type WatchServer struct {
 	// used to encode the nested object in the watch stream
 	EmbeddedEncoder runtime.Encoder
 
+	MemoryAllocator      runtime.MemoryAllocator
 	TimeoutFactory       TimeoutFactory
 	ServerShuttingDownCh <-chan struct{}
 
 	metricsScope string
 }
 
-// ServeHTTP serves a series of encoded events via HTTP with Transfer-Encoding: chunked
-// or over a websocket connection.
-func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	kind := s.Scope.Kind
+// watchEventMetricsRecorder allows the caller to count bytes written and report the size of the event.
+// It is thread-safe, as long as underlying io.Writer is thread-safe.
+// Once all Write calls for a given watch event have finished, RecordEvent must be called.
+type watchEventMetricsRecorder struct {
+	writer      io.Writer
+	countMetric compbasemetrics.CounterMetric
+	sizeMetric  compbasemetrics.ObserverMetric
+	byteCount   atomic.Int64
+}
 
-	if wsstream.IsWebSocketRequest(req) {
-		w.Header().Set("Content-Type", s.MediaType)
-		websocket.Handler(s.HandleWS).ServeHTTP(w, req)
-		return
-	}
+// Write implements io.Writer.
+func (c *watchEventMetricsRecorder) Write(p []byte) (n int, err error) {
+	n, err = c.writer.Write(p)
+	c.byteCount.Add(int64(n))
+	return
+}
+
+// Record reports the metrics and resets the byte count.
+func (c *watchEventMetricsRecorder) RecordEvent() {
+	c.countMetric.Inc()
+	c.sizeMetric.Observe(float64(c.byteCount.Swap(0)))
+}
+
+// HandleHTTP serves a series of encoded events via HTTP with Transfer-Encoding: chunked.
+// or over a websocket connection.
+func (s *WatchServer) HandleHTTP(w http.ResponseWriter, req *http.Request) {
+	defer func() {
+		if s.MemoryAllocator != nil {
+			runtime.AllocatorPool.Put(s.MemoryAllocator)
+		}
+	}()
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
@@ -222,7 +263,15 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	flusher.Flush()
 
-	watchEncoder := newWatchEncoder(req.Context(), kind, s.EmbeddedEncoder, s.Encoder, framer)
+	gvr := s.Scope.Resource
+
+	recorder := &watchEventMetricsRecorder{
+		writer:      framer,
+		countMetric: metrics.WatchEvents.WithContext(req.Context()).WithLabelValues(gvr.Group, gvr.Version, gvr.Resource),
+		sizeMetric:  metrics.WatchEventsSizes.WithContext(req.Context()).WithLabelValues(gvr.Group, gvr.Version, gvr.Resource),
+	}
+
+	watchEncoder := newWatchEncoder(req.Context(), gvr, s.EmbeddedEncoder, s.Encoder, recorder)
 	ch := s.Watching.ResultChan()
 	done := req.Context().Done()
 
@@ -246,7 +295,6 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				// End of results.
 				return
 			}
-			metrics.WatchEvents.WithContext(req.Context()).WithLabelValues(kind.Group, kind.Version, kind.Kind).Inc()
 			isWatchListLatencyRecordingRequired := shouldRecordWatchListLatency(event)
 
 			if err := watchEncoder.Encode(event); err != nil {
@@ -254,6 +302,7 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 				// client disconnect.
 				return
 			}
+			recorder.RecordEvent()
 
 			if len(ch) == 0 {
 				flusher.Flush()
@@ -265,10 +314,19 @@ func (s *WatchServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-// HandleWS implements a websocket handler.
+// HandleWS serves a series of encoded events over a websocket connection.
 func (s *WatchServer) HandleWS(ws *websocket.Conn) {
+	defer func() {
+		if s.MemoryAllocator != nil {
+			runtime.AllocatorPool.Put(s.MemoryAllocator)
+		}
+	}()
+
 	defer ws.Close()
 	done := make(chan struct{})
+	// ensure the connection times out
+	timeoutCh, cleanup := s.TimeoutFactory.TimeoutCh()
+	defer cleanup()
 
 	go func() {
 		defer utilruntime.HandleCrash()
@@ -279,15 +337,17 @@ func (s *WatchServer) HandleWS(ws *websocket.Conn) {
 		close(done)
 	}()
 
-	var unknown runtime.Unknown
-	internalEvent := &metav1.InternalEvent{}
-	buf := &bytes.Buffer{}
-	streamBuf := &bytes.Buffer{}
+	framer := newWebsocketFramer(ws, s.UseTextFraming)
+
+	gvr := s.Scope.Resource
+	watchEncoder := newWatchEncoder(context.TODO(), gvr, s.EmbeddedEncoder, s.Encoder, framer)
 	ch := s.Watching.ResultChan()
 
 	for {
 		select {
 		case <-done:
+			return
+		case <-timeoutCh:
 			return
 		case event, ok := <-ch:
 			if !ok {
@@ -295,50 +355,43 @@ func (s *WatchServer) HandleWS(ws *websocket.Conn) {
 				return
 			}
 
-			if err := s.EmbeddedEncoder.Encode(event.Object, buf); err != nil {
-				// unexpected error
-				utilruntime.HandleError(fmt.Errorf("unable to encode watch object %T: %v", event.Object, err))
-				return
-			}
-
-			// ContentType is not required here because we are defaulting to the serializer
-			// type
-			unknown.Raw = buf.Bytes()
-			event.Object = &unknown
-
-			// the internal event will be versioned by the encoder
-			// create the external type directly and encode it.  Clients will only recognize the serialization we provide.
-			// The internal event is being reused, not reallocated so its just a few extra assignments to do it this way
-			// and we get the benefit of using conversion functions which already have to stay in sync
-			outEvent := &metav1.WatchEvent{}
-			*internalEvent = metav1.InternalEvent(event)
-			err := metav1.Convert_v1_InternalEvent_To_v1_WatchEvent(internalEvent, outEvent, nil)
-			if err != nil {
-				utilruntime.HandleError(fmt.Errorf("unable to convert watch object: %v", err))
+			if err := watchEncoder.Encode(event); err != nil {
+				utilruntime.HandleError(err)
 				// client disconnect.
 				return
 			}
-			if err := s.Encoder.Encode(outEvent, streamBuf); err != nil {
-				// encoding error
-				utilruntime.HandleError(fmt.Errorf("unable to encode event: %v", err))
-				return
-			}
-			if s.UseTextFraming {
-				if err := websocket.Message.Send(ws, streamBuf.String()); err != nil {
-					// Client disconnect.
-					return
-				}
-			} else {
-				if err := websocket.Message.Send(ws, streamBuf.Bytes()); err != nil {
-					// Client disconnect.
-					return
-				}
-			}
-			buf.Reset()
-			streamBuf.Reset()
 		}
 	}
 }
+
+type websocketFramer struct {
+	ws             *websocket.Conn
+	useTextFraming bool
+}
+
+func newWebsocketFramer(ws *websocket.Conn, useTextFraming bool) io.Writer {
+	return &websocketFramer{
+		ws:             ws,
+		useTextFraming: useTextFraming,
+	}
+}
+
+func (w *websocketFramer) Write(p []byte) (int, error) {
+	if w.useTextFraming {
+		// bytes.Buffer::String() has a special handling of nil value, but given
+		// we're writing serialized watch events, this will never happen here.
+		if err := websocket.Message.Send(w.ws, string(p)); err != nil {
+			return 0, err
+		}
+		return len(p), nil
+	}
+	if err := websocket.Message.Send(w.ws, p); err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
+
+var _ io.Writer = &websocketFramer{}
 
 func shouldRecordWatchListLatency(event watch.Event) bool {
 	if event.Type != watch.Bookmark || !utilfeature.DefaultFeatureGate.Enabled(features.WatchList) {

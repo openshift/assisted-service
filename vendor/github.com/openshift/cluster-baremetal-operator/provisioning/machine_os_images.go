@@ -3,7 +3,7 @@ package provisioning
 import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 )
 
 func createInitContainerMachineOSImages(info *ProvisioningInfo, whichImages string, dest corev1.VolumeMount, destPath string) corev1.Container {
@@ -18,12 +18,18 @@ func createInitContainerMachineOSImages(info *ProvisioningInfo, whichImages stri
 		Command: []string{"/bin/copy-metal", whichImages, destPath},
 		VolumeMounts: []corev1.VolumeMount{
 			dest,
+			ironicAgentPullSecretMount,
+			caTrustDirVolumeMount,
 		},
 		ImagePullPolicy: "IfNotPresent",
 		Env: []corev1.EnvVar{
 			{
 				Name:  ipOptions,
 				Value: ipOptionValue,
+			},
+			{
+				Name:  "MACHINE_OS_IMAGES_IMAGE",
+				Value: info.Images.MachineOSImages,
 			},
 		},
 		Resources: corev1.ResourceRequirements{
@@ -33,9 +39,14 @@ func createInitContainerMachineOSImages(info *ProvisioningInfo, whichImages stri
 			},
 		},
 		SecurityContext: &corev1.SecurityContext{
+			ReadOnlyRootFilesystem: ptr.To(true),
 			// Needed for hostPath image volume mount
-			Privileged: pointer.BoolPtr(true),
+			Privileged: ptr.To(true),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			},
 		},
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 	return container
 }

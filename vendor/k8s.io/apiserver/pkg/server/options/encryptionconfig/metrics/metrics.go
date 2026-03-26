@@ -22,6 +22,7 @@ import (
 	"hash"
 	"sync"
 
+	"k8s.io/apiserver/pkg/util/configmetrics"
 	"k8s.io/component-base/metrics"
 	"k8s.io/component-base/metrics/legacyregistry"
 )
@@ -32,26 +33,15 @@ const (
 )
 
 var (
-	encryptionConfigAutomaticReloadFailureTotal = metrics.NewCounterVec(
+	encryptionConfigAutomaticReloadsTotal = metrics.NewCounterVec(
 		&metrics.CounterOpts{
 			Namespace:      namespace,
 			Subsystem:      subsystem,
-			Name:           "automatic_reload_failures_total",
-			Help:           "Total number of failed automatic reloads of encryption configuration split by apiserver identity.",
+			Name:           "automatic_reloads_total",
+			Help:           "Total number of reload successes and failures of encryption configuration split by apiserver identity.",
 			StabilityLevel: metrics.ALPHA,
 		},
-		[]string{"apiserver_id_hash"},
-	)
-
-	encryptionConfigAutomaticReloadSuccessTotal = metrics.NewCounterVec(
-		&metrics.CounterOpts{
-			Namespace:      namespace,
-			Subsystem:      subsystem,
-			Name:           "automatic_reload_success_total",
-			Help:           "Total number of successful automatic reloads of encryption configuration split by apiserver identity.",
-			StabilityLevel: metrics.ALPHA,
-		},
-		[]string{"apiserver_id_hash"},
+		[]string{"status", "apiserver_id_hash"},
 	)
 
 	encryptionConfigAutomaticReloadLastTimestampSeconds = metrics.NewGaugeVec(
@@ -64,10 +54,20 @@ var (
 		},
 		[]string{"status", "apiserver_id_hash"},
 	)
+
+	encryptionConfigLastConfigInfo = metrics.NewDesc(
+		metrics.BuildFQName(namespace, subsystem, "last_config_info"),
+		"Information about the last applied encryption configuration with hash as label, split by apiserver identity.",
+		[]string{"apiserver_id_hash", "hash"},
+		nil,
+		metrics.ALPHA,
+		"",
+	)
 )
 
 var registerMetrics sync.Once
 var hashPool *sync.Pool
+var configHashProvider = configmetrics.NewAtomicHashProvider()
 
 func RegisterMetrics() {
 	registerMetrics.Do(func() {
@@ -76,26 +76,37 @@ func RegisterMetrics() {
 				return sha256.New()
 			},
 		}
-		legacyregistry.MustRegister(encryptionConfigAutomaticReloadFailureTotal)
-		legacyregistry.MustRegister(encryptionConfigAutomaticReloadSuccessTotal)
+		legacyregistry.MustRegister(encryptionConfigAutomaticReloadsTotal)
 		legacyregistry.MustRegister(encryptionConfigAutomaticReloadLastTimestampSeconds)
+		legacyregistry.CustomMustRegister(configmetrics.NewConfigInfoCustomCollector(encryptionConfigLastConfigInfo, configHashProvider))
 	})
+}
+
+func ResetMetricsForTest() {
+	encryptionConfigAutomaticReloadsTotal.Reset()
+	encryptionConfigAutomaticReloadLastTimestampSeconds.Reset()
 }
 
 func RecordEncryptionConfigAutomaticReloadFailure(apiServerID string) {
 	apiServerIDHash := getHash(apiServerID)
-	encryptionConfigAutomaticReloadFailureTotal.WithLabelValues(apiServerIDHash).Inc()
+	encryptionConfigAutomaticReloadsTotal.WithLabelValues("failure", apiServerIDHash).Inc()
 	recordEncryptionConfigAutomaticReloadTimestamp("failure", apiServerIDHash)
 }
 
-func RecordEncryptionConfigAutomaticReloadSuccess(apiServerID string) {
+func RecordEncryptionConfigAutomaticReloadSuccess(apiServerID, encryptionConfigDataHash string) {
 	apiServerIDHash := getHash(apiServerID)
-	encryptionConfigAutomaticReloadSuccessTotal.WithLabelValues(apiServerIDHash).Inc()
+	encryptionConfigAutomaticReloadsTotal.WithLabelValues("success", apiServerIDHash).Inc()
 	recordEncryptionConfigAutomaticReloadTimestamp("success", apiServerIDHash)
+
+	RecordEncryptionConfigLastConfigInfo(apiServerID, encryptionConfigDataHash)
 }
 
 func recordEncryptionConfigAutomaticReloadTimestamp(result, apiServerIDHash string) {
 	encryptionConfigAutomaticReloadLastTimestampSeconds.WithLabelValues(result, apiServerIDHash).SetToCurrentTime()
+}
+
+func RecordEncryptionConfigLastConfigInfo(apiServerID, encryptionConfigDataHash string) {
+	configHashProvider.SetHashes(getHash(apiServerID), encryptionConfigDataHash)
 }
 
 func getHash(data string) string {
