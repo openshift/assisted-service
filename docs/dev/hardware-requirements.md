@@ -1,7 +1,29 @@
 # Hardware requirements
 
-Hardware requirements are configured with `HW_VALIDATOR_REQUIREMENTS` environment variable, which must contain JSON mapping OpenShift version to specific master and worker hardware requirements.
-For example:
+Hardware requirements are configured with the `HW_VALIDATOR_REQUIREMENTS` environment variable, which must contain a JSON array of requirement entries.
+
+## Entry types
+
+There are two types of entries:
+
+### `version` — exact match
+
+An entry with a `"version"` key applies to that exact OCP version, or acts as the catch-all `"default"` when no other entry matches. All roles (`master`, `worker`, `sno`, etc.) and their required fields must be fully specified. `arbiter` and `edge-worker` are optional and fall back to `worker` if omitted.
+
+### `min_version` — range match
+
+An entry with a `"min_version"` key applies to that OCP version **and all later versions**. Only the fields that differ from `"default"` need to be specified — any omitted roles or fields are inherited from the `"default"` entry. A `"default"` entry is required when `min_version` entries are present.
+
+## Lookup order
+
+For a given OCP version, requirements are resolved in the following order:
+
+1. **Exact `version` match** — returned as-is
+2. **Highest `min_version` ≤ requested version** — missing fields and roles inherited from `"default"`
+3. **`"default"`** — returned as-is
+
+## Example
+
 ```json
 [{
   "version": "default",
@@ -26,6 +48,12 @@ For example:
     "ram_mib": 16384,
     "disk_size_gb": 100,
     "installation_disk_speed_threshold_ms": 10
+  }
+},
+{
+  "min_version": "4.22",
+  "sno": {
+    "cpu_cores": 4
   }
 },
 {
@@ -55,7 +83,7 @@ For example:
 }]
 ```
 
-`default` requirements are used if version can't be found.
+`default` requirements are used if version can't be found. A `min_version` entry will also be applied if one matches the requested version, with any unspecified fields inherited from `default`.
 
 If any overrides are needed, they have to be done in that JSON. For example:
 

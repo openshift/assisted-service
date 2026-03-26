@@ -60,7 +60,7 @@ var _ = Describe("Disk eligibility", func() {
 	const (
 		minDiskSizeGb = 100
 	)
-	var versionRequirements = VersionedRequirementsDecoder{
+	var defaultVersionRequirementsData = map[string]models.VersionedHostRequirements{
 		"default": {
 			Version: "default",
 			MasterRequirements: &models.ClusterHostRequirementsDetails{
@@ -95,6 +95,7 @@ var _ = Describe("Disk eligibility", func() {
 			},
 		},
 	}
+	var versionRequirements = NewVersionedRequirementsDecoderFromMap(defaultVersionRequirementsData)
 
 	var (
 		hwvalidator          Validator
@@ -560,7 +561,7 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env take a master configuration in case it is smaller than workers")
-		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb - 2
+		defaultVersionRequirementsData["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb - 2
 		tooSmallSizeForWorker := conversions.GbToBytes(minDiskSizeGb) - 1
 		testDisk.SizeBytes = tooSmallSizeForWorker
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
@@ -568,7 +569,7 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(BeEmpty())
 
-		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb
+		defaultVersionRequirementsData["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb
 	})
 
 	It("Check that a small size is not eligible", func() {
@@ -1548,7 +1549,7 @@ var _ = Describe("Preflight host requirements", func() {
 		operatorRequirements []*models.OperatorHardwareRequirements
 	)
 
-	var versionRequirements = VersionedRequirementsDecoder{
+	var versionRequirements = NewVersionedRequirementsDecoderFromMap(map[string]models.VersionedHostRequirements{
 		"default": {
 			Version: "default",
 			MasterRequirements: &models.ClusterHostRequirementsDetails{
@@ -1642,7 +1643,7 @@ var _ = Describe("Preflight host requirements", func() {
 				InstallationDiskSpeedThresholdMs: 2,
 			},
 		},
-	}
+	})
 
 	const (
 		openShiftVersionNotInConfig = "4.5"

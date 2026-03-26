@@ -76,7 +76,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 		Flags: feature.Flags{
 			EnableUpgradeAgent: true,
 		},
-		VersionedRequirements: hardware.VersionedRequirementsDecoder{
+		VersionedRequirements: hardware.NewVersionedRequirementsDecoderFromMap(map[string]models.VersionedHostRequirements{
 			"default": {
 				Version:                "default",
 				MasterRequirements:     &defaultMasterRequirements,
@@ -85,7 +85,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 				SNORequirements:        &defaultSnoRequirements,
 				EdgeWorkerRequirements: &defaultWorkerRequirements,
 			},
-		},
+		}),
 		MaximumAllowedTimeDiffMinutes: 4,
 		MaxHostDisconnectionTime:      MaxHostDisconnectionTime,
 		AgentDockerImage:              "quay.io/edge-infrastructure/assisted-installer-agent:latest",

@@ -24,164 +24,174 @@ var _ = Describe("Versioned Requirements", func() {
 	AfterEach(func() {
 		_ = os.Unsetenv(requirementsEnv)
 	})
+
 	When("loaded", func() {
-		It("should be set to default when no env variable", func() {
+		It("should return error when no env variable is set", func() {
 			cfg := ValidatorCfg{}
 
 			err := envconfig.Process("", &cfg)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cfg.VersionedRequirements).To(BeEmpty())
+			_, err = cfg.VersionedRequirements.GetVersionedHostRequirements("default")
+			Expect(err).To(HaveOccurred())
 		})
 
-		table.DescribeTable("should be decoded from JSON", func(jsonData []map[string]interface{}, expected map[string]models.VersionedHostRequirements) {
+		It("should decode a single full version entry", func() {
+			jsonData := []map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"arbiter": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"sno": map[string]interface{}{
+						"cpu_cores":                            8,
+						"ram_mib":                              32768,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 4,
+					},
+					"edge-worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+				},
+			}
 			cfg, err := configureRequirements(jsonData)
-
 			Expect(err).ToNot(HaveOccurred())
-			Expect(cfg.VersionedRequirements).To(BeEquivalentTo(expected))
-		},
-			table.Entry("empty", []map[string]interface{}{}, map[string]models.VersionedHostRequirements{}),
-			table.Entry("One version - full",
-				[]map[string]interface{}{
-					{
-						"version": "4.6.0",
-						"master": map[string]interface{}{
-							"cpu_cores":                            4,
-							"ram_mib":                              16384,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 2,
-						},
-						"arbiter": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 2,
-						},
-						"worker": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 3,
-						},
-						"sno": map[string]interface{}{
-							"cpu_cores":                            8,
-							"ram_mib":                              32768,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 4,
-						},
-						"edge-worker": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 3,
-						},
+
+			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*requirements).To(BeEquivalentTo(models.VersionedHostRequirements{
+				Version: "4.6.0",
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
+				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
+			}))
+		})
+
+		It("should decode two full version entries", func() {
+			jsonData := []map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"arbiter": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 1,
+					},
+					"sno": map[string]interface{}{
+						"cpu_cores":                            8,
+						"ram_mib":                              32768,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 4,
+					},
+					"edge-worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 1,
 					},
 				},
-				map[string]models.VersionedHostRequirements{
-					"4.6.0": {
-						Version: "4.6.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-						ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-					}}),
-			table.Entry("Two versions - full",
-				[]map[string]interface{}{
-					{
-						"version": "4.6.0",
-						"master": map[string]interface{}{
-							"cpu_cores":                            4,
-							"ram_mib":                              16384,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 2,
-						},
-						"arbiter": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 2,
-						},
-						"worker": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 1,
-						},
-						"sno": map[string]interface{}{
-							"cpu_cores":                            8,
-							"ram_mib":                              32768,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 4,
-						},
-						"edge-worker": map[string]interface{}{
-							"cpu_cores":                            2,
-							"ram_mib":                              8192,
-							"disk_size_gb":                         100,
-							"installation_disk_speed_threshold_ms": 1,
-						},
-					}, {
-						"version": "4.7.0",
-						"master": map[string]interface{}{
-							"cpu_cores":                            5,
-							"ram_mib":                              17408,
-							"disk_size_gb":                         101,
-							"installation_disk_speed_threshold_ms": 3,
-						},
-						"arbiter": map[string]interface{}{
-							"cpu_cores":                            3,
-							"ram_mib":                              9216,
-							"disk_size_gb":                         101,
-							"installation_disk_speed_threshold_ms": 3,
-						},
-						"worker": map[string]interface{}{
-							"cpu_cores":    3,
-							"ram_mib":      9216,
-							"disk_size_gb": 102,
-						},
-						"sno": map[string]interface{}{
-							"cpu_cores":                            7,
-							"ram_mib":                              31744,
-							"disk_size_gb":                         103,
-							"installation_disk_speed_threshold_ms": 4,
-						},
-						"edge-worker": map[string]interface{}{
-							"cpu_cores":    3,
-							"ram_mib":      9216,
-							"disk_size_gb": 102,
-						},
+				{
+					"version": "4.7.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            5,
+						"ram_mib":                              17408,
+						"disk_size_gb":                         101,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"arbiter": map[string]interface{}{
+						"cpu_cores":                            3,
+						"ram_mib":                              9216,
+						"disk_size_gb":                         101,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":    3,
+						"ram_mib":      9216,
+						"disk_size_gb": 102,
+					},
+					"sno": map[string]interface{}{
+						"cpu_cores":                            7,
+						"ram_mib":                              31744,
+						"disk_size_gb":                         103,
+						"installation_disk_speed_threshold_ms": 4,
+					},
+					"edge-worker": map[string]interface{}{
+						"cpu_cores":    3,
+						"ram_mib":      9216,
+						"disk_size_gb": 102,
 					},
 				},
-				map[string]models.VersionedHostRequirements{
-					"4.6.0": {
-						Version: "4.6.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-						ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-							RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
-					},
-					"4.7.0": {Version: "4.7.0",
-						MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 101,
-							RAMMib: conversions.GibToMib(17), InstallationDiskSpeedThresholdMs: 3},
-						ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 101,
-							RAMMib: conversions.GibToMib(9), InstallationDiskSpeedThresholdMs: 3},
-						WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
-						SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 103,
-							RAMMib: conversions.GibToMib(31), InstallationDiskSpeedThresholdMs: 4},
-						EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
-					}}),
-		)
+			}
+			cfg, err := configureRequirements(jsonData)
+			Expect(err).ToNot(HaveOccurred())
+
+			req46, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*req46).To(BeEquivalentTo(models.VersionedHostRequirements{
+				Version: "4.6.0",
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
+				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
+			}))
+
+			req47, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.7.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*req47).To(BeEquivalentTo(models.VersionedHostRequirements{
+				Version: "4.7.0",
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 101,
+					RAMMib: conversions.GibToMib(17), InstallationDiskSpeedThresholdMs: 3},
+				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 101,
+					RAMMib: conversions.GibToMib(9), InstallationDiskSpeedThresholdMs: 3},
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
+				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 103,
+					RAMMib: conversions.GibToMib(31), InstallationDiskSpeedThresholdMs: 4},
+				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
+			}))
+		})
 
 		table.DescribeTable("should not be decoded due to missing node requirements", func(role string) {
 			jsonData := []map[string]interface{}{
@@ -436,9 +446,6 @@ var _ = Describe("Versioned Requirements", func() {
 			cfg, err := configureRequirements(jsonSpec)
 			Expect(err).ToNot(HaveOccurred())
 
-			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
-
-			Expect(err).ToNot(HaveOccurred())
 			expected := models.VersionedHostRequirements{
 				Version: "4.6.0",
 				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
@@ -452,7 +459,11 @@ var _ = Describe("Versioned Requirements", func() {
 				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
 					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 			}
+
+			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
+			Expect(err).ToNot(HaveOccurred())
 			Expect(*requirements).To(BeEquivalentTo(expected))
+
 
 			requirements.MasterRequirements.CPUCores = 1
 			requirements.MasterRequirements.RAMMib = 2
@@ -467,7 +478,7 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(*requirements).To(BeEquivalentTo(expected))
 		})
 
-		It("should fail when no entry is <= requested version and no default exists", func() {
+		It("should fail when no version entry matches and no default exists", func() {
 			jsonSpec := []map[string]interface{}{
 				{
 					"version": "4.7.0",
@@ -499,18 +510,55 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should return best range match when no exact version is defined", func() {
+		It("should fail at decode when min_version entries exist without a default", func() {
+			jsonSpec := []map[string]interface{}{
+				{
+					"min_version": "4.22",
+					"sno": map[string]interface{}{
+						"cpu_cores": 4,
+					},
+				},
+			}
+
+			_, err := configureRequirements(jsonSpec)
+
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should return best min_version match when no exact version is defined", func() {
 			jsonSpec := []map[string]interface{}{
 				{
 					"version": "default",
-					"master":  map[string]interface{}{"cpu_cores": 4, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
-					"arbiter": map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
-					"worker":  map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 3},
-					"sno":     map[string]interface{}{"cpu_cores": 8, "ram_mib": 32768, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 4},
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"arbiter": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"sno": map[string]interface{}{
+						"cpu_cores":                            8,
+						"ram_mib":                              32768,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 4,
+					},
 				},
 				{
-					"version": "4.22",
-					"sno":     map[string]interface{}{"cpu_cores": 4},
+					"min_version": "4.22",
+					"sno": map[string]interface{}{
+						"cpu_cores": 4,
+					},
 				},
 			}
 			cfg, err := configureRequirements(jsonSpec)
@@ -529,18 +577,40 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(8))
 		})
 
-		It("should merge partial role fields and unspecified roles from default", func() {
+		It("should merge partial min_version fields with default", func() {
 			jsonSpec := []map[string]interface{}{
 				{
 					"version": "default",
-					"master":  map[string]interface{}{"cpu_cores": 4, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
-					"arbiter": map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 2},
-					"worker":  map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 3},
-					"sno":     map[string]interface{}{"cpu_cores": 8, "ram_mib": 32768, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 4},
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"arbiter": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"sno": map[string]interface{}{
+						"cpu_cores":                            8,
+						"ram_mib":                              32768,
+						"disk_size_gb":                         100,
+						"installation_disk_speed_threshold_ms": 4,
+					},
 				},
 				{
-					"version": "4.22",
-					"sno":     map[string]interface{}{"cpu_cores": 4},
+					"min_version": "4.22",
+					"sno": map[string]interface{}{
+						"cpu_cores": 4,
+					},
 				},
 			}
 			cfg, err := configureRequirements(jsonSpec)
