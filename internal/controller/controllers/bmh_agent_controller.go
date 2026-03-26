@@ -145,7 +145,7 @@ const certificateAuthoritiesIgnitionOverride = `{
 // reconcileResult is an interface that encapsulates the result of a Reconcile
 // call, as returned by the action corresponding to the current state.
 //
-// Set the `dirty` flag when the BMH CR (or any CR) has been modified and an `Update`
+// Set the `dirty` flag when the BMH CR (or any CR) has been modified and a `Patch`
 // is required.
 //
 // Set the `stop` flag when the `Reconcile` flow should be stopped. For example, the
@@ -218,10 +218,10 @@ func (r reconcileError) Stop(ctx context.Context) bool {
 	return true
 }
 
-func (r *BMACReconciler) handleReconcileResult(ctx context.Context, log logrus.FieldLogger, result reconcileResult, obj client.Object) reconcileResult {
+func (r *BMACReconciler) handleReconcileResult(ctx context.Context, log logrus.FieldLogger, result reconcileResult, obj client.Object, patchBase client.Object) reconcileResult {
 	if result.Dirty() {
-		log.Debugf("Updating dirty object %v", obj)
-		err := r.Client.Update(ctx, obj)
+		log.Debugf("Patching dirty object %v", obj)
+		err := r.Client.Patch(ctx, obj, client.MergeFromWithOptions(patchBase, client.MergeFromWithOptimisticLock{}))
 		if err != nil {
 			return reconcileError{err: err}
 		}
@@ -274,22 +274,26 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		return reconcileError{err: err}.Result()
 	}
 
+	bmhPatchBase := bmh.DeepCopy()
+
 	// Ensure BMH is labeled for backup if it's referenced by an InfraEnv
 	if infraEnv != nil {
 		result := r.ensureBMHIsLabelled(ctx, log, bmh)
-		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 			return res.Result()
 		}
 	}
 
+	bmhPatchBase = bmh.DeepCopy()
 	result := r.handleBMHFinalizer(ctx, log, bmh, agent)
-	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+	if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 		return res.Result()
 	}
 
 	if agent != nil && agentIsUnbindingPendingUserAction(agent) {
+		bmhPatchBase = bmh.DeepCopy()
 		result = reconcileUnboundAgent(log, bmh, r.ConvergedFlowEnabled)
-		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 			return res.Result()
 		}
 	}
@@ -297,13 +301,15 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// The reconcileBMH function below this can stop reconciliation so we want to handle
 	// the pause and detach annotations before we get into that function in case
 	// they should be removed or re-added.
+	bmhPatchBase = bmh.DeepCopy()
 	pausedAndDetachResults := r.handlePauseAndDetachBMHAnnotations(ctx, log, bmh, agent)
-	if res := r.handleReconcileResult(ctx, log, pausedAndDetachResults, bmh); res != nil {
+	if res := r.handleReconcileResult(ctx, log, pausedAndDetachResults, bmh, bmhPatchBase); res != nil {
 		return res.Result()
 	}
 
+	bmhPatchBase = bmh.DeepCopy()
 	result = r.reconcileBMH(ctx, log, bmh, agent, infraEnv)
-	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+	if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 		return res.Result()
 	}
 
@@ -318,26 +324,30 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	// with the BMH being reconciled. We will call both, reconcileAgentSpec and
 	// reconcileAgentInventory, every time. The logic to decide whether there's
 	// any action to take is implemented in each function respectively.
+	agentPatchBase := agent.DeepCopy()
 	result = r.reconcileAgentSpec(ctx, log, bmh, agent, infraEnv)
-	if res := r.handleReconcileResult(ctx, log, result, agent); res != nil {
+	if res := r.handleReconcileResult(ctx, log, result, agent, agentPatchBase); res != nil {
 		return res.Result()
 	}
 
 	// In the converged flow ironic will reconcile the BMH_HARDWARE_DETAILS_ANNOTATION
 	if !r.ConvergedFlowEnabled {
+		bmhPatchBase = bmh.DeepCopy()
 		result = r.reconcileAgentInventory(log, bmh, agent)
-		if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+		if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 			return res.Result()
 		}
 	}
 
+	bmhPatchBase = bmh.DeepCopy()
 	result = r.ensureMCSCert(ctx, log, bmh, agent)
-	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+	if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 		return res.Result()
 	}
 
+	bmhPatchBase = bmh.DeepCopy()
 	result = r.reconcileDay2SpokeBMH(ctx, log, bmh, agent)
-	if res := r.handleReconcileResult(ctx, log, result, bmh); res != nil {
+	if res := r.handleReconcileResult(ctx, log, result, bmh, bmhPatchBase); res != nil {
 		return res.Result()
 	}
 	return result.Result()

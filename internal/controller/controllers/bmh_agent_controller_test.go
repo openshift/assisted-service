@@ -1197,18 +1197,40 @@ var _ = Describe("bmac reconcile", func() {
 					},
 				).Times(2)
 
-				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{})).DoAndReturn(
-					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, opts ...client.UpdateOption) error {
-						return c.Update(ctx, bmh)
+				mockClient.EXPECT().Patch(gomock.Any(), gomock.AssignableToTypeOf(&bmh_v1alpha1.BareMetalHost{}), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, patch client.Patch, opts ...client.PatchOption) error {
+						return c.Patch(ctx, bmh, patch)
 					},
 				).Times(4)
-				mockClient.EXPECT().Update(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{})).DoAndReturn(
-					func(ctx context.Context, agent *v1beta1.Agent, opts ...client.UpdateOption) error {
-						return c.Update(ctx, agent)
+				mockClient.EXPECT().Patch(gomock.Any(), gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).DoAndReturn(
+					func(ctx context.Context, agent *v1beta1.Agent, patch client.Patch, opts ...client.PatchOption) error {
+						return c.Patch(ctx, agent, patch)
 					},
 				).Times(1)
+
+				// Seed annotations simulating a foreign controller to verify
+				// merge patches preserve fields not managed by BMAC.
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				if updatedHost.Annotations == nil {
+					updatedHost.Annotations = map[string]string{}
+				}
+				updatedHost.Annotations["test.example.com/foreign-controller"] = "should-survive"
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				seedAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, seedAgent)
+				Expect(err).To(BeNil())
+				if seedAgent.Annotations == nil {
+					seedAgent.Annotations = map[string]string{}
+				}
+				seedAgent.Annotations["test.example.com/foreign-controller"] = "should-survive"
+				Expect(c.Update(ctx, seedAgent)).To(BeNil())
+
 				for i := 0; i != 2; i++ {
-					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					var result ctrl.Result
+					result, err = bmhr.Reconcile(ctx, newBMHRequest(host))
 					Expect(err).To(BeNil())
 					Expect(result).To(Equal(ctrl.Result{}))
 
@@ -1227,6 +1249,17 @@ var _ = Describe("bmac reconcile", func() {
 					Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
 					Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
 				}
+
+				// Verify merge patches preserved annotations from other controllers
+				finalAgent := &v1beta1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, finalAgent)
+				Expect(err).To(BeNil())
+				Expect(finalAgent.Annotations).To(HaveKeyWithValue("test.example.com/foreign-controller", "should-survive"))
+
+				finalHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, finalHost)
+				Expect(err).To(BeNil())
+				Expect(finalHost.Annotations).To(HaveKeyWithValue("test.example.com/foreign-controller", "should-survive"))
 			})
 		})
 	})
@@ -3423,7 +3456,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 	It("doesn't run when converged flow is not enabled", func() {
 		bmhr.ConvergedFlowEnabled = false
-		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+		mockClient.EXPECT().Patch(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		result := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 		Expect(result.Stop(ctx)).To(BeFalse())
 		_, err := result.Result()
@@ -3432,7 +3465,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 	It("doesn't run when the BMH is not annotated", func() {
 		bmh.Annotations = nil
-		mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Times(0)
+		mockClient.EXPECT().Patch(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		result := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, nil)
 		Expect(result.Stop(ctx)).To(BeFalse())
 		_, err := result.Result()
@@ -3703,7 +3736,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 					})
 
 					It("waits for the BMH to be deprovisioned", func() {
-						mockClient.EXPECT().Update(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Times(0)
+						mockClient.EXPECT().Patch(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{}), gomock.Any()).Times(0)
 						mockClient.EXPECT().Delete(ctx, gomock.AssignableToTypeOf(&v1beta1.Agent{})).Times(0)
 
 						res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
