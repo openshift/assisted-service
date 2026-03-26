@@ -264,5 +264,5 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&InfraEnv{}, &InfraEnvList{})
+	objectTypes = append(objectTypes, &InfraEnv{}, &InfraEnvList{})
 }
