@@ -19,6 +19,12 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+// FeatureSetConfig provides configuration for feature set overrides
+type FeatureSetConfig interface {
+	GetInstallConfigFeatureSet() string
+	GetInstallConfigFeatureGates() []string
+}
+
 const minimalOpenShiftVersionForImageDigestSupport = "4.14.0-0.0"
 
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
@@ -31,16 +37,19 @@ type installConfigBuilder struct {
 	log                     logrus.FieldLogger
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	providerRegistry        registry.ProviderRegistry
+	featureSetConfig        FeatureSetConfig
 }
 
 func NewInstallConfigBuilder(
 	log logrus.FieldLogger,
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder,
-	providerRegistry registry.ProviderRegistry) InstallConfigBuilder {
+	providerRegistry registry.ProviderRegistry,
+	featureSetConfig FeatureSetConfig) InstallConfigBuilder {
 	return &installConfigBuilder{
 		log:                     log,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 		providerRegistry:        providerRegistry,
+		featureSetConfig:        featureSetConfig,
 	}
 }
 
@@ -296,6 +305,11 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 	if err != nil {
 		return nil, err
 	}
+
+	// Apply environment-based overrides for featureSet and featureGates
+	// These override everything including InstallConfigOverrides
+	i.applyFeatureSetOverrides(cfg)
+
 	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
 	if caContent != "" {
 		cfg.AdditionalTrustBundle = caContent
@@ -414,4 +428,63 @@ func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBare
 	cfg.FeatureSet = configv1.DevPreviewNoUpgrade
 
 	return nil
+}
+
+// applyFeatureSetOverrides applies environment variable overrides for featureSet and featureGates.
+// These override all other sources including InstallConfigOverrides.
+func (i *installConfigBuilder) applyFeatureSetOverrides(cfg *installcfg.InstallerConfigBaremetal) {
+	if i.featureSetConfig == nil {
+		return
+	}
+
+	// Override featureSet if INSTALL_CONFIG_FEATURE_SET is set
+	if featureSet := i.featureSetConfig.GetInstallConfigFeatureSet(); featureSet != "" {
+		// Validate that it's a known FeatureSet value
+		switch configv1.FeatureSet(featureSet) {
+		case configv1.Default, configv1.TechPreviewNoUpgrade, configv1.DevPreviewNoUpgrade, configv1.CustomNoUpgrade:
+			i.log.Infof("Applying environment override INSTALL_CONFIG_FEATURE_SET=%s", featureSet)
+			cfg.FeatureSet = configv1.FeatureSet(featureSet)
+		default:
+			i.log.Warnf("Invalid value for INSTALL_CONFIG_FEATURE_SET: %s (ignoring)", featureSet)
+		}
+	}
+
+	// Merge featureGates if INSTALL_CONFIG_FEATURE_GATES is set
+	// Environment gates are merged with InstallConfigOverrides gates
+	// If the same gate name appears in both, environment value wins
+	if envGates := i.featureSetConfig.GetInstallConfigFeatureGates(); len(envGates) > 0 {
+		i.log.Infof("Merging environment feature gates INSTALL_CONFIG_FEATURE_GATES=%v", envGates)
+
+		// Build map of gate name -> full gate string
+		// Gate name is the part before '=' if present, otherwise the whole string
+		gateMap := make(map[string]string)
+
+		// Add user gates from InstallConfigOverrides first
+		for _, gate := range cfg.FeatureGates {
+			gateName := getGateName(gate)
+			gateMap[gateName] = gate
+		}
+
+		// Add environment gates, overriding any user gates with the same name
+		for _, gate := range envGates {
+			gateName := getGateName(gate)
+			gateMap[gateName] = gate
+		}
+
+		// Rebuild the gate list from the map
+		result := make([]string, 0, len(gateMap))
+		for _, gate := range gateMap {
+			result = append(result, gate)
+		}
+		cfg.FeatureGates = result
+	}
+}
+
+// getGateName extracts the gate name from a feature gate string
+// Feature gates can be "GateName" or "GateName=true" or "GateName=false"
+func getGateName(gate string) string {
+	if idx := strings.Index(gate, "="); idx != -1 {
+		return gate[:idx]
+	}
+	return gate
 }

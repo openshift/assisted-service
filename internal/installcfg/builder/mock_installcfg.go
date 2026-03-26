@@ -11,6 +11,57 @@ import (
 	common "github.com/openshift/assisted-service/internal/common"
 )
 
+// MockFeatureSetConfig is a mock of FeatureSetConfig interface.
+type MockFeatureSetConfig struct {
+	ctrl     *gomock.Controller
+	recorder *MockFeatureSetConfigMockRecorder
+}
+
+// MockFeatureSetConfigMockRecorder is the mock recorder for MockFeatureSetConfig.
+type MockFeatureSetConfigMockRecorder struct {
+	mock *MockFeatureSetConfig
+}
+
+// NewMockFeatureSetConfig creates a new mock instance.
+func NewMockFeatureSetConfig(ctrl *gomock.Controller) *MockFeatureSetConfig {
+	mock := &MockFeatureSetConfig{ctrl: ctrl}
+	mock.recorder = &MockFeatureSetConfigMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockFeatureSetConfig) EXPECT() *MockFeatureSetConfigMockRecorder {
+	return m.recorder
+}
+
+// GetInstallConfigFeatureGates mocks base method.
+func (m *MockFeatureSetConfig) GetInstallConfigFeatureGates() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallConfigFeatureGates")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetInstallConfigFeatureGates indicates an expected call of GetInstallConfigFeatureGates.
+func (mr *MockFeatureSetConfigMockRecorder) GetInstallConfigFeatureGates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallConfigFeatureGates", reflect.TypeOf((*MockFeatureSetConfig)(nil).GetInstallConfigFeatureGates))
+}
+
+// GetInstallConfigFeatureSet mocks base method.
+func (m *MockFeatureSetConfig) GetInstallConfigFeatureSet() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallConfigFeatureSet")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetInstallConfigFeatureSet indicates an expected call of GetInstallConfigFeatureSet.
+func (mr *MockFeatureSetConfigMockRecorder) GetInstallConfigFeatureSet() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallConfigFeatureSet", reflect.TypeOf((*MockFeatureSetConfig)(nil).GetInstallConfigFeatureSet))
+}
+
 // MockInstallConfigBuilder is a mock of InstallConfigBuilder interface.
 type MockInstallConfigBuilder struct {
 	ctrl     *gomock.Controller

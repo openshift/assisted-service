@@ -126,12 +126,35 @@ type Config struct {
 	TNFClustersSupport                  bool              `envconfig:"TNF_CLUSTERS_SUPPORT" default:"false"`
 	ForceInsecurePolicyJson             bool              `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	EnableImageService                  bool              `envconfig:"ENABLE_IMAGE_SERVICE" default:"true"`
+	InstallConfigFeatureSet             string            `envconfig:"INSTALL_CONFIG_FEATURE_SET" default:""`
+	InstallConfigFeatureGates           string            `envconfig:"INSTALL_CONFIG_FEATURE_GATES" default:""`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
 
 	// Directory containing pre-generated TLS certs/keys for the ephemeral installer
 	ClusterTLSCertOverrideDir string `envconfig:"EPHEMERAL_INSTALLER_CLUSTER_TLS_CERTS_OVERRIDE_DIR" default:""`
+}
+
+// GetInstallConfigFeatureSet returns the configured feature set override
+func (c *Config) GetInstallConfigFeatureSet() string {
+	return c.InstallConfigFeatureSet
+}
+
+// GetInstallConfigFeatureGates returns the configured feature gates override as a slice
+func (c *Config) GetInstallConfigFeatureGates() []string {
+	if c.InstallConfigFeatureGates == "" {
+		return nil
+	}
+	gates := strings.Split(c.InstallConfigFeatureGates, ",")
+	result := make([]string, 0, len(gates))
+	for _, gate := range gates {
+		trimmed := strings.TrimSpace(gate)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"

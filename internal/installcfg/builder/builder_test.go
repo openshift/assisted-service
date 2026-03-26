@@ -30,6 +30,19 @@ var (
 	ctrl                              *gomock.Controller
 )
 
+type testFeatureSetConfig struct {
+	featureSet   string
+	featureGates []string
+}
+
+func (t *testFeatureSetConfig) GetInstallConfigFeatureSet() string {
+	return t.featureSet
+}
+
+func (t *testFeatureSetConfig) GetInstallConfigFeatureGates() []string {
+	return t.featureGates
+}
+
 func createInstallConfigBuilder() *installConfigBuilder {
 	ctrl = gomock.NewController(GinkgoT())
 
@@ -38,7 +51,8 @@ func createInstallConfigBuilder() *installConfigBuilder {
 	return &installConfigBuilder{
 		log:                     common.GetTestLog(),
 		mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
-		providerRegistry:        providerRegistry}
+		providerRegistry:        providerRegistry,
+		featureSetConfig:        &testFeatureSetConfig{}}
 }
 
 var _ = Describe("installcfg", func() {
@@ -1226,6 +1240,321 @@ var _ = Describe("Generate NoProxy", func() {
 		cluster.NoProxy = " * "
 		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("*"))
+	})
+})
+
+var _ = Describe("Feature set overrides via BMConfig", func() {
+	var (
+		host1            models.Host
+		host2            models.Host
+		cluster          common.Cluster
+		clusterInfraenvs []*common.InfraEnv
+	)
+
+	BeforeEach(func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterId,
+			OpenshiftVersion: "4.20",
+			Name:             "test-cluster",
+			BaseDNSDomain:    "redhat.com",
+			ClusterNetworks:  []*models.ClusterNetwork{{Cidr: "1.1.1.0/24"}},
+			ServiceNetworks:  []*models.ServiceNetwork{{Cidr: "2.2.2.0/24"}},
+			MachineNetworks:  []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+			APIVips:          []*models.APIVip{{IP: "1.2.3.11", ClusterID: clusterId}},
+			IngressVips:      []*models.IngressVip{{IP: "1.2.3.12", ClusterID: clusterId}},
+			ImageInfo:        &models.ImageInfo{},
+			Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			NetworkType:      swag.String("OpenShiftSDN"),
+		}}
+		clusterInfraenvs = []*common.InfraEnv{}
+
+		id := strfmt.UUID(uuid.New().String())
+		host1 = models.Host{
+			ID:        &id,
+			ClusterID: &clusterId,
+			Status:    swag.String(models.HostStatusKnown),
+			Role:      "master",
+			Inventory: getInventoryStr("hostname1", "bootMode", true, true),
+		}
+
+		id = strfmt.UUID(uuid.New().String())
+		host2 = models.Host{
+			ID:        &id,
+			ClusterID: &clusterId,
+			Status:    swag.String(models.HostStatusKnown),
+			Role:      "master",
+			Inventory: getInventoryStr("hostname2", "bootMode", true, true),
+		}
+
+		cluster.Hosts = []*models.Host{&host1, &host2}
+	})
+
+	It("Override featureSet via config", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet: "TechPreviewNoUpgrade",
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureSet).To(Equal(configv1.TechPreviewNoUpgrade))
+	})
+
+	It("Override featureGates via config", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureGates: []string{"FeatureGate1", "FeatureGate2"},
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureGates).To(ContainElements("FeatureGate1", "FeatureGate2"))
+		Expect(result.FeatureGates).To(HaveLen(2))
+	})
+
+	It("Override both featureSet and featureGates", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet:   "DevPreviewNoUpgrade",
+				featureGates: []string{"Gate1", "Gate2", "Gate3"},
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureSet).To(Equal(configv1.DevPreviewNoUpgrade))
+		Expect(result.FeatureGates).To(ContainElements("Gate1", "Gate2", "Gate3"))
+		Expect(result.FeatureGates).To(HaveLen(3))
+	})
+
+	It("Config override supersedes arbiter cluster default", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		// Create arbiter cluster (which normally sets TechPreviewNoUpgrade for 4.19)
+		id := strfmt.UUID(uuid.New().String())
+		host3 := models.Host{
+			ID:        &id,
+			ClusterID: cluster.ID,
+			Status:    swag.String(models.HostStatusKnown),
+			Role:      "arbiter",
+			Inventory: getInventoryStr("hostname3", "bootMode", true, true),
+		}
+		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
+		cluster.OpenshiftVersion = common.MinimumVersionForArbiterClusters
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet: "DevPreviewNoUpgrade", // Override the default TechPreviewNoUpgrade
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureSet).To(Equal(configv1.DevPreviewNoUpgrade))
+		Expect(result.Arbiter).Should(Not(BeNil()))
+	})
+
+	It("Config featureSet override supersedes InstallConfigOverrides", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		cluster.InstallConfigOverrides = `{"featureSet": "CustomNoUpgrade"}`
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet: "TechPreviewNoUpgrade",
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureSet).To(Equal(configv1.TechPreviewNoUpgrade))
+	})
+
+	It("Config featureGates merge with InstallConfigOverrides", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		cluster.InstallConfigOverrides = `{"featureGates": ["UserGate1", "UserGate2"]}`
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureGates: []string{"EnvGate1", "EnvGate2"},
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// Should contain gates from both sources
+		Expect(result.FeatureGates).To(ContainElements("UserGate1", "UserGate2", "EnvGate1", "EnvGate2"))
+		Expect(result.FeatureGates).To(HaveLen(4))
+	})
+
+	It("Config featureGates avoid duplicates when merging", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		cluster.InstallConfigOverrides = `{"featureGates": ["SharedGate", "UserGate"]}`
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureGates: []string{"SharedGate", "EnvGate"}, // SharedGate is a duplicate
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// Should contain each gate only once
+		Expect(result.FeatureGates).To(ContainElements("SharedGate", "UserGate", "EnvGate"))
+		Expect(result.FeatureGates).To(HaveLen(3))
+	})
+
+	It("Environment gate value overrides user gate value for same gate name", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		// User sets gate to false
+		cluster.InstallConfigOverrides = `{"featureGates": ["TestGate=false", "UserGate"]}`
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				// Environment sets same gate to true - should win
+				featureGates: []string{"TestGate=true", "EnvGate"},
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// Should contain TestGate=true (env value), not TestGate=false (user value)
+		Expect(result.FeatureGates).To(ContainElements("TestGate=true", "UserGate", "EnvGate"))
+		Expect(result.FeatureGates).To(HaveLen(3))
+		Expect(result.FeatureGates).NotTo(ContainElement("TestGate=false"))
+	})
+
+	It("Invalid featureSet value is ignored", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet: "InvalidValue",
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		// Should not have been set
+		Expect(result.FeatureSet).To(Equal(configv1.FeatureSet("")))
+	})
+
+	It("No override when config fields are empty", func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
+		providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+
+		installConfig := &installConfigBuilder{
+			log:                     common.GetTestLog(),
+			mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
+			providerRegistry:        providerRegistry,
+			featureSetConfig: &testFeatureSetConfig{
+				featureSet:   "",
+				featureGates: nil,
+			},
+		}
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FeatureSet).To(Equal(configv1.FeatureSet("")))
+		Expect(result.FeatureGates).To(BeEmpty())
 	})
 })
 

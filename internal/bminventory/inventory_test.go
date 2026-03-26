@@ -319,7 +319,7 @@ func mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion str
 func createInstallConfigBuilder() installcfg_builder.InstallConfigBuilder {
 	log := common.GetTestLog().WithField("pkg", "installcfg")
 	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
-	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log))
+	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log), &Config{})
 
 }
 

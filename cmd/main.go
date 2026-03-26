@@ -522,7 +522,7 @@ func main() {
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
 	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
 	failOnError(err, "failed to create ignition builder")
-	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
+	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry, &Options.BMConfig)
 
 	var xattrClient s3wrapper.XattrClient = setUpXattrClient(
 		log,
