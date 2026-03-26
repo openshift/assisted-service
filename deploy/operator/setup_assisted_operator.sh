@@ -170,6 +170,7 @@ metadata:
   namespace: ${ASSISTED_NAMESPACE}
 data:
   LOG_LEVEL: "debug"
+  OPENSHIFT_INSTALL_EXPERIMENTAL_DISABLE_IMAGE_POLICY: "true"
 $(configmap_config)
 EOCR
 
