@@ -211,8 +211,12 @@ spec:
                   associated with this AgentClusterInstall.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -229,8 +233,12 @@ spec:
                       the admin kubeconfig for this cluster.
                     properties:
                       name:
+                        default: ""
                         description: |-
                           Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
                           More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
@@ -241,8 +249,12 @@ spec:
                       cluster.
                     properties:
                       name:
+                        default: ""
                         description: |-
                           Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
                           More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                         type: string
                     type: object
@@ -257,8 +269,27 @@ spec:
                       during installation and used for tagging/naming resources in
                       cloud providers.
                     type: string
+                  metadataJSONSecretRef:
+                    description: |-
+                      MetadataJSONSecretRef references the secret containing the metadata.json emitted by the
+                      installer, potentially scrubbed for sensitive data.
+                    properties:
+                      name:
+                        default: ""
+                        description: |-
+                          Name of the referent.
+                          This field is effectively required, but due to backwards compatibility is
+                          allowed to be empty. Instances of this type with an empty value here are
+                          almost certainly wrong.
+                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                        type: string
+                    type: object
+                    x-kubernetes-map-type: atomic
                   platform:
-                    description: Platform holds platform-specific cluster metadata
+                    description: |-
+                      Platform holds platform-specific cluster metadata.
+                      Deprecated. Use the Secret referenced by MetadataJSONSecretRef instead. We may stop
+                      populating this section in the future.
                     properties:
                       aws:
                         description: AWS holds AWS-specific cluster metadata
@@ -267,14 +298,18 @@ spec:
                             description: |-
                               HostedZoneRole is the role to assume when performing operations
                               on a hosted zone owned by another account.
+                              Deprecated. Use the Secret referenced by ClusterMetadata.MetadataJSONSecretRef instead. We
+                              may stop populating this section in the future.
                             type: string
                         type: object
                       azure:
                         description: Azure holds azure-specific cluster metadata
                         properties:
                           resourceGroupName:
-                            description: ResourceGroupName is the name of the resource
-                              group in which the cluster resources were created.
+                            description: |-
+                              ResourceGroupName is the name of the resource group in which the cluster resources were created.
+                              Deprecated. Use the Secret referenced by ClusterMetadata.MetadataJSONSecretRef instead. We
+                              may stop populating this section in the future.
                             type: string
                         required:
                         - resourceGroupName
@@ -283,7 +318,10 @@ spec:
                         description: GCP holds GCP-specific cluster metadata
                         properties:
                           networkProjectID:
-                            description: NetworkProjectID is used for shared VPC setups
+                            description: |-
+                              NetworkProjectID is used for shared VPC setups
+                              Deprecated. Use the Secret referenced by ClusterMetadata.MetadataJSONSecretRef instead. We
+                              may stop populating this section in the future.
                             type: string
                         type: object
                     type: object
@@ -484,8 +522,12 @@ spec:
                   Deprecated: this field is ignored when ManifestsConfigMapRefs is set.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -1385,8 +1427,12 @@ spec:
                   fetch.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -1398,8 +1444,12 @@ spec:
                   this certificate will be used by the assisted-image-service when pulling OS images.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -1417,6 +1467,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -1496,7 +1547,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -1556,11 +1607,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -1581,15 +1634,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -1617,6 +1668,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -1696,7 +1748,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -1756,11 +1808,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -1781,15 +1835,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -1826,6 +1878,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -1905,7 +1958,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -1965,11 +2018,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -1990,15 +2045,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -2042,8 +2095,12 @@ spec:
                   registries.conf - holds the content of registries.conf file configured with mirror registries
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -2227,8 +2284,12 @@ spec:
                   fetch.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -2240,8 +2301,12 @@ spec:
                   this certificate will be used by the assisted-image-service when pulling OS images.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -2259,6 +2324,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -2338,7 +2404,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -2398,11 +2464,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -2423,15 +2491,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -2459,6 +2525,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -2538,7 +2605,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -2598,11 +2665,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -2623,15 +2692,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -2668,6 +2735,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: atomic
                   dataSource:
                     description: |-
                       dataSource field can be used to specify either:
@@ -2747,7 +2815,7 @@ spec:
                   resources:
                     description: |-
                       resources represents the minimum resources the volume should have.
-                      If RecoverVolumeExpansionFailure feature is enabled users are allowed to specify resource requirements
+                      Users are allowed to specify resource requirements
                       that are lower than previous value but must still be higher than capacity recorded in the
                       status field of the claim.
                       More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#resources
@@ -2807,11 +2875,13 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: atomic
                           required:
                           - key
                           - operator
                           type: object
                         type: array
+                        x-kubernetes-list-type: atomic
                       matchLabels:
                         additionalProperties:
                           type: string
@@ -2832,15 +2902,13 @@ spec:
                       volumeAttributesClassName may be used to set the VolumeAttributesClass used by this claim.
                       If specified, the CSI driver will create or update the volume with the attributes defined
                       in the corresponding VolumeAttributesClass. This has a different purpose than storageClassName,
-                      it can be changed after the claim is created. An empty string value means that no VolumeAttributesClass
-                      will be applied to the claim but it's not allowed to reset this field to empty string once it is set.
-                      If unspecified and the PersistentVolumeClaim is unbound, the default VolumeAttributesClass
-                      will be set by the persistentvolume controller if it exists.
+                      it can be changed after the claim is created. An empty string or nil value indicates that no
+                      VolumeAttributesClass will be applied to the claim. If the claim enters an Infeasible error state,
+                      this field can be reset to its previous value (including nil) to cancel the modification.
                       If the resource referred to by volumeAttributesClass does not exist, this PersistentVolumeClaim will be
                       set to a Pending state, as reflected by the modifyVolumeStatus field, until such as a resource
                       exists.
-                      More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#volumeattributesclass
-                      (Alpha) Using this field requires the VolumeAttributesClass feature gate to be enabled.
+                      More info: https://kubernetes.io/docs/concepts/storage/volume-attributes-classes/
                     type: string
                   volumeMode:
                     description: |-
@@ -2881,8 +2949,12 @@ spec:
                   the kubeconfig for the destination Hypershift instance.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -2895,8 +2967,12 @@ spec:
                   registries.conf - holds the content of registries.conf file configured with mirror registries
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -3233,11 +3309,13 @@ spec:
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - key
                       - operator
                       type: object
                     type: array
+                    x-kubernetes-list-type: atomic
                   matchLabels:
                     additionalProperties:
                       type: string
@@ -3277,8 +3355,12 @@ spec:
                   pulling images.
                 properties:
                   name:
+                    default: ""
                     description: |-
                       Name of the referent.
+                      This field is effectively required, but due to backwards compatibility is
+                      allowed to be empty. Instances of this type with an empty value here are
+                      almost certainly wrong.
                       More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                     type: string
                 type: object
@@ -3324,11 +3406,13 @@ spec:
                           items:
                             type: string
                           type: array
+                          x-kubernetes-list-type: atomic
                       required:
                       - key
                       - operator
                       type: object
                     type: array
+                    x-kubernetes-list-type: atomic
                   matchLabels:
                     additionalProperties:
                       type: string

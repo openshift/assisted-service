@@ -1463,6 +1463,9 @@ var _ = Describe("cluster reconcile", func() {
 		mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		// Capture TypeMeta before fakeclient.Create, which clears it on typed objects
+		clusterAPIVersion := cluster.APIVersion
+		clusterKind := cluster.Kind
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 		aci.ObjectMeta.OwnerReferences = nil
@@ -1476,8 +1479,8 @@ var _ = Describe("cluster reconcile", func() {
 			Name:      agentClusterInstallName,
 		}
 		ownref := metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: clusterAPIVersion,
+			Kind:       clusterKind,
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		}

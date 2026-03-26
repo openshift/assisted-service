@@ -35,11 +35,11 @@ var (
 
 // AgentClusterInstallValidatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
 type AgentClusterInstallValidatingAdmissionHook struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // NewAgentClusterInstallValidatingAdmissionHook constructs a new AgentClusterInstallValidatingAdmissionHook
-func NewAgentClusterInstallValidatingAdmissionHook(decoder *admission.Decoder) *AgentClusterInstallValidatingAdmissionHook {
+func NewAgentClusterInstallValidatingAdmissionHook(decoder admission.Decoder) *AgentClusterInstallValidatingAdmissionHook {
 	return &AgentClusterInstallValidatingAdmissionHook{decoder: decoder}
 }
 

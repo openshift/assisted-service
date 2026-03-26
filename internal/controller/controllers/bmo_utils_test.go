@@ -3,13 +3,13 @@ package controllers
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	v1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	metal3iov1alpha1 "github.com/openshift/cluster-baremetal-operator/api/v1alpha1"
+	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -93,12 +93,11 @@ var _ = Describe("bmoUtils", func() {
 				},
 			}
 			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
-			serviceIPs, inspectorIPs, err := bmoUtils.GetIronicIPs()
+			serviceIPs, err := bmoUtils.GetIronicIPs()
 			Expect(err).Should(BeNil())
 			Expect(serviceIPs[0]).Should(Equal(ironicIP))
-			Expect(inspectorIPs[0]).Should(Equal(ironicIP))
 		})
-		It("failed to determine inspector URL", func() {
+		It("failed to determine Ironic URL", func() {
 			bmoUtils := &bmoUtils{
 				c:              c,
 				log:            log,
@@ -115,11 +114,10 @@ var _ = Describe("bmoUtils", func() {
 				},
 			}
 			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
-			serviceIPs, inspectorIPs, err := bmoUtils.GetIronicIPs()
+			serviceIPs, err := bmoUtils.GetIronicIPs()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unable to determine inspector IP, check if metal3 pod is running"))
+			Expect(err.Error()).To(ContainSubstring("unable to determine Ironic's IP"))
 			Expect(serviceIPs).Should(BeNil())
-			Expect(inspectorIPs).Should(BeNil())
 		})
 
 	})

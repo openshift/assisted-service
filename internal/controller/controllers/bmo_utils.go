@@ -27,10 +27,10 @@ const (
 	ironicAgentImageKey            = "IRONIC_AGENT_IMAGE"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_bmo_utils.go . BMOUtils
+//go:generate mockgen -package=controllers -destination=mock_bmo_utils.go . BMOUtils
 type BMOUtils interface {
 	ConvergedFlowAvailable() bool
-	GetIronicIPs() ([]string, []string, error)
+	GetIronicIPs() ([]string, error)
 	getICCConfig(ctx context.Context) (*ICCConfig, error)
 }
 
@@ -82,28 +82,23 @@ func (r *bmoUtils) ConvergedFlowAvailable() bool {
 	return available
 }
 
-func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
+func (r *bmoUtils) GetIronicIPs() ([]string, error) {
 	provisioningInfo, err := r.getProvisioningInfo()
 	if err != nil {
 		r.log.WithError(err).Error("unable to get provisioning CR")
-		return nil, nil, err
+		return nil, err
 	}
-	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(provisioningInfo)
+	ironicIPs, err := provisioning.GetIronicIPs(provisioningInfo)
 	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
-		return nil, nil, err
-	}
-	if len(inspectorIPs) == 0 || inspectorIPs[0] == "" {
-		err = errors.New("unable to determine inspector IP, check if metal3 pod is running")
-		r.log.WithError(err)
-		return nil, nil, err
+		return nil, err
 	}
 	if len(ironicIPs) == 0 || ironicIPs[0] == "" {
 		err = errors.New("unable to determine Ironic's IP")
 		r.log.WithError(err)
-		return nil, nil, err
+		return nil, err
 	}
-	return ironicIPs, inspectorIPs, nil
+	return ironicIPs, nil
 }
 
 func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {

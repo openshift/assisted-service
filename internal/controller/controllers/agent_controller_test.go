@@ -2657,9 +2657,10 @@ var _ = Describe("agent reconcile", func() {
 
 		agent := newAgent(hostID.String(), testNamespace, v1beta1.AgentSpec{})
 		Expect(c.Create(ctx, agent)).To(Succeed())
+		infraEnvKind := "InfraEnv"
 		infraEnv := &v1beta1.InfraEnv{
 			TypeMeta: metav1.TypeMeta{
-				Kind:       "InfraEnv",
+				Kind:       infraEnvKind,
 				APIVersion: "aiv1beta1.openshift.io/v1beta1",
 			},
 			ObjectMeta: metav1.ObjectMeta{
@@ -2682,7 +2683,7 @@ var _ = Describe("agent reconcile", func() {
 		By("sets the infraEnv as an owner when it isn't set")
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.OwnerReferences).To(HaveLen(1))
-		Expect(newAgent.OwnerReferences[0].Kind).To(Equal(infraEnv.Kind))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal(infraEnvKind))
 		Expect(newAgent.OwnerReferences[0].Name).To(Equal(infraEnvName))
 		Expect(newAgent.OwnerReferences[0].UID).To(Equal(infraEnv.GetUID()))
 
@@ -2703,7 +2704,7 @@ var _ = Describe("agent reconcile", func() {
 		newAgent = &v1beta1.Agent{}
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.OwnerReferences).To(HaveLen(2))
-		Expect(newAgent.OwnerReferences[1].Kind).To(Equal("InfraEnv"))
+		Expect(newAgent.OwnerReferences[1].Kind).To(Equal(infraEnvKind))
 		Expect(newAgent.OwnerReferences[1].Name).To(Equal(infraEnvName))
 		Expect(newAgent.OwnerReferences[1].UID).To(Equal(infraEnv.GetUID()))
 		Expect(newAgent.OwnerReferences[0].Kind).To(Equal("NotAnInfraEnv"))

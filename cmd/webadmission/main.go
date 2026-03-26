@@ -29,7 +29,7 @@ func main() {
 	)
 }
 
-func createDecoder() *admission.Decoder {
+func createDecoder() admission.Decoder {
 	scheme := runtime.NewScheme()
 	err := hiveext.AddToScheme(scheme)
 	if err != nil {

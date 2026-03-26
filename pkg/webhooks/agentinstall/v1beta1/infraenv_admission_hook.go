@@ -30,12 +30,12 @@ const (
 
 // InfraEnvValidatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
 type InfraEnvValidatingAdmissionHook struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 	client  ctrlclient.Client
 }
 
 // NewInfraEnvValidatingAdmissionHook constructs a new NewInfraEnvValidatingAdmissionHook
-func NewInfraEnvValidatingAdmissionHook(decoder *admission.Decoder) *InfraEnvValidatingAdmissionHook {
+func NewInfraEnvValidatingAdmissionHook(decoder admission.Decoder) *InfraEnvValidatingAdmissionHook {
 	return &InfraEnvValidatingAdmissionHook{decoder: decoder}
 }
 

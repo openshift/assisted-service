@@ -677,7 +677,7 @@ func (r *PreprovisioningImageReconciler) getIPFamilyForInfraEnv(ctx context.Cont
 }
 
 func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv, iccConfig *ICCConfig) error {
-	ironicIPs, inspectorIPs, err := r.BMOUtils.GetIronicIPs()
+	ironicIPs, err := r.BMOUtils.GetIronicIPs()
 	if err != nil {
 		return err
 	}
@@ -685,7 +685,6 @@ func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Conte
 	// default to the first IP returned
 	// v4 for dualstack hub or whatever family the single stack is
 	ironicURL := getUrlFromIP(ironicIPs[0])
-	inspectorURL := getUrlFromIP(inspectorIPs[0])
 
 	if len(ironicIPs) > 1 {
 		v4, v6, err := r.getIPFamilyForInfraEnv(ctx, infraEnv, internalInfraEnv)
@@ -695,12 +694,11 @@ func (r *PreprovisioningImageReconciler) fillIronicServiceURLs(ctx context.Conte
 		} else if !v4 && v6 {
 			// spoke is single stack v6 so take v6 hub address
 			ironicURL = getUrlFromIP(ironicIPs[1])
-			inspectorURL = getUrlFromIP(inspectorIPs[1])
 		}
 	}
 
 	iccConfig.IronicBaseURL = ironicURL
-	iccConfig.IronicInspectorBaseUrl = inspectorURL
+	iccConfig.IronicInspectorBaseUrl = ironicURL
 	return nil
 }
 

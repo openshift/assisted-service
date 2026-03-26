@@ -671,7 +671,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: config.openshift.io/v1
 				kind: ImageDigestMirrorSet
 				metadata:
-				  creationTimestamp: null
 				  name: image-mirror-set
 				spec:
 				  imageDigestMirrors:
@@ -731,7 +730,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: operator.openshift.io/v1alpha1
 				kind: ImageContentSourcePolicy
 				metadata:
-				  creationTimestamp: null
 				  name: image-policy
 				spec:
 				  repositoryDigestMirrors:
@@ -797,7 +795,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: config.openshift.io/v1
 				kind: ImageDigestMirrorSet
 				metadata:
-				  creationTimestamp: null
 				  name: image-mirror-set
 				spec:
 				  imageDigestMirrors:
@@ -840,7 +837,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: config.openshift.io/v1
 				kind: ImageDigestMirrorSet
 				metadata:
-				  creationTimestamp: null
 				  name: image-mirror-set
 				spec:
 				  imageDigestMirrors:
@@ -907,7 +903,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: operator.openshift.io/v1alpha1
 				kind: ImageContentSourcePolicy
 				metadata:
-				  creationTimestamp: null
 				  name: image-policy
 				spec:
 				  repositoryDigestMirrors:
@@ -949,7 +944,6 @@ var _ = Describe("Mirrors configuration generation", func() {
 				apiVersion: operator.openshift.io/v1alpha1
 				kind: ImageContentSourcePolicy
 				metadata:
-				  creationTimestamp: null
 				  name: image-policy
 				spec:
 				  repositoryDigestMirrors:
