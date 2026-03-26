@@ -9,7 +9,6 @@ import (
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -34,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/samber/lo"
 	"github.com/vincent-petithory/dataurl"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 

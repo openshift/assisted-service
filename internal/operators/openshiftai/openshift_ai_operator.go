@@ -42,7 +42,7 @@ type operator struct {
 	vendors   []GPUVendor
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package openshiftai -destination mock_gpu_vendor.go . GPUVendor
+//go:generate mockgen -package openshiftai -destination mock_gpu_vendor.go . GPUVendor
 type GPUVendor interface {
 	ClusterHasGPU(c *common.Cluster) (bool, error)
 	GetName() string

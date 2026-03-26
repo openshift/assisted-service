@@ -798,7 +798,7 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			TLSConfig: &monitoringv1.TLSConfig{
 				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
 				SafeTLSConfig: monitoringv1.SafeTLSConfig{
-					ServerName: fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace),
+					ServerName: func() *string { s := fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace); return &s }(),
 				},
 			},
 		}}

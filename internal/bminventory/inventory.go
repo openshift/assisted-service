@@ -150,7 +150,7 @@ type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_installer_internal.go . InstallerInternals
+//go:generate mockgen -package bminventory -destination mock_installer_internal.go . InstallerInternals
 type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.V2RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.V2GetClusterParams) (*common.Cluster, error)
@@ -191,7 +191,7 @@ type InstallerInternals interface {
 	GetHostByIdInternal(ctx context.Context, hostId string) (*common.Host, error)
 }
 
-//go:generate mockgen --build_flags=--mod=mod -package bminventory -destination mock_crd_utils.go . CRDUtils
+//go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
 type CRDUtils interface {
 	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId string, infraenv *common.InfraEnv, cluster *common.Cluster) error
 }

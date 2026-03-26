@@ -921,7 +921,7 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&aiv1beta1.NMStateConfig{}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
 		Watches(&hivev1.ClusterDeployment{}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
 		Watches(&corev1.Secret{}, handler.EnqueueRequestsFromMapFunc(mapPullSecretToInfraEnv)).
-		WatchesRawSource(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(source.Channel(infraEnvUpdates, &handler.EnqueueRequestForObject{})).
 		Complete(r)
 }
 

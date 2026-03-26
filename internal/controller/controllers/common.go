@@ -59,9 +59,9 @@ const (
 	VeleroExcludeBackupLabel         = "velero.io/exclude-from-backup"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_sub_resource_writer.go sigs.k8s.io/controller-runtime/pkg/client SubResourceWriter
+//go:generate mockgen -package=controllers -destination=mock_sub_resource_writer.go sigs.k8s.io/controller-runtime/pkg/client SubResourceWriter
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_k8s_client.go . K8sClient
+//go:generate mockgen -package=controllers -destination=mock_k8s_client.go . K8sClient
 type K8sClient interface {
 	client.Client
 }

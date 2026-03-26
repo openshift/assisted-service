@@ -28,3 +28,4 @@ go.work.sum
 
 # Generated manifests
 deploy/operator/ztp/generated/**
+gomock_reflect_*

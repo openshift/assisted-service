@@ -23,7 +23,7 @@ var ErrNoSuchProvider = errors.New("no provider with the specified name register
 // ErrProviderUnSet is returned or thrown in panic when provider has not been set.
 var ErrProviderUnSet = errors.New("provider has not been set")
 
-//go:generate mockgen --build_flags=--mod=mod -package registry -destination mock_providerregistry.go . ProviderRegistry
+//go:generate mockgen -package registry -destination mock_providerregistry.go . ProviderRegistry
 type ProviderRegistry interface {
 	Registry
 	// GetSupportedProvidersByHosts returns a slice of all the providers names which support
@@ -47,7 +47,7 @@ type ProviderRegistry interface {
 
 // Registry registers the providers to their names.
 //
-//go:generate mockgen --build_flags=--mod=mod -package registry -destination mock_registry.go . Registry
+//go:generate mockgen -package registry -destination mock_registry.go . Registry
 type Registry interface {
 	// Register registers a provider.
 	Register(provider provider.Provider)

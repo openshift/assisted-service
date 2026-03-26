@@ -31,7 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client.go . SpokeK8sClient
+//go:generate mockgen -package=spoke_k8s_client -destination=mock_spoke_k8s_client.go . SpokeK8sClient
 type SpokeK8sClient interface {
 	client.Client
 	ListCsrs(ctx context.Context) (*certificatesv1.CertificateSigningRequestList, error)

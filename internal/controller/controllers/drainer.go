@@ -5,7 +5,7 @@ import (
 	"k8s.io/kubectl/pkg/drain"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=controllers -destination=mock_drainer.go . Drainer
+//go:generate mockgen -package=controllers -destination=mock_drainer.go . Drainer
 type Drainer interface {
 	RunCordonOrUncordon(helper *drain.Helper, node *corev1.Node, desired bool) error
 	RunNodeDrain(helper *drain.Helper, nodeName string) error

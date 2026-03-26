@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=s3wrapper -destination=mock_xattr_client.go . XattrClient
+//go:generate mockgen -package=s3wrapper -destination=mock_xattr_client.go . XattrClient
 type XattrClient interface {
 	// IsSupported will determine if the client is supported in the current configuration
 	IsSupported() (bool, error)

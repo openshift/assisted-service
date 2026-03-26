@@ -16,7 +16,7 @@ import (
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
+//go:generate mockgen -package=spoke_k8s_client -destination=mock_spoke_k8s_client_factory.go . SpokeK8sClientFactory
 type SpokeK8sClientFactory interface {
 	CreateFromSecret(deployment *hivev1.ClusterDeployment, secret *corev1.Secret) (SpokeK8sClient, error)
 	ClientAndSetFromSecret(deployment *hivev1.ClusterDeployment, secret *corev1.Secret) (SpokeK8sClient, *kubernetes.Clientset, error)

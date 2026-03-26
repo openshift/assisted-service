@@ -13,7 +13,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-//go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_osimages.go -self_package github.com/openshift/assisted-service/internal/versions . OSImages
+//go:generate mockgen -package versions -destination mock_osimages.go -self_package github.com/openshift/assisted-service/internal/versions . OSImages
 type OSImages interface {
 	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
 	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
