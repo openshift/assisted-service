@@ -13,6 +13,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 )
 
+//go:generate mockery -name API -inpkg
 
 // API is the interface of the events client
 type API interface {
