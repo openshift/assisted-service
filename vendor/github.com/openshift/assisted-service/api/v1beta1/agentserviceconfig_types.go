@@ -290,5 +290,5 @@ type AgentServiceConfigList struct {
 }
 
 func init() {
-	SchemeBuilder.Register(&AgentServiceConfig{}, &AgentServiceConfigList{})
+	objectTypes = append(objectTypes, &AgentServiceConfig{}, &AgentServiceConfigList{})
 }
