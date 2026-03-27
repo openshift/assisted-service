@@ -42,8 +42,8 @@ require (
 	github.com/openshift/api v0.0.0-20230720094506-afcbe27aec7c // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
 	go.mongodb.org/mongo-driver v1.12.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/net v0.48.0 // indirect
+	golang.org/x/text v0.32.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -60,3 +60,5 @@ replace (
 )
 
 replace github.com/golang/glog => github.com/golang/glog v1.2.4
+
+replace google.golang.org/grpc => google.golang.org/grpc v1.79.3
