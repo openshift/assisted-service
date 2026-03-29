@@ -74,15 +74,27 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 	versions := make(map[string]models.VersionedHostRequirements)
 	var rawMinVersions []rawRequirementsEntry
 
+	seenMinVersions := make(map[string]struct{})
 	for _, entry := range entries {
 		switch {
+		case entry.Version != "" && entry.MinVersion != "":
+			return fmt.Errorf("entry must specify either \"version\" or \"min_version\", not both")
+		case entry.Version == "" && entry.MinVersion == "":
+			return fmt.Errorf("entry must specify either \"version\" or \"min_version\"")
 		case entry.Version != "":
+			if _, exists := versions[entry.Version]; exists {
+				return fmt.Errorf("duplicate version entry %q", entry.Version)
+			}
 			req, err := toStrictVersionedRequirements(entry)
 			if err != nil {
 				return err
 			}
 			versions[entry.Version] = req
 		case entry.MinVersion != "":
+			if _, exists := seenMinVersions[entry.MinVersion]; exists {
+				return fmt.Errorf("duplicate min_version entry %q", entry.MinVersion)
+			}
+			seenMinVersions[entry.MinVersion] = struct{}{}
 			rawMinVersions = append(rawMinVersions, entry)
 		}
 	}
@@ -103,9 +115,13 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 			if err != nil {
 				return fmt.Errorf("invalid min_version %q: %w", raw.MinVersion, err)
 			}
+			merged := mergePartialWithDefault(raw, defaultReq)
+			if err := validateVersionedRequirements(merged, raw.MinVersion); err != nil {
+				return err
+			}
 			minVersions = append(minVersions, resolvedMinVersion{
 				version:      v,
-				requirements: mergePartialWithDefault(raw, defaultReq),
+				requirements: merged,
 			})
 		}
 		sort.Slice(minVersions, func(i, j int) bool {
