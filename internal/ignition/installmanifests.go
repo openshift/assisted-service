@@ -722,6 +722,10 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 				// drop this from the list of Files because we don't want to run BMO
 				continue
 			}
+		case isNMConnection(&config.Storage.Files[i]):
+			// this nmconnection is used for configuring static networking on the bootstrap
+			// we already have our own way to configure static networking
+			continue
 		case isMOTD(&config.Storage.Files[i]):
 			// workaround for https://github.com/openshift/machine-config-operator/issues/2086
 			g.fixMOTDFile(&config.Storage.Files[i])
@@ -1441,6 +1445,10 @@ func isMOTD(file *config_latest_types.File) bool {
 
 func isBaremetalProvisioningConfig(file *config_latest_types.File) bool {
 	return strings.Contains(file.Node.Path, "baremetal-provisioning-config")
+}
+
+func isNMConnection(file *config_latest_types.File) bool {
+	return file.Node.Path == "/etc/NetworkManager/system-connections/nmconnection"
 }
 
 func fileToBMH(file *config_latest_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
