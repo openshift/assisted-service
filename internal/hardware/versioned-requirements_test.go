@@ -464,7 +464,6 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*requirements).To(BeEquivalentTo(expected))
 
-
 			requirements.MasterRequirements.CPUCores = 1
 			requirements.MasterRequirements.RAMMib = 2
 			requirements.WorkerRequirements.CPUCores = 1
