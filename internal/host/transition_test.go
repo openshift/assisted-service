@@ -6863,6 +6863,7 @@ var allValidationIDs = []validationID{
 	NoIPCollisionsInNetwork,
 	IsReleaseDomainNameResolvedCorrectly,
 	NoIscsiNicBelongsToMachineCidr,
+	NonStandardHARequiresBareMetal,
 	AreNodeFeatureDiscoveryRequirementsSatisfied,
 	AreNvidiaGPURequirementsSatisfied,
 	ArePipelinesRequirementsSatisfied,

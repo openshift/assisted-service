@@ -973,6 +973,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		If(HasMinCPUCores),
 		If(HasMinMemory),
 		If(CompatibleWithClusterPlatform),
+		If(NonStandardHARequiresBareMetal),
 		If(DiskEncryptionRequirementsSatisfied),
 	)
 

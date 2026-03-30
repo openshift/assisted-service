@@ -4181,4 +4181,57 @@ var _ = Describe("Validations test", func() {
 			Expect(msg).To(Equal("Host does not belong to any machine network CIDR. Verify that the host belongs to at least one CIDR listed under machine networks"))
 		})
 	})
+
+	Context("Non-standard HA requires bare metal validation", func() {
+		var generateInventoryWithVirtual = func(virtual bool) string {
+			inventory := models.Inventory{
+				CPU:    &models.CPU{Count: 8, Flags: []string{"vmx"}, Architecture: models.ClusterCPUArchitectureX8664},
+				Disks:  []*models.Disk{{DriveType: models.DriveTypeSSD, Name: "sda", SizeBytes: conversions.GbToBytes(120)}},
+				Memory: &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+				Interfaces: []*models.Interface{{
+					IPV4Addresses: []string{"1.2.3.4/24"},
+					MacAddress:    "00:aa:bb:cc:dd:ee",
+				}},
+				Hostname:     "master-hostname",
+				SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534", Virtual: virtual},
+				Routes:       common.TestDefaultRouteConfiguration,
+			}
+			b, err := json.Marshal(&inventory)
+			Expect(err).To(Not(HaveOccurred()))
+			return string(b)
+		}
+
+		DescribeTable("should validate based on platform, CP count, role, and hardware type",
+			func(platformType models.PlatformType, cpCount int64, role models.HostRole, virtual bool, expectFound bool, expectedStatus ValidationStatus) {
+				c := hostutil.GenerateTestCluster(clusterID)
+				c.Platform = &models.Platform{Type: common.PlatformTypePtr(platformType)}
+				c.ControlPlaneCount = cpCount
+				Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+
+				h := hostutil.GenerateTestHostByKind(hostID, infraEnvID, &clusterID, models.HostStatusDiscovering, models.HostKindHost, role)
+				h.Inventory = generateInventoryWithVirtual(virtual)
+				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+
+				mockProviderRegistry.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockAndRefreshStatus(&h)
+
+				h = hostutil.GetHostFromDB(*h.ID, h.InfraEnvID, db).Host
+				status, msg, found := getValidationResult(h.ValidationsInfo, NonStandardHARequiresBareMetal)
+				Expect(found).To(Equal(expectFound))
+				if expectFound {
+					Expect(status).To(BeEquivalentTo(expectedStatus))
+					if expectedStatus == ValidationFailure {
+						Expect(msg).To(ContainSubstring("must be bare metal"))
+					}
+				}
+			},
+			Entry("BM master, external, 4CP - pass", models.PlatformTypeExternal, int64(4), models.HostRoleMaster, false, true, ValidationSuccess),
+			Entry("BM master, external, 5CP - pass", models.PlatformTypeExternal, int64(5), models.HostRoleMaster, false, true, ValidationSuccess),
+			Entry("VM master, external, 4CP - fail", models.PlatformTypeExternal, int64(4), models.HostRoleMaster, true, true, ValidationFailure),
+			Entry("VM master, external, 5CP - fail", models.PlatformTypeExternal, int64(5), models.HostRoleMaster, true, true, ValidationFailure),
+			Entry("VM master, external, 3CP - skipped", models.PlatformTypeExternal, int64(3), models.HostRoleMaster, true, false, ValidationStatus("")),
+			Entry("VM master, none, 4CP - skipped", models.PlatformTypeNone, int64(4), models.HostRoleMaster, true, false, ValidationStatus("")),
+			Entry("VM worker, external, 5CP - skipped", models.PlatformTypeExternal, int64(5), models.HostRoleWorker, true, false, ValidationStatus("")),
+		)
+	})
 })

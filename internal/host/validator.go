@@ -461,6 +461,34 @@ func (v *validator) compatibleWithClusterPlatform(c *validationContext) (Validat
 		common.PlatformTypeValue(c.cluster.Platform.Type))
 }
 
+func (v *validator) nonStandardHARequiresBareMetal(c *validationContext) (ValidationStatus, string) {
+	// Late binding
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	// Only relevant for non-standard HA control plane (4/5 CP) with external platform
+	if c.cluster == nil || c.cluster.ControlPlaneCount <= 3 {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	if c.cluster.Platform == nil || common.PlatformTypeValue(c.cluster.Platform.Type) != models.PlatformTypeExternal {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	// Only relevant for master hosts
+	if common.GetEffectiveRole(c.host) != models.HostRoleMaster {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	if c.inventory == nil {
+		return ValidationPending, "Missing host inventory"
+	}
+	if c.inventory.SystemVendor == nil {
+		return ValidationPending, "Missing system vendor information"
+	}
+	if c.inventory.SystemVendor.Virtual {
+		return ValidationFailure, "Control plane nodes in clusters with 4 or 5 control plane nodes must be bare metal, but this host is a virtual machine"
+	}
+	return ValidationSuccess, "Control plane host is bare metal"
+}
+
 func (v *validator) areTangServersReachable(c *validationContext) (ValidationStatus, string) {
 	if c.host.TangConnectivity == "" {
 		return ValidationPending, ""

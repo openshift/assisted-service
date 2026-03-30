@@ -318,6 +318,10 @@ func newValidations(v *validator) []validation {
 			id:        NoIscsiNicBelongsToMachineCidr,
 			condition: v.noIscsiNicBelongsToMachineCidr,
 		},
+		{
+			id:        NonStandardHARequiresBareMetal,
+			condition: v.nonStandardHARequiresBareMetal,
+		},
 	}
 }
 
