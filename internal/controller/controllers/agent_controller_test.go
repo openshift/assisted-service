@@ -877,7 +877,9 @@ var _ = Describe("agent reconcile", func() {
 					},
 				}
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
-				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				// V2UpdateHostInstallProgressInternal is NOT called for installed hosts —
+				// UpdateInstallProgress rejects stage changes for hosts not in installing statuses.
+				// Only the Agent CR stage is updated.
 				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
 				Expect(err).To(BeNil())

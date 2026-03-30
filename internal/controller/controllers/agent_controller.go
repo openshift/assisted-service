@@ -1115,6 +1115,9 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 	}
 	isRecovery := swag.StringValue(h.Status) == models.HostStatusInstallingPendingUserAction ||
 		(swag.StringValue(h.Status) == models.HostStatusInstalled && h.Progress.CurrentStage != models.HostStageDone)
+	// For hosts already in installed status (e.g. DB workaround), skip backend progress updates —
+	// UpdateInstallProgress rejects stage changes for hosts not in installing statuses.
+	canUpdateBackend := swag.StringValue(h.Status) != models.HostStatusInstalled
 	var err error
 	allCSRsHandled := areCSRsHandled(shouldAutoApproveCSRs, agent)
 	if isNodeReady(node) && allCSRsHandled {
@@ -1122,11 +1125,18 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 			r.Log.Infof("Agent %s/%s: recovered from %s (stage %s) — node found Ready on spoke cluster",
 				agent.Namespace, agent.Name, swag.StringValue(h.Status), h.Progress.CurrentStage)
 		}
-		err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
+		if canUpdateBackend && isRecovery {
+			err = r.updateHostInstallProgressWithInfo(ctx, h, models.HostStageDone,
+				fmt.Sprintf("recovered after %s timeout — node joined spoke cluster", swag.StringValue(h.Status)))
+		} else if canUpdateBackend {
+			err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
+		}
 		agent.Status.Progress.CurrentStage = models.HostStageDone
 		// now that the node is done there is no need to requeue
 	} else {
-		err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
+		if canUpdateBackend {
+			err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
+		}
 		agent.Status.Progress.CurrentStage = models.HostStageJoined
 	}
 	if err != nil {
@@ -2159,12 +2169,18 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *models.Host, stage models.HostStage) error {
+	return r.updateHostInstallProgressWithInfo(ctx, host, stage, "")
+}
+
+func (r *AgentReconciler) updateHostInstallProgressWithInfo(ctx context.Context, host *models.Host, stage models.HostStage, progressInfo string) error {
 	r.Log.Infof("Updating host %s install progress to %s", host.ID, stage)
 	err := r.Installer.V2UpdateHostInstallProgressInternal(ctx, installer.V2UpdateHostInstallProgressParams{
 		InfraEnvID: host.InfraEnvID,
 		HostID:     *host.ID,
 		HostProgress: &models.HostProgress{
-			CurrentStage: stage},
+			CurrentStage: stage,
+			ProgressInfo: progressInfo,
+		},
 	})
 	return err
 }
