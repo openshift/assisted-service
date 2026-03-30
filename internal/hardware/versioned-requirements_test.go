@@ -10,11 +10,21 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"k8s.io/utils/ptr"
 )
 
 const (
 	requirementsEnv = "HW_VALIDATOR_REQUIREMENTS"
 )
+
+func vrd(cpuCores, ramMib, diskSizeGb, diskSpeedMs int64) *models.VersionedClusterHostRequirementsDetails {
+	return &models.VersionedClusterHostRequirementsDetails{
+		CPUCores:                         ptr.To(cpuCores),
+		RAMMib:                           ptr.To(ramMib),
+		DiskSizeGb:                       ptr.To(diskSizeGb),
+		InstallationDiskSpeedThresholdMs: ptr.To(diskSpeedMs),
+	}
+}
 
 var _ = Describe("Versioned Requirements", func() {
 	BeforeEach(func() {
@@ -78,17 +88,12 @@ var _ = Describe("Versioned Requirements", func() {
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*requirements).To(BeEquivalentTo(models.VersionedHostRequirements{
-				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
+				Version:                "4.6.0",
+				MasterRequirements:     vrd(4, conversions.GibToMib(16), 100, 2),
+				ArbiterRequirements:    vrd(2, conversions.GibToMib(8), 100, 2),
+				WorkerRequirements:     vrd(2, conversions.GibToMib(8), 100, 3),
+				SNORequirements:        vrd(8, conversions.GibToMib(32), 100, 4),
+				EdgeWorkerRequirements: vrd(2, conversions.GibToMib(8), 100, 3),
 			}))
 		})
 
@@ -165,31 +170,23 @@ var _ = Describe("Versioned Requirements", func() {
 			req46, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*req46).To(BeEquivalentTo(models.VersionedHostRequirements{
-				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 1},
+				Version:                "4.6.0",
+				MasterRequirements:     vrd(4, conversions.GibToMib(16), 100, 2),
+				ArbiterRequirements:    vrd(2, conversions.GibToMib(8), 100, 2),
+				WorkerRequirements:     vrd(2, conversions.GibToMib(8), 100, 1),
+				SNORequirements:        vrd(8, conversions.GibToMib(32), 100, 4),
+				EdgeWorkerRequirements: vrd(2, conversions.GibToMib(8), 100, 1),
 			}))
 
 			req47, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.7.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*req47).To(BeEquivalentTo(models.VersionedHostRequirements{
-				Version: "4.7.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 5, DiskSizeGb: 101,
-					RAMMib: conversions.GibToMib(17), InstallationDiskSpeedThresholdMs: 3},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 101,
-					RAMMib: conversions.GibToMib(9), InstallationDiskSpeedThresholdMs: 3},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 7, DiskSizeGb: 103,
-					RAMMib: conversions.GibToMib(31), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 102, RAMMib: conversions.GibToMib(9)},
+				Version:                "4.7.0",
+				MasterRequirements:     vrd(5, conversions.GibToMib(17), 101, 3),
+				ArbiterRequirements:    vrd(3, conversions.GibToMib(9), 101, 3),
+				WorkerRequirements:     vrd(3, conversions.GibToMib(9), 102, 0),
+				SNORequirements:        vrd(7, conversions.GibToMib(31), 103, 4),
+				EdgeWorkerRequirements: vrd(3, conversions.GibToMib(9), 102, 0),
 			}))
 		})
 
@@ -313,20 +310,14 @@ var _ = Describe("Versioned Requirements", func() {
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 
 			Expect(err).ToNot(HaveOccurred())
-			expected := models.VersionedHostRequirements{
-				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-			}
-			Expect(*requirements).To(BeEquivalentTo(expected))
+			Expect(*requirements).To(BeEquivalentTo(models.VersionedHostRequirements{
+				Version:                "4.6.0",
+				MasterRequirements:     vrd(4, conversions.GibToMib(16), 100, 2),
+				ArbiterRequirements:    vrd(2, conversions.GibToMib(8), 100, 2),
+				WorkerRequirements:     vrd(2, conversions.GibToMib(8), 100, 3),
+				SNORequirements:        vrd(8, conversions.GibToMib(32), 100, 4),
+				EdgeWorkerRequirements: vrd(2, conversions.GibToMib(8), 100, 3),
+			}))
 		})
 
 		It("should return default when queried version not defined", func() {
@@ -391,20 +382,14 @@ var _ = Describe("Versioned Requirements", func() {
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 
 			Expect(err).ToNot(HaveOccurred())
-			expected := models.VersionedHostRequirements{
-				Version: "default",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-			}
-			Expect(*requirements).To(BeEquivalentTo(expected))
+			Expect(*requirements).To(BeEquivalentTo(models.VersionedHostRequirements{
+				Version:                "default",
+				MasterRequirements:     vrd(4, conversions.GibToMib(16), 100, 2),
+				ArbiterRequirements:    vrd(2, conversions.GibToMib(8), 100, 2),
+				WorkerRequirements:     vrd(2, conversions.GibToMib(8), 100, 3),
+				SNORequirements:        vrd(8, conversions.GibToMib(32), 100, 4),
+				EdgeWorkerRequirements: vrd(2, conversions.GibToMib(8), 100, 3),
+			}))
 		})
 
 		It("should not be changed when returned value is modified", func() {
@@ -447,29 +432,24 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			expected := models.VersionedHostRequirements{
-				Version: "4.6.0",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
-				ArbiterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 2},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
-				SNORequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(32), InstallationDiskSpeedThresholdMs: 4},
-				EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 100,
-					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
+				Version:                "4.6.0",
+				MasterRequirements:     vrd(4, conversions.GibToMib(16), 100, 2),
+				ArbiterRequirements:    vrd(2, conversions.GibToMib(8), 100, 2),
+				WorkerRequirements:     vrd(2, conversions.GibToMib(8), 100, 3),
+				SNORequirements:        vrd(8, conversions.GibToMib(32), 100, 4),
+				EdgeWorkerRequirements: vrd(2, conversions.GibToMib(8), 100, 3),
 			}
 
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*requirements).To(BeEquivalentTo(expected))
 
-			requirements.MasterRequirements.CPUCores = 1
-			requirements.MasterRequirements.RAMMib = 2
-			requirements.WorkerRequirements.CPUCores = 1
-			requirements.WorkerRequirements.RAMMib = 2
-			requirements.SNORequirements.CPUCores = 1
-			requirements.SNORequirements.RAMMib = 2
+			*requirements.MasterRequirements.CPUCores = 1
+			*requirements.MasterRequirements.RAMMib = 2
+			*requirements.WorkerRequirements.CPUCores = 1
+			*requirements.WorkerRequirements.RAMMib = 2
+			*requirements.SNORequirements.CPUCores = 1
+			*requirements.SNORequirements.RAMMib = 2
 			requirements.Version = "foo"
 
 			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
@@ -512,7 +492,8 @@ var _ = Describe("Versioned Requirements", func() {
 		It("should fail at decode when min_version entries exist without a default", func() {
 			jsonSpec := []map[string]interface{}{
 				{
-					"min_version": "4.22",
+					"version":    "4.22",
+					"match_type": "min_version",
 					"sno": map[string]interface{}{
 						"cpu_cores": 4,
 					},
@@ -554,7 +535,8 @@ var _ = Describe("Versioned Requirements", func() {
 					},
 				},
 				{
-					"min_version": "4.22",
+					"version":    "4.22",
+					"match_type": "min_version",
 					"sno": map[string]interface{}{
 						"cpu_cores": 4,
 					},
@@ -565,15 +547,15 @@ var _ = Describe("Versioned Requirements", func() {
 
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.22.1")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
 
 			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.23.0")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
 
 			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.21.0")
 			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(8))
+			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(8))
 		})
 
 		It("should merge partial min_version fields with default", func() {
@@ -606,7 +588,8 @@ var _ = Describe("Versioned Requirements", func() {
 					},
 				},
 				{
-					"min_version": "4.22",
+					"version":    "4.22",
+					"match_type": "min_version",
 					"sno": map[string]interface{}{
 						"cpu_cores": 4,
 					},
@@ -618,11 +601,11 @@ var _ = Describe("Versioned Requirements", func() {
 			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.22")
 			Expect(err).ToNot(HaveOccurred())
 			// sno.cpu_cores overridden; other sno fields and all other roles inherited from default
-			Expect(requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
-			Expect(requirements.SNORequirements.RAMMib).To(BeEquivalentTo(conversions.GibToMib(32)))
-			Expect(requirements.SNORequirements.DiskSizeGb).To(BeEquivalentTo(100))
-			Expect(requirements.MasterRequirements.CPUCores).To(BeEquivalentTo(4))
-			Expect(requirements.WorkerRequirements.CPUCores).To(BeEquivalentTo(2))
+			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(*requirements.SNORequirements.RAMMib).To(BeEquivalentTo(conversions.GibToMib(32)))
+			Expect(*requirements.SNORequirements.DiskSizeGb).To(BeEquivalentTo(100))
+			Expect(*requirements.MasterRequirements.CPUCores).To(BeEquivalentTo(4))
+			Expect(*requirements.WorkerRequirements.CPUCores).To(BeEquivalentTo(2))
 		})
 	})
 })

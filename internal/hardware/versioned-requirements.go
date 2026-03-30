@@ -9,26 +9,11 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-const DefaultVersion = "default"
-
-type partialRoleRequirements struct {
-	CPUCores                         *int64   `json:"cpu_cores,omitempty"`
-	RAMMib                           *int64   `json:"ram_mib,omitempty"`
-	DiskSizeGb                       *int64   `json:"disk_size_gb,omitempty"`
-	InstallationDiskSpeedThresholdMs *int64   `json:"installation_disk_speed_threshold_ms,omitempty"`
-	NetworkLatencyThresholdMs        *float64 `json:"network_latency_threshold_ms,omitempty"`
-	PacketLossPercentage             *float64 `json:"packet_loss_percentage,omitempty"`
-}
-
-type rawRequirementsEntry struct {
-	Version                string                   `json:"version,omitempty"`
-	MinVersion             string                   `json:"min_version,omitempty"`
-	MasterRequirements     *partialRoleRequirements `json:"master,omitempty"`
-	ArbiterRequirements    *partialRoleRequirements `json:"arbiter,omitempty"`
-	WorkerRequirements     *partialRoleRequirements `json:"worker,omitempty"`
-	SNORequirements        *partialRoleRequirements `json:"sno,omitempty"`
-	EdgeWorkerRequirements *partialRoleRequirements `json:"edge-worker,omitempty"`
-}
+const (
+	DefaultVersion      = "default"
+	MatchTypeExact      = "exact"
+	MatchTypeMinVersion = "min_version"
+)
 
 type resolvedMinVersion struct {
 	version      *goversion.Version
@@ -66,57 +51,81 @@ func (d *VersionedRequirementsDecoder) GetVersionedHostRequirements(version stri
 }
 
 func (d *VersionedRequirementsDecoder) Decode(value string) error {
-	var entries []rawRequirementsEntry
+	var entries []models.VersionedHostRequirements
 	if err := json.Unmarshal([]byte(value), &entries); err != nil {
 		return err
 	}
 
-	versions := make(map[string]models.VersionedHostRequirements)
-	var rawMinVersions []rawRequirementsEntry
+	var (
+		defaultEntry      *models.VersionedHostRequirements
+		exactEntries      []models.VersionedHostRequirements
+		minVersionEntries []models.VersionedHostRequirements
+	)
+	seenExact := make(map[string]struct{})
+	seenMin := make(map[string]struct{})
 
-	seenMinVersions := make(map[string]struct{})
-	for _, entry := range entries {
-		switch {
-		case entry.Version != "" && entry.MinVersion != "":
-			return fmt.Errorf("entry must specify either \"version\" or \"min_version\", not both")
-		case entry.Version == "" && entry.MinVersion == "":
-			return fmt.Errorf("entry must specify either \"version\" or \"min_version\"")
-		case entry.Version != "":
-			if _, exists := versions[entry.Version]; exists {
+	for i := range entries {
+		entry := &entries[i]
+		if entry.Version == "" {
+			return fmt.Errorf("entry must specify \"version\"")
+		}
+		switch entry.MatchType {
+		case "", MatchTypeExact, MatchTypeMinVersion:
+		default:
+			return fmt.Errorf("invalid match_type %q for version %q, must be %q or %q", entry.MatchType, entry.Version, MatchTypeExact, MatchTypeMinVersion)
+		}
+		isMin := entry.MatchType == MatchTypeMinVersion
+		if isMin {
+			if _, exists := seenMin[entry.Version]; exists {
+				return fmt.Errorf("duplicate min_version entry %q", entry.Version)
+			}
+			seenMin[entry.Version] = struct{}{}
+			minVersionEntries = append(minVersionEntries, *entry)
+		} else {
+			if _, exists := seenExact[entry.Version]; exists {
 				return fmt.Errorf("duplicate version entry %q", entry.Version)
 			}
-			req, err := toStrictVersionedRequirements(entry)
-			if err != nil {
-				return err
+			seenExact[entry.Version] = struct{}{}
+			if entry.Version == DefaultVersion {
+				defaultEntry = entry
+			} else {
+				exactEntries = append(exactEntries, *entry)
 			}
-			versions[entry.Version] = req
-		case entry.MinVersion != "":
-			if _, exists := seenMinVersions[entry.MinVersion]; exists {
-				return fmt.Errorf("duplicate min_version entry %q", entry.MinVersion)
-			}
-			seenMinVersions[entry.MinVersion] = struct{}{}
-			rawMinVersions = append(rawMinVersions, entry)
 		}
 	}
 
-	d.versions = versions
-	if err := d.validateVersionEntries(); err != nil {
+	versions := make(map[string]models.VersionedHostRequirements)
+	if defaultEntry != nil {
+		versions[DefaultVersion] = applyRoleFallbacks(*defaultEntry)
+	}
+
+	if err := validateVersionsMap(versions); err != nil {
 		return err
 	}
 
-	var minVersions []resolvedMinVersion
-	if len(rawMinVersions) > 0 {
+	hasNonDefault := len(exactEntries) > 0 || len(minVersionEntries) > 0
+	if hasNonDefault {
 		defaultReq, hasDefault := versions[DefaultVersion]
 		if !hasDefault {
-			return fmt.Errorf("a \"default\" version entry is required when min_version entries are present")
+			return fmt.Errorf("a \"default\" version entry is required when other entries are present")
 		}
-		for _, raw := range rawMinVersions {
-			v, err := goversion.NewVersion(raw.MinVersion)
-			if err != nil {
-				return fmt.Errorf("invalid min_version %q: %w", raw.MinVersion, err)
+
+		for _, entry := range exactEntries {
+			merged := mergeWithDefault(entry, defaultReq)
+			if err := validateVersionedRequirements(merged, entry.Version); err != nil {
+				return err
 			}
-			merged := mergePartialWithDefault(raw, defaultReq)
-			if err := validateVersionedRequirements(merged, raw.MinVersion); err != nil {
+			versions[entry.Version] = merged
+		}
+
+		var minVersions []resolvedMinVersion
+		for _, entry := range minVersionEntries {
+			v, err := goversion.NewVersion(entry.Version)
+			if err != nil {
+				return fmt.Errorf("invalid min_version %q: %w", entry.Version, err)
+			}
+			merged := mergeWithDefault(entry, defaultReq)
+			if err := validateVersionedRequirements(merged, entry.Version); err != nil {
 				return err
 			}
 			minVersions = append(minVersions, resolvedMinVersion{
@@ -127,14 +136,17 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 		sort.Slice(minVersions, func(i, j int) bool {
 			return minVersions[i].version.LessThan(minVersions[j].version)
 		})
+		d.minVersions = minVersions
+	} else {
+		d.minVersions = nil
 	}
 
-	d.minVersions = minVersions
+	d.versions = versions
 	return nil
 }
 
-func (d *VersionedRequirementsDecoder) validateVersionEntries() error {
-	for version, req := range d.versions {
+func validateVersionsMap(versions map[string]models.VersionedHostRequirements) error {
+	for version, req := range versions {
 		if err := validateVersionedRequirements(req, version); err != nil {
 			return err
 		}
@@ -144,8 +156,8 @@ func (d *VersionedRequirementsDecoder) validateVersionEntries() error {
 
 func validateVersionedRequirements(req models.VersionedHostRequirements, label string) error {
 	for _, check := range []struct {
-		details *models.ClusterHostRequirementsDetails
-		role    string
+		role *models.VersionedClusterHostRequirementsDetails
+		name string
 	}{
 		{req.MasterRequirements, string(models.HostRoleMaster)},
 		{req.ArbiterRequirements, string(models.HostRoleArbiter)},
@@ -153,121 +165,61 @@ func validateVersionedRequirements(req models.VersionedHostRequirements, label s
 		{req.SNORequirements, "SNO"},
 		{req.EdgeWorkerRequirements, "EDGE-WORKER"},
 	} {
-		if err := validateDetails(check.details, label, check.role); err != nil {
+		if err := validateDetails(toClusterHostRequirementsDetails(check.role), label, check.name); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-// toStrictVersionedRequirements converts a version entry requiring all required roles to be present and valid.
-// arbiter and edge-worker are optional and fall back to worker if not specified.
-func toStrictVersionedRequirements(entry rawRequirementsEntry) (models.VersionedHostRequirements, error) {
-	master, err := toStrictRoleDetails(entry.MasterRequirements, entry.Version, string(models.HostRoleMaster))
-	if err != nil {
-		return models.VersionedHostRequirements{}, err
-	}
-	worker, err := toStrictRoleDetails(entry.WorkerRequirements, entry.Version, string(models.HostRoleWorker))
-	if err != nil {
-		return models.VersionedHostRequirements{}, err
-	}
-	sno, err := toStrictRoleDetails(entry.SNORequirements, entry.Version, "SNO")
-	if err != nil {
-		return models.VersionedHostRequirements{}, err
-	}
-	arbiter, err := toStrictRoleDetails(entry.ArbiterRequirements, entry.Version, string(models.HostRoleArbiter))
-	if err != nil {
-		return models.VersionedHostRequirements{}, err
-	}
-	edgeWorker, err := toStrictRoleDetails(entry.EdgeWorkerRequirements, entry.Version, "EDGE-WORKER")
-	if err != nil {
-		return models.VersionedHostRequirements{}, err
-	}
-
-	req := models.VersionedHostRequirements{
-		Version:                entry.Version,
-		MasterRequirements:     master,
-		WorkerRequirements:     worker,
-		SNORequirements:        sno,
-		ArbiterRequirements:    arbiter,
-		EdgeWorkerRequirements: edgeWorker,
-	}
+// applyRoleFallbacks applies worker-based fallbacks for optional roles not specified in an entry.
+// arbiter and edge-worker fall back to worker if not set.
+func applyRoleFallbacks(entry models.VersionedHostRequirements) models.VersionedHostRequirements {
 	// in case we don't set edge worker requirements, handle it as regular worker
-	if req.EdgeWorkerRequirements == nil {
-		req.EdgeWorkerRequirements = req.WorkerRequirements
+	if entry.EdgeWorkerRequirements == nil {
+		entry.EdgeWorkerRequirements = entry.WorkerRequirements
 	}
 	// This is only until we add arbiter to HW_VALIDATOR_REQUIREMENTS in all environments
-	if req.ArbiterRequirements == nil {
-		req.ArbiterRequirements = req.WorkerRequirements
+	if entry.ArbiterRequirements == nil {
+		entry.ArbiterRequirements = entry.WorkerRequirements
 	}
-	return req, nil
+	return entry
 }
 
-// toStrictRoleDetails converts a partialRoleRequirements to ClusterHostRequirementsDetails,
-// returning nil if partial is nil, or an error if any required field is missing or invalid.
-func toStrictRoleDetails(partial *partialRoleRequirements, version, role string) (*models.ClusterHostRequirementsDetails, error) {
-	if partial == nil {
-		return nil, nil
-	}
-	if partial.CPUCores == nil || *partial.CPUCores <= 0 {
-		return nil, fmt.Errorf("CPU cores requirement must be greater than 0 for version %v and %v role", version, role)
-	}
-	if partial.RAMMib == nil || *partial.RAMMib <= 0 {
-		return nil, fmt.Errorf("RAM requirement must be greater than 0 for version %v and %v role", version, role)
-	}
-	if partial.DiskSizeGb == nil || *partial.DiskSizeGb <= 0 {
-		return nil, fmt.Errorf("disk size requirement must be greater than 0 for version %v and %v role", version, role)
-	}
-	if partial.InstallationDiskSpeedThresholdMs != nil && *partial.InstallationDiskSpeedThresholdMs < 0 {
-		return nil, fmt.Errorf("installation disk speed threshold must not be negative for version %v and %v role", version, role)
-	}
-	details := &models.ClusterHostRequirementsDetails{
-		CPUCores:                  *partial.CPUCores,
-		RAMMib:                    *partial.RAMMib,
-		DiskSizeGb:                *partial.DiskSizeGb,
-		NetworkLatencyThresholdMs: partial.NetworkLatencyThresholdMs,
-		PacketLossPercentage:      partial.PacketLossPercentage,
-	}
-	if partial.InstallationDiskSpeedThresholdMs != nil {
-		details.InstallationDiskSpeedThresholdMs = *partial.InstallationDiskSpeedThresholdMs
-	}
-	return details, nil
-}
-
-// mergePartialWithDefault merges a min_version entry's partial fields with the default requirements.
-// Nil roles are taken entirely from default; present roles are merged field-by-field.
-func mergePartialWithDefault(entry rawRequirementsEntry, def models.VersionedHostRequirements) models.VersionedHostRequirements {
+// mergeWithDefault merges a non-default entry with the default requirements.
+// Nil roles are taken from default; present roles are merged field-by-field with default.
+func mergeWithDefault(entry models.VersionedHostRequirements, def models.VersionedHostRequirements) models.VersionedHostRequirements {
 	return models.VersionedHostRequirements{
-		Version:                entry.MinVersion,
-		MasterRequirements:     mergePartialRole(entry.MasterRequirements, def.MasterRequirements),
-		ArbiterRequirements:    mergePartialRole(entry.ArbiterRequirements, def.ArbiterRequirements),
-		WorkerRequirements:     mergePartialRole(entry.WorkerRequirements, def.WorkerRequirements),
-		SNORequirements:        mergePartialRole(entry.SNORequirements, def.SNORequirements),
-		EdgeWorkerRequirements: mergePartialRole(entry.EdgeWorkerRequirements, def.EdgeWorkerRequirements),
+		Version:                entry.Version,
+		MasterRequirements:     mergeRole(entry.MasterRequirements, def.MasterRequirements),
+		ArbiterRequirements:    mergeRole(entry.ArbiterRequirements, def.ArbiterRequirements),
+		WorkerRequirements:     mergeRole(entry.WorkerRequirements, def.WorkerRequirements),
+		SNORequirements:        mergeRole(entry.SNORequirements, def.SNORequirements),
+		EdgeWorkerRequirements: mergeRole(entry.EdgeWorkerRequirements, def.EdgeWorkerRequirements),
 	}
 }
 
-// mergePartialRole merges a partial role with a base role.
+// mergeRole merges a partial role with a base role.
 // Non-nil pointer fields in partial override the corresponding field in base.
-func mergePartialRole(partial *partialRoleRequirements, base *models.ClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
+func mergeRole(partial, base *models.VersionedClusterHostRequirementsDetails) *models.VersionedClusterHostRequirementsDetails {
 	if partial == nil {
-		return copyClusterHostRequirementsDetails(base)
+		return copyVersionedClusterHostRequirementsDetails(base)
 	}
-	var result models.ClusterHostRequirementsDetails
+	var result models.VersionedClusterHostRequirementsDetails
 	if base != nil {
 		result = *base
 	}
 	if partial.CPUCores != nil {
-		result.CPUCores = *partial.CPUCores
+		result.CPUCores = copyInt64Ptr(partial.CPUCores)
 	}
 	if partial.RAMMib != nil {
-		result.RAMMib = *partial.RAMMib
+		result.RAMMib = copyInt64Ptr(partial.RAMMib)
 	}
 	if partial.DiskSizeGb != nil {
-		result.DiskSizeGb = *partial.DiskSizeGb
+		result.DiskSizeGb = copyInt64Ptr(partial.DiskSizeGb)
 	}
 	if partial.InstallationDiskSpeedThresholdMs != nil {
-		result.InstallationDiskSpeedThresholdMs = *partial.InstallationDiskSpeedThresholdMs
+		result.InstallationDiskSpeedThresholdMs = copyInt64Ptr(partial.InstallationDiskSpeedThresholdMs)
 	}
 	if partial.NetworkLatencyThresholdMs != nil {
 		result.NetworkLatencyThresholdMs = partial.NetworkLatencyThresholdMs
@@ -276,6 +228,31 @@ func mergePartialRole(partial *partialRoleRequirements, base *models.ClusterHost
 		result.PacketLossPercentage = partial.PacketLossPercentage
 	}
 	return &result
+}
+
+// toClusterHostRequirementsDetails converts a versioned role to the API details type.
+// Nil pointer fields convert to zero values.
+func toClusterHostRequirementsDetails(role *models.VersionedClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
+	if role == nil {
+		return nil
+	}
+	details := &models.ClusterHostRequirementsDetails{
+		NetworkLatencyThresholdMs: role.NetworkLatencyThresholdMs,
+		PacketLossPercentage:      role.PacketLossPercentage,
+	}
+	if role.CPUCores != nil {
+		details.CPUCores = *role.CPUCores
+	}
+	if role.RAMMib != nil {
+		details.RAMMib = *role.RAMMib
+	}
+	if role.DiskSizeGb != nil {
+		details.DiskSizeGb = *role.DiskSizeGb
+	}
+	if role.InstallationDiskSpeedThresholdMs != nil {
+		details.InstallationDiskSpeedThresholdMs = *role.InstallationDiskSpeedThresholdMs
+	}
+	return details
 }
 
 func validateDetails(details *models.ClusterHostRequirementsDetails, version string, role string) error {
@@ -297,33 +274,41 @@ func validateDetails(details *models.ClusterHostRequirementsDetails, version str
 	return nil
 }
 
-func copyVersionedHostRequirements(requirements *models.VersionedHostRequirements) *models.VersionedHostRequirements {
+func copyVersionedHostRequirements(req *models.VersionedHostRequirements) *models.VersionedHostRequirements {
 	return &models.VersionedHostRequirements{
-		Version:                requirements.Version,
-		MasterRequirements:     copyClusterHostRequirementsDetails(requirements.MasterRequirements),
-		ArbiterRequirements:    copyClusterHostRequirementsDetails(requirements.ArbiterRequirements),
-		WorkerRequirements:     copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
-		SNORequirements:        copyClusterHostRequirementsDetails(requirements.SNORequirements),
-		EdgeWorkerRequirements: copyClusterHostRequirementsDetails(requirements.EdgeWorkerRequirements),
+		Version:                req.Version,
+		MasterRequirements:     copyVersionedClusterHostRequirementsDetails(req.MasterRequirements),
+		ArbiterRequirements:    copyVersionedClusterHostRequirementsDetails(req.ArbiterRequirements),
+		WorkerRequirements:     copyVersionedClusterHostRequirementsDetails(req.WorkerRequirements),
+		SNORequirements:        copyVersionedClusterHostRequirementsDetails(req.SNORequirements),
+		EdgeWorkerRequirements: copyVersionedClusterHostRequirementsDetails(req.EdgeWorkerRequirements),
 	}
+}
+
+func copyVersionedClusterHostRequirementsDetails(role *models.VersionedClusterHostRequirementsDetails) *models.VersionedClusterHostRequirementsDetails {
+	if role == nil {
+		return nil
+	}
+	return &models.VersionedClusterHostRequirementsDetails{
+		CPUCores:                         copyInt64Ptr(role.CPUCores),
+		RAMMib:                           copyInt64Ptr(role.RAMMib),
+		DiskSizeGb:                       copyInt64Ptr(role.DiskSizeGb),
+		InstallationDiskSpeedThresholdMs: copyInt64Ptr(role.InstallationDiskSpeedThresholdMs),
+		NetworkLatencyThresholdMs:        role.NetworkLatencyThresholdMs,
+		PacketLossPercentage:             role.PacketLossPercentage,
+	}
+}
+
+func copyInt64Ptr(p *int64) *int64 {
+	if p == nil {
+		return nil
+	}
+	v := *p
+	return &v
 }
 
 // NewVersionedRequirementsDecoderFromMap constructs a VersionedRequirementsDecoder directly from a versions map.
 // Intended for use in tests that construct requirements programmatically.
 func NewVersionedRequirementsDecoderFromMap(versions map[string]models.VersionedHostRequirements) VersionedRequirementsDecoder {
 	return VersionedRequirementsDecoder{versions: versions}
-}
-
-func copyClusterHostRequirementsDetails(details *models.ClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
-	if details == nil {
-		return nil
-	}
-	return &models.ClusterHostRequirementsDetails{
-		CPUCores:                         details.CPUCores,
-		DiskSizeGb:                       details.DiskSizeGb,
-		InstallationDiskSpeedThresholdMs: details.InstallationDiskSpeedThresholdMs,
-		RAMMib:                           details.RAMMib,
-		NetworkLatencyThresholdMs:        details.NetworkLatencyThresholdMs,
-		PacketLossPercentage:             details.PacketLossPercentage,
-	}
 }

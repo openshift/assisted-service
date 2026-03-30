@@ -41,6 +41,17 @@ import (
 	"k8s.io/utils/ptr"
 )
 
+func toVersionedRoleRequirements(d models.ClusterHostRequirementsDetails) *models.VersionedClusterHostRequirementsDetails {
+	return &models.VersionedClusterHostRequirementsDetails{
+		CPUCores:                         ptr.To(d.CPUCores),
+		RAMMib:                           ptr.To(d.RAMMib),
+		DiskSizeGb:                       ptr.To(d.DiskSizeGb),
+		InstallationDiskSpeedThresholdMs: ptr.To(d.InstallationDiskSpeedThresholdMs),
+		NetworkLatencyThresholdMs:        d.NetworkLatencyThresholdMs,
+		PacketLossPercentage:             d.PacketLossPercentage,
+	}
+}
+
 var (
 	defaultMasterRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         4,
@@ -79,11 +90,11 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 		VersionedRequirements: hardware.NewVersionedRequirementsDecoderFromMap(map[string]models.VersionedHostRequirements{
 			"default": {
 				Version:                "default",
-				MasterRequirements:     &defaultMasterRequirements,
-				ArbiterRequirements:    &defaultWorkerRequirements,
-				WorkerRequirements:     &defaultWorkerRequirements,
-				SNORequirements:        &defaultSnoRequirements,
-				EdgeWorkerRequirements: &defaultWorkerRequirements,
+				MasterRequirements:     toVersionedRoleRequirements(defaultMasterRequirements),
+				ArbiterRequirements:    toVersionedRoleRequirements(defaultWorkerRequirements),
+				WorkerRequirements:     toVersionedRoleRequirements(defaultWorkerRequirements),
+				SNORequirements:        toVersionedRoleRequirements(defaultSnoRequirements),
+				EdgeWorkerRequirements: toVersionedRoleRequirements(defaultWorkerRequirements),
 			},
 		}),
 		MaximumAllowedTimeDiffMinutes: 4,

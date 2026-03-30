@@ -468,20 +468,20 @@ func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.
 
 	if common.GetEffectiveRole(host) == models.HostRoleMaster {
 		if common.IsSingleNodeCluster(cluster) {
-			return *requirements.SNORequirements, nil
+			return *toClusterHostRequirementsDetails(requirements.SNORequirements), nil
 		}
-		return *requirements.MasterRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.MasterRequirements), nil
 	}
 
 	if common.GetEffectiveRole(host) == models.HostRoleArbiter {
-		return *requirements.ArbiterRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.ArbiterRequirements), nil
 	}
 
 	if v.isEdgeWorker(host) {
-		return *requirements.EdgeWorkerRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.EdgeWorkerRequirements), nil
 	}
 
-	return *requirements.WorkerRequirements, nil
+	return *toClusterHostRequirementsDetails(requirements.WorkerRequirements), nil
 }
 
 // There is no need to fail here, failed to get inventory just return false
@@ -504,13 +504,13 @@ func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *commo
 	}
 
 	if role == models.HostRoleMaster {
-		return *requirements.MasterRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.MasterRequirements), nil
 	}
 	if role == models.HostRoleArbiter {
-		return *requirements.ArbiterRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.ArbiterRequirements), nil
 	}
 	if role == models.HostRoleWorker || role == models.HostRoleAutoAssign {
-		return *requirements.WorkerRequirements, nil
+		return *toClusterHostRequirementsDetails(requirements.WorkerRequirements), nil
 	}
 	return models.ClusterHostRequirementsDetails{}, fmt.Errorf("Invalid role for host %s", role)
 }
@@ -525,7 +525,7 @@ func (v *validator) getClusterPreflightOCPRequirements(cluster *common.Cluster) 
 			Quantitative: v.getMasterRequirements(cluster, requirements),
 		},
 		Worker: &models.HostTypeHardwareRequirements{
-			Quantitative: requirements.WorkerRequirements,
+			Quantitative: toClusterHostRequirementsDetails(requirements.WorkerRequirements),
 		},
 	}, nil
 }
@@ -537,19 +537,19 @@ func (v *validator) getInfraEnvPreflightOCPRequirements(infraEnv *common.InfraEn
 	}
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{
-			Quantitative: requirements.MasterRequirements,
+			Quantitative: toClusterHostRequirementsDetails(requirements.MasterRequirements),
 		},
 		Worker: &models.HostTypeHardwareRequirements{
-			Quantitative: requirements.WorkerRequirements,
+			Quantitative: toClusterHostRequirementsDetails(requirements.WorkerRequirements),
 		},
 	}, nil
 }
 
 func (v *validator) getMasterRequirements(cluster *common.Cluster, requirements *models.VersionedHostRequirements) *models.ClusterHostRequirementsDetails {
 	if common.IsSingleNodeCluster(cluster) {
-		return requirements.SNORequirements
+		return toClusterHostRequirementsDetails(requirements.SNORequirements)
 	}
-	return requirements.MasterRequirements
+	return toClusterHostRequirementsDetails(requirements.MasterRequirements)
 }
 
 func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*models.VersionedHostRequirements, error) {

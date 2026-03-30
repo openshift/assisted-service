@@ -38,7 +38,8 @@
   }
 },
 {
-  "min_version": "4.22",
+  "version": "4.22",
+  "match_type": "min_version",
   "sno": {
     "cpu_cores": 4
   }

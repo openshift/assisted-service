@@ -4617,31 +4617,66 @@ definitions:
         description: Whether TPM module should be enabled in host's BIOS.
 
 
+  versioned-cluster-host-requirements-details:
+    type: object
+    properties:
+      cpu_cores:
+        type: integer
+        x-nullable: true
+        description: Required number of CPU cores
+      ram_mib:
+        type: integer
+        x-nullable: true
+        description: Required number of RAM in MiB
+      disk_size_gb:
+        type: integer
+        x-nullable: true
+        description: Required disk size in GB
+      installation_disk_speed_threshold_ms:
+        type: integer
+        x-nullable: true
+        description: Required installation disk speed in ms
+      network_latency_threshold_ms:
+        type: number
+        format: double
+        x-nullable: true
+        description: Maximum network average latency (RTT) at L3 for role.
+      packet_loss_percentage:
+        type: number
+        format: double
+        x-nullable: true
+        description: Maximum packet loss allowed at L3 for role.
+
   versioned-host-requirements:
     type: object
     properties:
       version:
         type: string
         description: Version of the component for which requirements are defined
+      match_type:
+        type: string
+        x-go-name: MatchType
+        enum: [exact, min_version]
+        description: 'Determines how the version field is matched. "exact" applies only to the specified version (default). "min_version" applies to the specified version and all later versions.'
       master:
         x-go-name: MasterRequirements
-        $ref: '#/definitions/cluster-host-requirements-details'
+        $ref: '#/definitions/versioned-cluster-host-requirements-details'
         description: Master node requirements
       arbiter:
         x-go-name: ArbiterRequirements
-        $ref: '#/definitions/cluster-host-requirements-details'
+        $ref: '#/definitions/versioned-cluster-host-requirements-details'
         description: Arbiter node requirements
       worker:
         x-go-name: WorkerRequirements
-        $ref: '#/definitions/cluster-host-requirements-details'
+        $ref: '#/definitions/versioned-cluster-host-requirements-details'
         description: Worker node requirements
       sno:
         x-go-name: SNORequirements
-        $ref: '#/definitions/cluster-host-requirements-details'
+        $ref: '#/definitions/versioned-cluster-host-requirements-details'
         description: Single node OpenShift node requirements
       edge-worker:
         x-go-name: EdgeWorkerRequirements
-        $ref: '#/definitions/cluster-host-requirements-details'
+        $ref: '#/definitions/versioned-cluster-host-requirements-details'
         description: Edge Worker OpenShift node requirements
 
   event-list:
