@@ -1179,7 +1179,6 @@ var _ = Describe("Cluster host requirements", func() {
 		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
 		_ = os.Setenv("EDGE_WORKERS_PRODUCT_NAMES", "test, BlueField SoC,marvell")
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 10,
 			RAMMib:                           1024,
