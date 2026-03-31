@@ -181,12 +181,20 @@ var _ = Describe("Versioned Requirements", func() {
 			req47, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.7.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*req47).To(BeEquivalentTo(models.VersionedHostRequirements{
-				Version:                "4.7.0",
-				MasterRequirements:     vrd(5, conversions.GibToMib(17), 101, 3),
-				ArbiterRequirements:    vrd(3, conversions.GibToMib(9), 101, 3),
-				WorkerRequirements:     vrd(3, conversions.GibToMib(9), 102, 0),
-				SNORequirements:        vrd(7, conversions.GibToMib(31), 103, 4),
-				EdgeWorkerRequirements: vrd(3, conversions.GibToMib(9), 102, 0),
+				Version:             "4.7.0",
+				MasterRequirements:  vrd(5, conversions.GibToMib(17), 101, 3),
+				ArbiterRequirements: vrd(3, conversions.GibToMib(9), 101, 3),
+				WorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+					CPUCores:   ptr.To(int64(3)),
+					RAMMib:     ptr.To(conversions.GibToMib(9)),
+					DiskSizeGb: ptr.To(int64(102)),
+				},
+				SNORequirements: vrd(7, conversions.GibToMib(31), 103, 4),
+				EdgeWorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+					CPUCores:   ptr.To(int64(3)),
+					RAMMib:     ptr.To(conversions.GibToMib(9)),
+					DiskSizeGb: ptr.To(int64(102)),
+				},
 			}))
 		})
 
