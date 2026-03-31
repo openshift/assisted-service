@@ -154,7 +154,38 @@ type Config struct {
 	// MonitorBlacklistDuration is how long to blacklist a cluster after a deadline is exceeded
 	MonitorBlacklistDuration time.Duration `envconfig:"CLUSTER_MONITOR_BLACKLIST_DURATION" default:"15m"`
 	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
-	MonitorCycleDeadline time.Duration `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
+	MonitorCycleDeadline       time.Duration              `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
+	DisabledClusterValidations DisabledClusterValidations `envconfig:"DISABLED_CLUSTER_VALIDATIONS" default:""`
+}
+
+type DisabledClusterValidations map[string]struct{}
+
+// Decode parses a comma-separated string of cluster validation IDs into the
+// DisabledClusterValidations map. It implements the envconfig.Decoder interface
+// so that DISABLED_CLUSTER_VALIDATIONS can be loaded from environment variables.
+func (d *DisabledClusterValidations) Decode(value string) error {
+	disabledClusterValidations := DisabledClusterValidations{}
+	if value == `""` {
+		value = ""
+	}
+	validationIDs, err := common.ParseCommaSeparatedUniqueValues(value, "cluster validation ID")
+	if err != nil {
+		return err
+	}
+	for _, element := range validationIDs {
+		if err := models.ClusterValidationID(element).Validate(nil); err != nil {
+			return fmt.Errorf("disabled cluster validation ID '%s' is not a known cluster validation", element)
+		}
+		disabledClusterValidations[element] = struct{}{}
+	}
+	*d = disabledClusterValidations
+	return nil
+}
+
+// IsDisabled returns true if the given validation ID is present in the disabled set.
+func (d DisabledClusterValidations) IsDisabled(id ValidationID) bool {
+	_, ok := d[id.String()]
+	return ok
 }
 
 type Manager struct {
@@ -213,7 +244,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, stream stream.N
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
 		hostAPI:               hostAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler),
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi, usageApi, eventsHandler, cfg.DisabledClusterValidations),
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Time{},
 		ocmClient:             ocmClient,
