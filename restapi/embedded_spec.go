@@ -8474,6 +8474,9 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "hostname": {
+          "type": "string"
+        },
         "href": {
           "description": "Self link.",
           "type": "string"
@@ -20030,6 +20033,9 @@ func init() {
         "free_addresses": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "hostname": {
+          "type": "string"
         },
         "href": {
           "description": "Self link.",
