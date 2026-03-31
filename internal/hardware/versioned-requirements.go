@@ -103,22 +103,26 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 		return err
 	}
 
-	hasNonDefault := len(exactEntries) > 0 || len(minVersionEntries) > 0
-	if hasNonDefault {
-		defaultReq, hasDefault := versions[DefaultVersion]
+	defaultReq, hasDefault := versions[DefaultVersion]
+
+	for _, entry := range exactEntries {
+		var merged models.VersionedHostRequirements
+		if hasDefault {
+			merged = mergeWithDefault(entry, defaultReq)
+		} else {
+			merged = applyRoleFallbacks(entry)
+		}
+		if err := validateVersionedRequirements(merged, entry.Version); err != nil {
+			return err
+		}
+		versions[entry.Version] = merged
+	}
+
+	var minVersions []resolvedMinVersion
+	if len(minVersionEntries) > 0 {
 		if !hasDefault {
-			return fmt.Errorf("a \"default\" version entry is required when other entries are present")
+			return fmt.Errorf("a \"default\" version entry is required when min_version entries are present")
 		}
-
-		for _, entry := range exactEntries {
-			merged := mergeWithDefault(entry, defaultReq)
-			if err := validateVersionedRequirements(merged, entry.Version); err != nil {
-				return err
-			}
-			versions[entry.Version] = merged
-		}
-
-		var minVersions []resolvedMinVersion
 		for _, entry := range minVersionEntries {
 			v, err := goversion.NewVersion(entry.Version)
 			if err != nil {
@@ -136,10 +140,8 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 		sort.Slice(minVersions, func(i, j int) bool {
 			return minVersions[i].version.LessThan(minVersions[j].version)
 		})
-		d.minVersions = minVersions
-	} else {
-		d.minVersions = nil
 	}
+	d.minVersions = minVersions
 
 	d.versions = versions
 	return nil
