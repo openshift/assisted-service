@@ -19,8 +19,10 @@ package controllers
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1546,6 +1548,33 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	return reconcileComplete{stop: true}
 }
 
+func validateAndSanitizePEMCert(certData string) (string, error) {
+	certData = strings.TrimSpace(certData)
+	if len(certData) == 0 {
+		return "", fmt.Errorf("certificate data is empty after trimming whitespace")
+	}
+	rest := []byte(certData)
+	found := false
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			return "", fmt.Errorf("unexpected PEM block type %q, expected CERTIFICATE", block.Type)
+		}
+		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
+			return "", fmt.Errorf("failed to parse certificate: %w", err)
+		}
+		found = true
+	}
+	if !found {
+		return "", fmt.Errorf("certificate data is not valid PEM format")
+	}
+	return certData, nil
+}
+
 func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeClient client.Client) (string, string, error) {
 	configMap := &corev1.ConfigMap{}
 	var encodedMCSCrt, ignitionWithMCSCert string
@@ -1594,6 +1623,10 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeCli
 	}
 	if len(certData) == 0 {
 		return encodedMCSCrt, ignitionWithMCSCert, fmt.Errorf("Configmap %s/%s does not contain CA certificate data", configMap.Namespace, configMap.Name)
+	}
+	certData, err = validateAndSanitizePEMCert(certData)
+	if err != nil {
+		return encodedMCSCrt, ignitionWithMCSCert, fmt.Errorf("Configmap %s/%s has invalid CA certificate: %w", configMap.Namespace, configMap.Name, err)
 	}
 	encodedMCSCrt = base64.StdEncoding.EncodeToString([]byte(certData))
 	ignitionWithMCSCert, err = r.formatMCSCertificateIgnition(encodedMCSCrt)

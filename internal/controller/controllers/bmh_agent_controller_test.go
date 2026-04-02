@@ -42,7 +42,16 @@ import (
 )
 
 var BASIC_KUBECONFIG = `test`
-var BASIC_CERT = `test`
+var BASIC_CERT = `-----BEGIN CERTIFICATE-----
+MIIBdDCCARmgAwIBAgIUHZVWUeyneBiPTHQJXHf0zImdaRowCgYIKoZIzj0EAwIw
+DzENMAsGA1UEAwwEdGVzdDAeFw0yNjA0MDIxMjAzMDBaFw0yNjA0MDMxMjAzMDBa
+MA8xDTALBgNVBAMMBHRlc3QwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARuqvSJ
+DhWJBSb3vHMAdZH6rsOHALl77el3YczAckAoOI5pMVo+x1pxhOxfUG3pk+8yfhkt
+NgJUjIYtzyNdzoXBo1MwUTAdBgNVHQ4EFgQUOTOZVDgAVjmKkLyP1IbZHFyxyRAw
+HwYDVR0jBBgwFoAUOTOZVDgAVjmKkLyP1IbZHFyxyRAwDwYDVR0TAQH/BAUwAwEB
+/zAKBggqhkjOPQQDAgNJADBGAiEArs1mrMfsOFsw+AKbmiqajOjHrbMI6IGdtF9x
+DbAU1cQCIQCboJ6H+8ljQt+QI49SHeM7QkaiJvs7LCrHij+wpOzQgw==
+-----END CERTIFICATE-----`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
@@ -1572,7 +1581,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))))
 
 				By("Checking the spoke BMH exists and is correct")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1643,7 +1652,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))))
 
 				By("Checking the spoke BMH exists and is correct")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1765,7 +1774,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))))
 
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
 
@@ -1808,7 +1817,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))))
 
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
 
@@ -1933,8 +1942,18 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should prefer machine-config-server-ca over kube-system/root-ca", func() {
-				mcsCert := "mcs-ca-cert"
-				kubeCert := "kube-root-cert"
+				mcsCert := BASIC_CERT
+				kubeCert := `-----BEGIN CERTIFICATE-----
+MIIBfjCCASOgAwIBAgIULF1HFAJwwEK8ZcPIyx2crCMM0fkwCgYIKoZIzj0EAwIw
+FDESMBAGA1UEAwwJa3ViZS1yb290MB4XDTI2MDQwMjEyMTEyMloXDTI2MDQwMzEy
+MTEyMlowFDESMBAGA1UEAwwJa3ViZS1yb290MFkwEwYHKoZIzj0CAQYIKoZIzj0D
+AQcDQgAEOuhkqClEsomoyZrdaa/tkhz9udfbrENVJHK1TeohnMTiwJ5SfGMSDN3Q
+gTpHBlZgQ8wCWEn7kodeA1dWYUOscaNTMFEwHQYDVR0OBBYEFJ+yGHtLX7KfCly8
+gV7EZmXBvS4FMB8GA1UdIwQYMBaAFJ+yGHtLX7KfCly8gV7EZmXBvS4FMA8GA1Ud
+EwEB/wQFMAMBAf8wCgYIKoZIzj0EAwIDSQAwRgIhANu+MpieIzfazVLOZup6EY1F
+e5se6w5YAt1fWHHLnxSoAiEAqCTmv8NlEPxYh2MteFWmaZY5G+rz0p75ytmsEl9A
+Rdk=
+-----END CERTIFICATE-----`
 
 				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
@@ -4234,6 +4253,127 @@ var _ = Describe("isEmptyPatch", func() {
 		Entry("non-metadata field", `{"spec":{"online":true}}`, false),
 		Entry("invalid JSON", `not-json`, false),
 	)
+})
+
+var _ = Describe("validateAndSanitizePEMCert", func() {
+	// Valid self-signed test certificate (Red Hat IT Root CA, same as used in common_test.go)
+	const validCert = `-----BEGIN CERTIFICATE-----
+MIIENDCCAxygAwIBAgIJANunI0D662cnMA0GCSqGSIb3DQEBCwUAMIGlMQswCQYD
+VQQGEwJVUzEXMBUGA1UECAwOTm9ydGggQ2Fyb2xpbmExEDAOBgNVBAcMB1JhbGVp
+Z2gxFjAUBgNVBAoMDVJlZCBIYXQsIEluYy4xEzARBgNVBAsMClJlZCBIYXQgSVQx
+GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m
+b3NlY0ByZWRoYXQuY29tMCAXDTE1MDcwNjE3MzgxMVoYDzIwNTUwNjI2MTczODEx
+WjCBpTELMAkGA1UEBhMCVVMxFzAVBgNVBAgMDk5vcnRoIENhcm9saW5hMRAwDgYD
+VQQHDAdSYWxlaWdoMRYwFAYDVQQKDA1SZWQgSGF0LCBJbmMuMRMwEQYDVQQLDApS
+ZWQgSGF0IElUMRswGQYDVQQDDBJSZWQgSGF0IElUIFJvb3QgQ0ExITAfBgkqhkiG
+9w0BCQEWEmluZm9zZWNAcmVkaGF0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP
+ADCCAQoCggEBALQt9OJQh6GC5LT1g80qNh0u50BQ4sZ/yZ8aETxt+5lnPVX6MHKz
+bfwI6nO1aMG6j9bSw+6UUyPBHP796+FT/pTS+K0wsDV7c9XvHoxJBJJU38cdLkI2
+c/i7lDqTfTcfLL2nyUBd2fQDk1B0fxrskhGIIZ3ifP1Ps4ltTkv8hRSob3VtNqSo
+GxkKfvD2PKjTPxDPWYyruy9irLZioMffi3i/gCut0ZWtAyO3MVH5qWF/enKwgPES
+X9po+TdCvRB/RUObBaM761EcrLSM1GqHNueSfqnho3AjLQ6dBnPWlo638Zm1VebK
+BELyhkLWMSFkKwDmne0jQ02Y4g075vCKvCsCAwEAAaNjMGEwHQYDVR0OBBYEFH7R
+4yC+UehIIPeuL8Zqw3PzbgcZMB8GA1UdIwQYMBaAFH7R4yC+UehIIPeuL8Zqw3Pz
+bgcZMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEB
+CwUAA4IBAQBDNvD2Vm9sA5A9AlOJR8+en5Xz9hXcxJB5phxcZQ8jFoG04Vshvd0e
+LEnUrMcfFgIZ4njMKTQCM4ZFUPAieyLx4f52HuDopp3e5JyIMfW+KFcNIpKwCsak
+oSoKtIUOsUJK7qBVZxcrIyeQV2qcYOeZhtS5wBqIwOAhFwlCET7Ze58QHmS48slj
+S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
+4eTkRjivAlExrFzKcljC4axKQlnOvVAzz+Gm32U0xPBF4ByePVxCJUHw1TsyTmel
+RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
+-----END CERTIFICATE-----`
+
+	// Second valid cert (Intermediate CA) for CA bundle tests
+	const validCert2 = `-----BEGIN CERTIFICATE-----
+MIID6DCCAtCgAwIBAgIBFDANBgkqhkiG9w0BAQsFADCBpTELMAkGA1UEBhMCVVMx
+FzAVBgNVBAgMDk5vcnRoIENhcm9saW5hMRAwDgYDVQQHDAdSYWxlaWdoMRYwFAYD
+VQQKDA1SZWQgSGF0LCBJbmMuMRMwEQYDVQQLDApSZWQgSGF0IElUMRswGQYDVQQD
+DBJSZWQgSGF0IElUIFJvb3QgQ0ExITAfBgkqhkiG9w0BCQEWEmluZm9zZWNAcmVk
+aGF0LmNvbTAeFw0xNTEwMTQxNzI5MDdaFw00NTEwMDYxNzI5MDdaME4xEDAOBgNV
+BAoMB1JlZCBIYXQxDTALBgNVBAsMBHByb2QxKzApBgNVBAMMIkludGVybWVkaWF0
+ZSBDZXJ0aWZpY2F0ZSBBdXRob3JpdHkwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+ggEKAoIBAQDYpVfg+jjQ3546GHF6sxwMOjIwpOmgAXiHS4pgaCmu+AQwBs4rwxvF
+S+SsDHDTVDvpxJYBwJ6h8S3LK9xk70yGsOAu30EqITj6T+ZPbJG6C/0I5ukEVIeA
+xkgPeCBYiiPwoNc/te6Ry2wlaeH9iTVX8fx32xroSkl65P59/dMttrQtSuQX8jLS
+5rBSjBfILSsaUywND319E/Gkqvh6lo3TEax9rhqbNh2s+26AfBJoukZstg3TWlI/
+pi8v/D3ZFDDEIOXrP0JEfe8ETmm87T1CPdPIZ9+/c4ADPHjdmeBAJddmT0IsH9e6
+Gea2R/fQaSrIQPVmm/0QX2wlY4JfxyLJAgMBAAGjeTB3MB0GA1UdDgQWBBQw3gRU
+oYYCnxH6UPkFcKcowMBP/DAfBgNVHSMEGDAWgBR+0eMgvlHoSCD3ri/GasNz824H
+GTASBgNVHRMBAf8ECDAGAQH/AgEBMA4GA1UdDwEB/wQEAwIBhjARBglghkgBhvhC
+AQEEBAMCAQYwDQYJKoZIhvcNAQELBQADggEBADwaXLIOqoyQoBVck8/52AjWw1Cv
+ath9NGUEFROYm15VbAaFmeY2oQ0EV3tQRm32C9qe9RxVU8DBDjBuNyYhLg3k6/1Z
+JXggtSMtffr5T83bxgfh+vNxF7o5oNxEgRUYTBi4aV7v9LiDd1b7YAsUwj4NPWYZ
+dbuypFSWCoV7ReNt+37muMEZwi+yGIU9ug8hLOrvriEdU3RXt5XNISMMuC8JULdE
+3GVzoNtkznqv5ySEj4M9WsdBiG6bm4aBYIOE0XKE6QYtlsjTMB9UTXxmlUvDE0wC
+z9YYKfC1vLxL2wAgMhOCdKZM+Qlu1stb0B/EF3oxc/iZrhDvJLjijbMpphw=
+-----END CERTIFICATE-----`
+
+	// Minimal structurally valid PEM block with wrong type (PRIVATE KEY instead of CERTIFICATE).
+	// pem.Decode requires valid base64 between markers; "dGVzdA==" is base64("test").
+	const privateKeyPEM = "-----BEGIN PRIVATE KEY-----\ndGVzdA==\n-----END PRIVATE KEY-----"
+
+	It("accepts a valid single certificate", func() {
+		result, err := validateAndSanitizePEMCert(validCert)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(validCert))
+	})
+
+	It("trims leading and trailing whitespace and newlines", func() {
+		padded := "\n\t  " + validCert + "  \n\n"
+		result, err := validateAndSanitizePEMCert(padded)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(validCert))
+	})
+
+	It("accepts a valid CA bundle with multiple certificates", func() {
+		bundle := validCert + "\n" + validCert2
+		result, err := validateAndSanitizePEMCert(bundle)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(Equal(bundle))
+	})
+
+	It("rejects an empty string", func() {
+		_, err := validateAndSanitizePEMCert("")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("empty after trimming"))
+	})
+
+	It("rejects a whitespace-only string", func() {
+		_, err := validateAndSanitizePEMCert("   \n\t  ")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("empty after trimming"))
+	})
+
+	It("rejects invalid PEM data", func() {
+		_, err := validateAndSanitizePEMCert("this is not a PEM certificate")
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("not valid PEM format"))
+	})
+
+	It("rejects a PEM block with wrong type", func() {
+		_, err := validateAndSanitizePEMCert(privateKeyPEM)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("unexpected PEM block type"))
+		Expect(err.Error()).To(ContainSubstring("PRIVATE KEY"))
+	})
+
+	It("rejects a bundle containing a non-certificate PEM block", func() {
+		mixedBundle := validCert + "\n" + privateKeyPEM
+		_, err := validateAndSanitizePEMCert(mixedBundle)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("unexpected PEM block type"))
+		Expect(err.Error()).To(ContainSubstring("PRIVATE KEY"))
+	})
+
+	It("rejects a corrupt DER-encoded certificate", func() {
+		// Valid PEM structure with CERTIFICATE type, but the DER bytes inside
+		// are not a valid x509 certificate. "aW52YWxpZCBjZXJ0IGJ5dGVz" is
+		// base64("invalid cert bytes").
+		corruptCert := "-----BEGIN CERTIFICATE-----\naW52YWxpZCBjZXJ0IGJ5dGVz\n-----END CERTIFICATE-----"
+		_, err := validateAndSanitizePEMCert(corruptCert)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("failed to parse certificate"))
+	})
 })
 
 func newAgentWithClusterReference(name string, namespace string, ipv4address string, ipv6address string, macaddress string, clusterName string, agentBMHLabel string, creationTime time.Time) *v1beta1.Agent {
