@@ -26,7 +26,7 @@ const (
 )
 
 var Operator = models.MonitoredOperator{
-	Namespace:        "kube-amd-gpu",
+	Namespace:        "openshift-amd-gpu",
 	Name:             "amd-gpu",
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "amd-gpu-operator",
