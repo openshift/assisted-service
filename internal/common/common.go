@@ -480,25 +480,16 @@ func ValidateAndSanitizePEMCert(certData string) (string, error) {
 	if len(certData) == 0 {
 		return "", fmt.Errorf("certificate data is empty after trimming whitespace")
 	}
-	rest := []byte(certData)
-	found := false
-	for {
-		var block *pem.Block
-		block, rest = pem.Decode(rest)
-		if block == nil {
-			break
-		}
-		if block.Type != "CERTIFICATE" {
-			return "", fmt.Errorf("unexpected PEM block type %q, expected CERTIFICATE", block.Type)
-		}
-		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
-			return "", fmt.Errorf("failed to parse certificate: %w", err)
-		}
-		found = true
+
+	// Use ParsePemCerts to validate and parse the certificates
+	certs, ok := ParsePemCerts([]byte(certData))
+	if !ok {
+		return "", fmt.Errorf("failed to parse PEM certificate bundle")
 	}
-	if !found {
+	if len(certs) == 0 {
 		return "", fmt.Errorf("certificate data is not valid PEM format")
 	}
+
 	return certData, nil
 }
 

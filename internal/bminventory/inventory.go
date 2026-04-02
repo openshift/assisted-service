@@ -5446,13 +5446,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			}
 		}
 
-		if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil {
-			if *params.InfraEnvUpdateParams.AdditionalTrustBundle != "" {
-				if err = validations.ValidatePEMCertificateBundle(*params.InfraEnvUpdateParams.AdditionalTrustBundle); err != nil {
-					return common.NewApiError(http.StatusBadRequest, err)
-				}
-			}
-		}
+		// AdditionalTrustBundle is already validated and sanitized in validateAndUpdateInfraEnvParams above
 
 		currentImageType := common.ImageTypeValue(infraEnv.Type)
 		targetImageType := currentImageType

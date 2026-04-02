@@ -3,7 +3,7 @@ package installcfg
 import (
 	"github.com/go-openapi/strfmt"
 	configv1 "github.com/openshift/api/config/v1"
-	cluster_validations "github.com/openshift/assisted-service/internal/cluster/validations"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 type Platform struct {
@@ -287,7 +287,8 @@ type InstallerConfigBaremetal struct {
 
 func (c *InstallerConfigBaremetal) Validate() error {
 	if c.AdditionalTrustBundle != "" {
-		return cluster_validations.ValidatePEMCertificateBundle(c.AdditionalTrustBundle)
+		_, err := common.ValidateAndSanitizePEMCert(c.AdditionalTrustBundle)
+		return err
 	}
 
 	return nil
