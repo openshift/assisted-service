@@ -5237,9 +5237,12 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 	}
 
 	if params.InfraenvCreateParams.AdditionalTrustBundle != "" {
-		if err = validations.ValidatePEMCertificateBundle(params.InfraenvCreateParams.AdditionalTrustBundle); err != nil {
+		var sanitized string
+		sanitized, err = common.ValidateAndSanitizePEMCert(params.InfraenvCreateParams.AdditionalTrustBundle)
+		if err != nil {
 			return err
 		}
+		params.InfraenvCreateParams.AdditionalTrustBundle = sanitized
 	}
 
 	if params.InfraenvCreateParams.RendezvousIP != nil && swag.StringValue(params.InfraenvCreateParams.RendezvousIP) == "" {
@@ -5647,9 +5650,12 @@ func (b *bareMetalInventory) validateAndUpdateInfraEnvParams(ctx context.Context
 	// is buggy and doesn't react well to additional newlines at the end of the
 	// certs. We need to strip them out to not bother assisted users with this
 	// quirk.
-	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil {
-		AdditionalTrustBundleTrimmed := strings.TrimSpace(*params.InfraEnvUpdateParams.AdditionalTrustBundle)
-		params.InfraEnvUpdateParams.AdditionalTrustBundle = &AdditionalTrustBundleTrimmed
+	if params.InfraEnvUpdateParams.AdditionalTrustBundle != nil && *params.InfraEnvUpdateParams.AdditionalTrustBundle != "" {
+		sanitized, err := common.ValidateAndSanitizePEMCert(*params.InfraEnvUpdateParams.AdditionalTrustBundle)
+		if err != nil {
+			return installer.UpdateInfraEnvParams{}, err
+		}
+		params.InfraEnvUpdateParams.AdditionalTrustBundle = &sanitized
 	}
 
 	return *params, nil

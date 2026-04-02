@@ -4255,7 +4255,7 @@ var _ = Describe("isEmptyPatch", func() {
 	)
 })
 
-var _ = Describe("validateAndSanitizePEMCert", func() {
+var _ = Describe("common.ValidateAndSanitizePEMCert", func() {
 	// Valid self-signed test certificate (Red Hat IT Root CA, same as used in common_test.go)
 	const validCert = `-----BEGIN CERTIFICATE-----
 MIIENDCCAxygAwIBAgIJANunI0D662cnMA0GCSqGSIb3DQEBCwUAMIGlMQswCQYD
@@ -4313,45 +4313,45 @@ z9YYKfC1vLxL2wAgMhOCdKZM+Qlu1stb0B/EF3oxc/iZrhDvJLjijbMpphw=
 	const privateKeyPEM = "-----BEGIN PRIVATE KEY-----\ndGVzdA==\n-----END PRIVATE KEY-----"
 
 	It("accepts a valid single certificate", func() {
-		result, err := validateAndSanitizePEMCert(validCert)
+		result, err := common.ValidateAndSanitizePEMCert(validCert)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(validCert))
 	})
 
 	It("trims leading and trailing whitespace and newlines", func() {
 		padded := "\n\t  " + validCert + "  \n\n"
-		result, err := validateAndSanitizePEMCert(padded)
+		result, err := common.ValidateAndSanitizePEMCert(padded)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(validCert))
 	})
 
 	It("accepts a valid CA bundle with multiple certificates", func() {
 		bundle := validCert + "\n" + validCert2
-		result, err := validateAndSanitizePEMCert(bundle)
+		result, err := common.ValidateAndSanitizePEMCert(bundle)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(result).To(Equal(bundle))
 	})
 
 	It("rejects an empty string", func() {
-		_, err := validateAndSanitizePEMCert("")
+		_, err := common.ValidateAndSanitizePEMCert("")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("empty after trimming"))
 	})
 
 	It("rejects a whitespace-only string", func() {
-		_, err := validateAndSanitizePEMCert("   \n\t  ")
+		_, err := common.ValidateAndSanitizePEMCert("   \n\t  ")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("empty after trimming"))
 	})
 
 	It("rejects invalid PEM data", func() {
-		_, err := validateAndSanitizePEMCert("this is not a PEM certificate")
+		_, err := common.ValidateAndSanitizePEMCert("this is not a PEM certificate")
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("not valid PEM format"))
 	})
 
 	It("rejects a PEM block with wrong type", func() {
-		_, err := validateAndSanitizePEMCert(privateKeyPEM)
+		_, err := common.ValidateAndSanitizePEMCert(privateKeyPEM)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("unexpected PEM block type"))
 		Expect(err.Error()).To(ContainSubstring("PRIVATE KEY"))
@@ -4359,7 +4359,7 @@ z9YYKfC1vLxL2wAgMhOCdKZM+Qlu1stb0B/EF3oxc/iZrhDvJLjijbMpphw=
 
 	It("rejects a bundle containing a non-certificate PEM block", func() {
 		mixedBundle := validCert + "\n" + privateKeyPEM
-		_, err := validateAndSanitizePEMCert(mixedBundle)
+		_, err := common.ValidateAndSanitizePEMCert(mixedBundle)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("unexpected PEM block type"))
 		Expect(err.Error()).To(ContainSubstring("PRIVATE KEY"))
@@ -4370,7 +4370,7 @@ z9YYKfC1vLxL2wAgMhOCdKZM+Qlu1stb0B/EF3oxc/iZrhDvJLjijbMpphw=
 		// are not a valid x509 certificate. "aW52YWxpZCBjZXJ0IGJ5dGVz" is
 		// base64("invalid cert bytes").
 		corruptCert := "-----BEGIN CERTIFICATE-----\naW52YWxpZCBjZXJ0IGJ5dGVz\n-----END CERTIFICATE-----"
-		_, err := validateAndSanitizePEMCert(corruptCert)
+		_, err := common.ValidateAndSanitizePEMCert(corruptCert)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("failed to parse certificate"))
 	})

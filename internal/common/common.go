@@ -471,6 +471,37 @@ func RemoveDuplicatesFromCaBundle(caBundle string) (string, int, error) {
 	return strings.Join(certStrings.([]string), "\n"), numOfDuplicates, nil
 }
 
+// ValidateAndSanitizePEMCert validates and sanitizes PEM-encoded certificate data.
+// It trims whitespace, validates PEM structure, verifies each certificate block type,
+// and parses the DER-encoded certificate to ensure validity.
+// This function supports CA bundles (multiple concatenated certificates).
+func ValidateAndSanitizePEMCert(certData string) (string, error) {
+	certData = strings.TrimSpace(certData)
+	if len(certData) == 0 {
+		return "", fmt.Errorf("certificate data is empty after trimming whitespace")
+	}
+	rest := []byte(certData)
+	found := false
+	for {
+		var block *pem.Block
+		block, rest = pem.Decode(rest)
+		if block == nil {
+			break
+		}
+		if block.Type != "CERTIFICATE" {
+			return "", fmt.Errorf("unexpected PEM block type %q, expected CERTIFICATE", block.Type)
+		}
+		if _, err := x509.ParseCertificate(block.Bytes); err != nil {
+			return "", fmt.Errorf("failed to parse certificate: %w", err)
+		}
+		found = true
+	}
+	if !found {
+		return "", fmt.Errorf("certificate data is not valid PEM format")
+	}
+	return certData, nil
+}
+
 func CanonizeStrings(slice []string) (ret []string) {
 	if len(slice) == 0 {
 		return

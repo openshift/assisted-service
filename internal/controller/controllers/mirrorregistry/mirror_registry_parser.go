@@ -37,6 +37,13 @@ func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c cli
 
 	// Additional certificate is optional
 	caBundleCrt := userTomlConfigMap.Data[RegistryCertKey]
+	if caBundleCrt != "" {
+		var err error
+		caBundleCrt, err = common2.ValidateAndSanitizePEMCert(caBundleCrt)
+		if err != nil {
+			return "", "", nil, fmt.Errorf("ConfigMap %s/%s has invalid CA certificate: %w", ref.Namespace, ref.Name, err)
+		}
+	}
 
 	log.Infof("Successfully fetched the mirror registry TOML configuration file: %s %s", ref.Namespace, ref.Name)
 	return registriesConf, caBundleCrt, userTomlConfigMap, nil
