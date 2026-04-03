@@ -16,7 +16,6 @@ import (
 	config_32_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -34,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
 )

@@ -5,13 +5,13 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	gomock "go.uber.org/mock/gomock"
 )
 
 var _ = DescribeTable(

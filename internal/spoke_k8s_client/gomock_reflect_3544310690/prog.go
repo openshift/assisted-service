@@ -9,7 +9,7 @@ import (
 	"path"
 	"reflect"
 
-	"github.com/golang/mock/mockgen/model"
+	"go.uber.org/mock/mockgen/model"
 
 	pkg_ "github.com/openshift/assisted-service/internal/spoke_k8s_client"
 )

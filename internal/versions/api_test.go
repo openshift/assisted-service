@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -16,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	gomock "go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 

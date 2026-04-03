@@ -13,7 +13,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/runtime/security"
 	"github.com/go-openapi/strfmt"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -24,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 )
 
 type AuthPayload struct {
