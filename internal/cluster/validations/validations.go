@@ -348,13 +348,19 @@ func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressV
 	var multiErr error
 
 	for i := range apiVips {
-		if string(apiVips[i].IP) != "" && net.ParseIP(string(apiVips[i].IP)) == nil {
-			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", string(apiVips[i].IP)))
+		ip := string(apiVips[i].IP)
+		if ip == "" {
+			multiErr = multierror.Append(multiErr, errors.Errorf("API VIP IP at index %d cannot be empty", i))
+		} else if net.ParseIP(ip) == nil {
+			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", ip))
 		}
 	}
 	for i := range ingressVips {
-		if string(ingressVips[i].IP) != "" && net.ParseIP(string(ingressVips[i].IP)) == nil {
-			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", string(ingressVips[i].IP)))
+		ip := string(ingressVips[i].IP)
+		if ip == "" {
+			multiErr = multierror.Append(multiErr, errors.Errorf("Ingress VIP IP at index %d cannot be empty", i))
+		} else if net.ParseIP(ip) == nil {
+			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", ip))
 		}
 	}
 	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
