@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -13,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("getMustGatherImages", func() {

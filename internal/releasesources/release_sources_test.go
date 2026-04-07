@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 

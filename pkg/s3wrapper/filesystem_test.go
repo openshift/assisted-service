@@ -9,12 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	"golang.org/x/sys/unix"
 )
 
