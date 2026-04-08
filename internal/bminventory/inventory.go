@@ -172,7 +172,6 @@ type InstallerInternals interface {
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.V2UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.V2CancelInstallationParams) (*common.Cluster, error)
 	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
-	GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error)
 	V2UpdateHostInternal(ctx context.Context, params installer.V2UpdateHostParams, interactivity Interactivity) (*common.Host, error)
 	GetInfraEnvByKubeKey(key types.NamespacedName) (*common.InfraEnv, error)
 	UpdateInfraEnvInternal(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) (*common.InfraEnv, error)
@@ -1789,48 +1788,6 @@ func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context,
 	}
 
 	return b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
-}
-
-func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
-	ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
-	cluster, err := b.GetClusterInternal(ctx, installer.V2GetClusterParams{ClusterID: params.ClusterID})
-	if err != nil {
-		err2 := fmt.Errorf("error getting cluster, error: %w", err)
-		b.log.Error(err2.Error())
-		return nil, err2
-	}
-	// no hosts or SNO
-	if len(cluster.Hosts) == 0 || common.IsSingleNodeCluster(cluster) {
-		b.log.Infof("GetSupportedPlatforms - No hosts or cluster is SNO, setting supported-platform to [%s]", models.PlatformTypeNone)
-		return &[]models.PlatformType{models.PlatformTypeNone}, nil
-	}
-	hostsSupportedPlatforms, err := b.providerRegistry.GetSupportedProvidersByHosts(cluster.Hosts)
-	if err != nil {
-		err2 := fmt.Errorf("error while checking supported platforms, error: %w", err)
-		b.log.Error(err2.Error())
-		return nil, err2
-	}
-	var supportedPlatforms []models.PlatformType
-	for _, platformType := range hostsSupportedPlatforms {
-		featureId := provider.GetPlatformFeatureID(platformType)
-		if featureId == "" || featuresupport.IsFeatureAvailable(featureId, cluster.OpenshiftVersion, &cluster.CPUArchitecture) {
-			supportedPlatforms = append(supportedPlatforms, platformType)
-		} else {
-			b.log.Debugf("The platform %s was removed from cluster %s supported-platforms because it is not compatible with "+
-				"OpenShift version %s and CPU architecture %s", platformType, cluster.ID.String(), cluster.OpenshiftVersion, cluster.CPUArchitecture)
-		}
-	}
-
-	b.log.Infof("Found %d supported-platforms for cluster %s", len(supportedPlatforms), cluster.ID)
-	return &supportedPlatforms, nil
-}
-
-func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
-	supportedPlatforms, err := b.GetClusterSupportedPlatformsInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewGetClusterSupportedPlatformsOK().WithPayload(*supportedPlatforms)
 }
 
 func (b *bareMetalInventory) GetFeatureSupportLevelListInternal(_ context.Context, params installer.GetSupportedFeaturesParams) (models.SupportLevels, error) {
