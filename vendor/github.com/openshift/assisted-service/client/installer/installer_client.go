@@ -29,9 +29,6 @@ type API interface {
 	*/
 	DownloadMinimalInitrd(ctx context.Context, params *DownloadMinimalInitrdParams, writer io.Writer) (*DownloadMinimalInitrdOK, *DownloadMinimalInitrdNoContent, error)
 	/*
-	   GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.*/
-	GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error)
-	/*
 	   GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies.*/
 	GetDetailedSupportedFeatures(ctx context.Context, params *GetDetailedSupportedFeaturesParams) (*GetDetailedSupportedFeaturesOK, error)
 	/*
@@ -311,31 +308,6 @@ func (a *Client) DownloadMinimalInitrd(ctx context.Context, params *DownloadMini
 		return nil, value, nil
 	}
 	return nil, nil, nil
-
-}
-
-/*
-GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration.
-*/
-func (a *Client) GetClusterSupportedPlatforms(ctx context.Context, params *GetClusterSupportedPlatformsParams) (*GetClusterSupportedPlatformsOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetClusterSupportedPlatforms",
-		Method:             "GET",
-		PathPattern:        "/v2/clusters/{cluster_id}/supported-platforms",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &GetClusterSupportedPlatformsReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetClusterSupportedPlatformsOK), nil
 
 }
 
