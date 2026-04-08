@@ -294,10 +294,12 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateDisplayName:
 
 		type subscriptionUpdateRequest struct {
+			Kind        string `json:"kind"`
 			DisplayName string `json:"display_name"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
+			Kind:        "Subscription",
 			DisplayName: "${json-unit.any-string}",
 		}
 
@@ -324,10 +326,12 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateConsoleUrl:
 
 		type subscriptionUpdateRequest struct {
+			Kind       string `json:"kind"`
 			ConsoleUrl string `json:"console_url"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
+			Kind:       "Subscription",
 			ConsoleUrl: "${json-unit.any-string}",
 		}
 
@@ -354,10 +358,12 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateOpenshiftClusterID:
 
 		type subscriptionUpdateRequest struct {
-			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
+			Kind              string `json:"kind"`
+			ExternalClusterID string `json:"external_cluster_id"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
+			Kind:              "Subscription",
 			ExternalClusterID: "${json-unit.any-string}",
 		}
 
@@ -384,10 +390,12 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateStatusActive:
 
 		type subscriptionUpdateRequest struct {
+			Kind   string `json:"kind"`
 			Status string `json:"status"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
+			Kind:   "Subscription",
 			Status: ocm.SubscriptionStatusActive,
 		}
 

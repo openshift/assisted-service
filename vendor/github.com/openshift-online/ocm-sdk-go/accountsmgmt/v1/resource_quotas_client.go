@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -102,6 +101,13 @@ func (r *ResourceQuotasAddRequest) Header(name string, value interface{}) *Resou
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourceQuotasAddRequest) Impersonate(user string) *ResourceQuotasAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Resource quota data.
@@ -135,7 +141,7 @@ func (r *ResourceQuotasAddRequest) SendContext(ctx context.Context) (result *Res
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +154,25 @@ func (r *ResourceQuotasAddRequest) SendContext(ctx context.Context) (result *Res
 	result = &ResourceQuotasAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readResourceQuotasAddResponse(result, response.Body)
+	err = readResourceQuotasAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *ResourceQuotasAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *ResourceQuotasAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // ResourceQuotasAddResponse is the response for the 'add' method.
@@ -250,6 +252,13 @@ func (r *ResourceQuotasListRequest) Header(name string, value interface{}) *Reso
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ResourceQuotasListRequest) Impersonate(user string) *ResourceQuotasListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Page sets the value of the 'page' parameter.
 //
 // Index of the requested page, where one corresponds to the first page.
@@ -267,10 +276,9 @@ func (r *ResourceQuotasListRequest) Page(value int) *ResourceQuotasListRequest {
 // instead of the names of the columns of a table. For example, in order to
 // retrieve resource quota with resource_type cluster.aws:
 //
-// [source,sql]
-// ----
+// ```sql
 // resource_type = 'cluster.aws'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // items that the user has permission to see will be returned.
@@ -328,15 +336,21 @@ func (r *ResourceQuotasListRequest) SendContext(ctx context.Context) (result *Re
 	result = &ResourceQuotasListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readResourceQuotasListResponse(result, response.Body)
+	err = readResourceQuotasListResponse(result, reader)
 	if err != nil {
 		return
 	}

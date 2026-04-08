@@ -24,10 +24,10 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
 	"sync"
 
 	"golang.org/x/net/http2"
@@ -183,7 +183,7 @@ func (b *ClientSelectorBuilder) loadTrustedCAs(ctx context.Context) (result *x50
 				source,
 			)
 			var buffer []byte
-			buffer, err = ioutil.ReadFile(source) // #nosec G304
+			buffer, err = os.ReadFile(source) // #nosec G304
 			if err != nil {
 				result = nil
 				err = fmt.Errorf(
@@ -323,7 +323,8 @@ func (s *ClientSelector) createTransport(ctx context.Context,
 	// Prepare the TLS configuration:
 	// #nosec 402
 	config := &tls.Config{
-		ServerName:         address.Host,
+		// ServerName is not included to allow the tls library to set it based on the hostname
+		// provided in the request. This is necessary to support OCM region redirects.
 		InsecureSkipVerify: s.insecure,
 		RootCAs:            s.trustedCAs,
 	}
@@ -349,23 +350,14 @@ func (s *ClientSelector) createTransport(ctx context.Context,
 				dialer := net.Dialer{}
 				return dialer.DialContext(ctx, UnixNetwork, address.Socket)
 			}
-			transport.DialTLS = func(_, _ string) (net.Conn, error) { // nolint
-				// TODO: This ignores the passed context because it isn't currently
-				// supported. Once we migrate to Go 1.15 it should be done like
-				// this:
-				//
-				//	transport.DialTLSContext = func(ctx context.Context,
-				//		_, _ string) (net.Conn, error) {
-				//		dialer := tls.Dialer{
-				//			Config: config,
-				//		}
-				//		return dialer.DialContext(ctx, network, address.Socket)
-				//	}
-				//
-				// This will only have a negative impact in applications that
-				// specify a deadline or timeout in the passed context, as it
-				// will be ignored.
-				return tls.Dial(UnixNetwork, address.Socket, config)
+			transport.DialTLSContext = func(ctx context.Context, _, _ string) (net.Conn,
+				error) {
+				// Append server name manually for TLS with sockets
+				config.ServerName = address.Host
+				dialer := tls.Dialer{
+					Config: config,
+				}
+				return dialer.DialContext(ctx, UnixNetwork, address.Socket)
 			}
 		}
 
@@ -381,13 +373,14 @@ func (s *ClientSelector) createTransport(ctx context.Context,
 		// We also need to ignore TLS configuration when dialing, and explicitly set the
 		// network and socket when using Unix sockets:
 		if address.Network == UnixNetwork {
-			transport.DialTLS = func(_, _ string, cfg *tls.Config) (net.Conn, error) {
-				return net.Dial(UnixNetwork, address.Socket)
+			transport.DialTLSContext = func(ctx context.Context, _, _ string, cfg *tls.Config) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, UnixNetwork, address.Socket)
 			}
 		} else {
-			transport.DialTLS = func(network, addr string, cfg *tls.Config) (net.Conn,
-				error) {
-				return net.Dial(network, addr)
+			transport.DialTLSContext = func(ctx context.Context, network, addr string, cfg *tls.Config) (net.Conn, error) {
+				var d net.Dialer
+				return d.DialContext(ctx, network, addr)
 			}
 		}
 

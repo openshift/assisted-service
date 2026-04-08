@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -92,6 +93,19 @@ func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response respo
 			}
 		}
 		return common.NewApiError(http.StatusServiceUnavailable, err)
+	}
+	// ocm-sdk-go SendContext can return err == nil with status >= 400 when the response body is empty
+	// (see accountsmgmt subscription Delete/Get SendContext). Treat non-success HTTP status as failure.
+	if response != nil {
+		st := response.Status()
+		if st >= 400 {
+			oerr := fmt.Errorf("%s request failed with HTTP status %d", requestType, st)
+			log.Error(ctx, "OCM %s returned HTTP status %d", requestType, st)
+			if st < 500 {
+				return common.NewInfraError(http.StatusUnauthorized, oerr)
+			}
+			return common.NewApiError(http.StatusServiceUnavailable, oerr)
+		}
 	}
 	return nil
 }
