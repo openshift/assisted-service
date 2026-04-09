@@ -39,7 +39,7 @@ DEBUG_SERVICE_PORT := $(or ${DEBUG_SERVICE_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 IMAGE_SERVICE := $(or ${IMAGE_SERVICE},${ASSISTED_ORG}/assisted-image-service:${ASSISTED_TAG})
 ASSISTED_UI := $(or ${ASSISTED_UI},${ASSISTED_ORG}/assisted-installer-ui:${ASSISTED_TAG})
-PSQL_IMAGE := $(or ${PSQL_IMAGE},quay.io/sclorg/postgresql-13-c9s:latest)
+PSQL_IMAGE := $(or ${PSQL_IMAGE},quay.io/sclorg/postgresql-15-c9s:latest)
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
@@ -557,9 +557,13 @@ run-db-container:
 run-unit-test:
 	SKIP_UT_DB=1 $(MAKE) _unit_test TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))"
 
+run-unit-test-api:
+	cd api/ && go test ./...
+
 ci-unit-test:
 	./hack/start_db.sh
 	$(MAKE) run-unit-test
+	$(MAKE) run-unit-test-api
 
 kill-db-container:
 	$(CONTAINER_COMMAND) kill postgres

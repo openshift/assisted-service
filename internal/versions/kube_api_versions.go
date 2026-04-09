@@ -20,14 +20,14 @@ import (
 )
 
 type kubeAPIVersionsHandler struct {
-	mustGatherVersions MustGatherVersions
-	releaseImages      models.ReleaseImages
-	imagesLock         sync.Mutex
-	sem                *semaphore.Weighted
-	releaseHandler     oc.Release
-	releaseImageMirror string
-	log                logrus.FieldLogger
-	kubeClient         client.Client
+	mustGatherVersionCache MustGatherVersionCache
+	releaseImages          models.ReleaseImages
+	imagesLock             sync.Mutex
+	sem                    *semaphore.Weighted
+	releaseHandler         oc.Release
+	releaseImageMirror     string
+	log                    logrus.FieldLogger
+	kubeClient             client.Client
 }
 
 // // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.
@@ -41,10 +41,9 @@ func (h *kubeAPIVersionsHandler) GetMustGatherImages(openshiftVersion, cpuArchit
 		cpuArchitecture,
 		pullSecret,
 		h.releaseImageMirror,
-		h.mustGatherVersions,
+		h.mustGatherVersionCache,
 		h.GetReleaseImage,
 		h.releaseHandler,
-		&h.imagesLock,
 	)
 }
 

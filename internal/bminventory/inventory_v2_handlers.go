@@ -713,6 +713,34 @@ func (b *bareMetalInventory) validateIgnoredValidations(problems []string, ignor
 	return problems
 }
 
+// applyIgnoredValidations validates and persists the given ignored cluster and host validation
+// ID lists (JSON arrays) to the database for the specified cluster. It verifies that the cluster
+// is in an updatable state and that none of the requested validations are non-ignorable.
+func (b *bareMetalInventory) applyIgnoredValidations(cluster *common.Cluster, ignoredClusterValidations, ignoredHostValidations string) error {
+	if err := b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	problems := []string{}
+	problems = b.validateIgnoredValidations(problems, ignoredClusterValidations, common.NonIgnorableClusterValidations, common.ValidationTypeCluster)
+	problems = b.validateIgnoredValidations(problems, ignoredHostValidations, common.NonIgnorableHostValidations, common.ValidationTypeHost)
+	if len(problems) > 0 {
+		return common.NewApiError(http.StatusBadRequest, errors.New("cannot proceed due to the following errors: "+strings.Join(problems, "\n")))
+	}
+
+	if err := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(map[string]interface{}{
+		"ignored_cluster_validations": ignoredClusterValidations,
+		"ignored_host_validations":    ignoredHostValidations,
+	}).Error; err != nil {
+		return errors.Wrapf(err, "failed to apply ignored validations to cluster %s", *cluster.ID)
+	}
+
+	cluster.IgnoredClusterValidations = ignoredClusterValidations
+	cluster.IgnoredHostValidations = ignoredHostValidations
+
+	return nil
+}
+
 func (b *bareMetalInventory) V2GetIgnoredValidations(ctx context.Context, params installer.V2GetIgnoredValidationsParams) middleware.Responder {
 	if !b.allowedToIgnoreValidations(ctx) {
 
@@ -736,24 +764,14 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 	}
 	cluster, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
-		err = errors.Wrapf(err, "failed to fetch cluster %s to apply ignored validations", *cluster.ID)
+		err = errors.Wrapf(err, "failed to fetch cluster %s to apply ignored validations", params.ClusterID)
 		return installer.NewV2SetIgnoredValidationsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	err = b.clusterApi.VerifyClusterUpdatability(cluster)
+	err = b.applyIgnoredValidations(cluster, params.IgnoredValidations.ClusterValidationIds, params.IgnoredValidations.HostValidationIds)
 	if err != nil {
-		return b.setIgnoredValidationsBadRequest(err.Error())
-	}
-	problems := []string{}
-	cluster.IgnoredClusterValidations = params.IgnoredValidations.ClusterValidationIds
-	cluster.IgnoredHostValidations = params.IgnoredValidations.HostValidationIds
-
-	problems = b.validateIgnoredValidations(problems, cluster.IgnoredClusterValidations, common.NonIgnorableClusterValidations, common.ValidationTypeCluster)
-	problems = b.validateIgnoredValidations(problems, cluster.IgnoredHostValidations, common.NonIgnorableHostValidations, common.ValidationTypeHost)
-	if len(problems) > 0 {
-		return b.setIgnoredValidationsBadRequest("cannot proceed due to the following errors: " + strings.Join(problems, "\n"))
-	}
-
-	if err = b.db.Save(cluster).Error; err != nil {
+		if apiErr, ok := err.(*common.ApiErrorResponse); ok && apiErr.StatusCode() == http.StatusBadRequest {
+			return b.setIgnoredValidationsBadRequest(apiErr.Error())
+		}
 		err = errors.Wrapf(err, "failed to apply ignored validations to cluster %s", *cluster.ID)
 		return installer.NewV2SetIgnoredValidationsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
@@ -762,6 +780,17 @@ func (b *bareMetalInventory) V2SetIgnoredValidations(ctx context.Context, params
 		HostValidationIds:    cluster.IgnoredHostValidations,
 	}
 	return installer.NewV2SetIgnoredValidationsCreated().WithPayload(&ignoredValidations)
+}
+
+// SetIgnoredValidationsInternal is the internal (non-REST) entry point for updating ignored
+// validations on a cluster. It is used by the Kube-API controller to apply ignored validations
+// parsed from AgentClusterInstall annotations.
+func (b *bareMetalInventory) SetIgnoredValidationsInternal(ctx context.Context, clusterID strfmt.UUID, ignoredClusterValidations, ignoredHostValidations string) error {
+	cluster, err := common.GetClusterFromDB(b.db, clusterID, common.SkipEagerLoading)
+	if err != nil {
+		return errors.Wrapf(err, "failed to get cluster %s for ignored validations update", clusterID)
+	}
+	return b.applyIgnoredValidations(cluster, ignoredClusterValidations, ignoredHostValidations)
 }
 
 func (b *bareMetalInventory) V2GetClusterUISettings(ctx context.Context, params installer.V2GetClusterUISettingsParams) middleware.Responder {

@@ -213,17 +213,25 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	}
 	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
 
-	var nmStateConfig aiv1beta1.NMStateConfig
-
 	fileInfo, _ := os.Stat(nmStateConfigPath)
 	if fileInfo != nil {
-		if nmStateErr := getFileData(nmStateConfigPath, &nmStateConfig); nmStateErr != nil {
-			return nil, nmStateErr
+		contents, readErr := os.ReadFile(nmStateConfigPath)
+		if readErr != nil {
+			return nil, fmt.Errorf("error reading nmstateconfig file %s: %w", nmStateConfigPath, readErr)
 		}
 
-		staticNetworkConfig, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
-		if processErr != nil {
-			return nil, processErr
+		nmStateConfigs, parseErr := common.GetMultipleYamls[aiv1beta1.NMStateConfig](contents)
+		if parseErr != nil {
+			return nil, fmt.Errorf("error parsing nmstateconfig file %s: %w", nmStateConfigPath, parseErr)
+		}
+
+		var staticNetworkConfig []*models.HostStaticNetworkConfig
+		for _, nmStateConfig := range nmStateConfigs {
+			configs, processErr := processNMStateConfig(log, infraEnv, nmStateConfig)
+			if processErr != nil {
+				return nil, processErr
+			}
+			staticNetworkConfig = append(staticNetworkConfig, configs...)
 		}
 
 		if len(staticNetworkConfig) > 0 {

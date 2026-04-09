@@ -167,6 +167,7 @@ var Options struct {
 	ApproveCsrsRequeueDuration           time.Duration `envconfig:"APPROVE_CSRS_REQUEUE_DURATION" default:"1m"`
 	HTTPListenPort                       string        `envconfig:"HTTP_LISTEN_PORT" default:""`
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
+	EnableMetal3                         bool          `envconfig:"ENABLE_METAL3" default:"true"`
 	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
 	ForceInsecurePolicyJson              bool          `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
@@ -291,17 +292,7 @@ func startKubeAPIControllers(
 		}
 	}
 
-	failOnError(doesBMHCRDExist(ctrlMgr), "BareMetalHost CRD does not exist in cluster")
-	clientConfig := ctrl.GetConfigOrDie()
-	osClient := osclientset.NewForConfigOrDie(clientConfig)
-	kubeClient := kubernetes.NewForConfigOrDie(clientConfig)
-	bmoUtils := controllers.NewBMOUtils(ctrlMgr.GetAPIReader(),
-		osClient,
-		kubeClient,
-		log.WithField("pkg", "baremetal_operator_utils"),
-		Options.EnableKubeAPI,
-	)
-	useConvergedFlow := Options.AllowConvergedFlow && bmoUtils.ConvergedFlowAvailable()
+	bmoUtils, useConvergedFlow := getBMOUtils(ctrlMgr, log)
 
 	c := ctrlMgr.GetClient()
 	r := ctrlMgr.GetAPIReader()
@@ -358,9 +349,10 @@ func startKubeAPIControllers(
 		AgentContainerImage:        Options.BMConfig.AgentDockerImg,
 		HostFSMountDir:             hostFSMountDir,
 		ImageServiceEnabled:        Options.EnableImageService,
+		EnableMetal3:               Options.EnableMetal3,
 	}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
-	if Options.EnableImageService {
+	if Options.EnableMetal3 && Options.EnableImageService {
 		failOnError((&controllers.BMACReconciler{
 			Client:                ctrlMgr.GetClient(),
 			APIReader:             ctrlMgr.GetAPIReader(),
@@ -390,7 +382,7 @@ func startKubeAPIControllers(
 		Log:    log,
 	}).SetupWithManager(ctrlMgr), "unable to create controller AgentLabel")
 
-	if Options.EnableImageService && useConvergedFlow {
+	if Options.EnableMetal3 && Options.EnableImageService && useConvergedFlow {
 		failOnError((&controllers.PreprovisioningImageReconciler{
 			Client:           ctrlMgr.GetClient(),
 			Log:              log,
@@ -950,24 +942,27 @@ func createControllerManager() (manager.Manager, error) {
 			return nil, err
 
 		}
+		cacheByObject := map[client.Object]cache.ByObject{
+			&corev1.Secret{}: {
+				Label: labels.SelectorFromSet(
+					labels.Set{
+						controllers.WatchResourceLabel: controllers.WatchResourceValue,
+					},
+				),
+			},
+		}
+		if Options.EnableMetal3 {
+			cacheByObject[&metal3_v1alpha1.PreprovisioningImage{}] = cache.ByObject{
+				Label: labels.NewSelector().Add(*infraenvLabel),
+			}
+		}
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			Cache: cache.Options{
-				ByObject: map[client.Object]cache.ByObject{
-					&corev1.Secret{}: {
-						Label: labels.SelectorFromSet(
-							labels.Set{
-								controllers.WatchResourceLabel: controllers.WatchResourceValue,
-							},
-						),
-					},
-					&metal3_v1alpha1.PreprovisioningImage{}: {
-						Label: labels.NewSelector().Add(*infraenvLabel),
-					},
-				},
+				ByObject: cacheByObject,
 			},
 		})
 	}
@@ -989,9 +984,13 @@ func createVersionHandlers(
 	if ctrlMgr != nil {
 		versionsClient = ctrlMgr.GetClient()
 	}
-	var mustGatherVersionsMap = make(versions.MustGatherVersions)
+
+	mustGatherVersionCache := versions.NewMustGatherVersionCache()
 	if Options.MustGatherImages != "" {
-		if err := json.Unmarshal([]byte(Options.MustGatherImages), &mustGatherVersionsMap); err != nil {
+		var err error
+
+		mustGatherVersionCache, err = versions.NewMustGatherVersionCacheFromJSON(Options.MustGatherImages)
+		if err != nil {
 			return nil, nil, errors.Wrapf(err, "Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
 		}
 	}
@@ -1000,7 +999,7 @@ func createVersionHandlers(
 		log.WithField("pkg", "versions"),
 		releaseHandler,
 		releaseImagesArray,
-		mustGatherVersionsMap,
+		mustGatherVersionCache,
 		Options.ReleaseImageMirror,
 		versionsClient,
 		ignoredOpenshiftVersions,
@@ -1035,15 +1034,31 @@ func getNotificationStream(log *logrus.Logger) *stream.NotificationStream {
 	return stream.NewNotificationStream(writer, log, metadata)
 }
 
-func doesBMHCRDExist(mgr manager.Manager) error {
-	gvk, err := apiutil.GVKForObject(&metal3_v1alpha1.BareMetalHost{}, mgr.GetScheme())
+func getBMOUtils(ctrlMgr manager.Manager, log *logrus.Logger) (controllers.BMOUtils, bool) {
+	if !Options.EnableMetal3 {
+		log.Info("Metal3 integration is disabled (ENABLE_METAL3=false)")
+		return nil, false
+	}
+
+	gvk, err := apiutil.GVKForObject(&metal3_v1alpha1.BareMetalHost{}, ctrlMgr.GetScheme())
 	if err != nil {
-		return err
+		log.WithError(err).Fatal("BareMetalHost CRD does not exist in cluster")
 	}
-	if _, err = mgr.GetRESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
-		return err
+	if _, err = ctrlMgr.GetRESTMapper().RESTMapping(gvk.GroupKind(), gvk.Version); err != nil {
+		log.WithError(err).Fatal("BareMetalHost CRD does not exist in cluster")
 	}
-	return nil
+
+	clientConfig := ctrl.GetConfigOrDie()
+	osClient := osclientset.NewForConfigOrDie(clientConfig)
+	kubeClient := kubernetes.NewForConfigOrDie(clientConfig)
+	bmoUtils := controllers.NewBMOUtils(ctrlMgr.GetAPIReader(),
+		osClient,
+		kubeClient,
+		log.WithField("pkg", "baremetal_operator_utils"),
+		Options.EnableKubeAPI,
+	)
+	useConvergedFlow := Options.AllowConvergedFlow && bmoUtils.ConvergedFlowAvailable()
+	return bmoUtils, useConvergedFlow
 }
 
 func startPPROF(log *logrus.Logger) {

@@ -66,6 +66,7 @@ const (
 	MinimumVersionForNonStandardHAOCPControlPlane                    = "4.18"
 	MinimumVersionForArbiterClusters                                 = "4.19"
 	MinimumVersionForTwoNodesWithFencing                             = "4.20"
+	MinimumVersionForArbiterClustersWithNonePlatform                 = "4.22"
 	MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode    = 2
 
 	MinimumVersionForUserManagedLoadBalancerFeature = "4.16"
@@ -851,7 +852,7 @@ func GetMultipleYamls[T any](contents []byte) ([]T, error) {
 // ValidateClusterSupportsArbiterHosts checks if the given cluster is allowed to have arbiter hosts.
 // A day1 cluster can have arbiter hosts if:
 // 1. Its OCP version is at least MinimumVersionForArbiterClusters
-// 2. Its platform is baremetal or none
+// 2. Its platform is baremetal (for OCP < 4.22) or baremetal/none (for OCP >= 4.22)
 // Day2 clusters can also have arbiter hosts added to them if they were installed as TNA clusters, but we can't check that.
 func ValidateClusterSupportsArbiterHosts(cluster *Cluster) error {
 	if cluster == nil || IsDay2Cluster(cluster) {
@@ -867,8 +868,20 @@ func ValidateClusterSupportsArbiterHosts(cluster *Cluster) error {
 	}
 
 	platform := cluster.Platform
-	if platform == nil || platform.Type == nil || (*platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone) {
-		return errors.New("cluster's platform must be baremetal or none")
+	if platform == nil || platform.Type == nil {
+		return errors.New("cluster's platform must be set")
+	}
+
+	supportsNonePlatform, _ := BaseVersionGreaterOrEqual(MinimumVersionForArbiterClustersWithNonePlatform, cluster.OpenshiftVersion)
+
+	if supportsNonePlatform {
+		if *platform.Type != models.PlatformTypeBaremetal && *platform.Type != models.PlatformTypeNone {
+			return errors.New("cluster's platform must be baremetal or none")
+		}
+	} else {
+		if *platform.Type != models.PlatformTypeBaremetal {
+			return errors.New("cluster's platform must be baremetal")
+		}
 	}
 
 	return nil

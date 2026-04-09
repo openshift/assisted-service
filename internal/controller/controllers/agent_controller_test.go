@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -32,6 +31,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
@@ -105,6 +105,7 @@ var _ = Describe("agent reconcile", func() {
 		hr = &AgentReconciler{
 			Client:                c,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 			APIReader:             c,
 			Scheme:                scheme.Scheme,
 			Log:                   common.GetTestLog(),
@@ -723,6 +724,171 @@ var _ = Describe("agent reconcile", func() {
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("day2 - installing-pending-user-action host with node ready should reconcile to Done", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installing-pending-user-action host with node not found should keep current stage", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageWaitingForControlPlane))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installing-pending-user-action host with node not ready should set stage to Joined", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstallingPendingUserAction)
+				commonHost.StatusInfo = swag.String("Host timed out when pulling ignition")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionFalse,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				mockInstallerInternal.EXPECT().V2UpdateHostInstallProgressInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageJoined))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstallingPendingUserAction))
+			})
+
+			It("day2 - installed host with stale progress stage should reconcile to Done", func() {
+				commonHost.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+				commonHost.Status = swag.String(models.HostStatusInstalled)
+				commonHost.StatusInfo = swag.String("Done")
+				commonHost.Progress = &models.HostProgressInfo{
+					CurrentStage: models.HostStageWaitingForControlPlane,
+				}
+				backEndCluster = &common.Cluster{Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusAddingHosts),
+					Hosts: []*models.Host{
+						&commonHost.Host,
+					}}}
+				allowGetInfraEnvInternal(mockInstallerInternal, infraEnvId, "infraEnvName")
+				Expect(c.Create(ctx, host)).To(BeNil())
+				createKubeconfigSecret(clusterDeployment.Name)
+				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				node := &corev1.Node{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-name",
+						Namespace: testNamespace,
+					},
+					Status: corev1.NodeStatus{
+						Conditions: []corev1.NodeCondition{
+							{
+								Type:   corev1.NodeReady,
+								Status: corev1.ConditionTrue,
+							},
+						},
+					},
+				}
+				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(node, nil).AnyTimes()
+				// V2UpdateHostInstallProgressInternal is NOT called for installed hosts —
+				// UpdateInstallProgress rejects stage changes for hosts not in installing statuses.
+				// Only the Agent CR stage is updated.
+				mockClient.EXPECT().PatchNodeLabels(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				result, err := hr.Reconcile(ctx, newHostRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				agent := &v1beta1.Agent{}
+				Expect(c.Get(ctx, types.NamespacedName{Namespace: testNamespace, Name: host.Name}, agent)).To(Succeed())
+				Expect(agent.Status.Progress.CurrentStage).To(Equal(models.HostStageDone))
+				Expect(agent.Status.DebugInfo.State).To(Equal(models.HostStatusInstalled))
 			})
 		})
 	})
@@ -1444,6 +1610,77 @@ var _ = Describe("agent reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 			assertAgentConditionsSuccess()
+		})
+
+		It("unbind attempts to reclaim when Metal3 is disabled even if BMH label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			testMAC := "de:ad:be:ef:00:00"
+			bmh := newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{BootMACAddress: testMAC})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			if host.ObjectMeta.Labels == nil {
+				host.ObjectMeta.Labels = make(map[string]string)
+			}
+			host.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
+			Expect(c.Update(ctx, host)).To(Succeed())
+
+			createKubeconfigSecret()
+			expectDBClusterWithKubeKeys()
+
+			mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
+			mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Namespace{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.ServiceAccount{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.Role{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&authzv1.RoleBinding{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Secret{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&corev1.Node{})).Return(nil)
+			mockClient.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.AssignableToTypeOf(&appsv1.DaemonSet{})).Return(nil)
+			mockClient.EXPECT().Update(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+			mockInstallerInternal.EXPECT().UnbindHostInternal(gomock.Any(), gomock.Any(), true, bminventory.NonInteractive).Return(commonHost, nil)
+			result, err := hr.Reconcile(ctx, newHostRequest(host))
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			assertAgentConditionsSuccess()
+		})
+	})
+
+	Context("Metal3 disabled", func() {
+		It("getBMH returns nil even when BMH exists and label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			bmh := newBMH("testBMH", &bmh_v1alpha1.BareMetalHostSpec{})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			hostId := strfmt.UUID(uuid.New().String())
+			agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{})
+			agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmh.Name}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			result, err := hr.getBMH(ctx, agent)
+			Expect(err).To(BeNil())
+			Expect(result).To(BeNil())
+		})
+
+		It("bmhExists returns false even when BMH exists and label is set", func() {
+			hr.EnableMetal3 = false
+			defer func() { hr.EnableMetal3 = true }()
+
+			bmh := newBMH("testBMH2", &bmh_v1alpha1.BareMetalHostSpec{})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+
+			hostId := strfmt.UUID(uuid.New().String())
+			agent := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{})
+			agent.ObjectMeta.Labels = map[string]string{AGENT_BMH_LABEL: bmh.Name}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+
+			exists, err := hr.bmhExists(ctx, agent)
+			Expect(err).To(BeNil())
+			Expect(exists).To(BeFalse())
 		})
 	})
 
@@ -2997,6 +3234,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			SpokeK8sClientFactory:      mockClientFactory,
 			ApproveCsrsRequeueDuration: time.Minute,
 			ImageServiceEnabled:        true,
+			EnableMetal3:               true,
 		}
 		sId := strfmt.UUID(uuid.New().String())
 		hostId = strfmt.UUID(uuid.New().String())
@@ -4056,6 +4294,7 @@ var _ = Describe("TestConditions", func() {
 		hr = &AgentReconciler{
 			Client:              c,
 			ImageServiceEnabled: true,
+			EnableMetal3:        true,
 			Scheme:              scheme.Scheme,
 			Log:                 common.GetTestLog(),
 			Installer:           mockInstallerInternal,
@@ -4805,6 +5044,7 @@ var _ = Describe("spokeKubeClient", func() {
 			APIReader:             c,
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 		cdSpec = hivev1.ClusterDeploymentSpec{
 			ClusterName:     clusterName,
@@ -4911,6 +5151,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 			Installer:             mockInstallerInternal,
 			SpokeK8sClientFactory: mockClientFactory,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 
 		agent = &v1beta1.Agent{
@@ -5477,6 +5718,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			SpokeK8sClientFactory: mockClientFactory,
 			AgentContainerImage:   agentImage,
 			ImageServiceEnabled:   true,
+			EnableMetal3:          true,
 		}
 		sId = strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}

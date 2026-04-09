@@ -6,9 +6,6 @@ metadata:
 spec:
   instance: ""
   operand:
-    # TODO: This image was the default used by the node feature discovery when this was written. There is currently no
-    # good way to automatically upgrade this, not even when the node feature discovery operator is installed manually.
-    image: registry.redhat.io/openshift4/ose-node-feature-discovery-rhel9@sha256:e9d3814585bd41b9d0e8612f053dc9753a47c1eae49c07d81f8946e1e25a2fd7
     imagePullPolicy: IfNotPresent
     servicePort: 12000
   topologyUpdater: false
@@ -24,26 +21,3 @@ spec:
           - "12"
           deviceLabelFields:
           - "vendor"
-        custom:
-        - name: nvidia-gpu
-        - name: amd-gpu
-          labels:
-            feature.node.kubernetes.io/amd-gpu: "true"
-          matchAny:
-          - matchFeatures:
-            - feature: pci.device
-              matchExpressions:
-                vendor:
-                  op: In
-                  value:
-                  - "1002"
-                device:
-                  op: In
-                  value:
-                  - "74a0" # MI300A
-                  - "74a1" # MI300X
-                  - "740f" # MI210
-                  - "7408" # MI250X
-                  - "740c" # MI250/MI250X
-                  - "738c" # MI100
-                  - "738e" # MI100

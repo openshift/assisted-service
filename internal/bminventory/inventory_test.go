@@ -29,7 +29,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
@@ -83,6 +82,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/sirupsen/logrus/hooks/test"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
 )
@@ -5463,6 +5463,57 @@ var _ = Describe("cluster", func() {
 			})
 		})
 
+		Describe("SetIgnoredValidationsInternal", func() {
+			type rejectionCase struct {
+				name                   string
+				clusterStatus          string
+				updatabilityError      error
+				ignoredValidations     string
+				expectedErrorSubstring string
+			}
+
+			cases := []rejectionCase{
+				{
+					name:                   "rejects unknown cluster validation IDs",
+					clusterStatus:          models.ClusterStatusReady,
+					updatabilityError:      nil,
+					ignoredValidations:     `["not-a-real-validation"]`,
+					expectedErrorSubstring: "Validation ID 'not-a-real-validation' is not a known cluster validation",
+				},
+				{
+					name:                   "rejects non-ignorable cluster validations",
+					clusterStatus:          models.ClusterStatusReady,
+					updatabilityError:      nil,
+					ignoredValidations:     `["pull-secret-set"]`,
+					expectedErrorSubstring: "unable to ignore the following cluster validations (pull-secret-set)",
+				},
+				{
+					name:                   "rejects updates when the cluster is not updatable",
+					clusterStatus:          models.ClusterStatusPreparingForInstallation,
+					updatabilityError:      errors.Errorf("wrong state"),
+					ignoredValidations:     `["dns-domain-defined"]`,
+					expectedErrorSubstring: "wrong state",
+				},
+			}
+
+			for i := range cases {
+				tc := cases[i]
+				It(tc.name, func() {
+					cluster := &common.Cluster{Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						Status:           swag.String(tc.clusterStatus),
+					}}
+					createCluster(cluster)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(tc.updatabilityError).Times(1)
+
+					err := bm.SetIgnoredValidationsInternal(ctx, *cluster.ID, tc.ignoredValidations, "")
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring(tc.expectedErrorSubstring))
+				})
+			}
+		})
+
 		Describe("V2GetClusterUISettings", func() {
 			It("returns ui settings for cluster", func() {
 				createCluster(defaultCluster)
@@ -10841,7 +10892,7 @@ var _ = Describe("infraEnvs host", func() {
 			})
 			Expect(resp).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(resp.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal or none", hostID, infraEnvID)))
+			Expect(resp.(*common.ApiErrorResponse).Error()).To(Equal(fmt.Sprintf("Cannot set role arbiter to host %s in infra-env %s: cluster's platform must be baremetal", hostID, infraEnvID)))
 		})
 
 		Context("Hostname", func() {

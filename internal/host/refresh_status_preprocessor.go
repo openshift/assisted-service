@@ -68,11 +68,13 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 	validationsOutput := make(ValidationsStatus)
 	var err error
 	var ignoredValidations []string
+	hasPerClusterOverride := false
 	if c.cluster != nil {
 		ignoredValidations, err = common.DeserializeJSONList(c.cluster.IgnoredHostValidations)
 		if err != nil {
 			return nil, nil, errors.Wrap(err, fmt.Sprintf("Unable to deserialize ignored host validations for cluster %s", string(*c.cluster.ID)))
 		}
+		hasPerClusterOverride = c.cluster.IgnoredHostValidations != ""
 	}
 	for _, v := range r.validations {
 
@@ -88,7 +90,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *validationConte
 
 		var st ValidationStatus
 		var message string
-		if r.disabledHostValidations.IsDisabled(v.id) {
+		if !hasPerClusterOverride && r.disabledHostValidations.IsDisabled(v.id) {
 			st = ValidationDisabled
 			message = validationDisabledByConfiguration
 			conditions[v.id.String()] = true

@@ -103,6 +103,7 @@ type AgentReconciler struct {
 	HostFSMountDir             string
 	reclaimer                  *agentReclaimer
 	ImageServiceEnabled        bool
+	EnableMetal3               bool
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -682,6 +683,9 @@ func (r *AgentReconciler) tryApproveDay2CSRs(ctx context.Context, agent *aiv1bet
 }
 
 func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	if !r.EnableMetal3 {
+		return nil, nil
+	}
 	bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]
 	if !ok {
 		return nil, nil
@@ -698,6 +702,9 @@ func (r *AgentReconciler) getBMH(ctx context.Context, agent *aiv1beta1.Agent) (*
 }
 
 func (r *AgentReconciler) bmhExists(ctx context.Context, agent *aiv1beta1.Agent) (bool, error) {
+	if !r.EnableMetal3 {
+		return false, nil
+	}
 	bmh, err := r.getBMH(ctx, agent)
 	if err != nil {
 		return false, err
@@ -879,7 +886,8 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 // * Agent belongs to baremetal cluster without MAPI capability
 // * No BMH exists for agent
 func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
-	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined}, h.Progress.CurrentStage) {
+	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined}, h.Progress.CurrentStage) ||
+		swag.StringValue(h.Status) == models.HostStatusInstallingPendingUserAction {
 		cd, err := getClusterDeploymentFromAgent(ctx, r.Client, agent)
 		if err != nil {
 			return false, err
@@ -1012,8 +1020,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		if h.Progress != nil && h.Progress.CurrentStage != "" {
 			// In case the node didn't reboot yet, we get the stage from the host (else)
 			if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost &&
-				funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) &&
-				agent.Spec.ClusterDeploymentName != nil {
+				agent.Spec.ClusterDeploymentName != nil &&
+				r.shouldCheckSpokeForDay2Host(h) {
 
 				spokeClient, err = r.spokeKubeClient(ctx, agent.Spec.ClusterDeploymentName)
 				if err != nil {
@@ -1105,14 +1113,30 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 		// requeue in order to keep reconciling until the node show up
 		return nil
 	}
+	isRecovery := swag.StringValue(h.Status) == models.HostStatusInstallingPendingUserAction ||
+		(swag.StringValue(h.Status) == models.HostStatusInstalled && h.Progress.CurrentStage != models.HostStageDone)
+	// For hosts already in installed status (e.g. DB workaround), skip backend progress updates —
+	// UpdateInstallProgress rejects stage changes for hosts not in installing statuses.
+	canUpdateBackend := swag.StringValue(h.Status) != models.HostStatusInstalled
 	var err error
 	allCSRsHandled := areCSRsHandled(shouldAutoApproveCSRs, agent)
 	if isNodeReady(node) && allCSRsHandled {
-		err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
+		if isRecovery {
+			r.Log.Infof("Agent %s/%s: recovered from %s (stage %s) — node found Ready on spoke cluster",
+				agent.Namespace, agent.Name, swag.StringValue(h.Status), h.Progress.CurrentStage)
+		}
+		if canUpdateBackend && isRecovery {
+			err = r.updateHostInstallProgressWithInfo(ctx, h, models.HostStageDone,
+				fmt.Sprintf("recovered after %s timeout — node joined spoke cluster", swag.StringValue(h.Status)))
+		} else if canUpdateBackend {
+			err = r.updateHostInstallProgress(ctx, h, models.HostStageDone)
+		}
 		agent.Status.Progress.CurrentStage = models.HostStageDone
 		// now that the node is done there is no need to requeue
 	} else {
-		err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
+		if canUpdateBackend {
+			err = r.updateHostInstallProgress(ctx, h, models.HostStageJoined)
+		}
 		agent.Status.Progress.CurrentStage = models.HostStageJoined
 	}
 	if err != nil {
@@ -1120,6 +1144,29 @@ func (r *AgentReconciler) UpdateDay2InstallPogress(ctx context.Context, h *model
 		return err
 	}
 	return nil
+}
+
+// shouldCheckSpokeForDay2Host returns true if the reconciler should connect to the spoke
+// cluster to verify the node status. This covers both the normal flow (host is in
+// Rebooting/Joined/Configuring stage) and the recovery flow (host got stuck in
+// installing-pending-user-action after a reboot timeout, but the node may have
+// actually joined the spoke cluster).
+func (r *AgentReconciler) shouldCheckSpokeForDay2Host(h *models.Host) bool {
+	// Normal flow: host is in a post-reboot stage where we need to verify node status
+	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined, models.HostStageConfiguring}, h.Progress.CurrentStage) {
+		return true
+	}
+	// Recovery flow: host timed out during reboot and is stuck in installing-pending-user-action.
+	// The node may have joined the spoke cluster despite the agent losing communication.
+	if swag.StringValue(h.Status) == models.HostStatusInstallingPendingUserAction {
+		return true
+	}
+	// Recovery flow: host status was corrected (e.g. via DB) to installed, but the
+	// progress stage was not updated to Done. Check the spoke cluster to reconcile.
+	if swag.StringValue(h.Status) == models.HostStatusInstalled && h.Progress.CurrentStage != models.HostStageDone {
+		return true
+	}
+	return false
 }
 
 // areCSRsHandled returns true if CSRs do not need to be auto-approved or if both client and serving CSRs are approved
@@ -2122,12 +2169,18 @@ func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 }
 
 func (r *AgentReconciler) updateHostInstallProgress(ctx context.Context, host *models.Host, stage models.HostStage) error {
+	return r.updateHostInstallProgressWithInfo(ctx, host, stage, "")
+}
+
+func (r *AgentReconciler) updateHostInstallProgressWithInfo(ctx context.Context, host *models.Host, stage models.HostStage, progressInfo string) error {
 	r.Log.Infof("Updating host %s install progress to %s", host.ID, stage)
 	err := r.Installer.V2UpdateHostInstallProgressInternal(ctx, installer.V2UpdateHostInstallProgressParams{
 		InfraEnvID: host.InfraEnvID,
 		HostID:     *host.ID,
 		HostProgress: &models.HostProgress{
-			CurrentStage: stage},
+			CurrentStage: stage,
+			ProgressInfo: progressInfo,
+		},
 	})
 	return err
 }

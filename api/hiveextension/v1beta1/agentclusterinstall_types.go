@@ -552,7 +552,7 @@ const (
 )
 
 func init() {
-	SchemeBuilder.Register(&AgentClusterInstall{}, &AgentClusterInstallList{})
+	objectTypes = append(objectTypes, &AgentClusterInstall{}, &AgentClusterInstallList{})
 }
 
 // MirrorRegistryConfigMapReference contains reference to a ConfigMap for mirror registry

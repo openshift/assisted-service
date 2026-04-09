@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/go-openapi/swag"
-	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -16,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	gomock "go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 
@@ -101,12 +101,12 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// validate fields
-		_, err = NewHandler(logger, mockRelease, *releaseImages, nil, "", nil, nil, nil, enableKubeAPI, nil)
+		_, err = NewHandler(logger, mockRelease, *releaseImages, NewMustGatherVersionCache(), "", nil, nil, nil, enableKubeAPI, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("Should not cause an error with no release images in the DB", func() {
-		handler, err := NewHandler(logger, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		handler, err := NewHandler(logger, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		apiHandler := NewAPIHandler(logger, versions, authzHandler, handler, nil, nil)
@@ -159,7 +159,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			},
 		}
 
-		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		handler, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 
@@ -233,7 +233,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			},
 		}
 
-		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		handler, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 
@@ -284,7 +284,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			},
 		}
 
-		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		handler, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 		reply := h.V2ListSupportedOpenshiftVersions(context.Background(), operations.V2ListSupportedOpenshiftVersionsParams{})
@@ -331,7 +331,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			},
 		}
 
-		handler, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+		handler, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 		Expect(err).ToNot(HaveOccurred())
 		h := NewAPIHandler(logger, versions, authzHandler, handler, osImages, nil)
 
@@ -412,7 +412,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		BeforeEach(func() {
 			err := db.Create(&releaseImages).Error
 			Expect(err).ToNot(HaveOccurred())
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 		})
@@ -706,7 +706,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			err := db.Create(&releaseImages).Error
 			Expect(err).ToNot(HaveOccurred())
 
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 		})
@@ -914,7 +914,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 		BeforeEach(func() {
 			err := db.Create(&releaseImages).Error
 			Expect(err).ToNot(HaveOccurred())
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, nil, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, nil, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler = NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 		})
@@ -1043,7 +1043,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 			ignoredVersions := []string{"4.11.1", "4.11.2", "4.12.1"}
 			expectedPayload := models.OpenshiftVersions{}
 
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, ignoredVersions, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 
@@ -1064,7 +1064,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				},
 			}
 
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, ignoredVersions, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 
@@ -1097,7 +1097,7 @@ var _ = Describe("V2ListSupportedOpenshiftVersions", func() {
 				},
 			}
 
-			h, err := NewHandler(nil, nil, nil, nil, "", nil, ignoredVersions, db, enableKubeAPI, nil)
+			h, err := NewHandler(nil, nil, nil, NewMustGatherVersionCache(), "", nil, ignoredVersions, db, enableKubeAPI, nil)
 			Expect(err).ToNot(HaveOccurred())
 			handler := NewAPIHandler(logger, versions, authzHandler, h, osImages, nil)
 

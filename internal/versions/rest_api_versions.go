@@ -3,7 +3,6 @@ package versions
 import (
 	context "context"
 	"strings"
-	"sync"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -19,8 +18,7 @@ import (
 type restAPIVersionsHandler struct {
 	log                      logrus.FieldLogger
 	releaseHandler           oc.Release
-	imagesLock               sync.Mutex
-	mustGatherVersions       MustGatherVersions
+	mustGatherVersionCache   MustGatherVersionCache
 	ignoredOpenshiftVersions []string
 	db                       *gorm.DB
 }
@@ -118,10 +116,9 @@ func (h *restAPIVersionsHandler) GetMustGatherImages(openshiftVersion, cpuArchit
 		cpuArchitecture,
 		pullSecret,
 		"",
-		h.mustGatherVersions,
+		h.mustGatherVersionCache,
 		h.GetReleaseImage,
 		h.releaseHandler,
-		&h.imagesLock,
 	)
 }
 

@@ -1,0 +1,18 @@
+apiVersion: nfd.openshift.io/v1alpha1
+kind: NodeFeatureRule
+metadata:
+  name: amd-nic
+  namespace: {{ .Operator.Namespace }}
+spec:
+  rules:
+  - name: amd-nic
+    labels:
+      feature.node.kubernetes.io/amd-nic: "true"
+    matchFeatures:
+    - feature: pci.device
+      matchExpressions:
+        vendor: {op: In, value: ["1dd8"]} # AMD Pensando
+        device:
+          op: In
+          value:
+          - "1002" # DSC Ethernet Controller (Pollara AI NIC)

@@ -29,6 +29,7 @@ const (
 	ValidationFailure     ValidationStatus = "failure"
 	ValidationPending     ValidationStatus = "pending"
 	ValidationError       ValidationStatus = "error"
+	ValidationDisabled    ValidationStatus = "disabled"
 	DefaultIPV4HostPrefix                  = 25
 	DefaultIPV6HostPrefix                  = 64
 )

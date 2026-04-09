@@ -11,9 +11,9 @@ import (
 
 	types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -22,7 +22,52 @@ import (
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
+	"go.uber.org/mock/gomock"
+	"sigs.k8s.io/yaml"
 )
+
+var _ = Describe("mirrorHasLocalhost", func() {
+	It("returns true for localhost with no path", func() {
+		Expect(mirrorHasLocalhost(configv1.ImageMirror("localhost"))).To(BeTrue())
+	})
+	It("returns true for localhost with port", func() {
+		Expect(mirrorHasLocalhost(configv1.ImageMirror("localhost:22625"))).To(BeTrue())
+	})
+	It("returns true for localhost with port and path", func() {
+		Expect(mirrorHasLocalhost(configv1.ImageMirror("localhost:22625/openshift/release"))).To(BeTrue())
+	})
+	It("returns false for non-localhost host", func() {
+		Expect(mirrorHasLocalhost(configv1.ImageMirror("registry.appliance.com:5000/openshift/release"))).To(BeFalse())
+	})
+	It("returns false for api-int host", func() {
+		Expect(mirrorHasLocalhost(configv1.ImageMirror("api-int.ostest.test.metalkube.org:22625/openshift/release"))).To(BeFalse())
+	})
+})
+
+var _ = Describe("mirrorsContainLocalhost", func() {
+	It("returns false for empty slice", func() {
+		Expect(mirrorsContainLocalhost(nil)).To(BeFalse())
+		Expect(mirrorsContainLocalhost([]configv1.ImageMirror{})).To(BeFalse())
+	})
+	It("returns false when no mirror uses localhost", func() {
+		mirrors := []configv1.ImageMirror{
+			"registry.appliance.com:5000/openshift/release",
+			"api-int.ostest.test.metalkube.org:22625/openshift/release",
+		}
+		Expect(mirrorsContainLocalhost(mirrors)).To(BeFalse())
+	})
+	It("returns true when one mirror uses localhost", func() {
+		mirrors := []configv1.ImageMirror{
+			"registry.appliance.com:5000/openshift/release",
+			"localhost:22625/openshift/release",
+		}
+		Expect(mirrorsContainLocalhost(mirrors)).To(BeTrue())
+	})
+	It("returns true when only mirror is localhost", func() {
+		mirrors := []configv1.ImageMirror{"localhost:22625/openshift/release"}
+		Expect(mirrorsContainLocalhost(mirrors)).To(BeTrue())
+	})
+})
 
 var _ = Describe("InternalReleaseImage resources patching", func() {
 	var (
@@ -74,6 +119,35 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 
 			err := iriPatcher.PatchManifests(context.TODO(), extraManifests)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("do not add duplicate localhost to IDMS/ITMS when mirrors already contain localhost", func() {
+			extraManifests := iriSetupExtraManifestsWithLocalhost(mockS3Client)
+			var idmsParams, itmsParams *operations.V2UpdateClusterManifestParams
+
+			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(), gomock.Any()).
+				DoAndReturn(func(ctx context.Context, params operations.V2UpdateClusterManifestParams) (operations.V2UpdateClusterManifestParams, error) {
+					switch params.UpdateManifestParams.FileName {
+					case "idms-oc-mirror.yaml":
+						p := params
+						idmsParams = &p
+					case "itms-oc-mirror.yaml":
+						p := params
+						itmsParams = &p
+					}
+					return params, nil
+				}).Times(4)
+
+			err := iriPatcher.PatchManifests(context.TODO(), extraManifests)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(idmsParams).NotTo(BeNil())
+			Expect(idmsLocalhostMirrorCount(*idmsParams)).To(Equal(1), "IDMS should have exactly one localhost mirror when one was already present (no duplicate)")
+			Expect(getManifestContent(*idmsParams)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
+
+			Expect(itmsParams).NotTo(BeNil())
+			Expect(itmsLocalhostMirrorCount(*itmsParams)).To(Equal(1), "ITMS should have exactly one localhost mirror when one was already present (no duplicate)")
+			Expect(getManifestContent(*itmsParams)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
 		})
 	})
 
@@ -156,11 +230,57 @@ func s3ClientAdd(mockS3Client *s3wrapper.MockAPI, path string, data string) s3wr
 	}
 }
 
+func getManifestContent(params operations.V2UpdateClusterManifestParams) string {
+	data, err := base64.StdEncoding.DecodeString(*params.UpdateManifestParams.UpdatedContent)
+	Expect(err).NotTo(HaveOccurred())
+	return string(data)
+}
+
+func idmsLocalhostMirrorCount(params operations.V2UpdateClusterManifestParams) int {
+	content := getManifestContent(params)
+	var idms configv1.ImageDigestMirrorSet
+	Expect(yaml.Unmarshal([]byte(content), &idms)).NotTo(HaveOccurred())
+	count := 0
+	for _, group := range idms.Spec.ImageDigestMirrors {
+		for _, m := range group.Mirrors {
+			if mirrorHasLocalhost(m) {
+				count++
+			}
+		}
+	}
+	return count
+}
+
+func itmsLocalhostMirrorCount(params operations.V2UpdateClusterManifestParams) int {
+	content := getManifestContent(params)
+	var itms configv1.ImageTagMirrorSet
+	Expect(yaml.Unmarshal([]byte(content), &itms)).NotTo(HaveOccurred())
+	count := 0
+	for _, group := range itms.Spec.ImageTagMirrors {
+		for _, m := range group.Mirrors {
+			if mirrorHasLocalhost(m) {
+				count++
+			}
+		}
+	}
+	return count
+}
+
 func iriSetupExtraManifests(mockS3Client *s3wrapper.MockAPI) []s3wrapper.ObjectInfo {
 	objs := []s3wrapper.ObjectInfo{}
 	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/internalreleaseimage.yaml", manifestIRI))
 	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/idms-oc-mirror.yaml", manifestIDMS))
 	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/itms-oc-mirror.yaml", manifestITMS))
+	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/cs-redhat-operator-index.yaml", manifestCatalogSource))
+	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/cc-redhat-operator-index.yaml", manifestClusterCatalog))
+	return objs
+}
+
+func iriSetupExtraManifestsWithLocalhost(mockS3Client *s3wrapper.MockAPI) []s3wrapper.ObjectInfo {
+	objs := []s3wrapper.ObjectInfo{}
+	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/internalreleaseimage.yaml", manifestIRI))
+	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/idms-oc-mirror.yaml", manifestIDMSWithLocalhost))
+	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/itms-oc-mirror.yaml", manifestITMSWithLocalhost))
 	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/cs-redhat-operator-index.yaml", manifestCatalogSource))
 	objs = append(objs, s3ClientAdd(mockS3Client, "/etc/assisted/extra-manifests/cc-redhat-operator-index.yaml", manifestClusterCatalog))
 	return objs
@@ -316,6 +436,21 @@ spec:
     source: quay.io/openshift-release-dev/ocp-release
 `
 
+// manifestIDMSWithLocalhost has one mirror group that already contains localhost (e.g. from appliance).
+// Patcher should add api-int but not duplicate localhost.
+var manifestIDMSWithLocalhost = `
+apiVersion: config.openshift.io/v1
+kind: ImageDigestMirrorSet
+metadata:
+  name: idms-release-0
+spec:
+  imageDigestMirrors:
+  - mirrors:
+    - registry.appliance.com:5000/openshift/release
+    - localhost:22625/openshift/release
+    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+`
+
 var manifestITMS = `
 apiVersion: config.openshift.io/v1
 kind: ImageTagMirrorSet
@@ -325,6 +460,21 @@ spec:
   imageTagMirrors:
   - mirrors:
     - registry.appliance.com:5000/rhel9
+    source: registry.redhat.io/rhel9
+`
+
+// manifestITMSWithLocalhost has mirrors that already contain localhost (e.g. from appliance).
+// Patcher should add api-int but not duplicate localhost.
+var manifestITMSWithLocalhost = `
+apiVersion: config.openshift.io/v1
+kind: ImageTagMirrorSet
+metadata:
+  name: itms-generic-0
+spec:
+  imageTagMirrors:
+  - mirrors:
+    - registry.appliance.com:5000/rhel9
+    - localhost:22625/rhel9
     source: registry.redhat.io/rhel9
 `
 
