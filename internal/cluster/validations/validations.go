@@ -344,23 +344,27 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
 
+func validateVIPIP(ip, vipType string, index int) error {
+	if ip == "" {
+		return errors.Errorf("%s VIP IP at index %d cannot be empty", vipType, index)
+	}
+	if net.ParseIP(ip) == nil {
+		return errors.Errorf("Could not parse VIP ip %s", ip)
+	}
+	return nil
+}
+
 func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
 	var multiErr error
 
 	for i := range apiVips {
-		ip := string(apiVips[i].IP)
-		if ip == "" {
-			multiErr = multierror.Append(multiErr, errors.Errorf("API VIP IP at index %d cannot be empty", i))
-		} else if net.ParseIP(ip) == nil {
-			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", ip))
+		if err := validateVIPIP(string(apiVips[i].IP), "API", i); err != nil {
+			multiErr = multierror.Append(multiErr, err)
 		}
 	}
 	for i := range ingressVips {
-		ip := string(ingressVips[i].IP)
-		if ip == "" {
-			multiErr = multierror.Append(multiErr, errors.Errorf("Ingress VIP IP at index %d cannot be empty", i))
-		} else if net.ParseIP(ip) == nil {
-			multiErr = multierror.Append(multiErr, errors.Errorf("Could not parse VIP ip %s", ip))
+		if err := validateVIPIP(string(ingressVips[i].IP), "Ingress", i); err != nil {
+			multiErr = multierror.Append(multiErr, err)
 		}
 	}
 	if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
