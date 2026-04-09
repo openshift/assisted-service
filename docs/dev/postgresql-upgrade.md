@@ -45,9 +45,9 @@ The sclorg container images define these environment variables (baked into each 
 
 You can verify these by inspecting the container:
 ```bash
-podman run --rm quay.io/sclorg/postgresql-13-c9s:latest env | grep POSTGRESQL
-# POSTGRESQL_VERSION=13
-# POSTGRESQL_PREV_VERSION=12
+podman run --rm quay.io/sclorg/postgresql-15-c9s:latest env | grep POSTGRESQL
+# POSTGRESQL_VERSION=15
+# POSTGRESQL_PREV_VERSION=13
 ```
 
 ### Hardlink Mode
@@ -119,7 +119,9 @@ PostgreSQL container images from [sclorg](https://github.com/sclorg/postgresql-c
 | postgresql-16-c9s | 16 | 15 | RHEL 9 |
 | postgresql-17-c9s | 17 | 16 | RHEL 9 |
 
-Note: Upgrading from `postgresql-12-c8s` (RHEL 8) to `postgresql-13-c9s` (RHEL 9) is supported. See [Red Hat's fast upgrade documentation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/configuring_and_using_database_servers/using-postgresql_configuring-and-using-database-servers#fast-upgrade-using-the-pg_upgrade-tool_migrating-to-a-rhel-9-version-of-postgresql).
+Note: The sclorg images support cross-OS upgrades (e.g., RHEL 8 to RHEL 9). See [Red Hat's fast upgrade documentation](https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/9/html/configuring_and_using_database_servers/using-postgresql_configuring-and-using-database-servers#fast-upgrade-using-the-pg_upgrade-tool_migrating-to-a-rhel-9-version-of-postgresql).
+
+Note: There is no `postgresql-14-c9s` image. RHEL 9 module streams skip PG14, so the upgrade path goes 13 → 15 → 16 → 17.
 
 ## How to Upgrade PostgreSQL Version
 
@@ -150,11 +152,11 @@ This ensures the old pod releases the PVC before the new pod starts, preventing 
 
 ## Version Skip Protection
 
-The sclorg container validates that the source data version matches `POSTGRESQL_PREV_VERSION`. If a customer tries to skip versions (e.g., PG10 → PG13), the container fails with a clear error:
+The sclorg container validates that the source data version matches `POSTGRESQL_PREV_VERSION`. If a customer tries to skip versions (e.g., PG12 → PG15), the container fails with a clear error:
 
 ```
 With this container image you can only upgrade from data directory
-of version '12', not '10'.
+of version '13', not '12'.
 ```
 
 This prevents accidental data corruption from unsupported upgrade paths.

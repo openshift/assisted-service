@@ -8,7 +8,6 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -24,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 )
 

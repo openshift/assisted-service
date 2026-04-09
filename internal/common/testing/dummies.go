@@ -1,8 +1,8 @@
 package testing
 
 import (
-	"github.com/golang/mock/gomock"
 	"github.com/openshift/assisted-service/internal/stream"
+	"go.uber.org/mock/gomock"
 )
 
 func GetDummyNotificationStream(ctrl *gomock.Controller) *stream.MockNotifier {
