@@ -737,6 +737,57 @@ var _ = Describe("VIP Dual-Stack Validation", func() {
 	})
 })
 
+var _ = Describe("VerifyParsableVIPs", func() {
+	It("rejects empty API VIP IP", func() {
+		err := VerifyParsableVIPs([]*models.APIVip{{IP: ""}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("API VIP IP at index 0 cannot be empty"))
+	})
+
+	It("rejects empty Ingress VIP IP", func() {
+		err := VerifyParsableVIPs(nil, []*models.IngressVip{{IP: ""}})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Ingress VIP IP at index 0 cannot be empty"))
+	})
+
+	It("rejects unparsable API VIP IP", func() {
+		err := VerifyParsableVIPs([]*models.APIVip{{IP: "not-an-ip"}}, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Could not parse VIP ip not-an-ip"))
+	})
+
+	It("accepts valid IPv4 VIPs", func() {
+		err := VerifyParsableVIPs(
+			[]*models.APIVip{{IP: "192.168.1.1"}},
+			[]*models.IngressVip{{IP: "192.168.1.2"}},
+		)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("accepts valid IPv6 VIPs", func() {
+		err := VerifyParsableVIPs(
+			[]*models.APIVip{{IP: "2001:db8::1"}},
+			[]*models.IngressVip{{IP: "2001:db8::2"}},
+		)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("accepts nil slices", func() {
+		Expect(VerifyParsableVIPs(nil, nil)).ToNot(HaveOccurred())
+	})
+
+	It("collects all errors across both VIP types", func() {
+		err := VerifyParsableVIPs(
+			[]*models.APIVip{{IP: ""}, {IP: "bad"}},
+			[]*models.IngressVip{{IP: ""}},
+		)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("API VIP IP at index 0 cannot be empty"))
+		Expect(err.Error()).To(ContainSubstring("Could not parse VIP ip bad"))
+		Expect(err.Error()).To(ContainSubstring("Ingress VIP IP at index 0 cannot be empty"))
+	})
+})
+
 var _ = Describe("vip dhcp allocation", func() {
 	tests := []struct {
 		vipDHCPAllocation  bool
