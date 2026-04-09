@@ -74,24 +74,23 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 		default:
 			return fmt.Errorf("invalid match_type %q for version %q, must be %q or %q", entry.MatchType, entry.Version, MatchTypeExact, MatchTypeMinVersion)
 		}
-		isMin := entry.MatchType == MatchTypeMinVersion
-		if isMin {
+		if entry.MatchType == MatchTypeMinVersion {
 			if _, exists := seenMin[entry.Version]; exists {
 				return fmt.Errorf("duplicate min_version entry %q", entry.Version)
 			}
 			seenMin[entry.Version] = struct{}{}
 			minVersionEntries = append(minVersionEntries, *entry)
-		} else {
-			if _, exists := seenExact[entry.Version]; exists {
-				return fmt.Errorf("duplicate version entry %q", entry.Version)
-			}
-			seenExact[entry.Version] = struct{}{}
-			if entry.Version == DefaultVersion {
-				defaultEntry = entry
-			} else {
-				exactEntries = append(exactEntries, *entry)
-			}
+			continue
 		}
+		if _, exists := seenExact[entry.Version]; exists {
+			return fmt.Errorf("duplicate version entry %q", entry.Version)
+		}
+		seenExact[entry.Version] = struct{}{}
+		if entry.Version == DefaultVersion {
+			defaultEntry = entry
+			continue
+		}
+		exactEntries = append(exactEntries, *entry)
 	}
 
 	versions := make(map[string]models.VersionedHostRequirements)
@@ -106,11 +105,9 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 	defaultReq, hasDefault := versions[DefaultVersion]
 
 	for _, entry := range exactEntries {
-		var merged models.VersionedHostRequirements
+		merged := applyRoleFallbacks(entry)
 		if hasDefault {
 			merged = mergeWithDefault(entry, defaultReq)
-		} else {
-			merged = applyRoleFallbacks(entry)
 		}
 		if err := validateVersionedRequirements(merged, entry.Version); err != nil {
 			return err

@@ -273,6 +273,25 @@ var _ = Describe("Versioned Requirements", func() {
 			table.Entry("sno: negative disk", "sno", 1, 1, -1, 1),
 			table.Entry("sno: negative disk speed", "sno", 1, 1, 1, -1),
 		)
+
+		table.DescribeTable("should not be decoded due to duplicate entries", func(jsonData []map[string]interface{}) {
+			_, err := configureRequirements(jsonData)
+			Expect(err).To(HaveOccurred())
+		},
+			table.Entry("duplicate version entries",
+				[]map[string]interface{}{
+					{"version": "4.6.0", "master": map[string]interface{}{"cpu_cores": 1, "ram_mib": 1, "disk_size_gb": 1, "installation_disk_speed_threshold_ms": 0}, "worker": map[string]interface{}{"cpu_cores": 1, "ram_mib": 1, "disk_size_gb": 1, "installation_disk_speed_threshold_ms": 0}, "sno": map[string]interface{}{"cpu_cores": 1, "ram_mib": 1, "disk_size_gb": 1, "installation_disk_speed_threshold_ms": 0}},
+					{"version": "4.6.0", "master": map[string]interface{}{"cpu_cores": 2, "ram_mib": 2, "disk_size_gb": 2, "installation_disk_speed_threshold_ms": 0}, "worker": map[string]interface{}{"cpu_cores": 2, "ram_mib": 2, "disk_size_gb": 2, "installation_disk_speed_threshold_ms": 0}, "sno": map[string]interface{}{"cpu_cores": 2, "ram_mib": 2, "disk_size_gb": 2, "installation_disk_speed_threshold_ms": 0}},
+				},
+			),
+			table.Entry("duplicate min_version entries",
+				[]map[string]interface{}{
+					{"version": "default", "master": map[string]interface{}{"cpu_cores": 4, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 0}, "worker": map[string]interface{}{"cpu_cores": 2, "ram_mib": 8192, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 0}, "sno": map[string]interface{}{"cpu_cores": 8, "ram_mib": 16384, "disk_size_gb": 100, "installation_disk_speed_threshold_ms": 0}},
+					{"version": "4.22", "match_type": "min_version", "sno": map[string]interface{}{"cpu_cores": 4}},
+					{"version": "4.22", "match_type": "min_version", "sno": map[string]interface{}{"cpu_cores": 4}},
+				},
+			),
+		)
 	})
 
 	When("queried", func() {
