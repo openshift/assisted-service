@@ -1,0 +1,1 @@
+../../.cursor/skills/assisted-service-writing-unit-tests/SKILL.md

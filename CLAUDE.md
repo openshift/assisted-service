@@ -368,6 +368,12 @@ The project has three main test categories:
    - Upstream: [assisted-test-infra](https://github.com/openshift/assisted-test-infra)
    - Downstream: QE maintained tests
 
+### Test Patterns
+
+**When writing unit tests in `internal/` or `pkg/` packages**, reference: `.claude/skills/assisted-service-writing-unit-tests.md`
+
+**Note**: This skill covers unit tests only. Subsystem tests follow different patterns (documented separately).
+
 ### Environment Variables
 
 #### Test Execution
