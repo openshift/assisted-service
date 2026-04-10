@@ -57,6 +57,7 @@ var _ = Describe("s3filesystem", func() {
 		}
 	})
 	AfterEach(func() {
+		ctrl.Finish()
 		err := os.RemoveAll(baseDir)
 		Expect(err).Should(BeNil())
 	})
