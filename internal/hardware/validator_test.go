@@ -60,41 +60,42 @@ var _ = Describe("Disk eligibility", func() {
 	const (
 		minDiskSizeGb = 100
 	)
-	var versionRequirements = VersionedRequirementsDecoder{
+	var defaultVersionRequirementsData = map[string]models.VersionedHostRequirements{
 		"default": {
 			Version: "default",
-			MasterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultMasterCores,
-				RAMMib:                           defaultMasterRam,
-				DiskSizeGb:                       minDiskSizeGb,
-				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			MasterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultMasterCores)),
+				RAMMib:                           ptr.To(int64(defaultMasterRam)),
+				DiskSizeGb:                       ptr.To(int64(minDiskSizeGb)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultMasterDiskSpeedThreshold)),
 			},
-			ArbiterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultArbiterCores,
-				RAMMib:                           defaultArbiterRam,
-				DiskSizeGb:                       minDiskSizeGb,
-				InstallationDiskSpeedThresholdMs: defaultArbiterDiskSpeedThreshold,
+			ArbiterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultArbiterCores)),
+				RAMMib:                           ptr.To(int64(defaultArbiterRam)),
+				DiskSizeGb:                       ptr.To(int64(minDiskSizeGb)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultArbiterDiskSpeedThreshold)),
 			},
-			WorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultWorkerCores,
-				RAMMib:                           defaultWorkerRam,
-				DiskSizeGb:                       minDiskSizeGb,
-				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			WorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultWorkerCores)),
+				RAMMib:                           ptr.To(int64(defaultWorkerRam)),
+				DiskSizeGb:                       ptr.To(int64(minDiskSizeGb)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultWorkerDiskSpeedThreshold)),
 			},
-			SNORequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultSnoCores,
-				RAMMib:                           defaultSnoRam,
-				DiskSizeGb:                       minDiskSizeGb,
-				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			SNORequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultSnoCores)),
+				RAMMib:                           ptr.To(int64(defaultSnoRam)),
+				DiskSizeGb:                       ptr.To(int64(minDiskSizeGb)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultMasterDiskSpeedThreshold)),
 			},
-			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultEdgeWorkerCores,
-				RAMMib:                           defaultEdgeWorkerRam,
-				DiskSizeGb:                       defaultEdgeWorkerDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultEdgeWorkerDiskSpeedThreshold,
+			EdgeWorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultEdgeWorkerCores)),
+				RAMMib:                           ptr.To(int64(defaultEdgeWorkerRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultEdgeWorkerDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultEdgeWorkerDiskSpeedThreshold)),
 			},
 		},
 	}
+	var versionRequirements = NewVersionedRequirementsDecoderFromMap(defaultVersionRequirementsData)
 
 	var (
 		hwvalidator          Validator
@@ -560,7 +561,7 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(notEligibleReasons).To(BeEmpty())
 
 		By("Check infra env take a master configuration in case it is smaller than workers")
-		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb - 2
+		*defaultVersionRequirementsData["default"].MasterRequirements.DiskSizeGb = int64(minDiskSizeGb - 2)
 		tooSmallSizeForWorker := conversions.GbToBytes(minDiskSizeGb) - 1
 		testDisk.SizeBytes = tooSmallSizeForWorker
 		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, nil, &host, inventory)
@@ -568,7 +569,7 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(notEligibleReasons).To(BeEmpty())
 
-		versionRequirements["default"].MasterRequirements.DiskSizeGb = minDiskSizeGb
+		*defaultVersionRequirementsData["default"].MasterRequirements.DiskSizeGb = int64(minDiskSizeGb)
 	})
 
 	It("Check that a small size is not eligible", func() {
@@ -1103,19 +1104,22 @@ var _ = Describe("Cluster host requirements", func() {
 		{
 			"version": "4.6",
 			"master": map[string]interface{}{
-				"cpu_cores":    4,
-				"ram_mib":      16384,
-				"disk_size_gb": 100,
+				"cpu_cores":                            4,
+				"ram_mib":                              16384,
+				"disk_size_gb":                         100,
+				"installation_disk_speed_threshold_ms": 0,
 			},
 			"worker": map[string]interface{}{
-				"cpu_cores":    2,
-				"ram_mib":      8192,
-				"disk_size_gb": 100,
+				"cpu_cores":                            2,
+				"ram_mib":                              8192,
+				"disk_size_gb":                         100,
+				"installation_disk_speed_threshold_ms": 0,
 			},
 			"sno": map[string]interface{}{
-				"cpu_cores":    8,
-				"ram_mib":      16384,
-				"disk_size_gb": 100,
+				"cpu_cores":                            8,
+				"ram_mib":                              16384,
+				"disk_size_gb":                         100,
+				"installation_disk_speed_threshold_ms": 0,
 			},
 		},
 		{
@@ -1178,7 +1182,6 @@ var _ = Describe("Cluster host requirements", func() {
 		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
 		_ = os.Setenv("EDGE_WORKERS_PRODUCT_NAMES", "test, BlueField SoC,marvell")
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 10,
 			RAMMib:                           1024,
@@ -1548,101 +1551,101 @@ var _ = Describe("Preflight host requirements", func() {
 		operatorRequirements []*models.OperatorHardwareRequirements
 	)
 
-	var versionRequirements = VersionedRequirementsDecoder{
+	var versionRequirements = NewVersionedRequirementsDecoderFromMap(map[string]models.VersionedHostRequirements{
 		"default": {
 			Version: "default",
-			MasterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultMasterCores,
-				RAMMib:                           defaultMasterRam,
-				DiskSizeGb:                       defaultMasterDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			MasterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultMasterCores)),
+				RAMMib:                           ptr.To(int64(defaultMasterRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultMasterDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultMasterDiskSpeedThreshold)),
 			},
-			ArbiterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultWorkerCores,
-				RAMMib:                           defaultWorkerRam,
-				DiskSizeGb:                       defaultWorkerDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			ArbiterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultWorkerCores)),
+				RAMMib:                           ptr.To(int64(defaultWorkerRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultWorkerDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultWorkerDiskSpeedThreshold)),
 			},
-			WorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultWorkerCores,
-				RAMMib:                           defaultWorkerRam,
-				DiskSizeGb:                       defaultWorkerDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			WorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultWorkerCores)),
+				RAMMib:                           ptr.To(int64(defaultWorkerRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultWorkerDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultWorkerDiskSpeedThreshold)),
 			},
-			SNORequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultSnoCores,
-				RAMMib:                           defaultSnoRam,
-				DiskSizeGb:                       defaultMasterDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			SNORequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultSnoCores)),
+				RAMMib:                           ptr.To(int64(defaultSnoRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultMasterDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultMasterDiskSpeedThreshold)),
 			},
-			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         defaultWorkerCores,
-				RAMMib:                           defaultWorkerRam,
-				DiskSizeGb:                       defaultWorkerDiskSize,
-				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			EdgeWorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(defaultWorkerCores)),
+				RAMMib:                           ptr.To(int64(defaultWorkerRam)),
+				DiskSizeGb:                       ptr.To(int64(defaultWorkerDiskSize)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(defaultWorkerDiskSpeedThreshold)),
 			},
 		},
 		"4.6": {
 			Version: "4.6",
-			MasterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   4,
-				RAMMib:     16384,
-				DiskSizeGb: 100,
+			MasterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(4)),
+				RAMMib:     ptr.To(int64(16384)),
+				DiskSizeGb: ptr.To(int64(100)),
 			},
-			ArbiterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   2,
-				RAMMib:     8192,
-				DiskSizeGb: 100,
+			ArbiterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(2)),
+				RAMMib:     ptr.To(int64(8192)),
+				DiskSizeGb: ptr.To(int64(100)),
 			},
-			WorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   2,
-				RAMMib:     8192,
-				DiskSizeGb: 100,
+			WorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(2)),
+				RAMMib:     ptr.To(int64(8192)),
+				DiskSizeGb: ptr.To(int64(100)),
 			},
-			SNORequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   8,
-				RAMMib:     16384,
-				DiskSizeGb: 100,
+			SNORequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(8)),
+				RAMMib:     ptr.To(int64(16384)),
+				DiskSizeGb: ptr.To(int64(100)),
 			},
-			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   2,
-				RAMMib:     8192,
-				DiskSizeGb: 100,
+			EdgeWorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(2)),
+				RAMMib:     ptr.To(int64(8192)),
+				DiskSizeGb: ptr.To(int64(100)),
 			},
 		},
 		"4.7": {
 			Version: "4.7",
-			MasterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         5,
-				RAMMib:                           17408,
-				DiskSizeGb:                       101,
-				InstallationDiskSpeedThresholdMs: 1,
+			MasterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(5)),
+				RAMMib:                           ptr.To(int64(17408)),
+				DiskSizeGb:                       ptr.To(int64(101)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(1)),
 			},
-			ArbiterRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         3,
-				RAMMib:                           9216,
-				DiskSizeGb:                       102,
-				InstallationDiskSpeedThresholdMs: 2,
+			ArbiterRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(3)),
+				RAMMib:                           ptr.To(int64(9216)),
+				DiskSizeGb:                       ptr.To(int64(102)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(2)),
 			},
-			WorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         3,
-				RAMMib:                           9216,
-				DiskSizeGb:                       102,
-				InstallationDiskSpeedThresholdMs: 2,
+			WorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(3)),
+				RAMMib:                           ptr.To(int64(9216)),
+				DiskSizeGb:                       ptr.To(int64(102)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(2)),
 			},
-			SNORequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:   7,
-				RAMMib:     31744,
-				DiskSizeGb: 103,
+			SNORequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:   ptr.To(int64(7)),
+				RAMMib:     ptr.To(int64(31744)),
+				DiskSizeGb: ptr.To(int64(103)),
 			},
-			EdgeWorkerRequirements: &models.ClusterHostRequirementsDetails{
-				CPUCores:                         3,
-				RAMMib:                           9216,
-				DiskSizeGb:                       102,
-				InstallationDiskSpeedThresholdMs: 2,
+			EdgeWorkerRequirements: &models.VersionedClusterHostRequirementsDetails{
+				CPUCores:                         ptr.To(int64(3)),
+				RAMMib:                           ptr.To(int64(9216)),
+				DiskSizeGb:                       ptr.To(int64(102)),
+				InstallationDiskSpeedThresholdMs: ptr.To(int64(2)),
 			},
 		},
-	}
+	})
 
 	const (
 		openShiftVersionNotInConfig = "4.5"

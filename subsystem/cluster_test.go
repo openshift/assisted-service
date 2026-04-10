@@ -3746,6 +3746,48 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 		_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 	})
+
+	It("should report 4 CPU cores for SNO on OCP 4.22 and above", func() {
+		cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("sno-422-cluster"),
+				OpenshiftVersion:  swag.String("4.22"),
+				PullSecret:        swag.String(pullSecret),
+				BaseDNSDomain:     "example.com",
+				ControlPlaneCount: swag.Int64(1),
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		cID := *cluster.GetPayload().ID
+
+		response, err := utils_test.TestContext.UserBMClient.Installer.V2GetPreflightRequirements(ctx, &installer.V2GetPreflightRequirementsParams{ClusterID: cID})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response.GetPayload().Ocp.Master.Quantitative.CPUCores).To(BeEquivalentTo(4))
+
+		_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: cID})
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should report 8 CPU cores for SNO on OCP 4.21 and below", func() {
+		cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("sno-421-cluster"),
+				OpenshiftVersion:  swag.String("4.21"),
+				PullSecret:        swag.String(pullSecret),
+				BaseDNSDomain:     "example.com",
+				ControlPlaneCount: swag.Int64(1),
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		cID := *cluster.GetPayload().ID
+
+		response, err := utils_test.TestContext.UserBMClient.Installer.V2GetPreflightRequirements(ctx, &installer.V2GetPreflightRequirementsParams{ClusterID: cID})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(response.GetPayload().Ocp.Master.Quantitative.CPUCores).To(BeEquivalentTo(8))
+
+		_, err = utils_test.TestContext.UserBMClient.Installer.V2DeregisterCluster(ctx, &installer.V2DeregisterClusterParams{ClusterID: cID})
+		Expect(err).NotTo(HaveOccurred())
+	})
 })
 
 var _ = Describe("Multiple-VIPs Support", func() {

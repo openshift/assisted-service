@@ -11350,28 +11350,74 @@ func init() {
         "$ref": "#/definitions/verified_vip"
       }
     },
+    "versioned-cluster-host-requirements-details": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "description": "Required number of CPU cores",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "disk_size_gb": {
+          "description": "Required disk size in GB",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "installation_disk_speed_threshold_ms": {
+          "description": "Required installation disk speed in ms",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "network_latency_threshold_ms": {
+          "description": "Maximum network average latency (RTT) at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "description": "Maximum packet loss allowed at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "ram_mib": {
+          "description": "Required number of RAM in MiB",
+          "type": "integer",
+          "x-nullable": true
+        }
+      }
+    },
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
         "arbiter": {
           "description": "Arbiter node requirements",
           "x-go-name": "ArbiterRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "edge-worker": {
           "description": "Edge Worker OpenShift node requirements",
           "x-go-name": "EdgeWorkerRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "master": {
           "description": "Master node requirements",
           "x-go-name": "MasterRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
+        },
+        "match_type": {
+          "description": "Determines how the version field is matched. \"exact\" applies only to the specified version (default). \"min_version\" applies to the specified version and all later versions.",
+          "type": "string",
+          "enum": [
+            "exact",
+            "min_version"
+          ],
+          "x-go-name": "MatchType"
         },
         "sno": {
           "description": "Single node OpenShift node requirements",
           "x-go-name": "SNORequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "version": {
           "description": "Version of the component for which requirements are defined",
@@ -11380,7 +11426,7 @@ func init() {
         "worker": {
           "description": "Worker node requirements",
           "x-go-name": "WorkerRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         }
       }
     },
@@ -22868,28 +22914,74 @@ func init() {
         "$ref": "#/definitions/verified_vip"
       }
     },
+    "versioned-cluster-host-requirements-details": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "description": "Required number of CPU cores",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "disk_size_gb": {
+          "description": "Required disk size in GB",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "installation_disk_speed_threshold_ms": {
+          "description": "Required installation disk speed in ms",
+          "type": "integer",
+          "x-nullable": true
+        },
+        "network_latency_threshold_ms": {
+          "description": "Maximum network average latency (RTT) at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "description": "Maximum packet loss allowed at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "ram_mib": {
+          "description": "Required number of RAM in MiB",
+          "type": "integer",
+          "x-nullable": true
+        }
+      }
+    },
     "versioned-host-requirements": {
       "type": "object",
       "properties": {
         "arbiter": {
           "description": "Arbiter node requirements",
           "x-go-name": "ArbiterRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "edge-worker": {
           "description": "Edge Worker OpenShift node requirements",
           "x-go-name": "EdgeWorkerRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "master": {
           "description": "Master node requirements",
           "x-go-name": "MasterRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
+        },
+        "match_type": {
+          "description": "Determines how the version field is matched. \"exact\" applies only to the specified version (default). \"min_version\" applies to the specified version and all later versions.",
+          "type": "string",
+          "enum": [
+            "exact",
+            "min_version"
+          ],
+          "x-go-name": "MatchType"
         },
         "sno": {
           "description": "Single node OpenShift node requirements",
           "x-go-name": "SNORequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         },
         "version": {
           "description": "Version of the component for which requirements are defined",
@@ -22898,7 +22990,7 @@ func init() {
         "worker": {
           "description": "Worker node requirements",
           "x-go-name": "WorkerRequirements",
-          "$ref": "#/definitions/cluster-host-requirements-details"
+          "$ref": "#/definitions/versioned-cluster-host-requirements-details"
         }
       }
     },
