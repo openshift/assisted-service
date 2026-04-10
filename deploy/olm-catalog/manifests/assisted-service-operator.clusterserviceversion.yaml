@@ -347,7 +347,8 @@ spec:
     - kind: AgentClusterInstall
       name: agentclusterinstalls.extensions.hive.openshift.io
       version: v1beta1
-    - description: Agent is the Schema for the hosts API
+    - description: Agent represents a host that has been discovered by booting from
+        an InfraEnv discovery image and can be installed as part of an OpenShift cluster.
       displayName: Agent
       kind: Agent
       name: agents.agent-install.openshift.io
@@ -438,7 +439,11 @@ spec:
     - kind: HypershiftAgentServiceConfig
       name: hypershiftagentserviceconfigs.agent-install.openshift.io
       version: v1beta1
-    - displayName: Infra Env
+    - description: InfraEnv represents an infrastructure environment for discovering
+        and booting hosts. It generates a discovery ISO or iPXE configuration that
+        hosts can boot from to register as Agents. Multiple Agents can be discovered
+        from a single InfraEnv, and can later be assigned to different clusters.
+      displayName: Infra Env
       kind: InfraEnv
       name: infraenvs.agent-install.openshift.io
       version: v1beta1

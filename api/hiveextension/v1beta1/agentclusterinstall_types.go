@@ -105,7 +105,9 @@ type AgentClusterInstall struct {
 	Status AgentClusterInstallStatus `json:"status,omitempty"`
 }
 
-// AgentClusterInstallSpec defines the desired state of the AgentClusterInstall.
+// AgentClusterInstallSpec defines the desired configuration for installing an OpenShift cluster
+// using Agents, including networking, control plane and worker configuration, platform settings,
+// and installation customizations.
 type AgentClusterInstallSpec struct {
 
 	// ImageSetRef is a reference to a ClusterImageSet. The release image specified in the ClusterImageSet will be used
@@ -151,12 +153,18 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	Compute []AgentMachinePool `json:"compute,omitempty"`
 
-	// Arbiter is the configuration for the machines that have the
-	// arbiter role.
+	// Arbiter is the configuration for machines with the arbiter role in a Two Node + Arbiter (TNA)
+	// cluster topology. Arbiter nodes are lightweight control plane nodes that run only critical HA
+	// components like etcd, allowing for a 3-node quorum with reduced hardware requirements. Arbiter
+	// nodes have lower minimum CPU, memory, and disk requirements compared to standard master nodes.
+	// Only used when deploying TNA clusters (2 master nodes + 1 or more arbiter nodes).
 	// +optional
 	Arbiter *AgentMachinePool `json:"arbiter,omitempty"`
 
-	// APIVIP is the virtual IP used to reach the OpenShift cluster's API.
+	// APIVIP is the virtual IP address used to reach the OpenShift cluster's API server.
+	// Deprecated: use apiVIPs instead to support dual-stack configurations. This field is ignored
+	// when apiVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+	// clusters, use apiVIPs.
 	// +optional
 	APIVIP string `json:"apiVIP,omitempty"`
 
@@ -168,7 +176,10 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	APIVIPs []string `json:"apiVIPs,omitempty"`
 
-	// IngressVIP is the virtual IP used for cluster ingress traffic.
+	// IngressVIP is the virtual IP address used for cluster ingress traffic.
+	// Deprecated: use ingressVIPs instead to support dual-stack configurations. This field is ignored
+	// when ingressVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+	// clusters, use ingressVIPs.
 	// +optional
 	IngressVIP string `json:"ingressVIP,omitempty"`
 
@@ -278,7 +289,10 @@ type AgentClusterInstallStatus struct {
 	// +optional
 	APIVIPs []string `json:"apiVIPs,omitempty"`
 
-	// IngressVIP is the virtual IP used for cluster ingress traffic.
+	// IngressVIP is the virtual IP address used for cluster ingress traffic.
+	// Deprecated: use ingressVIPs instead to support dual-stack configurations. This field is ignored
+	// when ingressVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+	// clusters, use ingressVIPs.
 	// +optional
 	IngressVIP string `json:"ingressVIP,omitempty"`
 
