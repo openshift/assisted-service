@@ -94,6 +94,10 @@ var _ = Describe("Factory", func() {
 			mockSystemInfo = system.NewMockSystemInfo(controller)
 		})
 
+		AfterEach(func() {
+			controller.Finish()
+		})
+
 		It("Can't be created without a logger", func() {
 			client, err := NewFactory(nil, nil, mockSystemInfo)
 			Expect(err).To(MatchError("logger is mandatory"))
@@ -112,6 +116,7 @@ var _ = Describe("Factory", func() {
 			"Fails if secret doesn't contain a valid kubeconfig",
 			func(data map[string][]byte, matcher OmegaMatcher) {
 				controller = gomock.NewController(GinkgoT())
+				defer controller.Finish()
 				mockSystemInfo = system.NewMockSystemInfo(controller)
 
 				// Create the secret:

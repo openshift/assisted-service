@@ -62,6 +62,10 @@ var _ = Describe("release event", func() {
 		).Times(1)
 		Expect(r.Cleanup(ctx)).To(Succeed())
 	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
 })
 
 var _ = Describe("installer cache", func() {
@@ -103,6 +107,7 @@ var _ = Describe("installer cache", func() {
 
 	AfterEach(func() {
 		os.RemoveAll(cacheDir)
+		ctrl.Finish()
 	})
 
 	expectEventsSent := func() {

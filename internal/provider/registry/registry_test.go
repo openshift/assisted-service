@@ -101,6 +101,10 @@ var _ = Describe("Test GetSupportedProvidersByHosts", func() {
 		Expect(err).ToNot(BeNil())
 		Expect(len(platforms)).Should(Equal(0))
 	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
 })
 
 var _ = Describe("IsHostSupported", func() {
@@ -471,6 +475,10 @@ var _ = Describe("Test AddPlatformToInstallConfig", func() {
 			Expect(string(cfg.Platform.External.CloudControllerManager)).To(Equal(cloudControllerManager))
 		})
 	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
 })
 
 var _ = Describe("Test SetPlatformUsages", func() {
@@ -519,6 +527,10 @@ var _ = Describe("Test SetPlatformUsages", func() {
 			err := providerRegistry.SetPlatformUsages(createExternalPlatformParams(), nil, usageApi)
 			Expect(err).To(BeNil())
 		})
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 })
 

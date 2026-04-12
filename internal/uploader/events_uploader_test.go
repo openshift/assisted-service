@@ -85,6 +85,7 @@ var _ = Describe("setHeaders", func() {
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	It("correctly sets the request header with a valid auth token", func() {
@@ -192,6 +193,7 @@ var _ = Describe("prepareFiles", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	It("successfully prepares all files", func() {
@@ -377,6 +379,7 @@ var _ = Describe("UploadEvents", func() {
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 	It("successfully uploads event data", func() {
 		event := models.Event{
@@ -419,20 +422,12 @@ var _ = Describe("UploadEvents", func() {
 	})
 	It("fails to uploads event data when malformed pullsecret", func() {
 		createOCMPullSecretWithEmptyToken(*mockK8sClient)
-		mockEvents.EXPECT().V2GetEvents(
-			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
-			Return(&common.V2GetEventsResponse{}, nil).Times(1)
-
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		err := uploader.UploadEvents(ctx, cluster, mockEvents)
 		Expect(err.Error()).To(MatchRegexp(`.*failed to get pull secrets to upload event data for cluster.*`))
 	})
 	It("fails to uploads event data when pullsecret not found", func() {
 		createOCMPullSecretNotFound(*mockK8sClient)
-		mockEvents.EXPECT().V2GetEvents(
-			ctx, common.GetDefaultV2GetEventsParams(&clusterID, nil, nil, models.EventCategoryMetrics, models.EventCategoryUser)).
-			Return(&common.V2GetEventsResponse{}, nil).Times(1)
-
 		cluster := createTestObjects(db, &clusterID, &hostID, &infraEnvID)
 		err := uploader.UploadEvents(ctx, cluster, mockEvents)
 		Expect(err.Error()).To(MatchRegexp(`.*failed to get pull secrets to upload event data for cluster.*`))

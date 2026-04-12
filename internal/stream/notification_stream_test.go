@@ -35,6 +35,10 @@ var _ = Describe("Close", func() {
 		writer = stream.NewMockStreamWriter(ctrl)
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	It("should close the writer when closing", func() {
 		writer.EXPECT().Close().Times(1)
 		notificationStream := stream.NewNotificationStream(writer, logger, metadata)
@@ -69,6 +73,11 @@ var _ = Describe("Notify", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 
 	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	It("succeeds when underlying writer is empty", func() {
 		event := &common.Event{}
 		var emptyWriter stream.StreamWriter

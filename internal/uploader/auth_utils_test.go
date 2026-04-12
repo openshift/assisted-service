@@ -33,6 +33,10 @@ var _ = Describe("getPullSecret", func() {
 		pullSecretWithEmptyAuthFormat = `{"auths":{"%s":{"auth":"","email":"r@empty.com"}}}` // #nosec
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	It("successfully gets a pull secret when the OCM pull secret is present", func() {
 		OCMPullSecret := fmt.Sprintf(pullSecretFormat, openshiftTokenKey, OCMPullSecretToken)
 		data := map[string][]byte{corev1.DockerConfigJsonKey: []byte(OCMPullSecret)}

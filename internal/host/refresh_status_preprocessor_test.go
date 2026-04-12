@@ -61,11 +61,9 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			},
 		}, nil)
 		mockOperatorManager = operators.NewMockAPI(ctrl)
-		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any())
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 		mockS3WrapperAPI = s3wrapper.NewMockAPI(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		mockOperatorManager.EXPECT().ValidateCluster(ctx, gomock.Any())
 		db, dbName = common.PrepareTestDB()
 		validatorConfig := &hardware.ValidatorCfg{}
 		disabledHostValidations := make(map[string]struct{})
@@ -82,6 +80,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	createHost := func() models.Host {

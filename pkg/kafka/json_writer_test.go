@@ -31,6 +31,10 @@ var _ = Describe("Write", func() {
 		}
 	})
 
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
 	It("should succeed when writing encodable message", func() {
 		key := []byte("my-key")
 		value := map[string]interface{}{

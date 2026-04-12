@@ -107,6 +107,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 })
 
@@ -172,5 +173,9 @@ var _ = Describe("get images", func() {
 		Expect(images[0]).To(Equal(mirroredReleaseImageURL))
 		Expect(images[0]).To(ContainSubstring("registry.mirror.example.com"))
 		Expect(images[0]).NotTo(ContainSubstring("quay.io"))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 })

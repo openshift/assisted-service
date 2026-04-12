@@ -82,6 +82,7 @@ var _ = Describe("update_cluster_state", func() {
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 })

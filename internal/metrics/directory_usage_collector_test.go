@@ -47,6 +47,7 @@ var _ = Describe("Collection on scrape", func() {
 
 	AfterEach(func() {
 		server.Close()
+		ctrl.Finish()
 	})
 
 	var expectMetricValue = func(metric string, value string) {
