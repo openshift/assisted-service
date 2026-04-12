@@ -88,7 +88,19 @@ var _ = Describe("Bootstrap Ignition Update", func() {
                                 "verification": {}
                           },
                           "mode": 420
-                        }
+                        },
+			{
+			  "filesystem": "root",
+			  "path": "/etc/NetworkManager/system-connections/nmconnection",
+			  "user": {
+				"name": "root"
+			  },
+			  "contents": {
+				"source": "data:text/plain;charset=utf-8;base64,Cg==",
+				"verification": {}
+			  },
+			  "mode": 420
+			}
 		  ]
 		}
 	  }`
@@ -161,6 +173,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 
 		var file *config_32_types.File
 		foundNMConfig := false
+		foundNMConncetion := false
 		for i := range config.Storage.Files {
 			if isBMHFile(&config.Storage.Files[i]) {
 				file = &config.Storage.Files[i]
@@ -168,9 +181,13 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			if config.Storage.Files[i].Node.Path == "/etc/NetworkManager/conf.d/99-kni.conf" {
 				foundNMConfig = true
 			}
+			if isNMConnection(&config.Storage.Files[i]) {
+				foundNMConncetion = true
+			}
 		}
 		bmh, _ = fileToBMH(file)
 		Expect(foundNMConfig).To(BeTrue(), "file /etc/NetworkManager/conf.d/99-kni.conf not present in bootstrap.ign")
+		Expect(foundNMConncetion).To(BeFalse())
 	})
 
 	AfterEach(func() {
