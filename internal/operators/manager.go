@@ -398,14 +398,25 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 		}
 
 		operator := mgr.olmOperators[clusterOperator.Name]
-		if operator != nil {
-			result, err := operator.ValidateHost(ctx, cluster, host, additionalOperatorRequirements)
-			if err != nil {
-				return nil, err
-			}
-			delete(pendingOperators, clusterOperator.Name)
-			results = append(results, result)
+		if operator == nil {
+			mgr.log.WithField("operator", clusterOperator.Name).
+				Warn("Monitored operator not found in manager - skipping validation")
+			continue
 		}
+
+		// Skip operator validation for day2 clusters since operators are already installed
+		if common.IsDay2Cluster(cluster) {
+			results = append(results, createDay2ValidationResult(clusterOperator.Name, operator.GetHostValidationID()))
+			delete(pendingOperators, clusterOperator.Name)
+			continue
+		}
+
+		result, err := operator.ValidateHost(ctx, cluster, host, additionalOperatorRequirements)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to validate host requirements for operator %s", clusterOperator.Name)
+		}
+		delete(pendingOperators, clusterOperator.Name)
+		results = append(results, result)
 	}
 	// Add successful validation result for disabled operators
 	for OpName := range pendingOperators {
@@ -437,14 +448,27 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 		}
 
 		operator := mgr.olmOperators[clusterOperator.Name]
-		if operator != nil {
-			result, err := operator.ValidateCluster(ctx, cluster)
-			if err != nil {
-				return nil, err
+		if operator == nil {
+			mgr.log.WithField("operator", clusterOperator.Name).
+				Warn("Monitored operator not found in manager - skipping validation")
+			continue
+		}
+
+		// Skip operator validation for day2 clusters since operators are already installed
+		if common.IsDay2Cluster(cluster) {
+			for _, validationID := range operator.GetClusterValidationIDs() {
+				results = append(results, createDay2ValidationResult(clusterOperator.Name, validationID))
 			}
 			delete(pendingOperators, clusterOperator.Name)
-			results = append(results, result...)
+			continue
 		}
+
+		result, err := operator.ValidateCluster(ctx, cluster)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to validate cluster requirements for operator %s", clusterOperator.Name)
+		}
+		delete(pendingOperators, clusterOperator.Name)
+		results = append(results, result...)
 	}
 	// Add successful validation result for disabled operators
 	for opName := range pendingOperators {
@@ -461,6 +485,16 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 		}
 	}
 	return results, nil
+}
+
+func createDay2ValidationResult(operatorName, validationID string) api.ValidationResult {
+	return api.ValidationResult{
+		Status:       api.Success,
+		ValidationId: validationID,
+		Reasons: []string{
+			fmt.Sprintf("%s validation is disabled when adding hosts to an existing cluster.", operatorName),
+		},
+	}
 }
 
 // GetSupportedOperators returns a list of OLM operators that are supported

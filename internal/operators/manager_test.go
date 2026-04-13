@@ -108,14 +108,15 @@ func (m controllerManifestMatcher) Got(got interface{}) string {
 }
 
 var (
-	ctx          = context.Background()
-	cluster      *common.Cluster
-	clusterHost  *models.Host
-	log          = logrus.New()
-	manager      *operators.Manager
-	ctrl         *gomock.Controller
-	manifestsAPI *manifestsapi.MockManifestsAPI
-	mockS3Api    *s3wrapper.MockAPI
+	ctx              = context.Background()
+	cluster          *common.Cluster
+	clusterHost      *models.Host
+	log              = logrus.New()
+	manager          *operators.Manager
+	ctrl             *gomock.Controller
+	manifestsAPI     *manifestsapi.MockManifestsAPI
+	mockS3Api        *s3wrapper.MockAPI
+	olmOperatorCount int
 )
 
 var (
@@ -142,6 +143,7 @@ var _ = BeforeEach(func() {
 	manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 	mockS3Api = s3wrapper.NewMockAPI(ctrl)
 	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api)
+	olmOperatorCount = len(manager.GetSupportedOperators())
 })
 
 var validYamlOrError = func(ctx context.Context, params operations.V2CreateClusterManifestParams, isCustomManifest bool) (*models.Manifest, error) {
@@ -544,7 +546,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(28))
+			Expect(results).To(HaveLen(olmOperatorCount))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied), Reasons: []string{"odf is disabled"}},
@@ -586,7 +588,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(28))
+			Expect(results).To(HaveLen(olmOperatorCount))
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
@@ -619,6 +621,38 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
 			))
 		})
+
+		It("should skip operator validation for day2 clusters", func() {
+			cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&cnv.Operator,
+			}
+
+			// Empty cluster with no hosts (would normally fail ODF validation)
+			cluster.Hosts = []*models.Host{}
+			results, err := manager.ValidateCluster(context.TODO(), cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(HaveLen(olmOperatorCount))
+			Expect(results).To(ContainElements(
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: string(models.ClusterValidationIDOdfRequirementsSatisfied),
+					Reasons:      []string{"odf validation is disabled when adding hosts to an existing cluster."},
+				},
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied),
+					Reasons:      []string{"cnv validation is disabled when adding hosts to an existing cluster."},
+				},
+			))
+
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
+			))
+		})
 	})
 
 	Context("ValidateHost", func() {
@@ -628,7 +662,7 @@ var _ = Describe("Operators manager", func() {
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(28))
+			Expect(results).To(HaveLen(olmOperatorCount))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
@@ -670,7 +704,7 @@ var _ = Describe("Operators manager", func() {
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(results).To(HaveLen(28))
+			Expect(results).To(HaveLen(olmOperatorCount))
 
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
@@ -793,6 +827,44 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMtvRequirementsSatisfied), Reasons: []string{"mtv is disabled"}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOscRequirementsSatisfied), Reasons: []string{"osc is disabled"}},
+			))
+		})
+
+		It("should skip operator validation for day2 clusters", func() {
+			cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&odf.Operator,
+				&cnv.Operator,
+				&lso.Operator,
+			}
+
+			// Host with minimal resources that would fail operator validation in day1
+			clusterHost = getMockHostWithDisks(int64(10), int64(10))
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(results).To(HaveLen(olmOperatorCount))
+			Expect(results).To(ContainElements(
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied),
+					Reasons:      []string{"odf validation is disabled when adding hosts to an existing cluster."},
+				},
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied),
+					Reasons:      []string{"cnv validation is disabled when adding hosts to an existing cluster."},
+				},
+				api.ValidationResult{
+					Status:       api.Success,
+					ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied),
+					Reasons:      []string{"lso validation is disabled when adding hosts to an existing cluster."},
+				},
+			))
+
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLvmRequirementsSatisfied), Reasons: []string{"lvm is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMceRequirementsSatisfied), Reasons: []string{"mce is disabled"}},
 			))
 		})
 	})
