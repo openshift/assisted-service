@@ -164,12 +164,17 @@ spec:
           metadata:
             type: object
           spec:
-            description: AgentClusterInstallSpec defines the desired state of the
-              AgentClusterInstall.
+            description: |-
+              AgentClusterInstallSpec defines the desired configuration for installing an OpenShift cluster
+              using Agents, including networking, control plane and worker configuration, platform settings,
+              and installation customizations.
             properties:
               apiVIP:
-                description: APIVIP is the virtual IP used to reach the OpenShift
-                  cluster's API.
+                description: |-
+                  APIVIP is the virtual IP address used to reach the OpenShift cluster's API server.
+                  Deprecated: use apiVIPs instead to support dual-stack configurations. This field is ignored
+                  when apiVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+                  clusters, use apiVIPs.
                 type: string
               apiVIPs:
                 description: |-
@@ -183,8 +188,11 @@ spec:
                 type: array
               arbiter:
                 description: |-
-                  Arbiter is the configuration for the machines that have the
-                  arbiter role.
+                  Arbiter is the configuration for machines with the arbiter role in a Two Node + Arbiter (TNA)
+                  cluster topology. Arbiter nodes are lightweight control plane nodes that run only critical HA
+                  components like etcd, allowing for a 3-node quorum with reduced hardware requirements. Arbiter
+                  nodes have lower minimum CPU, memory, and disk requirements compared to standard master nodes.
+                  Only used when deploying TNA clusters (2 master nodes + 1 or more arbiter nodes).
                 properties:
                   hyperthreading:
                     default: Enabled
@@ -450,8 +458,11 @@ spec:
                 - name
                 type: object
               ingressVIP:
-                description: IngressVIP is the virtual IP used for cluster ingress
-                  traffic.
+                description: |-
+                  IngressVIP is the virtual IP address used for cluster ingress traffic.
+                  Deprecated: use ingressVIPs instead to support dual-stack configurations. This field is ignored
+                  when ingressVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+                  clusters, use ingressVIPs.
                 type: string
               ingressVIPs:
                 description: |-
@@ -736,8 +747,11 @@ spec:
                     type: string
                 type: object
               ingressVIP:
-                description: IngressVIP is the virtual IP used for cluster ingress
-                  traffic.
+                description: |-
+                  IngressVIP is the virtual IP address used for cluster ingress traffic.
+                  Deprecated: use ingressVIPs instead to support dual-stack configurations. This field is ignored
+                  when ingressVIPs is set. For single-stack clusters, either field can be used; for dual-stack
+                  clusters, use ingressVIPs.
                 type: string
               ingressVIPs:
                 description: IngressVIPs are the virtual IPs used for cluster ingress
@@ -877,7 +891,9 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Agent is the Schema for the hosts API
+        description: |-
+          Agent represents a host that has been discovered by booting from an InfraEnv discovery image
+          and can be installed as part of an OpenShift cluster.
         properties:
           apiVersion:
             description: |-
@@ -897,9 +913,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: AgentSpec defines the desired state of Agent
+            description: |-
+              AgentSpec defines the desired configuration for an Agent, including its cluster assignment, role,
+              installation disk, and additional customizations.
             properties:
               approved:
+                description: |-
+                  Approved indicates whether this Agent is authorized to participate in cluster installation.
+                  When false, the Agent will not be included in installation even if all other requirements
+                  are met. Set to true to allow the Agent to proceed with installation.
                 type: boolean
               clusterDeploymentName:
                 description: |-
@@ -920,10 +942,17 @@ spec:
                   the Agent's namespace that contains fencing credentials
                 type: string
               hostname:
+                description: |-
+                  Hostname is the desired hostname to be configured for this host when it joins the cluster.
+                  If not specified, the hostname discovered from the host's inventory will be used.
+                  This value is written to the host's network configuration during installation.
                 type: string
               ignitionConfigOverrides:
-                description: Json formatted string containing the user overrides for
-                  the host's ignition config
+                description: |-
+                  IgnitionConfigOverrides is a JSON-formatted string containing user-provided Ignition configuration
+                  that will be merged with the base Ignition config generated for this host. Use this to customize
+                  the host's initial configuration (files, systemd units, users, etc.). The override is applied
+                  during installation and takes precedence over generated configuration.
                 type: string
               ignitionEndpointHTTPHeaders:
                 additionalProperties:
@@ -956,10 +985,17 @@ spec:
                   disk using either its by-id or by-path value.
                 type: string
               installerArgs:
-                description: Json formatted string containing the user overrides for
-                  the host's coreos installer args
+                description: |-
+                  InstallerArgs is a JSON-formatted string containing additional arguments for the coreos-installer
+                  command during installation. Use this to customize installation behavior such as appending kernel
+                  arguments or configuring network settings that persist after installation.
                 type: string
               machineConfigPool:
+                description: |-
+                  MachineConfigPool specifies the name of a custom MachineConfigPool for this worker node.
+                  Only applicable when role is 'worker'. If set, the node will be labeled to use this
+                  MachineConfigPool instead of the default 'worker' pool, allowing custom machine
+                  configurations to be applied. Leave empty to use the default pool.
                 type: string
               nodeLabels:
                 additionalProperties:
@@ -969,20 +1005,38 @@ spec:
                 type: object
               role:
                 description: |-
-                  HostRole host role
-
-                  swagger:model host-role
+                  Role specifies the desired OpenShift role for this Agent in the cluster.
+                  Valid values: 'master' (control plane node running API server, etcd, and scheduler),
+                  'worker' (compute node for running workloads), 'arbiter' (lightweight control plane node
+                  for TNA clusters, running only etcd with reduced resource requirements), or 'auto-assign'
+                  (let the service automatically assign the role based on cluster requirements).
+                  The role affects hardware validation requirements and the node's responsibilities in the cluster.
                 type: string
             required:
             - approved
             - role
             type: object
           status:
-            description: AgentStatus defines the observed state of Agent
+            description: |-
+              AgentStatus represents the observed state of an Agent, including hardware inventory,
+              installation progress, validation results, and readiness conditions.
             properties:
               bootstrap:
+                description: |-
+                  Bootstrap indicates whether this Agent has been selected as the bootstrap node for the cluster
+                  installation. The bootstrap node coordinates the initial control plane formation by hosting
+                  temporary services that initialize etcd and the Kubernetes API. After the other control plane
+                  nodes complete installation, the bootstrap node transitions to become a regular control plane node.
+                  Only one Agent per cluster will have this field set to true, and it is always assigned to a master-role Agent.
                 type: boolean
               conditions:
+                description: |-
+                  Conditions represent the latest available observations of the Agent's state. Standard condition types
+                  include: 'SpecSynced' (whether spec changes were successfully applied), 'Connected' (agent's connection
+                  to the service), 'RequirementsMet' (whether the agent is ready to begin installation), 'Validated'
+                  (whether hardware and configuration validations are passing), 'Installed' (installation completion status),
+                  and 'Bound' (whether the agent is bound to a cluster). Each condition includes a status (True/False/Unknown),
+                  reason code, and human-readable message.
                 items:
                   description: |-
                     Condition represents the state of the operator's
@@ -1051,7 +1105,12 @@ spec:
                       tar file.
                     type: string
                   state:
-                    description: Current state of the Agent
+                    description: |-
+                      State is the current lifecycle state of the Agent. Common values include: 'discovering'
+                      (initial hardware discovery), 'known' (ready for installation), 'insufficient' (hardware
+                      requirements not met), 'pending-for-input' (waiting for user input), 'preparing-for-installation',
+                      'installing', 'installed', 'error' (installation failed), 'cancelled', 'disabled', 'binding'/'unbinding'
+                      (cluster association changes), and various '-unbound' suffixed states for agents not associated with a cluster.
                     type: string
                   stateInfo:
                     description: Additional information pertaining to the status of
@@ -1076,6 +1135,11 @@ spec:
                   the installation.
                 type: string
               inventory:
+                description: |-
+                  Inventory contains the hardware and system information discovered from this Agent, including CPU,
+                  memory, disks, network interfaces, boot configuration, and system vendor details. This information
+                  is gathered by the discovery image when the host boots and is used for validation and installation
+                  planning. The inventory is continuously updated while the agent is connected.
                 properties:
                   bmcAddress:
                     type: string
@@ -1305,9 +1369,9 @@ spec:
                 type: object
               role:
                 description: |-
-                  HostRole host role
-
-                  swagger:model host-role
+                  Role is the effective OpenShift role assigned to this Agent. This reflects the actual role
+                  the Agent will use, which may differ from spec.role if spec.role is 'auto-assign'.
+                  Possible values: 'master', 'worker', 'arbiter', 'auto-assign', or 'bootstrap'.
                 type: string
               validationsInfo:
                 additionalProperties:
@@ -3062,6 +3126,10 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
+        description: |-
+          InfraEnv represents an infrastructure environment for discovering and booting hosts. It generates
+          a discovery ISO or iPXE configuration that hosts can boot from to register as Agents. Multiple
+          Agents can be discovered from a single InfraEnv, and can later be assigned to different clusters.
         properties:
           apiVersion:
             description: |-
@@ -3081,6 +3149,10 @@ spec:
           metadata:
             type: object
           spec:
+            description: |-
+              InfraEnvSpec defines the desired configuration for the infrastructure environment, including
+              the discovery image type, network settings, and host discovery parameters. These settings are
+              baked into the discovery ISO/iPXE configuration and affect all hosts that boot from this InfraEnv.
             properties:
               additionalNTPSources:
                 description: |-
@@ -3135,8 +3207,11 @@ spec:
                 type: object
               cpuArchitecture:
                 default: x86_64
-                description: CpuArchitecture specifies the target CPU architecture.
-                  Default is x86_64
+                description: |-
+                  CpuArchitecture specifies the CPU architecture for hosts that will boot from this InfraEnv's
+                  discovery image. Valid values: 'x86_64' (default, Intel/AMD 64-bit), 'aarch64' (ARM 64-bit),
+                  'arm64' (alias for aarch64), 'ppc64le' (IBM POWER), 's390x' (IBM Z). The architecture must
+                  match both the physical hardware and the desired OpenShift release architecture.
                 type: string
               ignitionConfigOverride:
                 description: Json formatted string containing the user overrides for
@@ -3188,8 +3263,12 @@ spec:
                   type: object
                 type: array
               mirrorRegistryRef:
-                description: MirrorRegistryRef is a reference to a given MirrorRegistry
-                  ConfigMap that holds the registries toml data
+                description: |-
+                  MirrorRegistryRef references a ConfigMap containing mirror registry configuration in TOML format.
+                  The referenced ConfigMap should contain 'registries.conf' and optionally 'ca-bundle.crt' keys.
+                  This configuration is embedded into the discovery image so that agents can pull container images
+                  from mirror registries during the discovery and installation process. For the installed cluster
+                  to use mirror registries, you must also configure mirrorRegistryRef on the AgentClusterInstall.
                 properties:
                   name:
                     description: Name is the name of the ConfigMap that this refers
@@ -3204,8 +3283,10 @@ spec:
                 type: object
               nmStateConfigLabelSelector:
                 description: |-
-                  NmstateConfigLabelSelector associates NMStateConfigs for hosts that are considered part
-                  of this installation environment.
+                  NMStateConfigLabelSelector uses label matching to associate NMStateConfig resources with this InfraEnv.
+                  Hosts that boot from this InfraEnv and match the NMStateConfig's MAC address will apply the corresponding
+                  static network configuration. This enables pre-configuring network settings for specific hosts before
+                  they boot from the discovery image.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements.

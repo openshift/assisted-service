@@ -54,7 +54,9 @@ spec:
     name: v1beta1
     schema:
       openAPIV3Schema:
-        description: Agent is the Schema for the hosts API
+        description: |-
+          Agent represents a host that has been discovered by booting from an InfraEnv discovery image
+          and can be installed as part of an OpenShift cluster.
         properties:
           apiVersion:
             description: |-
@@ -74,9 +76,15 @@ spec:
           metadata:
             type: object
           spec:
-            description: AgentSpec defines the desired state of Agent
+            description: |-
+              AgentSpec defines the desired configuration for an Agent, including its cluster assignment, role,
+              installation disk, and additional customizations.
             properties:
               approved:
+                description: |-
+                  Approved indicates whether this Agent is authorized to participate in cluster installation.
+                  When false, the Agent will not be included in installation even if all other requirements
+                  are met. Set to true to allow the Agent to proceed with installation.
                 type: boolean
               clusterDeploymentName:
                 description: |-
@@ -97,10 +105,17 @@ spec:
                   the Agent's namespace that contains fencing credentials
                 type: string
               hostname:
+                description: |-
+                  Hostname is the desired hostname to be configured for this host when it joins the cluster.
+                  If not specified, the hostname discovered from the host's inventory will be used.
+                  This value is written to the host's network configuration during installation.
                 type: string
               ignitionConfigOverrides:
-                description: Json formatted string containing the user overrides for
-                  the host's ignition config
+                description: |-
+                  IgnitionConfigOverrides is a JSON-formatted string containing user-provided Ignition configuration
+                  that will be merged with the base Ignition config generated for this host. Use this to customize
+                  the host's initial configuration (files, systemd units, users, etc.). The override is applied
+                  during installation and takes precedence over generated configuration.
                 type: string
               ignitionEndpointHTTPHeaders:
                 additionalProperties:
@@ -133,10 +148,17 @@ spec:
                   disk using either its by-id or by-path value.
                 type: string
               installerArgs:
-                description: Json formatted string containing the user overrides for
-                  the host's coreos installer args
+                description: |-
+                  InstallerArgs is a JSON-formatted string containing additional arguments for the coreos-installer
+                  command during installation. Use this to customize installation behavior such as appending kernel
+                  arguments or configuring network settings that persist after installation.
                 type: string
               machineConfigPool:
+                description: |-
+                  MachineConfigPool specifies the name of a custom MachineConfigPool for this worker node.
+                  Only applicable when role is 'worker'. If set, the node will be labeled to use this
+                  MachineConfigPool instead of the default 'worker' pool, allowing custom machine
+                  configurations to be applied. Leave empty to use the default pool.
                 type: string
               nodeLabels:
                 additionalProperties:
@@ -146,20 +168,38 @@ spec:
                 type: object
               role:
                 description: |-
-                  HostRole host role
-
-                  swagger:model host-role
+                  Role specifies the desired OpenShift role for this Agent in the cluster.
+                  Valid values: 'master' (control plane node running API server, etcd, and scheduler),
+                  'worker' (compute node for running workloads), 'arbiter' (lightweight control plane node
+                  for TNA clusters, running only etcd with reduced resource requirements), or 'auto-assign'
+                  (let the service automatically assign the role based on cluster requirements).
+                  The role affects hardware validation requirements and the node's responsibilities in the cluster.
                 type: string
             required:
             - approved
             - role
             type: object
           status:
-            description: AgentStatus defines the observed state of Agent
+            description: |-
+              AgentStatus represents the observed state of an Agent, including hardware inventory,
+              installation progress, validation results, and readiness conditions.
             properties:
               bootstrap:
+                description: |-
+                  Bootstrap indicates whether this Agent has been selected as the bootstrap node for the cluster
+                  installation. The bootstrap node coordinates the initial control plane formation by hosting
+                  temporary services that initialize etcd and the Kubernetes API. After the other control plane
+                  nodes complete installation, the bootstrap node transitions to become a regular control plane node.
+                  Only one Agent per cluster will have this field set to true, and it is always assigned to a master-role Agent.
                 type: boolean
               conditions:
+                description: |-
+                  Conditions represent the latest available observations of the Agent's state. Standard condition types
+                  include: 'SpecSynced' (whether spec changes were successfully applied), 'Connected' (agent's connection
+                  to the service), 'RequirementsMet' (whether the agent is ready to begin installation), 'Validated'
+                  (whether hardware and configuration validations are passing), 'Installed' (installation completion status),
+                  and 'Bound' (whether the agent is bound to a cluster). Each condition includes a status (True/False/Unknown),
+                  reason code, and human-readable message.
                 items:
                   description: |-
                     Condition represents the state of the operator's
@@ -228,7 +268,12 @@ spec:
                       tar file.
                     type: string
                   state:
-                    description: Current state of the Agent
+                    description: |-
+                      State is the current lifecycle state of the Agent. Common values include: 'discovering'
+                      (initial hardware discovery), 'known' (ready for installation), 'insufficient' (hardware
+                      requirements not met), 'pending-for-input' (waiting for user input), 'preparing-for-installation',
+                      'installing', 'installed', 'error' (installation failed), 'cancelled', 'disabled', 'binding'/'unbinding'
+                      (cluster association changes), and various '-unbound' suffixed states for agents not associated with a cluster.
                     type: string
                   stateInfo:
                     description: Additional information pertaining to the status of
@@ -253,6 +298,11 @@ spec:
                   the installation.
                 type: string
               inventory:
+                description: |-
+                  Inventory contains the hardware and system information discovered from this Agent, including CPU,
+                  memory, disks, network interfaces, boot configuration, and system vendor details. This information
+                  is gathered by the discovery image when the host boots and is used for validation and installation
+                  planning. The inventory is continuously updated while the agent is connected.
                 properties:
                   bmcAddress:
                     type: string
@@ -482,9 +532,9 @@ spec:
                 type: object
               role:
                 description: |-
-                  HostRole host role
-
-                  swagger:model host-role
+                  Role is the effective OpenShift role assigned to this Agent. This reflects the actual role
+                  the Agent will use, which may differ from spec.role if spec.role is 'auto-assign'.
+                  Possible values: 'master', 'worker', 'arbiter', 'auto-assign', or 'bootstrap'.
                 type: string
               validationsInfo:
                 additionalProperties:
