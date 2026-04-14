@@ -1314,29 +1314,49 @@ func (g *installerGenerator) isFeatureGateEnabled(feature v1.FeatureGateName) bo
 	var installConfig installcfg.InstallerConfigBaremetal
 
 	if err := json.Unmarshal(g.rawInstallConfig, &installConfig); err != nil {
-		g.log.Errorf("cannot convert install config data while checking feature gate %s", string(feature))
+		g.log.Errorf("cannot convert install config data while checking feature gate %s: %v", string(feature), err)
 		return false
 	}
-	for _, fg := range installConfig.FeatureGates {
-		// Parse feature gate
-		featureParts := strings.Split(fg, "=")
-		if len(featureParts) != 2 {
-			g.log.Debugf("Cannot parse feature gate %s, skipping", fg)
-			continue
+
+	featureEnabled := false
+	switch installConfig.FeatureSet {
+	case v1.CustomNoUpgrade:
+		for _, fg := range installConfig.FeatureGates {
+			// Parse feature gate
+			featureParts := strings.Split(fg, "=")
+			if len(featureParts) != 2 {
+				g.log.Debugf("Cannot parse feature gate %s, skipping", fg)
+				continue
+			}
+			name := featureParts[0]
+			enabled, err := strconv.ParseBool(featureParts[1])
+			if err != nil {
+				g.log.Debugf("Unsupported feature value %s, skipping", fg)
+				continue
+			}
+
+			if name == string(feature) && enabled {
+				featureEnabled = true
+				break
+			}
 		}
-		featureName := featureParts[0]
-		featureEnabled, err := strconv.ParseBool(featureParts[1])
+	default:
+		feats, err := features.FeatureSets(features.SelfManaged, installConfig.FeatureSet)
 		if err != nil {
-			g.log.Debugf("Unsupported feature value %s, skipping", fg)
-			continue
+			g.log.Errorf("error while retrieving features definition: %v", err)
+			break
 		}
 
-		if featureName == string(feature) && featureEnabled {
-			g.log.Debugf("Feature gate %s is enabled", string(feature))
-			return true
+		for _, f := range feats.Enabled {
+			if f.FeatureGateAttributes.Name == feature {
+				featureEnabled = true
+				break
+			}
 		}
 	}
-	return false
+
+	g.log.Infof("Feature gate %s enabled: %v", string(feature), featureEnabled)
+	return featureEnabled
 }
 
 // UploadToS3 uploads the generated files to S3
