@@ -120,7 +120,7 @@ To implement support for a new OLM operator plugin you need to make following ch
 	      models.FeatureSupportLevelIDMTV:                  (&MtvFeature{}).New(),
 	      models.FeatureSupportLevelIDOSC:                  (&OscFeature{}).New(),
       ```
-    - implement the interface at the end of [olm operators](../../internal/featuresupport/features_olm_operators.go) 
+    - implement the interface at the end of [olm operators](../../internal/featuresupport/features_olm_operators.go)
       Your custom code shall reflect the requirements of this new feature by means of Openshift version and target platform (`getSupportLevel`), CPU architecture (`getIncompatibleArchitectures`), and compatibility with existing features (`getIncompatibleFeatures`).
     - in case of any such incompatibilities, add the feature also to the `getIncompatibleFeatures` methods of all the affected types:
       - [for misc features](../../internal/featuresupport/features_misc.go)
@@ -144,10 +144,17 @@ A plugin can generate two distinct set of manifests, specified by the two return
 1. Install the operator
 2. Configure the operator
 
-The first return value could be used to specify a set of manifests that will be applied directly to the control plane during the bootstrap phase. This set is usually composed by a 
+The first return value could be used to specify a set of manifests that will be applied directly to the control plane during the bootstrap phase. This set is usually composed by a
 manifest for creating a new namespace, a new subscription and a new operator group CR for the involved operator.
 
 The second return value it's a manifest used to configure the freshly installed operator, and it will be applied by the ```assisted-installer-controller``` job, only after the cluster have been successfully created and the OLM operators are all ready (currently the ```assisted-installer-controller``` retrieves the whole list of configurations by downloading the ```custom_manifests.json``` file fetched from the Assisted Service).
+
+### Validation Lifecycle
+
+Operator validations via `ValidateHost()` and `ValidateCluster()` are only executed during cluster creation (day1). For day2 clusters (adding hosts to already-installed clusters), operator validations are skipped since:
+  - The cluster is already installed with its chosen operators
+  - The cluster state since installation is unknown to the service
+  - Install-time operator requirements don't apply to post-installation host additions
 
 ## General Notes
 
