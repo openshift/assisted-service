@@ -21,11 +21,14 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
+	v1 "github.com/openshift/api/config/v1"
+	"github.com/openshift/api/features"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/installercache"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -52,6 +55,50 @@ func testCluster() *common.Cluster {
 		},
 	}
 }
+
+var _ = Describe("Feature gates check", func() {
+	var newInstallGenerator = func(featureSet v1.FeatureSet, featureGateWithState string) *installerGenerator {
+		installConfig := installcfg.InstallerConfigBaremetal{
+			FeatureSet: featureSet,
+		}
+		if featureGateWithState != "" {
+			installConfig.FeatureGates = []string{featureGateWithState}
+		}
+		bytes, err := json.Marshal(&installConfig)
+		Expect(err).NotTo(HaveOccurred())
+
+		return &installerGenerator{
+			log:              logrus.New(),
+			rawInstallConfig: bytes,
+		}
+	}
+
+	Context("Verify NoRegistryClusterInstall feature", func() {
+		It("Is not enabled by default", func() {
+			ig := newInstallGenerator(v1.Default, "")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeFalse())
+		})
+
+		It("Is enabled for TP and DP", func() {
+			ig := newInstallGenerator(v1.TechPreviewNoUpgrade, "")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeTrue())
+
+			ig = newInstallGenerator(v1.DevPreviewNoUpgrade, "")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeTrue())
+		})
+
+		It("CustomNoUpgrade check", func() {
+			ig := newInstallGenerator(v1.CustomNoUpgrade, "")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeFalse())
+
+			ig = newInstallGenerator(v1.CustomNoUpgrade, string(features.FeatureGateNoRegistryClusterInstall)+"=false")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeFalse())
+
+			ig = newInstallGenerator(v1.CustomNoUpgrade, string(features.FeatureGateNoRegistryClusterInstall)+"=true")
+			Expect(ig.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall)).To(BeTrue())
+		})
+	})
+})
 
 var _ = Describe("Bootstrap Ignition Update", func() {
 	const bootstrap1 = `{
