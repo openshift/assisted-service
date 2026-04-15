@@ -817,7 +817,7 @@ github.com/openshift/generic-admission-server/pkg/cmd
 github.com/openshift/generic-admission-server/pkg/cmd/server
 github.com/openshift/generic-admission-server/pkg/registry/admissionreview
 github.com/openshift/generic-admission-server/pkg/registry/admissionreview/generated
-# github.com/openshift/hive/apis v0.0.0-20260403230239-a325b87ee9af
+# github.com/openshift/hive/apis v0.0.0-20260414220921-76f9a996844f
 ## explicit; go 1.24.0
 github.com/openshift/hive/apis/hive/v1
 github.com/openshift/hive/apis/hive/v1/agent

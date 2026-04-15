@@ -98,7 +98,7 @@ github.com/openshift/assisted-service/models/validations
 # github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 ## explicit; go 1.12
 github.com/openshift/custom-resource-status/conditions/v1
-# github.com/openshift/hive/apis v0.0.0-20260403230239-a325b87ee9af
+# github.com/openshift/hive/apis v0.0.0-20260414220921-76f9a996844f
 ## explicit; go 1.24.0
 github.com/openshift/hive/apis/hive/v1
 github.com/openshift/hive/apis/hive/v1/agent

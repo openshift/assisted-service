@@ -7,7 +7,7 @@ toolchain go1.25.5
 require (
 	github.com/openshift/assisted-service/models v0.0.0
 	github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
-	github.com/openshift/hive/apis v0.0.0-20260403230239-a325b87ee9af
+	github.com/openshift/hive/apis v0.0.0-20260414220921-76f9a996844f
 	k8s.io/api v0.34.2
 	k8s.io/apimachinery v0.34.2
 	sigs.k8s.io/yaml v1.6.0
