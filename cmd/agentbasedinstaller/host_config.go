@@ -203,7 +203,7 @@ func applyRootDeviceHints(log *log.Logger, host *models.Host, inventory *models.
 
 	diskID := "/dev/not-found-by-hints"
 	if len(acceptableDisks) > 0 {
-		diskID = hostutil.GetPreferredDiskID(acceptableDisks)
+		diskID = acceptableDisks[0].ID
 		log.Infof("Selecting disk %s for installation", diskID)
 	} else {
 		log.Info("No disk found matching root device hints")
