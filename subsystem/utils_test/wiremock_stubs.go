@@ -77,7 +77,7 @@ const (
 	WrongPullSecret                      string      = "wrong_secret"
 	OrgId1                               string      = "1010101"
 	OrgId2                               string      = "2020202"
-	FakeSubscriptionID                   strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
+	FakeSubscriptionID strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
 )
 
 var (
