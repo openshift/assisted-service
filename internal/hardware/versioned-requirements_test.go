@@ -583,6 +583,11 @@ var _ = Describe("Versioned Requirements", func() {
 			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.21.0")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(8))
+
+			// pre-release versions (e.g. ec, rc) should match as if they were the base release
+			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.22.0-ec.5")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*requirements.SNORequirements.CPUCores).To(BeEquivalentTo(4))
 		})
 
 		It("should merge partial min_version fields with default", func() {

@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	goversion "github.com/hashicorp/go-version"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -34,12 +35,9 @@ func (d *VersionedRequirementsDecoder) GetVersionedHostRequirements(version stri
 	}
 
 	if len(d.minVersions) > 0 {
-		requestedV, err := goversion.NewVersion(version)
-		if err == nil {
-			for i := len(d.minVersions) - 1; i >= 0; i-- {
-				if d.minVersions[i].version.LessThanOrEqual(requestedV) {
-					return copyVersionedHostRequirements(&d.minVersions[i].requirements), nil
-				}
+		for i := len(d.minVersions) - 1; i >= 0; i-- {
+			if isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(d.minVersions[i].requirements.Version, version); err == nil && isGreaterOrEqual {
+				return copyVersionedHostRequirements(&d.minVersions[i].requirements), nil
 			}
 		}
 	}
