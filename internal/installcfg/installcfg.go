@@ -283,6 +283,7 @@ type InstallerConfigBaremetal struct {
 	Capabilities                  *Capabilities        `json:"capabilities,omitempty"`
 	FeatureSet                    configv1.FeatureSet  `json:"featureSet,omitempty"`
 	FeatureGates                  []string             `json:"featureGates,omitempty"`
+	OSImageStream                 string               `json:"osImageStream,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {
