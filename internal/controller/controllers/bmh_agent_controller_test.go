@@ -3404,6 +3404,110 @@ var _ = Describe("handleBMHFinalizer", func() {
 	})
 })
 
+var _ = Describe("getChecksumAndURL", func() {
+	var (
+		bmhr        *BMACReconciler
+		spokeClient client.Client
+		ctx         = context.Background()
+	)
+
+	BeforeEach(func() {
+		schemes := GetKubeClientSchemes()
+		spokeClient = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
+		bmhr = &BMACReconciler{}
+	})
+
+	createMasterMachine := func(rawSpec []byte) {
+		m := &machinev1beta1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "master-0",
+				Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
+				Labels:    map[string]string{MACHINE_TYPE: string(models.HostRoleMaster)},
+			},
+		}
+		if rawSpec != nil {
+			m.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: rawSpec}
+		}
+		Expect(spokeClient.Create(ctx, m)).To(Succeed())
+	}
+
+	It("returns error when no master machines exist", func() {
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(stop).To(BeTrue())
+	})
+
+	It("returns error when ProviderSpec.Value is nil", func() {
+		createMasterMachine(nil)
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("nil ProviderSpec"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns error when image field is null", func() {
+		createMasterMachine([]byte(`{"image": null}`))
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns error when image field is absent", func() {
+		createMasterMachine([]byte(`{}`))
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns error when image field is not a map", func() {
+		createMasterMachine([]byte(`{"image": "not-a-map"}`))
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("unexpected type"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns error when checksum is missing", func() {
+		createMasterMachine([]byte(`{"image": {"url": "http://example.com/image"}}`))
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("missing checksum"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns error when url is missing", func() {
+		createMasterMachine([]byte(`{"image": {"checksum": "abc123"}}`))
+		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("missing url"))
+		Expect(stop).To(BeFalse())
+	})
+
+	It("returns checksum and url when both are present", func() {
+		createMasterMachine([]byte(`{"image": {"checksum": "abc123", "url": "http://example.com/image"}}`))
+		checksum, url, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stop).To(BeFalse())
+		Expect(checksum).To(Equal("abc123"))
+		Expect(url).To(Equal("http://example.com/image"))
+	})
+})
+
+var _ = Describe("isEmptyPatch", func() {
+	DescribeTable("correctly identifies empty patches",
+		func(data string, expected bool) {
+			Expect(isEmptyPatch([]byte(data))).To(Equal(expected))
+		},
+		Entry("empty JSON object", `{}`, true),
+		Entry("metadata with only resourceVersion", `{"metadata":{"resourceVersion":"12345"}}`, true),
+		Entry("metadata with empty object", `{"metadata":{}}`, true),
+		Entry("metadata with resourceVersion and other fields", `{"metadata":{"resourceVersion":"12345","annotations":{"foo":"bar"}}}`, false),
+		Entry("non-metadata field", `{"spec":{"online":true}}`, false),
+		Entry("invalid JSON", `not-json`, false),
+	)
+})
 func newAgentWithClusterReference(name string, namespace string, ipv4address string, ipv6address string, macaddress string, clusterName string, agentBMHLabel string, creationTime time.Time) *v1beta1.Agent {
 	agent := newAgent(name, namespace, v1beta1.AgentSpec{})
 	agent.Status.Inventory = v1beta1.HostInventory{

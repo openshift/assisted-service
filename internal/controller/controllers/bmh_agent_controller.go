@@ -1342,17 +1342,36 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient clie
 	if len(machineList.Items) == 0 {
 		return checksum, url, errors.New("There are no machines with master label"), true
 	}
-	providerSpecValue := string(machineList.Items[0].Spec.ProviderSpec.Value.Raw)
+
+	providerSpec := machineList.Items[0].Spec.ProviderSpec.Value
+	if providerSpec == nil {
+		return checksum, url, errors.New("master machine has nil ProviderSpec"), true
+	}
 
 	var providerSpecValueObj map[string]interface{}
-	err = json.Unmarshal([]byte(providerSpecValue), &providerSpecValueObj)
-	if err != nil {
+	if err = json.Unmarshal(providerSpec.Raw, &providerSpecValueObj); err != nil {
 		return checksum, url, err, false
 	}
-	image := providerSpecValueObj["image"].(map[string]interface{})
-	checksum = fmt.Sprint(image["checksum"])
-	url = fmt.Sprint(image["url"])
-	return checksum, url, err, false
+
+	imageRaw, ok := providerSpecValueObj["image"]
+	if !ok || imageRaw == nil {
+		return checksum, url, errors.New("master machine ProviderSpec missing 'image' field"), true
+	}
+	image, ok := imageRaw.(map[string]interface{})
+	if !ok {
+		return checksum, url, errors.New("master machine ProviderSpec 'image' field has unexpected type"), true
+	}
+
+	checksum, _ = image["checksum"].(string)
+	url, _ = image["url"].(string)
+	if checksum == "" {
+		return "", "", errors.New("master machine ProviderSpec 'image' missing checksum"), true
+	}
+	if url == "" {
+		return "", "", errors.New("master machine ProviderSpec 'image' missing url"), true
+	}
+
+	return checksum, url, nil, false
 }
 
 func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum, URL, role string) (*machinev1beta1.Machine, error) {
