@@ -34,11 +34,9 @@ func (d *VersionedRequirementsDecoder) GetVersionedHostRequirements(version stri
 		return copyVersionedHostRequirements(&req), nil
 	}
 
-	if len(d.minVersions) > 0 {
-		for i := len(d.minVersions) - 1; i >= 0; i-- {
-			if isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(d.minVersions[i].requirements.Version, version); err == nil && isGreaterOrEqual {
-				return copyVersionedHostRequirements(&d.minVersions[i].requirements), nil
-			}
+	for i := len(d.minVersions) - 1; i >= 0; i-- {
+		if isGreaterOrEqual, err := common.BaseVersionGreaterOrEqual(d.minVersions[i].requirements.Version, version); err == nil && isGreaterOrEqual {
+			return copyVersionedHostRequirements(&d.minVersions[i].requirements), nil
 		}
 	}
 
