@@ -4260,7 +4260,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("nil ProviderSpec"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns error when image field is null", func() {
@@ -4268,7 +4268,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns error when image field is absent", func() {
@@ -4276,7 +4276,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns error when image field is not a map", func() {
@@ -4284,7 +4284,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("unexpected type"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns error when checksum is missing", func() {
@@ -4292,7 +4292,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("missing checksum"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns error when url is missing", func() {
@@ -4300,7 +4300,7 @@ var _ = Describe("getChecksumAndURL", func() {
 		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(ContainSubstring("missing url"))
-		Expect(stop).To(BeTrue())
+		Expect(stop).To(BeFalse())
 	})
 
 	It("returns checksum and url when both are present", func() {
