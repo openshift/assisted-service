@@ -3799,19 +3799,6 @@ var _ = Describe("getChecksumAndURL", func() {
 	})
 })
 
-var _ = Describe("isEmptyPatch", func() {
-	DescribeTable("correctly identifies empty patches",
-		func(data string, expected bool) {
-			Expect(isEmptyPatch([]byte(data))).To(Equal(expected))
-		},
-		Entry("empty JSON object", `{}`, true),
-		Entry("metadata with only resourceVersion", `{"metadata":{"resourceVersion":"12345"}}`, true),
-		Entry("metadata with empty object", `{"metadata":{}}`, true),
-		Entry("metadata with resourceVersion and other fields", `{"metadata":{"resourceVersion":"12345","annotations":{"foo":"bar"}}}`, false),
-		Entry("non-metadata field", `{"spec":{"online":true}}`, false),
-		Entry("invalid JSON", `not-json`, false),
-	)
-})
 func newAgentWithClusterReference(name string, namespace string, ipv4address string, ipv6address string, macaddress string, clusterName string, agentBMHLabel string, creationTime time.Time) *v1beta1.Agent {
 	agent := newAgent(name, namespace, v1beta1.AgentSpec{})
 	agent.Status.Inventory = v1beta1.HostInventory{

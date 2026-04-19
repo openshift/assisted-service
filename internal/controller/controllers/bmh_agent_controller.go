@@ -1457,7 +1457,7 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient clie
 
 	providerSpec := machineList.Items[0].Spec.ProviderSpec.Value
 	if providerSpec == nil {
-		return checksum, url, errors.New("master machine has nil ProviderSpec"), true
+		return checksum, url, errors.New("master machine has nil ProviderSpec"), false
 	}
 
 	var providerSpecValueObj map[string]interface{}
@@ -1467,20 +1467,20 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient clie
 
 	imageRaw, ok := providerSpecValueObj["image"]
 	if !ok || imageRaw == nil {
-		return checksum, url, errors.New("master machine ProviderSpec missing 'image' field"), true
+		return checksum, url, errors.New("master machine ProviderSpec missing 'image' field"), false
 	}
 	image, ok := imageRaw.(map[string]interface{})
 	if !ok {
-		return checksum, url, errors.New("master machine ProviderSpec 'image' field has unexpected type"), true
+		return checksum, url, errors.New("master machine ProviderSpec 'image' field has unexpected type"), false
 	}
 
 	checksum, _ = image["checksum"].(string)
 	url, _ = image["url"].(string)
 	if checksum == "" {
-		return "", "", errors.New("master machine ProviderSpec 'image' missing checksum"), true
+		return "", "", errors.New("master machine ProviderSpec 'image' missing checksum"), false
 	}
 	if url == "" {
-		return "", "", errors.New("master machine ProviderSpec 'image' missing url"), true
+		return "", "", errors.New("master machine ProviderSpec 'image' missing url"), false
 	}
 
 	return checksum, url, nil, false
