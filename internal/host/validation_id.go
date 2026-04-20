@@ -54,6 +54,7 @@ const (
 	NoSkipMissingDisk                              = validationID(models.HostValidationIDNoSkipMissingDisk)
 	NoIPCollisionsInNetwork                        = validationID(models.HostValidationIDNoIPCollisionsInNetwork)
 	NoIscsiNicBelongsToMachineCidr                 = validationID(models.HostValidationIDNoIscsiNicBelongsToMachineCidr)
+	NonStandardHARequiresBareMetal                 = validationID(models.HostValidationIDNonStandardHaRequiresBareMetal)
 	AreNodeFeatureDiscoveryRequirementsSatisfied   = validationID(models.HostValidationIDNodeFeatureDiscoveryRequirementsSatisfied)
 	AreNvidiaGPURequirementsSatisfied              = validationID(models.HostValidationIDNvidiaGpuRequirementsSatisfied)
 	ArePipelinesRequirementsSatisfied              = validationID(models.HostValidationIDPipelinesRequirementsSatisfied)
@@ -117,7 +118,8 @@ func (v validationID) category() (string, error) {
 		DiskEncryptionRequirementsSatisfied,
 		CompatibleAgent,
 		NoSkipInstallationDisk,
-		NoSkipMissingDisk:
+		NoSkipMissingDisk,
+		NonStandardHARequiresBareMetal:
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied,
 		AreOdfRequirementsSatisfied,

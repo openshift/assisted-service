@@ -167,7 +167,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(
 				"external platform",
 				[]SupportLevelFeature{&ExternalPlatformFeature{}},
-				false,
+				true,
+			),
+
+			Entry(
+				"external platform oci",
+				[]SupportLevelFeature{&OciIntegrationFeature{}},
+				true,
 			),
 
 			Entry(
