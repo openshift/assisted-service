@@ -603,11 +603,19 @@ func hasDay2UnknownMachineNetwork(cluster *common.Cluster, host *models.Host, lo
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		return false
 	}
+
+	// In case of OCI, we do want to configure the iSCSI NIC because it's the only NIC that is auto configured
+	if common.IsOciExternalIntegrationEnabled(cluster.Platform) {
+		return false
+	}
+
 	machineNetworkCIDR := network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
 	if machineNetworkCIDR == "" {
 		log.Infof("Host %s in cluster %s: skipping iSCSI ip= kernel args (Day2 iSCSI/multipath with unknown machine network)", host.ID, *cluster.ID)
+
 		return true
 	}
+
 	return false
 }
 
