@@ -187,13 +187,10 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 			return err
 		}
 
-		// Delete any previews record of the host if it was soft deleted from the cluster,
-		// no error will be returned if the host was not existed.
-		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and infra_env_id = ?", *h.ID, h.InfraEnvID).Error; err != nil {
-			return errors.Wrapf(
-				err,
-				"error while trying to delete previews record from db (if exists) of host %s in infra env %s",
-				h.ID.String(), h.InfraEnvID.String())
+		// Delete any previous record of the host if it was soft deleted from the cluster,
+		// no error will be returned if the host did not exist.
+		if err := common.DeleteSoftDeletedHost(db, h.ID.String(), h.InfraEnvID.String()); err != nil {
+			return err
 		}
 
 		host = h

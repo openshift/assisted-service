@@ -494,3 +494,133 @@ func ipv6Cluster(clusterID strfmt.UUID) *Cluster {
 		},
 	}
 }
+
+var _ = Describe("DeleteSoftDeletedHost", func() {
+	var (
+		db         *gorm.DB
+		dbName     string
+		infraEnvID = strfmt.UUID(uuid.New().String())
+		hostID     = strfmt.UUID(uuid.New().String())
+	)
+
+	BeforeEach(func() {
+		db, dbName = PrepareTestDB()
+
+		// Create infraEnv
+		infraEnv := &InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		DeleteTestDB(db, dbName)
+	})
+
+	It("should successfully delete a soft-deleted host", func() {
+		// Create and soft-delete a host
+		host := &Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+			},
+		}
+		Expect(db.Create(host).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host).Error).ToNot(HaveOccurred())
+
+		// Verify host is soft-deleted (not found in normal query)
+		var count int64
+		Expect(db.Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+
+		// Verify soft-deleted host exists with Unscoped
+		Expect(db.Unscoped().Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+
+		// Delete soft-deleted host
+		err := DeleteSoftDeletedHost(db, hostID.String(), infraEnvID.String())
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify host is completely removed
+		Expect(db.Unscoped().Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+	})
+
+	It("should not delete an active (non-soft-deleted) host", func() {
+		// Create active host
+		host := &Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+			},
+		}
+		Expect(db.Create(host).Error).ToNot(HaveOccurred())
+
+		// Attempt to delete soft-deleted host (should be no-op)
+		err := DeleteSoftDeletedHost(db, hostID.String(), infraEnvID.String())
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify active host still exists
+		var count int64
+		Expect(db.Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+	})
+
+	It("should succeed when no host exists at all", func() {
+		// Call on non-existent host
+		err := DeleteSoftDeletedHost(db, hostID.String(), infraEnvID.String())
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify no host exists
+		var count int64
+		Expect(db.Unscoped().Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+	})
+
+	It("should only delete host with matching composite key", func() {
+		otherInfraEnvID := strfmt.UUID(uuid.New().String())
+
+		// Create another infraEnv
+		otherInfraEnv := &InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &otherInfraEnvID,
+			},
+		}
+		Expect(db.Create(otherInfraEnv).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete host in first infraEnv
+		host1 := &Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+			},
+		}
+		Expect(db.Create(host1).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host1).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete host with same ID in different infraEnv
+		host2 := &Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: otherInfraEnvID,
+			},
+		}
+		Expect(db.Create(host2).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host2).Error).ToNot(HaveOccurred())
+
+		// Delete soft-deleted host in first infraEnv only
+		err := DeleteSoftDeletedHost(db, hostID.String(), infraEnvID.String())
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify first host is deleted
+		var count int64
+		Expect(db.Unscoped().Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+
+		// Verify second host still exists (soft-deleted)
+		Expect(db.Unscoped().Model(&Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), otherInfraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+	})
+})

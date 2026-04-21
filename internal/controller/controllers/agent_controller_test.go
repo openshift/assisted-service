@@ -5756,8 +5756,8 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterId, ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
-		// Mock that no existing host is found
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Mock that no existing host is found (checks composite key: ID + InfraEnvID)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -5800,8 +5800,8 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
-		// Mock that no existing host is found
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Mock that no existing host is found (checks composite key: ID + InfraEnvID)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, nil, infraEnvId)
@@ -5848,7 +5848,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
 		// Mock that no existing host is found
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -5918,7 +5918,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
 		// Mock that no existing host is found
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 		// Create Host
 		host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -6050,7 +6050,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
 			// Mock that no existing host is found
-			mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 			// Create Host
 			host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -6109,7 +6109,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
 
 			// Mock that no existing host is found
-			mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 
 			// Create Host
 			host, err := createNewHost(agent, &clusterId, infraEnvId)
@@ -6169,8 +6169,8 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 
 		// Host not found in namespace
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
-		// Check for host by ID only - conflict detected
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(existingHost, nil).Times(1)
+		// Check for host by composite key (ID, InfraEnvID) - conflict detected
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(existingHost, nil).Times(1)
 
 		// Reconcile Agent - should handle conflict via status condition, not error
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
@@ -6183,7 +6183,7 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		specSyncedCond := conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition)
 		Expect(specSyncedCond).ToNot(BeNil())
 		Expect(specSyncedCond.Status).To(Equal(corev1.ConditionFalse))
-		Expect(specSyncedCond.Message).To(ContainSubstring("already exists in namespace other-namespace"))
+		Expect(specSyncedCond.Message).To(ContainSubstring("namespace: other-namespace"))
 	})
 
 	It("should create new host if no existing host found", func() {
@@ -6203,8 +6203,8 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 
 		// Host not found in namespace
 		mockInstallerInternal.EXPECT().GetHostByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
-		// Check for host by ID only - not found
-		mockInstallerInternal.EXPECT().GetHostByIdInternal(gomock.Any(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Check for host by composite key (ID, InfraEnvID) - not found
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		// Create new host
 		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(gomock.Any(), infraEnvKey, gomock.Any()).Return(nil).Times(1)
 
@@ -6212,6 +6212,48 @@ var _ = Describe("Restore Host - Reconcile an Agent with missing Host", func() {
 		result, err := hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
+	})
+
+	It("should recreate host after soft-delete by validating composite key and passing correct namespace to CreateHostInKubeKeyNamespace", func() {
+		agent := newAgent("agent", testNamespace, v1beta1.AgentSpec{})
+		agent.ObjectMeta.Labels = map[string]string{
+			v1beta1.InfraEnvNameLabel: "infraEnvName",
+		}
+		Expect(c.Create(ctx, agent)).To(BeNil())
+
+		infraEnvId := strfmt.UUID(uuid.New().String())
+		infraEnvKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvName",
+		}
+		backendInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvId}}
+		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(infraEnvKey).Return(backendInfraEnv, nil).Times(1)
+
+		// Host not found in namespace (soft-deleted)
+		agentKey := types.NamespacedName{Name: agent.Name, Namespace: testNamespace}
+		mockInstallerInternal.EXPECT().GetHostByKubeKey(agentKey).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// Check for non-deleted host by composite key - not found (confirms soft-deletion)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), infraEnvId.String(), agent.Name).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		// CreateHostInKubeKeyNamespace will delete soft-deleted host and create new one
+		mockInstallerInternal.EXPECT().CreateHostInKubeKeyNamespace(
+			gomock.Any(),
+			gomock.Eq(infraEnvKey),
+			gomock.Any(),
+		).DoAndReturn(func(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error {
+			// Validate host argument has expected ID (agent.Name) and InfraEnvID
+			Expect(host.ID.String()).To(Equal(agent.Name), "host ID should match agent name")
+			Expect(host.InfraEnvID.String()).To(Equal(infraEnvId.String()), "host InfraEnvID should match infraEnv ID")
+			return nil
+		}).Times(1)
+
+		// Reconcile Agent - should succeed
+		result, err := hr.Reconcile(ctx, newHostRequest(agent))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}))
+
+		// Verify Agent was created successfully
+		agent = &v1beta1.Agent{}
+		Expect(c.Get(ctx, types.NamespacedName{Name: "agent", Namespace: testNamespace}, agent)).To(BeNil())
 	})
 })
 

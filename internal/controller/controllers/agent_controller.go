@@ -2223,19 +2223,23 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.Fie
 		clusterID = cluster.ID
 	}
 
-	// Check if a host with the same ID already exists (regardless of namespace)
-	// This prevents duplicate hosts and reports conflicts
-	existingHost, err := r.Installer.GetHostByIdInternal(ctx, agent.Name)
+	// Check if an active host (not deleted) with this composite key (InfraEnvID, HostID) already exists
+	existingHost, err := r.Installer.GetCommonHostInternal(ctx, infraEnv.ID.String(), agent.Name)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		r.Log.WithError(err).Errorf("Failed to check for existing host with ID %s", agent.Name)
+		r.Log.WithError(err).Errorf("Failed to check for existing host with ID %s in infraEnv %s", agent.Name, infraEnv.ID)
 		return r.updateStatus(ctx, log, agent, origAgent, nil, nil, err, true)
-	} else if err == nil && existingHost != nil {
-		errMsg := fmt.Sprintf("Host with ID %s already exists in namespace %s. Agent creation conflicts with existing host.",
-			agent.Name, existingHost.KubeKeyNamespace)
+	}
+
+	if existingHost != nil {
+		// An active host with this composite key (InfraEnvID, HostID) already exists so we should not restore it
+		errMsg := fmt.Sprintf("Host with ID %s already exists in infraEnv %s (namespace: %s). Cannot restore.",
+			agent.Name, existingHost.InfraEnvID, existingHost.KubeKeyNamespace)
 		r.Log.Error(errMsg)
 		return r.updateStatus(ctx, log, agent, origAgent, nil, nil, errors.New(errMsg), false)
 	}
 
+	// No active host exists - CreateHostInKubeKeyNamespace will automatically delete
+	// any soft-deleted host with the same composite key (InfraEnvID, HostID) before creating the new record.
 	host, err := createNewHost(agent, clusterID, *infraEnv.ID)
 	if err != nil {
 		r.Log.WithError(err).Errorf("Failed to create Host with name '%s'", agent.Name)
@@ -2246,7 +2250,6 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.Fie
 	if err != nil {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 	}
-
 	return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
 }
 
