@@ -713,7 +713,7 @@ func (m *Manager) initMonitoringCycle() *monitoringCycle {
 	deadline := startTime.Add(m.Config.MonitorCycleDeadline)
 
 	// Create a cycle-scoped context with timeout. All derived contexts inherit this deadline.
-	ctxWithDeadline, cancel := context.WithTimeout(baseCtx, m.Config.MonitorCycleDeadline)
+	ctxWithDeadline, cancel := context.WithTimeout(baseCtx, m.Config.MonitorCycleDeadline) //nolint: gosec // false positive, cancel will be called
 
 	// Cleanup expired blacklist entries and update metrics at the start of each cycle
 	m.syncBlacklistStateAndMetrics(log)
