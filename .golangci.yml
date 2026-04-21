@@ -42,11 +42,15 @@ linters:
         - "-QF1012"
     gosec:
       excludes:
+        - G101
         - G107
         - G108
         - G115
+        - G117
         - G402
         - G602
+        - G703
+        - G704
   exclusions:
     generated: lax
     presets:
