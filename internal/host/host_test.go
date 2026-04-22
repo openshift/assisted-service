@@ -50,11 +50,12 @@ var (
 
 var _ = BeforeEach(func() {
 	defaultConfig = &Config{
-		ResetTimeout:             3 * time.Minute,
-		EnableAutoAssign:         true,
-		MonitorBatchSize:         100,
-		DisabledHostvalidations:  defaultDisabledHostValidations,
-		MaxHostDisconnectionTime: MaxHostDisconnectionTime,
+		ResetTimeout:                       3 * time.Minute,
+		EnableAutoAssign:                   true,
+		MonitorBatchSize:                   100,
+		DisabledHostvalidations:            defaultDisabledHostValidations,
+		MaxHostDisconnectionTime:           MaxHostDisconnectionTime,
+		InstallingPendingUserActionTimeout: 60 * time.Minute,
 	}
 	err := defaultConfig.Complete()
 	Expect(err).ToNot(HaveOccurred())
