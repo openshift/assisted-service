@@ -36,6 +36,7 @@ type transitionHandler struct {
 type TransitionHandler interface {
 	HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	HasPendingUserActionTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	HasStatusTimedOut(timeout time.Duration) stateswitch.Condition
 	HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
@@ -669,6 +670,14 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 	}
 
 	return time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) > maxDuration, nil
+}
+
+func (th *transitionHandler) HasPendingUserActionTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasPendingUserActionTimedOut incompatible type of StateSwitch")
+	}
+	return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > th.config.InstallingPendingUserActionTimeout, nil
 }
 
 func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransition {

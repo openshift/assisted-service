@@ -884,6 +884,19 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		},
 	})
 
+	sm.AddTransitionRule(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusInstallingPendingUserAction)},
+		Condition:        th.HasPendingUserActionTimedOut,
+		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostRefreshHost(statusInfoPendingUserActionTimeout),
+		Documentation: stateswitch.TransitionRuleDoc{
+			Name:        "Host pending user action timeout",
+			Description: "When a host is in installing-pending-user-action state for too long without recovery, transition to error state. This allows clusters to succeed if they have sufficient remaining hosts (e.g., workers can fail as long as minimum count is met).",
+		},
+	})
+
 	// Noop transitions for cluster error
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusInstalling),
