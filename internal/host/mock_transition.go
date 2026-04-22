@@ -65,6 +65,21 @@ func (mr *MockTransitionHandlerMockRecorder) HasInstallationInProgressTimedOut(s
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasInstallationInProgressTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasInstallationInProgressTimedOut), sw, arg1)
 }
 
+// HasPendingUserActionTimedOut mocks base method.
+func (m *MockTransitionHandler) HasPendingUserActionTimedOut(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasPendingUserActionTimedOut", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasPendingUserActionTimedOut indicates an expected call of HasPendingUserActionTimedOut.
+func (mr *MockTransitionHandlerMockRecorder) HasPendingUserActionTimedOut(sw, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPendingUserActionTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasPendingUserActionTimedOut), sw, arg1)
+}
+
 // HasStatusTimedOut mocks base method.
 func (m *MockTransitionHandler) HasStatusTimedOut(timeout time.Duration) stateswitch.Condition {
 	m.ctrl.T.Helper()
