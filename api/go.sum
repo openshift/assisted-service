@@ -245,8 +245,8 @@ github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42 h1:Mo2FlDdoCZ+BE2W4C
 github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42/go.mod h1:d5uzF0YN2nQQFA0jIEWzzOZ+edmo6wzlGLvx5Fhz4uY=
 github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87 h1:cHyxR+Y8rAMT6m1jQCaYGRwikqahI0OjjUDhFNf3ySQ=
 github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87/go.mod h1:DB/Mf2oTeiAmVVX1gN+NEqweonAPY0TKUwADizj8+ZA=
-github.com/openshift/hive/apis v0.0.0-20260415205034-aa1db747a6ba h1:GXPfNjWwWpi65XNnsDKqgVKiQ4EM2A3uuHgXNgtSK/4=
-github.com/openshift/hive/apis v0.0.0-20260415205034-aa1db747a6ba/go.mod h1:98U/kA+A9nenhu0mCqaxaKyYJ+C/YEZoAUkPYDT/m+c=
+github.com/openshift/hive/apis v0.0.0-20260422124559-074c2ede5828 h1:H/Ix5l9SlxntfDb8tBDk44WQhfZLvoTZhWlsfh3Xfv4=
+github.com/openshift/hive/apis v0.0.0-20260422124559-074c2ede5828/go.mod h1:98U/kA+A9nenhu0mCqaxaKyYJ+C/YEZoAUkPYDT/m+c=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
