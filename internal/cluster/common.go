@@ -188,22 +188,6 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func HostsInStatus(c *common.Cluster, statuses []string) (masters, arbiters, workers int) {
-	for _, host := range c.Hosts {
-		if funk.ContainsString(statuses, swag.StringValue(host.Status)) {
-			switch common.GetEffectiveRole(host) {
-			case models.HostRoleMaster, models.HostRoleBootstrap:
-				masters++
-			case models.HostRoleArbiter:
-				arbiters++
-			case models.HostRoleWorker:
-				workers++
-			}
-		}
-	}
-	return
-}
-
 func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork []string) error {
 	if len(machineNetwork) > 2 {
 		return common.NewApiError(http.StatusInternalServerError,

@@ -257,7 +257,7 @@ func (th *transitionHandler) createClusterCompletionStatusInfo(ctx context.Conte
 		statusInfo = StatusInfoDegraded
 		statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
 	} else {
-		_, _, installedWorkers := HostsInStatus(cluster, []string{models.HostStatusInstalled})
+		_, _, installedWorkers := common.HostsInStatus(cluster, []string{models.HostStatusInstalled})
 		if installedWorkers < common.NumberOfWorkers(cluster) {
 			statusInfo = StatusInfoNotAllWorkersInstalled
 		}
@@ -418,7 +418,7 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 	sCluster, ok := sw.(*stateCluster)
 	installedStatus := []string{models.HostStatusInstalled}
 
-	if ok && th.enoughMastersAndWorkers(sCluster, installedStatus) {
+	if ok && common.HasEnoughMastersAndWorkers(sCluster.cluster, installedStatus) {
 		th.log.Infof("Cluster %s has at least required number of installed hosts, "+
 			"cluster is finalizing.", sCluster.cluster.ID)
 		return true, nil
@@ -431,7 +431,7 @@ func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args state
 	sCluster, _ := sw.(*stateCluster)
 	installingStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress,
 		models.HostStatusInstalled, models.HostStatusInstallingPendingUserAction, models.HostStatusPreparingSuccessful}
-	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
+	return common.HasEnoughMastersAndWorkers(sCluster.cluster, installingStatuses), nil
 }
 
 // check if we should stay in installing state
@@ -505,49 +505,6 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 	params.updatedCluster = updatedCluster
 	log.Infof("Updated console-url in AMS subscription with id %s", subscriptionID)
 	return nil
-}
-
-// enoughMastersAndWorkers returns whether the number of master and worker nodes in the specified cluster with the given status
-// meets the required criteria. The conditions are as follows:
-//   - For SNO (Single Node OpenShift), there must be exactly one master node and zero worker nodes.
-//   - For High Availability cluster, the number of master nodes should match the user's request, and not less than the minimum. The worker node requirement depends on this request:
-//     If the user requested at least two workers, there must be at least two, indicating non-schedulable masters were intended.
-//     If the user requested fewer than two workers, any number of workers is acceptable.
-//   - For TNA Clusters the same conditions apply as for High Availability Clusters, but we also need to check that at least one arbiter node is in the correct status.
-func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
-	mastersInSomeInstallingStatus, arbitersInSomeInstallingStatus, workersInSomeInstallingStatus := HostsInStatus(sCluster.cluster, statuses)
-
-	if sCluster.cluster.ControlPlaneCount == 1 {
-		return mastersInSomeInstallingStatus == common.AllowedNumberOfMasterHostsInNoneHaMode &&
-			workersInSomeInstallingStatus == common.AllowedNumberOfWorkersInNoneHaMode
-	}
-
-	// hosts roles are known at this stage
-	masters, arbiters, workers, _ := common.GetHostsByEachRole(&sCluster.cluster.Cluster, false)
-	numberOfExpectedMasters := len(masters)
-	numberOfExpectedArbiters := len(arbiters)
-
-	minMasterHostsNeeded := common.MinMasterHostsNeededForInstallationInHaMode
-	if numberOfExpectedArbiters != 0 {
-		minMasterHostsNeeded = common.MinMasterHostsNeededForInstallationInHaArbiterMode
-		// validate arbiters
-		if arbitersInSomeInstallingStatus == 0 {
-			return false
-		}
-	}
-
-	// validate masters
-	if numberOfExpectedMasters < minMasterHostsNeeded ||
-		mastersInSomeInstallingStatus < numberOfExpectedMasters {
-		return false
-	}
-
-	numberOfExpectedWorkers := len(workers)
-
-	// validate workers
-	return numberOfExpectedWorkers < common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode ||
-		numberOfExpectedWorkers >= common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode &&
-			workersInSomeInstallingStatus >= common.MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
 }
 
 // check if installation reach to timeout
