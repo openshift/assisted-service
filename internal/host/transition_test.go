@@ -2383,7 +2383,14 @@ var _ = Describe("Refresh Host", func() {
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 		})
 
-		It("times out when host is in state for more than the timeout value", func() {
+		It("times out when host is in state for more than the timeout value and is not required for success", func() {
+			// Create 3 master hosts in installed status so the cluster can succeed without the timed-out worker
+			for range 3 {
+				masterId := strfmt.UUID(uuid.New().String())
+				master := hostutil.GenerateTestHostByKind(masterId, infraEnvId, &clusterId, models.HostStatusInstalled, models.HostKindHost, models.HostRoleMaster)
+				Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+			}
+
 			host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-90 * time.Minute))
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
@@ -2400,6 +2407,26 @@ var _ = Describe("Refresh Host", func() {
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(statusInfoPendingUserActionTimeout))
+		})
+
+		It("remains when host is required for success", func() {
+			// Create 2 master hosts in installed status
+			for range 2 {
+				masterId := strfmt.UUID(uuid.New().String())
+				master := hostutil.GenerateTestHostByKind(masterId, infraEnvId, &clusterId, models.HostStatusInstalled, models.HostKindHost, models.HostRoleMaster)
+				Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+			}
+
+			// third master in pending-user-action should remain there even after 90 minutes
+			host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-90 * time.Minute))
+			host.Role = models.HostRoleMaster
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			Expect(hapi.RefreshStatus(ctx, &host, db)).To(Succeed())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
 		})
 
 		It("remains when host is in state for less than the timeout value", func() {
