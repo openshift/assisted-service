@@ -5811,6 +5811,15 @@ func (b *bareMetalInventory) GetInfraEnvByKubeKey(key types.NamespacedName) (*co
 
 func (b *bareMetalInventory) CreateHostInKubeKeyNamespace(ctx context.Context, kubeKey types.NamespacedName, host *models.Host) error {
 	log := logutil.FromContext(ctx, b.log)
+
+	// Delete any previous record of the host if it was soft deleted,
+	// no error will be returned if the host didn't exist.
+	// This follows the same pattern as RegisterHost.
+	if err := common.DeleteSoftDeletedHost(b.db, host.ID.String(), host.InfraEnvID.String()); err != nil {
+		log.WithError(err).Errorf("Error while deleting soft-deleted host %s", host.ID.String())
+		return err
+	}
+
 	hostToCreate := &common.Host{
 		Host:                    *host,
 		KubeKeyNamespace:        kubeKey.Namespace,

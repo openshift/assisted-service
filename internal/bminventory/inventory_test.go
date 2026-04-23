@@ -22321,3 +22321,335 @@ var _ = Describe("Primary IP Stack Functionality", func() {
 		})
 	})
 })
+
+var _ = Describe("GetCommonHostInternal", func() {
+	var (
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("should find existing host by composite key", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		hostID := strfmt.UUID(uuid.New().String())
+
+		// Create infra env
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+
+		// Create host
+		host := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		Expect(db.Create(host).Error).ToNot(HaveOccurred())
+
+		// Test GetCommonHostInternal
+		foundHost, err := bm.GetCommonHostInternal(ctx, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost).ToNot(BeNil())
+		Expect(foundHost.ID.String()).To(Equal(hostID.String()))
+		Expect(foundHost.InfraEnvID.String()).To(Equal(infraEnvID.String()))
+	})
+
+	It("should return error when host not found", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		hostID := strfmt.UUID(uuid.New().String())
+
+		// Test GetCommonHostInternal with non-existent host
+		foundHost, err := bm.GetCommonHostInternal(ctx, infraEnvID.String(), hostID.String())
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).To(BeTrue())
+		Expect(foundHost).To(BeNil())
+	})
+
+	It("should not find soft-deleted host", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		hostID := strfmt.UUID(uuid.New().String())
+
+		// Create infra env
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete host
+		host := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		Expect(db.Create(host).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host).Error).ToNot(HaveOccurred())
+
+		// Test GetCommonHostInternal should not find soft-deleted host
+		foundHost, err := bm.GetCommonHostInternal(ctx, infraEnvID.String(), hostID.String())
+		Expect(err).To(HaveOccurred())
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).To(BeTrue())
+		Expect(foundHost).To(BeNil())
+	})
+
+	It("should find correct host when same ID exists in different infra envs", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvID1 := strfmt.UUID(uuid.New().String())
+		infraEnvID2 := strfmt.UUID(uuid.New().String())
+
+		// Create two infra envs
+		infraEnv1 := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID1,
+			},
+		}
+		Expect(db.Create(infraEnv1).Error).ToNot(HaveOccurred())
+
+		infraEnv2 := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID2,
+			},
+		}
+		Expect(db.Create(infraEnv2).Error).ToNot(HaveOccurred())
+
+		// Create same host ID in both infra envs
+		host1 := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID1,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		Expect(db.Create(host1).Error).ToNot(HaveOccurred())
+
+		host2 := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID2,
+				Status:     swag.String(models.HostStatusDiscovering),
+			},
+		}
+		Expect(db.Create(host2).Error).ToNot(HaveOccurred())
+
+		// Test GetCommonHostInternal finds correct host for each infra env
+		foundHost1, err := bm.GetCommonHostInternal(ctx, infraEnvID1.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost1).ToNot(BeNil())
+		Expect(foundHost1.InfraEnvID.String()).To(Equal(infraEnvID1.String()))
+		Expect(*foundHost1.Status).To(Equal(models.HostStatusKnown))
+
+		foundHost2, err := bm.GetCommonHostInternal(ctx, infraEnvID2.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost2).ToNot(BeNil())
+		Expect(foundHost2.InfraEnvID.String()).To(Equal(infraEnvID2.String()))
+		Expect(*foundHost2.Status).To(Equal(models.HostStatusDiscovering))
+	})
+})
+
+var _ = Describe("CreateHostInKubeKeyNamespace", func() {
+	var (
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("should create host when no previous record exists", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		hostID := strfmt.UUID(uuid.New().String())
+		kubeKey := types.NamespacedName{
+			Name:      hostID.String(),
+			Namespace: "test-namespace",
+		}
+
+		// Create infra env
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+
+		// Create host model
+		host := &models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
+			Status:     swag.String(models.HostStatusDiscovering),
+		}
+
+		// Test CreateHostInKubeKeyNamespace
+		err := bm.CreateHostInKubeKeyNamespace(ctx, kubeKey, host)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify host was created
+		foundHost, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost).ToNot(BeNil())
+		Expect(foundHost.ID.String()).To(Equal(hostID.String()))
+		Expect(foundHost.InfraEnvID.String()).To(Equal(infraEnvID.String()))
+		Expect(foundHost.KubeKeyNamespace).To(Equal(kubeKey.Namespace))
+	})
+
+	It("should hard-delete soft-deleted host and create new one", func() {
+		infraEnvID := strfmt.UUID(uuid.New().String())
+		hostID := strfmt.UUID(uuid.New().String())
+		kubeKey := types.NamespacedName{
+			Name:      hostID.String(),
+			Namespace: "test-namespace",
+		}
+
+		// Create infra env
+		infraEnv := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID,
+			},
+		}
+		Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete a host
+		oldHost := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+			KubeKeyNamespace: "old-namespace",
+		}
+		Expect(db.Create(oldHost).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(oldHost).Error).ToNot(HaveOccurred())
+
+		// Verify host is soft-deleted
+		var count int64
+		Expect(db.Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+
+		// Verify soft-deleted host exists with Unscoped
+		Expect(db.Unscoped().Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+
+		// Create new host with same ID
+		newHost := &models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID,
+			Status:     swag.String(models.HostStatusDiscovering),
+		}
+
+		// Test CreateHostInKubeKeyNamespace
+		err := bm.CreateHostInKubeKeyNamespace(ctx, kubeKey, newHost)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify new host was created (not soft-deleted)
+		foundHost, err := common.GetHostFromDB(db, infraEnvID.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost).ToNot(BeNil())
+		Expect(foundHost.ID.String()).To(Equal(hostID.String()))
+		Expect(foundHost.InfraEnvID.String()).To(Equal(infraEnvID.String()))
+		Expect(*foundHost.Status).To(Equal(models.HostStatusDiscovering))
+		Expect(foundHost.KubeKeyNamespace).To(Equal(kubeKey.Namespace))
+
+		// Verify only one record exists (old soft-deleted record was hard-deleted)
+		Expect(db.Unscoped().Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+	})
+
+	It("should only delete soft-deleted host with matching composite key", func() {
+		hostID := strfmt.UUID(uuid.New().String())
+		infraEnvID1 := strfmt.UUID(uuid.New().String())
+		infraEnvID2 := strfmt.UUID(uuid.New().String())
+		kubeKey := types.NamespacedName{
+			Name:      hostID.String(),
+			Namespace: "test-namespace",
+		}
+
+		// Create two infra envs
+		infraEnv1 := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID1,
+			},
+		}
+		Expect(db.Create(infraEnv1).Error).ToNot(HaveOccurred())
+
+		infraEnv2 := &common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID: &infraEnvID2,
+			},
+		}
+		Expect(db.Create(infraEnv2).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete host in infraEnv1
+		host1 := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID1,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		Expect(db.Create(host1).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host1).Error).ToNot(HaveOccurred())
+
+		// Create and soft-delete host in infraEnv2
+		host2 := &common.Host{
+			Host: models.Host{
+				ID:         &hostID,
+				InfraEnvID: infraEnvID2,
+				Status:     swag.String(models.HostStatusKnown),
+			},
+		}
+		Expect(db.Create(host2).Error).ToNot(HaveOccurred())
+		Expect(db.Delete(host2).Error).ToNot(HaveOccurred())
+
+		// Create new host in infraEnv1 only
+		newHost := &models.Host{
+			ID:         &hostID,
+			InfraEnvID: infraEnvID1,
+			Status:     swag.String(models.HostStatusDiscovering),
+		}
+
+		// Test CreateHostInKubeKeyNamespace
+		err := bm.CreateHostInKubeKeyNamespace(ctx, kubeKey, newHost)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Verify new host exists in infraEnv1
+		foundHost, err := common.GetHostFromDB(db, infraEnvID1.String(), hostID.String())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(foundHost).ToNot(BeNil())
+
+		// Verify soft-deleted host in infraEnv2 still exists (was not deleted)
+		var count int64
+		Expect(db.Unscoped().Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID2.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(1)))
+
+		// Verify the record is actually soft-deleted (not active)
+		Expect(db.Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID2.String()).Count(&count).Error).ToNot(HaveOccurred())
+		Expect(count).To(Equal(int64(0)))
+	})
+})

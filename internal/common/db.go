@@ -533,6 +533,17 @@ func GetClusterHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) 
 	return &host, nil
 }
 
+// DeleteSoftDeletedHost hard-deletes any soft-deleted host with the given composite key (ID, InfraEnvID).
+// This is used before registering or creating a host to prevent primary key conflicts.
+// Returns nil if no soft-deleted host exists.
+func DeleteSoftDeletedHost(db *gorm.DB, hostId, infraEnvId string) error {
+	err := db.Unscoped().Where("deleted_at IS NOT NULL").Delete(&Host{}, "id = ? and infra_env_id = ?", hostId, infraEnvId).Error
+	if err != nil {
+		return errors.Wrapf(err, "error while trying to delete soft-deleted host %s in infra env %s from db", hostId, infraEnvId)
+	}
+	return nil
+}
+
 func GetHostFromDBWhere(db *gorm.DB, where ...interface{}) (*Host, error) {
 	var host Host
 
