@@ -14,7 +14,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/google/renameio"
-	"github.com/moby/moby/pkg/ioutils"
+	"github.com/moby/moby/v2/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/metrics"
 	logutil "github.com/openshift/assisted-service/pkg/log"

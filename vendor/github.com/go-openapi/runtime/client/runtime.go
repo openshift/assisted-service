@@ -1,16 +1,5 @@
-// Copyright 2015 go-swagger maintainers
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//    http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// SPDX-FileCopyrightText: Copyright 2015-2025 go-swagger maintainers
+// SPDX-License-Identifier: Apache-2.0
 
 package client
 
@@ -22,24 +11,32 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"net/http/httputil"
+	"os"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/logger"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/runtime/yamlpc"
+	"github.com/go-openapi/strfmt"
 )
 
-// TLSClientOptions to configure client authentication with mutual TLS
+const (
+	schemeHTTP  = "http"
+	schemeHTTPS = "https"
+)
+
+// DefaultTimeout the default request timeout.
+var DefaultTimeout = 30 * time.Second
+
+// TLSClientOptions to configure client authentication with mutual TLS.
 type TLSClientOptions struct {
 	// Certificate is the path to a PEM-encoded certificate to be used for
 	// client authentication. If set then Key must also be set.
@@ -69,7 +66,7 @@ type TLSClientOptions struct {
 	LoadedCA *x509.Certificate
 
 	// LoadedCAPool specifies a pool of RootCAs to use when validating the server's TLS certificate.
-	// If set, it will be combined with the the other loaded certificates (see LoadedCA and CA).
+	// If set, it will be combined with the other loaded certificates (see LoadedCA and CA).
 	// If neither LoadedCA or CA is set, the provided pool with override the system
 	// certificate pool.
 	// The caller must not use the supplied pool after calling TLSClientAuth.
@@ -81,7 +78,7 @@ type TLSClientOptions struct {
 	ServerName string
 
 	// InsecureSkipVerify controls whether the certificate chain and hostname presented
-	// by the server are validated. If false, any certificate is accepted.
+	// by the server are validated. If true, any certificate is accepted.
 	InsecureSkipVerify bool
 
 	// VerifyPeerCertificate, if not nil, is called after normal
@@ -94,6 +91,17 @@ type TLSClientOptions struct {
 	// setting InsecureSkipVerify then this callback will be considered but
 	// the verifiedChains argument will always be nil.
 	VerifyPeerCertificate func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error
+
+	// VerifyConnection, if not nil, is called after normal certificate
+	// verification and after [TLSClientOptions.VerifyPeerCertificate] by either a TLS client or
+	// server. It receives the [tls.ConnectionState] which may be inspected.
+	//
+	// Unlike VerifyPeerCertificate, this callback is invoked on every
+	// connection, including resumed ones, making it suitable for checks
+	// that must always apply (e.g. certificate pinning).
+	//
+	// If it returns a non-nil error, the handshake is aborted and that error results.
+	VerifyConnection func(tls.ConnectionState) error
 
 	// SessionTicketsDisabled may be set to true to disable session ticket and
 	// PSK (resumption) support. Note that on clients, session ticket support is
@@ -108,10 +116,12 @@ type TLSClientOptions struct {
 	_ struct{}
 }
 
-// TLSClientAuth creates a tls.Config for mutual auth
+// TLSClientAuth creates a [tls.Config] for mutual auth.
 func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 	// create client tls config
-	cfg := &tls.Config{}
+	cfg := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+	}
 
 	// load client cert if specified
 	if opts.Certificate != "" {
@@ -135,7 +145,7 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 				return nil, fmt.Errorf("tls client priv key: %v", err)
 			}
 		default:
-			return nil, fmt.Errorf("tls client priv key: unsupported key type")
+			return nil, errors.New("tls client priv key: unsupported key type")
 		}
 
 		block = pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes}
@@ -151,26 +161,28 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 	cfg.InsecureSkipVerify = opts.InsecureSkipVerify
 
 	cfg.VerifyPeerCertificate = opts.VerifyPeerCertificate
+	cfg.VerifyConnection = opts.VerifyConnection
 	cfg.SessionTicketsDisabled = opts.SessionTicketsDisabled
 	cfg.ClientSessionCache = opts.ClientSessionCache
 
 	// When no CA certificate is provided, default to the system cert pool
 	// that way when a request is made to a server known by the system trust store,
 	// the name is still verified
-	if opts.LoadedCA != nil {
+	switch {
+	case opts.LoadedCA != nil:
 		caCertPool := basePool(opts.LoadedCAPool)
 		caCertPool.AddCert(opts.LoadedCA)
 		cfg.RootCAs = caCertPool
-	} else if opts.CA != "" {
+	case opts.CA != "":
 		// load ca cert
-		caCert, err := ioutil.ReadFile(opts.CA)
+		caCert, err := os.ReadFile(opts.CA)
 		if err != nil {
 			return nil, fmt.Errorf("tls client ca: %v", err)
 		}
 		caCertPool := basePool(opts.LoadedCAPool)
 		caCertPool.AppendCertsFromPEM(caCert)
 		cfg.RootCAs = caCertPool
-	} else if opts.LoadedCAPool != nil {
+	case opts.LoadedCAPool != nil:
 		cfg.RootCAs = opts.LoadedCAPool
 	}
 
@@ -180,19 +192,10 @@ func TLSClientAuth(opts TLSClientOptions) (*tls.Config, error) {
 		cfg.ServerName = opts.ServerName
 	}
 
-	cfg.BuildNameToCertificate()
-
 	return cfg, nil
 }
 
-func basePool(pool *x509.CertPool) *x509.CertPool {
-	if pool == nil {
-		return x509.NewCertPool()
-	}
-	return pool
-}
-
-// TLSTransport creates a http client transport suitable for mutual tls auth
+// TLSTransport creates a [http] client transport suitable for mutual [tls] auth.
 func TLSTransport(opts TLSClientOptions) (http.RoundTripper, error) {
 	cfg, err := TLSClientAuth(opts)
 	if err != nil {
@@ -202,7 +205,7 @@ func TLSTransport(opts TLSClientOptions) (http.RoundTripper, error) {
 	return &http.Transport{TLSClientConfig: cfg}, nil
 }
 
-// TLSClient creates a http.Client for mutual auth
+// TLSClient creates a [http.Client] for mutual auth.
 func TLSClient(opts TLSClientOptions) (*http.Client, error) {
 	transport, err := TLSTransport(opts)
 	if err != nil {
@@ -211,11 +214,8 @@ func TLSClient(opts TLSClientOptions) (*http.Client, error) {
 	return &http.Client{Transport: transport}, nil
 }
 
-// DefaultTimeout the default request timeout
-var DefaultTimeout = 30 * time.Second
-
 // Runtime represents an API client that uses the transport
-// to make http requests based on a swagger specification.
+// to make [http] requests based on a swagger specification.
 type Runtime struct {
 	DefaultMediaType      string
 	DefaultAuthentication runtime.ClientAuthInfoWriter
@@ -224,11 +224,11 @@ type Runtime struct {
 
 	Transport http.RoundTripper
 	Jar       http.CookieJar
-	//Spec      *spec.Document
+	// Spec      *spec.Document
 	Host     string
 	BasePath string
 	Formats  strfmt.Registry
-	Context  context.Context
+	Context  context.Context //nolint:containedctx  // we precisely want this type to contain the request context
 
 	Debug  bool
 	logger logger.Logger
@@ -236,14 +236,15 @@ type Runtime struct {
 	clientOnce *sync.Once
 	client     *http.Client
 	schemes    []string
+	response   ClientResponseFunc
 }
 
-// New creates a new default runtime for a swagger api runtime.Client
+// New creates a new default runtime for a swagger api runtime.Client.
 func New(host, basePath string, schemes []string) *Runtime {
 	var rt Runtime
 	rt.DefaultMediaType = runtime.JSONMime
 
-	// TODO: actually infer this stuff from the spec
+	// Enhancement proposal: https://github.com/go-openapi/runtime/issues/385
 	rt.Consumers = map[string]runtime.Consumer{
 		runtime.YAMLMime:    yamlpc.YAMLConsumer(),
 		runtime.JSONMime:    runtime.JSONConsumer(),
@@ -274,6 +275,7 @@ func New(host, basePath string, schemes []string) *Runtime {
 
 	rt.Debug = logger.DebugEnabled()
 	rt.logger = logger.StandardLogger{}
+	rt.response = newResponse
 
 	if len(schemes) > 0 {
 		rt.schemes = schemes
@@ -281,7 +283,7 @@ func New(host, basePath string, schemes []string) *Runtime {
 	return &rt
 }
 
-// NewWithClient allows you to create a new transport with a configured http.Client
+// NewWithClient allows you to create a new transport with a configured [http.Client].
 func NewWithClient(host, basePath string, schemes []string, client *http.Client) *Runtime {
 	rt := New(host, basePath, schemes)
 	if client != nil {
@@ -292,39 +294,45 @@ func NewWithClient(host, basePath string, schemes []string, client *http.Client)
 	return rt
 }
 
-func (r *Runtime) pickScheme(schemes []string) string {
-	if v := r.selectScheme(r.schemes); v != "" {
-		return v
-	}
-	if v := r.selectScheme(schemes); v != "" {
-		return v
-	}
-	return "http"
-}
-
-func (r *Runtime) selectScheme(schemes []string) string {
-	schLen := len(schemes)
-	if schLen == 0 {
-		return ""
-	}
-
-	scheme := schemes[0]
-	// prefer https, but skip when not possible
-	if scheme != "https" && schLen > 1 {
-		for _, sch := range schemes {
-			if sch == "https" {
-				scheme = sch
-				break
-			}
+// WithOpenTracing adds opentracing support to the provided runtime.
+// A new client span is created for each request.
+// If the context of the client operation does not contain an active span, no span is created.
+// The provided opts are applied to each spans - for example to add global tags.
+//
+// Deprecated: use [WithOpenTelemetry] instead, as opentracing is now archived and superseded by opentelemetry.
+//
+// # Deprecation notice
+//
+// The [Runtime.WithOpenTracing] method has been deprecated in favor of [Runtime.WithOpenTelemetry].
+//
+// The method is still around so programs calling it will still build. However, it will return
+// an opentelemetry transport.
+//
+// If you have a strict requirement on using opentracing, you may still do so by importing
+// module [github.com/go-openapi/runtime/client-[middleware]/opentracing] and using
+// [github.com/go-openapi/runtime/client-[middleware]/opentracing.WithOpenTracing] with your
+// usual opentracing options and opentracing-enabled transport.
+//
+// Passed options are ignored unless they are of type [OpenTelemetryOpt].
+func (r *Runtime) WithOpenTracing(opts ...any) runtime.ClientTransport {
+	otelOpts := make([]OpenTelemetryOpt, 0, len(opts))
+	for _, o := range opts {
+		otelOpt, ok := o.(OpenTelemetryOpt)
+		if !ok {
+			continue
 		}
+		otelOpts = append(otelOpts, otelOpt)
 	}
-	return scheme
+
+	return r.WithOpenTelemetry(otelOpts...)
 }
-func transportOrDefault(left, right http.RoundTripper) http.RoundTripper {
-	if left == nil {
-		return right
-	}
-	return left
+
+// WithOpenTelemetry adds opentelemetry support to the provided runtime.
+// A new client span is created for each request.
+// If the context of the client operation does not contain an active span, no span is created.
+// The provided opts are applied to each spans - for example to add global tags.
+func (r *Runtime) WithOpenTelemetry(opts ...OpenTelemetryOpt) runtime.ClientTransport {
+	return newOpenTelemetryTransport(r, r.Host, opts)
 }
 
 // EnableConnectionReuse drains the remaining body from a response
@@ -332,7 +340,7 @@ func transportOrDefault(left, right http.RoundTripper) http.RoundTripper {
 //
 // This is not enabled by default because there are servers where
 // the response never gets closed and that would make the code hang forever.
-// So instead it's provided as a http client middleware that can be used to override
+// So instead it's provided as a [http] client [middleware] that can be used to override
 // any request.
 func (r *Runtime) EnableConnectionReuse() {
 	if r.client == nil {
@@ -349,52 +357,20 @@ func (r *Runtime) EnableConnectionReuse() {
 	)
 }
 
+func (r *Runtime) CreateHttpRequest(operation *runtime.ClientOperation) (req *http.Request, err error) { //nolint:revive
+	_, req, err = r.createHttpRequest(operation)
+	return
+}
+
 // Submit a request and when there is a body on success it will turn that into the result
-// all other things are turned into an api error for swagger which retains the status code
-func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error) {
-	params, readResponse, auth := operation.Params, operation.Reader, operation.AuthInfo
+// all other things are turned into an api error for swagger which retains the status code.
+func (r *Runtime) Submit(operation *runtime.ClientOperation) (any, error) {
+	_, readResponse, _ := operation.Params, operation.Reader, operation.AuthInfo
 
-	request, err := newRequest(operation.Method, operation.PathPattern, params)
+	request, req, err := r.createHttpRequest(operation)
 	if err != nil {
 		return nil, err
 	}
-
-	var accept []string
-	accept = append(accept, operation.ProducesMediaTypes...)
-	if err = request.SetHeaderParam(runtime.HeaderAccept, accept...); err != nil {
-		return nil, err
-	}
-
-	if auth == nil && r.DefaultAuthentication != nil {
-		auth = r.DefaultAuthentication
-	}
-	//if auth != nil {
-	//	if err := auth.AuthenticateRequest(request, r.Formats); err != nil {
-	//		return nil, err
-	//	}
-	//}
-
-	// TODO: pick appropriate media type
-	cmt := r.DefaultMediaType
-	for _, mediaType := range operation.ConsumesMediaTypes {
-		// Pick first non-empty media type
-		if mediaType != "" {
-			cmt = mediaType
-			break
-		}
-	}
-
-	if _, ok := r.Producers[cmt]; !ok && cmt != runtime.MultipartFormMime && cmt != runtime.URLencodedFormMime {
-		return nil, fmt.Errorf("none of producers: %v registered. try %s", r.Producers, cmt)
-	}
-
-	req, err := request.buildHTTP(cmt, r.BasePath, r.Producers, r.Formats, auth)
-	if err != nil {
-		return nil, err
-	}
-	req.URL.Scheme = r.pickScheme(operation.Schemes)
-	req.URL.Host = r.Host
-	req.Host = r.Host
 
 	r.clientOnce.Do(func() {
 		r.client = &http.Client{
@@ -411,27 +387,36 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 		r.logger.Debugf("%s\n", string(b))
 	}
 
-	var hasTimeout bool
-	pctx := operation.Context
-	if pctx == nil {
-		pctx = r.Context
-	} else {
-		hasTimeout = true
+	var parentCtx context.Context
+	switch {
+	case operation.Context != nil:
+		parentCtx = operation.Context
+	case r.Context != nil:
+		parentCtx = r.Context
+	default:
+		parentCtx = context.Background()
 	}
-	if pctx == nil {
-		pctx = context.Background()
-	}
-	var ctx context.Context
-	var cancel context.CancelFunc
-	if hasTimeout {
-		ctx, cancel = context.WithCancel(pctx)
+
+	var (
+		ctx    context.Context
+		cancel context.CancelFunc
+	)
+	if request.timeout == 0 {
+		// There may be a deadline in the context passed to the operation.
+		// Otherwise, there is no timeout set.
+		ctx, cancel = context.WithCancel(parentCtx)
 	} else {
-		ctx, cancel = context.WithTimeout(pctx, request.timeout)
+		// Sets the timeout passed from request params (by default runtime.DefaultTimeout).
+		// If there is already a deadline in the parent context, the shortest will
+		// apply.
+		ctx, cancel = context.WithTimeout(parentCtx, request.timeout)
 	}
 	defer cancel()
 
-	client := operation.Client
-	if client == nil {
+	var client *http.Client
+	if operation.Client != nil {
+		client = operation.Client
+	} else {
 		client = r.client
 	}
 	req = req.WithContext(ctx)
@@ -441,17 +426,21 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 	}
 	defer res.Body.Close()
 
+	ct := res.Header.Get(runtime.HeaderContentType)
+	if ct == "" { // this should really never occur
+		ct = r.DefaultMediaType
+	}
+
 	if r.Debug {
-		b, err2 := httputil.DumpResponse(res, true)
+		printBody := true
+		if ct == runtime.DefaultMime {
+			printBody = false // Spare the terminal from a binary blob.
+		}
+		b, err2 := httputil.DumpResponse(res, printBody)
 		if err2 != nil {
 			return nil, err2
 		}
 		r.logger.Debugf("%s\n", string(b))
-	}
-
-	ct := res.Header.Get(runtime.HeaderContentType)
-	if ct == "" { // this should really really never occur
-		ct = r.DefaultMediaType
 	}
 
 	mt, _, err := mime.ParseMediaType(ct)
@@ -466,7 +455,7 @@ func (r *Runtime) Submit(operation *runtime.ClientOperation) (interface{}, error
 			return nil, fmt.Errorf("no consumer: %q", ct)
 		}
 	}
-	return readResponse.ReadResponse(response{res}, cons)
+	return readResponse.ReadResponse(r.response(res), cons)
 }
 
 // SetDebug changes the debug flag.
@@ -481,4 +470,107 @@ func (r *Runtime) SetDebug(debug bool) {
 func (r *Runtime) SetLogger(logger logger.Logger) {
 	r.logger = logger
 	middleware.Logger = logger
+}
+
+type ClientResponseFunc = func(*http.Response) runtime.ClientResponse //nolint:revive
+
+// SetResponseReader changes the response reader implementation.
+func (r *Runtime) SetResponseReader(f ClientResponseFunc) {
+	if f == nil {
+		return
+	}
+	r.response = f
+}
+
+func (r *Runtime) pickScheme(schemes []string) string {
+	if v := r.selectScheme(r.schemes); v != "" {
+		return v
+	}
+	if v := r.selectScheme(schemes); v != "" {
+		return v
+	}
+	return schemeHTTP
+}
+
+func (r *Runtime) selectScheme(schemes []string) string {
+	schLen := len(schemes)
+	if schLen == 0 {
+		return ""
+	}
+
+	scheme := schemes[0]
+	// prefer https, but skip when not possible
+	if scheme != schemeHTTPS && schLen > 1 {
+		for _, sch := range schemes {
+			if sch == schemeHTTPS {
+				scheme = sch
+				break
+			}
+		}
+	}
+	return scheme
+}
+
+func transportOrDefault(left, right http.RoundTripper) http.RoundTripper {
+	if left == nil {
+		return right
+	}
+	return left
+}
+
+// takes a client operation and creates equivalent http.Request.
+func (r *Runtime) createHttpRequest(operation *runtime.ClientOperation) (*request, *http.Request, error) { //nolint:revive
+	params, _, auth := operation.Params, operation.Reader, operation.AuthInfo
+
+	request := newRequest(operation.Method, operation.PathPattern, params)
+
+	accept := make([]string, 0, len(operation.ProducesMediaTypes))
+	accept = append(accept, operation.ProducesMediaTypes...)
+	if err := request.SetHeaderParam(runtime.HeaderAccept, accept...); err != nil {
+		return nil, nil, err
+	}
+
+	if auth == nil && r.DefaultAuthentication != nil {
+		auth = runtime.ClientAuthInfoWriterFunc(func(req runtime.ClientRequest, reg strfmt.Registry) error {
+			if req.GetHeaderParams().Get(runtime.HeaderAuthorization) != "" {
+				return nil
+			}
+			return r.DefaultAuthentication.AuthenticateRequest(req, reg)
+		})
+	}
+	// if auth != nil {
+	//	if err := auth.AuthenticateRequest(request, r.Formats); err != nil {
+	//		return nil, err
+	//	}
+	//}
+
+	// Enhancement proposal: https://github.com/go-openapi/runtime/issues/386
+	cmt := r.DefaultMediaType
+	for _, mediaType := range operation.ConsumesMediaTypes {
+		// Pick first non-empty media type
+		if mediaType != "" {
+			cmt = mediaType
+			break
+		}
+	}
+
+	if _, ok := r.Producers[cmt]; !ok && cmt != runtime.MultipartFormMime && cmt != runtime.URLencodedFormMime {
+		return nil, nil, fmt.Errorf("none of producers: %v registered. try %s", r.Producers, cmt)
+	}
+
+	req, err := request.buildHTTP(cmt, r.BasePath, r.Producers, r.Formats, auth)
+	if err != nil {
+		return nil, nil, err
+	}
+	req.URL.Scheme = r.pickScheme(operation.Schemes)
+	req.URL.Host = r.Host
+	req.Host = r.Host
+	return request, req, nil
+}
+
+func basePool(pool *x509.CertPool) *x509.CertPool {
+	if pool == nil {
+		return x509.NewCertPool()
+	}
+	return pool
 }
