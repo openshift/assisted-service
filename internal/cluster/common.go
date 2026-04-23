@@ -188,32 +188,18 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func HostsInStatus(c *common.Cluster, statuses []string) (int, int) {
-	mappedMastersByRole := mapHostsByStatus(c, models.HostRoleMaster)
-	mappedWorkersByRole := mapHostsByStatus(c, models.HostRoleWorker)
-	mastersInSomeInstallingStatus := 0
-	workersInSomeInstallingStatus := 0
-
-	for _, status := range statuses {
-		mastersInSomeInstallingStatus += len(mappedMastersByRole[status])
-		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
-	}
-	return mastersInSomeInstallingStatus, workersInSomeInstallingStatus
-}
-
-func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
+func HostsInStatus(c *common.Cluster, statuses []string) (masters, workers int) {
 	for _, host := range c.Hosts {
-		if role != "" && common.GetEffectiveRole(host) != role {
-			continue
-		}
-		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
-			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
-		} else {
-			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
+		if funk.ContainsString(statuses, swag.StringValue(host.Status)) {
+			switch common.GetEffectiveRole(host) {
+			case models.HostRoleMaster, models.HostRoleBootstrap:
+				masters++
+			case models.HostRoleWorker:
+				workers++
+			}
 		}
 	}
-	return hostMap
+	return
 }
 
 func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork []string) error {
