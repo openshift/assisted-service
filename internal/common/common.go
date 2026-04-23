@@ -740,3 +740,49 @@ func IsMirrorConfigurationSet(conf *MirrorRegistryConfiguration) bool {
 
 	return false
 }
+
+func HostsInStatus(c *Cluster, statuses []string) (masters, workers int) {
+	for _, host := range c.Hosts {
+		if funk.ContainsString(statuses, swag.StringValue(host.Status)) {
+			switch GetEffectiveRole(host) {
+			case models.HostRoleMaster, models.HostRoleBootstrap:
+				masters++
+			case models.HostRoleWorker:
+				workers++
+			}
+		}
+	}
+	return
+}
+
+// enoughMastersAndWorkers returns whether the number of master and worker nodes in the specified cluster with the given status
+// meets the required criteria. The conditions are as follows:
+//   - For SNO (Single Node OpenShift), there must be exactly one master node and zero worker nodes.
+//   - For High Availability cluster, the number of master nodes should match the user's request, and not less than the minimum. The worker node requirement depends on this request:
+//     If the user requested at least two workers, there must be at least two, indicating non-schedulable masters were intended.
+//     If the user requested fewer than two workers, any number of workers is acceptable.
+func HasEnoughMastersAndWorkers(c *Cluster, statuses []string) bool {
+	mastersInStatus, workersInStatus := HostsInStatus(c, statuses)
+
+	if swag.StringValue(c.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		return mastersInStatus == AllowedNumberOfMasterHostsInNoneHaMode &&
+			workersInStatus == AllowedNumberOfWorkersInNoneHaMode
+	}
+
+	// hosts roles are known at this stage
+	masters, workers, _ := GetHostsByEachRole(&c.Cluster, false)
+	numberOfExpectedMasters := len(masters)
+
+	// validate masters
+	if numberOfExpectedMasters < MinMasterHostsNeededForInstallationInHaMode ||
+		mastersInStatus < numberOfExpectedMasters {
+		return false
+	}
+
+	numberOfExpectedWorkers := len(workers)
+
+	// validate workers
+	return numberOfExpectedWorkers < MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode ||
+		numberOfExpectedWorkers >= MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode &&
+			workersInStatus >= MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
+}
