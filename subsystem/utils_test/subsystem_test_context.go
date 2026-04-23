@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -542,12 +543,48 @@ func (t *SubsystemTestContext) GetCommonCluster(ctx context.Context, clusterID s
 	return &cluster
 }
 
-func (t *SubsystemTestContext) WaitForLastInstallationCompletionStatus(clusterID strfmt.UUID, status string) {
+func (t *SubsystemTestContext) WaitForLastInstallationCompletionStatus(clusterID strfmt.UUID, wantStatus string) {
+	debugProgress := os.Getenv("SUBSYSTEM_DEBUG_LAST_INSTALL_PREP") != ""
+	var lastHeartbeat time.Time
+	var prevClusterStatus, prevPrepStatus, prevPrepReason string
+
 	waitFunc := func(ctx context.Context) (bool, error) {
 		c := t.GetCommonCluster(ctx, clusterID)
-		return c.LastInstallationPreparation.Status == status, nil
+		clusterStatus := swag.StringValue(c.Status)
+		prepStatus := c.LastInstallationPreparation.Status
+		prepReason := c.LastInstallationPreparation.Reason
+		now := time.Now()
+
+		changed := clusterStatus != prevClusterStatus || prepStatus != prevPrepStatus || prepReason != prevPrepReason
+		if changed {
+			prevClusterStatus, prevPrepStatus, prevPrepReason = clusterStatus, prepStatus, prepReason
+			if debugProgress {
+				line := fmt.Sprintf("[last_install_prep] cluster=%s cluster_status=%s prep_status=%q prep_reason=%q want_prep_status=%q",
+					clusterID, clusterStatus, prepStatus, prepReason, wantStatus)
+				t.log.Info(line)
+				_, _ = fmt.Fprintln(GinkgoWriter, line)
+			}
+			lastHeartbeat = now
+		} else if debugProgress && (lastHeartbeat.IsZero() || now.Sub(lastHeartbeat) >= 3*time.Second) {
+			line := fmt.Sprintf("[last_install_prep] cluster=%s cluster_status=%s prep_status=%q prep_reason=%q want_prep_status=%q (heartbeat)",
+				clusterID, clusterStatus, prepStatus, prepReason, wantStatus)
+			t.log.Info(line)
+			_, _ = fmt.Fprintln(GinkgoWriter, line)
+			lastHeartbeat = now
+		}
+
+		return prepStatus == wantStatus, nil
 	}
 	err := wait.PollUntilContextTimeout(context.Background(), t.pollDefaultInterval, t.pollDefaultTimeout, false, waitFunc)
+	if err != nil {
+		c := t.GetCommonCluster(context.Background(), clusterID)
+		msg := fmt.Sprintf("[last_install_prep] poll failed: %v; cluster=%s cluster_status=%s prep_status=%q prep_reason=%q openshift_cluster_id=%s ams_subscription_console_url_set=%v want_prep_status=%q",
+			err, clusterID, swag.StringValue(c.Status),
+			c.LastInstallationPreparation.Status, c.LastInstallationPreparation.Reason,
+			c.OpenshiftClusterID.String(), c.IsAmsSubscriptionConsoleUrlSet, wantStatus)
+		t.log.Error(msg)
+		_, _ = fmt.Fprintln(GinkgoWriter, msg)
+	}
 	Expect(err).NotTo(HaveOccurred())
 }
 

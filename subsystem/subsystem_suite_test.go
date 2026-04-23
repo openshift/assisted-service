@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -19,7 +20,6 @@ import (
 	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
-	dbpkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/subsystem/utils_test"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
@@ -33,10 +33,10 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.11"
-var snoVersion string = "4.11"
-var multiarchOpenshiftVersion string = "4.11.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.13.0"
+var openshiftVersion string = "4.14"
+var snoVersion string = "4.14"
+var multiarchOpenshiftVersion string = "4.14.0-multi"
+var dualstackVipsOpenShiftVersion string = "4.14.0"
 var VipAutoAllocOpenshiftVersion string = "4.14.0"
 var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
@@ -112,7 +112,8 @@ func init() {
 		log.Fatal(err.Error())
 	}
 
-	db, err := gorm.Open(postgres.Open(dbpkg.LibpqDSN(Options.DBHost, Options.DBPort, "admin", "admin", "installer")), &gorm.Config{})
+	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=%s port=%s user=admin database=installer password=admin sslmode=disable",
+		Options.DBHost, Options.DBPort)), &gorm.Config{})
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
 	}

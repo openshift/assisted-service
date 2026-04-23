@@ -77,7 +77,7 @@ const (
 	WrongPullSecret                      string      = "wrong_secret"
 	OrgId1                               string      = "1010101"
 	OrgId2                               string      = "2020202"
-	FakeSubscriptionID strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
+	FakeSubscriptionID                   strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
 )
 
 var (
@@ -294,12 +294,10 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateDisplayName:
 
 		type subscriptionUpdateRequest struct {
-			Kind        string `json:"kind"`
 			DisplayName string `json:"display_name"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
-			Kind:        "Subscription",
 			DisplayName: "${json-unit.any-string}",
 		}
 
@@ -326,12 +324,10 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateConsoleUrl:
 
 		type subscriptionUpdateRequest struct {
-			Kind       string `json:"kind"`
 			ConsoleUrl string `json:"console_url"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
-			Kind:       "Subscription",
 			ConsoleUrl: "${json-unit.any-string}",
 		}
 
@@ -358,12 +354,10 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateOpenshiftClusterID:
 
 		type subscriptionUpdateRequest struct {
-			Kind              string `json:"kind"`
-			ExternalClusterID string `json:"external_cluster_id"`
+			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
-			Kind:              "Subscription",
 			ExternalClusterID: "${json-unit.any-string}",
 		}
 
@@ -390,12 +384,10 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 	case SubscriptionUpdateStatusActive:
 
 		type subscriptionUpdateRequest struct {
-			Kind   string `json:"kind"`
 			Status string `json:"status"`
 		}
 
 		subRequest := subscriptionUpdateRequest{
-			Kind:   "Subscription",
 			Status: ocm.SubscriptionStatusActive,
 		}
 
