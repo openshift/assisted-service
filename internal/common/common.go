@@ -912,3 +912,65 @@ func ValidateClusterSupportsFencingCredentials(cluster *Cluster) error {
 
 	return nil
 }
+
+func HostsInStatus(c *Cluster, statuses []string) (masters, arbiters, workers int) {
+	for _, host := range c.Hosts {
+		if funk.ContainsString(statuses, swag.StringValue(host.Status)) {
+			switch GetEffectiveRole(host) {
+			case models.HostRoleMaster, models.HostRoleBootstrap:
+				masters++
+			case models.HostRoleArbiter:
+				arbiters++
+			case models.HostRoleWorker:
+				workers++
+			}
+		}
+	}
+	return
+}
+
+// HasEnoughMastersAndWorkers returns whether the number of master and worker nodes in the specified cluster with the given status
+// meets the required criteria. The conditions are as follows:
+//   - For SNO (Single Node OpenShift), there must be exactly one master node and zero worker nodes.
+//   - For High Availability cluster, the number of master nodes should match the user's request, and not less than the minimum. The worker node requirement depends on this request:
+//     If the user requested at least two workers, there must be at least two, indicating non-schedulable masters were intended.
+//     If the user requested fewer than two workers, any number of workers is acceptable.
+//   - For TNA Clusters the same conditions apply as for High Availability Clusters, but we also need to check that at least one arbiter node is in the correct status.
+func HasEnoughMastersAndWorkers(c *Cluster, statuses []string) bool {
+	mastersInStatus, arbitersInStatus, workersInStatus := HostsInStatus(c, statuses)
+
+	if c.ControlPlaneCount == 1 {
+		return mastersInStatus == AllowedNumberOfMasterHostsInNoneHaMode &&
+			workersInStatus == AllowedNumberOfWorkersInNoneHaMode
+	}
+
+	// hosts roles are known at this stage
+	masters, arbiters, workers, _ := GetHostsByEachRole(&c.Cluster, false)
+	numberOfExpectedMasters := len(masters)
+	numberOfExpectedArbiters := len(arbiters)
+
+	minMasterHostsNeeded := MinMasterHostsNeededForInstallationInHaMode
+	if numberOfExpectedArbiters != 0 {
+		minMasterHostsNeeded = MinMasterHostsNeededForInstallationInHaArbiterMode
+		// validate arbiters
+		if arbitersInStatus == 0 {
+			return false
+		}
+	}
+	if IsClusterTopologyTwoNodesWithFencing(c) {
+		minMasterHostsNeeded = AllowedNumberOfMasterHostsInTwoNodesWithFencing
+	}
+
+	// validate masters
+	if numberOfExpectedMasters < minMasterHostsNeeded ||
+		mastersInStatus < numberOfExpectedMasters {
+		return false
+	}
+
+	numberOfExpectedWorkers := len(workers)
+
+	// validate workers
+	return numberOfExpectedWorkers < MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode ||
+		numberOfExpectedWorkers >= MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode &&
+			workersInStatus >= MinimumNumberOfWorkersForNonSchedulableMastersClusterInHaMode
+}
