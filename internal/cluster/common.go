@@ -232,10 +232,6 @@ func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*mod
 	return hostMap
 }
 
-func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, "")
-}
-
 func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork []string) error {
 	if len(machineNetwork) > 2 {
 		return common.NewApiError(http.StatusInternalServerError,
