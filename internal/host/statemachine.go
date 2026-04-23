@@ -888,12 +888,15 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingPendingUserAction)},
-		Condition:        th.HasPendingUserActionTimedOut,
+		Condition: stateswitch.And(
+			th.HasPendingUserActionTimedOut,
+			th.ClusterWouldSucceedWithoutHost,
+		),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoPendingUserActionTimeout),
 		Documentation: stateswitch.TransitionRuleDoc{
-			Name:        "Host pending user action timeout",
-			Description: "When a host is in installing-pending-user-action state for too long without recovery, transition to error state. This allows clusters to succeed if they have sufficient remaining hosts (e.g., workers can fail as long as minimum count is met).",
+			Name:        "Host pending user action timeout with cluster viability check",
+			Description: "When a host is in installing-pending-user-action state for too long without recovery, transition to error state ONLY if the cluster can still succeed without this host. This prevents timing out hosts that are required for cluster success (e.g., masters in a 3-node cluster), giving users more time to fix boot order issues for critical hosts.",
 		},
 	})
 
