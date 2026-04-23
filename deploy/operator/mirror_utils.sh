@@ -29,7 +29,7 @@ function mirror_package() {
   local_registry_index_tag="${local_registry}/olm-index/${local_index_name}"
   local_registry_image_tag="${local_registry}/olm"
 
-  opm index prune \
+  opm-rhel8 index prune \
         --from-index "${remote_index}" \
         --packages "${package}" \
         --tag "${local_registry_index_tag}"
@@ -145,7 +145,7 @@ function merge_authfiles() {
 }
 
 function install_opm() {
-  curl -L --retry 5 --connect-timeout 30 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.7/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
+  curl -L --retry 5 --connect-timeout 30 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.19/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
 }
 
 function ocp_mirror_release() {
