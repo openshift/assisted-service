@@ -35,6 +35,21 @@ func (m *MockTransitionHandler) EXPECT() *MockTransitionHandlerMockRecorder {
 	return m.recorder
 }
 
+// ClusterWouldSucceedWithoutHost mocks base method.
+func (m *MockTransitionHandler) ClusterWouldSucceedWithoutHost(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterWouldSucceedWithoutHost", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClusterWouldSucceedWithoutHost indicates an expected call of ClusterWouldSucceedWithoutHost.
+func (mr *MockTransitionHandlerMockRecorder) ClusterWouldSucceedWithoutHost(sw, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterWouldSucceedWithoutHost", reflect.TypeOf((*MockTransitionHandler)(nil).ClusterWouldSucceedWithoutHost), sw, arg1)
+}
+
 // HasClusterError mocks base method.
 func (m *MockTransitionHandler) HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
