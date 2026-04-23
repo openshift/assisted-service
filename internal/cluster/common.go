@@ -189,9 +189,9 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 }
 
 func HostsInStatus(c *common.Cluster, statuses []string) (int, int, int) {
-	mappedMastersByRole := MapMasterHostsByStatus(c)
-	mappedArbitersByRole := MapArbiterHostsByStatus(c)
-	mappedWorkersByRole := MapWorkersHostsByStatus(c)
+	mappedMastersByRole := mapHostsByStatus(c, models.HostRoleMaster)
+	mappedArbitersByRole := mapHostsByStatus(c, models.HostRoleArbiter)
+	mappedWorkersByRole := mapHostsByStatus(c, models.HostRoleWorker)
 	mastersInSomeInstallingStatus := 0
 	arbitersInSomeInstallingStatus := 0
 	workersInSomeInstallingStatus := 0
@@ -202,18 +202,6 @@ func HostsInStatus(c *common.Cluster, statuses []string) (int, int, int) {
 		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
 	}
 	return mastersInSomeInstallingStatus, arbitersInSomeInstallingStatus, workersInSomeInstallingStatus
-}
-
-func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleMaster)
-}
-
-func MapArbiterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleArbiter)
-}
-
-func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleWorker)
 }
 
 func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
