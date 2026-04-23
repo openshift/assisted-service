@@ -17,8 +17,14 @@ import (
 // swagger:model operator-create-params
 type OperatorCreateParams struct {
 
+	// Enable AMD GPU support. Applies only to the openshift-ai operator.
+	AmdEnabled *bool `json:"amd_enabled,omitempty"`
+
 	// name
 	Name string `json:"name,omitempty"`
+
+	// Enable NVIDIA GPU support. Applies only to the openshift-ai operator.
+	NvidiaEnabled *bool `json:"nvidia_enabled,omitempty"`
 
 	// Blob of operator-dependent parameters that are required for installation.
 	Properties string `json:"properties,omitempty" gorm:"type:text"`

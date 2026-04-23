@@ -117,6 +117,40 @@ infra_env_id = infra_env["id"]
 print(f"infra_env_id: {infra_env_id}")
 ```
 
+### GPU Vendor Selection
+
+OpenShift AI supports both NVIDIA and AMD GPU operators. By default both are included. You can
+control which GPU vendors to install using the `nvidia_enabled` and `amd_enabled` fields on the
+operator entry:
+
+- Both fields default to `true` — omitting them keeps the existing behavior unchanged.
+- Setting `nvidia_enabled: false` excludes the NVIDIA GPU operator and its exclusive dependencies.
+- Setting `amd_enabled: false` excludes the AMD GPU operator and its exclusive dependencies.
+- Setting both to `false` installs OpenShift AI without any GPU operator.
+
+This applies to both cluster creation (`POST /v2/clusters`) and cluster updates
+(`PATCH /v2/clusters/{cluster_id}`):
+
+```json
+{
+  "olm_operators": [
+    {
+      "name": "openshift-ai",
+      "nvidia_enabled": true,
+      "amd_enabled": false
+    }
+  ]
+}
+```
+
+To preview which operators would be included before creating a cluster, use the bundle endpoints
+with the same parameters:
+
+```
+GET /v2/operators/bundles/openshift-ai?nvidia_enabled=true&amd_enabled=false
+GET /v2/operators/bundles?nvidia_enabled=true&amd_enabled=false
+```
+
 Once the cluster and the _OpenShift API_ operator are installed you will need to enable the
 components that you want to use as explained in the [installation
 guide](https://docs.redhat.com/en/documentation/red_hat_openshift_ai_self-managed/2.13/html/installing_and_uninstalling_openshift_ai_self-managed/installing-and-deploying-openshift-ai_install#installing-and-managing-openshift-ai-components_component-install).
