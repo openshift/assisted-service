@@ -20,9 +20,6 @@ import (
 )
 
 type StubDefinition struct {
-	// Priority controls tie-breaking when multiple stubs match the same request.
-	// WireMock defaults to 5; 1 is highest precedence (see https://wiremock.org/docs/stubbing/).
-	Priority int                 `json:"priority,omitempty"`
 	Request  *RequestDefinition  `json:"request"`
 	Response *ResponseDefinition `json:"response"`
 }
@@ -86,12 +83,6 @@ const (
 var (
 	subscriptionPath string = filepath.Join(SubscriptionPrefix, FakeSubscriptionID.String())
 )
-
-func setWiremockStubPriorityIfError(stub *StubDefinition, resStatus int) {
-	if resStatus != http.StatusOK {
-		stub.Priority = 1
-	}
-}
 
 // subscriptionPatchWiremockResponse builds PATCH stub bodies: success uses subscription JSON; HTTP errors use
 // ocm-sdk Error JSON so UnmarshalErrorStatus succeeds (subscription-shaped 401 bodies break parsing and UTF-8 DB writes).
@@ -244,10 +235,22 @@ func (w *WireMock) CreateStubsForCapabilityReview() error {
 	if _, err := w.CreateStubIgnoreValidationsCapabilityReview(FakePayloadUsername2, OrgId2, true); err != nil {
 		return err
 	}
+	if _, err := w.CreateStubSoftTimeoutsOrgCapabilityReview(FakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubSoftTimeoutsOrgCapabilityReview(FakePayloadUsername2, OrgId2, false); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubSoftTimeoutsOrgCapabilityReview(FakePayloadClusterEditor, OrgId1, false); err != nil {
+		return err
+	}
 	if _, err := w.CreateStubAccountsMgmt(FakePayloadUsername, OrgId1); err != nil {
 		return err
 	}
 	if _, err := w.CreateStubAccountsMgmt(FakePayloadUsername2, OrgId2); err != nil {
+		return err
+	}
+	if _, err := w.CreateStubAccountsMgmt(FakePayloadClusterEditor, OrgId1); err != nil {
 		return err
 	}
 	return nil
@@ -300,7 +303,6 @@ func (w *WireMock) CreateStubsForCreatingAMSSubscription(resStatus int) error {
 	}
 
 	amsSubscriptionStub := w.CreateStubDefinition(ClusterAuthzPath, "POST", string(reqBody), string(resBody), resStatus)
-	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -319,7 +321,6 @@ func (w *WireMock) CreateStubsForGettingAMSSubscription(resStatus int, status st
 	}
 
 	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
-	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -354,7 +355,6 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
-		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -384,7 +384,6 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
-		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -418,7 +417,6 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 				},
 			},
 		}
-		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -448,7 +446,6 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
-		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -461,7 +458,6 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 func (w *WireMock) CreateStubsForDeletingAMSSubscription(resStatus int) error {
 
 	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
-	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err := w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -541,6 +537,31 @@ func (w *WireMock) CreateStubIgnoreValidationsCapabilityReview(username string, 
 
 	capabilityRequest := CapabilityRequest{
 		Name:     ocm.IgnoreValidationsCapabilityName,
+		Type:     ocm.OrganizationCapabilityType,
+		Username: username,
+		Org:      orgId,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Result: strconv.FormatBool(result),
+	}
+	return w.AddCapabilityReviewStub(capabilityRequest, capabilityResponse)
+}
+
+func (w *WireMock) CreateStubSoftTimeoutsOrgCapabilityReview(username string, orgId string, result bool) (string, error) {
+	type CapabilityRequest struct {
+		Name     string `json:"capability"`
+		Type     string `json:"type"`
+		Username string `json:"account_username"`
+		Org      string `json:"organization_id"`
+	}
+
+	type CapabilityResponse struct {
+		Result string `json:"result"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Name:     ocm.SoftTimeoutsCapabilityName,
 		Type:     ocm.OrganizationCapabilityType,
 		Username: username,
 		Org:      orgId,
