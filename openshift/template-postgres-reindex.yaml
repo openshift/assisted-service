@@ -1,0 +1,124 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+metadata:
+  name: postgres-reindex
+objects:
+- apiVersion: batch/v1
+  kind: CronJob
+  metadata:
+    name: postgres-reindex
+  spec:
+    schedule: "${SCHEDULE}"
+    concurrencyPolicy: Forbid
+    successfulJobsHistoryLimit: 3
+    failedJobsHistoryLimit: 3
+    jobTemplate:
+      spec:
+        activeDeadlineSeconds: 10800
+        backoffLimit: 2
+        ttlSecondsAfterFinished: 86400
+        template:
+          metadata:
+            labels:
+              app: postgres-reindex
+          spec:
+            serviceAccountName: postgres-maintenance
+            restartPolicy: Never
+            containers:
+            - name: postgres-reindex
+              image: quay.io/sclorg/postgresql-13-c9s
+              imagePullPolicy: IfNotPresent
+              resources:
+                requests:
+                  cpu: ${CPU_REQUEST}
+                  memory: ${MEMORY_REQUEST}
+                limits:
+                  cpu: ${CPU_LIMIT}
+                  memory: ${MEMORY_LIMIT}
+              env:
+              - name: PGHOST
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_SECRET_NAME}
+                    key: db.host
+              - name: PGPORT
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_SECRET_NAME}
+                    key: db.port
+              - name: PGDATABASE
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_SECRET_NAME}
+                    key: db.name
+              - name: PGUSER
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_SECRET_NAME}
+                    key: db.user
+              - name: PGPASSWORD
+                valueFrom:
+                  secretKeyRef:
+                    name: ${DB_SECRET_NAME}
+                    key: db.password
+              - name: PGSSLMODE
+                value: ${PG_SSLMODE}
+              command: ["/bin/sh", "-c"]
+              args:
+              - |
+
+                set -euxo pipefail
+
+                TARGET_TABLES="${TARGET_TABLES}"
+
+                echo "Starting reindex operation at $(date)"
+                echo "Database: $PGDATABASE on $PGHOST:$PGPORT"
+                echo "Target tables: $TARGET_TABLES"
+
+                # Test connection
+                if ! psql -c "SELECT version();" > /dev/null 2>&1; then
+                  echo "ERROR: Failed to connect to database"
+                  exit 1
+                fi
+
+                echo "Connection successful"
+
+                # Process each table
+                for TABLE in $TARGET_TABLES; do
+                  echo ""
+                  echo "=== Reindexing table $TABLE ==="
+                  START_TIME=$(date +%s)
+                  psql -c "REINDEX TABLE CONCURRENTLY public.\"$TABLE\";"
+                  END_TIME=$(date +%s)
+                  DURATION=$((END_TIME - START_TIME))
+                  echo "Table $TABLE reindexed successfully in ${DURATION} seconds"
+                done
+
+                echo ""
+                echo "Reindex operation completed successfully at $(date)"
+parameters:
+- name: DB_SECRET_NAME
+  description: Name of the secret containing database credentials
+  required: true
+- name: TARGET_TABLES
+  description: Space-separated list of tables to reindex
+  required: true
+- name: SCHEDULE
+  description: Cron schedule for the reindex job
+  value: "0 14 * * 4"
+- name: CPU_REQUEST
+  description: CPU request for the reindex container
+  value: 100m
+- name: CPU_LIMIT
+  description: CPU limit for the reindex container
+  value: 500m
+- name: MEMORY_REQUEST
+  description: Memory request for the reindex container
+  value: 256Mi
+- name: MEMORY_LIMIT
+  description: Memory limit for the reindex container
+  value: 512Mi
+- name: PG_SSLMODE
+  description: PostgreSQL SSL mode
+  value: require
+
