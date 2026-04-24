@@ -40,6 +40,9 @@ type SubsystemTestContext struct {
 	pollDefaultInterval          time.Duration
 	pollDefaultTimeout           time.Duration
 	vipAutoAllocOpenshiftVersion string
+	// ocmHostForWiremockJournal is the OCM API host (subsystem: same as inventory; usually WireMock). Used only
+	// for optional HTTP diagnostics from the test process; set via SetOCMHostForWiremockJournal from suite init.
+	ocmHostForWiremockJournal string
 }
 
 func NewSubsystemTestContext(
@@ -76,6 +79,15 @@ func NewSubsystemTestContext(
 
 func (t *SubsystemTestContext) GetDB() *gorm.DB {
 	return t.db
+}
+
+// SetOCMHostForWiremockJournal sets the host:port used to query WireMock's __admin request journal from tests
+// (must be reachable from the test runner; may differ from in-cluster DNS if tests run outside the cluster).
+func (t *SubsystemTestContext) SetOCMHostForWiremockJournal(host string) {
+	if t == nil {
+		return
+	}
+	t.ocmHostForWiremockJournal = host
 }
 
 func (t *SubsystemTestContext) RegisterHost(infraEnvID strfmt.UUID) *models.HostRegistrationResponse {
@@ -584,6 +596,27 @@ func (t *SubsystemTestContext) WaitForLastInstallationCompletionStatus(clusterID
 			c.OpenshiftClusterID.String(), c.IsAmsSubscriptionConsoleUrlSet, wantStatus)
 		t.log.Error(msg)
 		_, _ = fmt.Fprintln(GinkgoWriter, msg)
+		// When waiting for prep=failed (AMS negative tests) or SUBSYSTEM_DEBUG_AMS_WIREMOCK is set, dump recent
+		// WireMock PATCH /subscriptions journal. Host comes from suite SetOCMHostForWiremockJournal(Options.OCMHost)
+		// or SUBSYSTEM_OCM_HOST if the test runner cannot reach the default (e.g. use localhost:forwarded-port).
+		if os.Getenv("SUBSYSTEM_DEBUG_AMS_WIREMOCK") != "" || wantStatus == models.LastInstallationPreparationStatusFailed {
+			host := t.ocmHostForWiremockJournal
+			if host == "" {
+				host = os.Getenv("SUBSYSTEM_OCM_HOST")
+			}
+			if host != "" {
+				if dump, derr := FormatWiremockSubscriptionPatchJournal(host, 100); derr != nil {
+					t.log.Errorf("[last_install_prep] wiremock journal fetch error: %v", derr)
+					_, _ = fmt.Fprintf(GinkgoWriter, "[last_install_prep] wiremock journal fetch error: %v\n", derr)
+				} else if dump != "" {
+					t.log.Error("[last_install_prep] wiremock AMS PATCH journal:\n" + dump)
+					_, _ = fmt.Fprintln(GinkgoWriter, "[last_install_prep] wiremock AMS PATCH journal:")
+					_, _ = fmt.Fprintln(GinkgoWriter, dump)
+				}
+			} else {
+				_, _ = fmt.Fprintln(GinkgoWriter, "[last_install_prep] no OCM host for WireMock journal (Options.OCMHost unset and SUBSYSTEM_OCM_HOST unset); journal is fetched from the test process, not from assisted-service pods")
+			}
+		}
 	}
 	Expect(err).NotTo(HaveOccurred())
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -322,6 +323,14 @@ var _ = Describe("test AMS subscriptions", func() {
 				err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusUnauthorized, utils_test.SubscriptionUpdateOpenshiftClusterID)
 				Expect(err).ToNot(HaveOccurred())
 				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock stub: PATCH subscription openshift_cluster_id -> %d\n", http.StatusUnauthorized)
+				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock mapping id for that stub: %q\n", wiremock.LastCreatedMappingID())
+				if os.Getenv("SUBSYSTEM_DEBUG_AMS_WIREMOCK") != "" {
+					if j, je := utils_test.FormatWiremockSubscriptionPatchJournal(Options.OCMHost, 40); je != nil {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock journal (pre-install, debug): fetch err: %v\n", je)
+					} else {
+						_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock journal (pre-install, debug):\n%s", j)
+					}
+				}
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {

@@ -20,6 +20,9 @@ import (
 )
 
 type StubDefinition struct {
+	// Priority controls tie-breaking when multiple stubs match the same request.
+	// WireMock defaults to 5; 1 is highest precedence (see https://wiremock.org/docs/stubbing/).
+	Priority int                 `json:"priority,omitempty"`
 	Request  *RequestDefinition  `json:"request"`
 	Response *ResponseDefinition `json:"response"`
 }
@@ -42,9 +45,10 @@ type Mapping struct {
 }
 
 type WireMock struct {
-	OCMHost        string
-	TestToken      string
-	ReleaseSources models.ReleaseSources
+	OCMHost              string
+	TestToken            string
+	ReleaseSources       models.ReleaseSources
+	lastCreatedMappingID string
 }
 
 type subscription struct {
@@ -83,6 +87,112 @@ const (
 var (
 	subscriptionPath string = filepath.Join(SubscriptionPrefix, FakeSubscriptionID.String())
 )
+
+func setWiremockStubPriorityIfError(stub *StubDefinition, resStatus int) {
+	if resStatus != http.StatusOK {
+		stub.Priority = 1
+	}
+}
+
+// subscriptionPatchWiremockResponse returns the WireMock response body for AMS subscription PATCH stubs.
+// For HTTP status >= 400 the JSON must match what ocm-sdk-go/errors.UnmarshalErrorStatus expects (Error kind,
+// numeric status field, etc.). Returning a Subscription-shaped JSON with 401 breaks parsing and produces error
+// strings containing invalid UTF-8; persisting those as last_installation_preparation_reason then fails on PostgreSQL.
+func subscriptionPatchWiremockResponse(resStatus int, ok subscription) (string, error) {
+	if resStatus >= http.StatusBadRequest {
+		payload := struct {
+			Kind   string `json:"kind"`
+			ID     string `json:"id"`
+			Href   string `json:"href"`
+			Code   string `json:"code"`
+			Reason string `json:"reason"`
+			Status int    `json:"status"`
+		}{
+			Kind:   "Error",
+			ID:     "subsystem-wiremock",
+			Href:   "/api/accounts_mgmt/v1/errors/subsystem-wiremock",
+			Code:   "SUBSCRIPTION_UPDATE_FAILED",
+			Reason: "WireMock simulated subscription PATCH failure (subsystem)",
+			Status: resStatus,
+		}
+		b, err := json.Marshal(payload)
+		return string(b), err
+	}
+	b, err := json.Marshal(ok)
+	return string(b), err
+}
+
+// LastCreatedMappingID returns the id from the most recent successful AddStub call (subsystem tests are single-threaded).
+func (w *WireMock) LastCreatedMappingID() string {
+	if w == nil {
+		return ""
+	}
+	return w.lastCreatedMappingID
+}
+
+// FormatWiremockSubscriptionPatchJournal returns recent WireMock request journal entries for AMS subscription PATCH calls.
+// Set SUBSYSTEM_OCM_HOST to the same host the deployed inventory uses for OCM (e.g. wiremock:8080).
+func FormatWiremockSubscriptionPatchJournal(ocmHost string, limit int) (string, error) {
+	if ocmHost == "" {
+		return "", nil
+	}
+	u := fmt.Sprintf("http://%s/__admin/requests?limit=%d", ocmHost, limit)
+	resp, err := http.Get(u)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var root map[string]any
+	if err := json.Unmarshal(body, &root); err != nil {
+		return fmt.Sprintf("(journal JSON parse error: %v; raw_len=%d)", err, len(body)), nil
+	}
+	reqs, _ := root["requests"].([]any)
+	var b strings.Builder
+	_, _ = b.WriteString(fmt.Sprintf("wiremock request journal (limit=%d, total meta=%v)\n", limit, root["meta"]))
+	found := false
+	for _, r := range reqs {
+		rm, ok := r.(map[string]any)
+		if !ok {
+			continue
+		}
+		req, _ := rm["request"].(map[string]any)
+		if req == nil {
+			continue
+		}
+		urlStr, _ := req["absoluteUrl"].(string)
+		if urlStr == "" {
+			urlStr = fmt.Sprint(req["url"])
+		}
+		m, _ := req["method"].(string)
+		if !strings.Contains(strings.ToLower(urlStr), "subscriptions") || m != "PATCH" {
+			continue
+		}
+		found = true
+		bodyStr := fmt.Sprint(req["body"])
+		if len(bodyStr) > 800 {
+			bodyStr = bodyStr[:800] + "...(truncated)"
+		}
+		matched, _ := rm["wasMatched"].(bool)
+		var stubID string
+		if sm, ok := rm["stubMapping"].(map[string]any); ok && sm != nil {
+			stubID, _ = sm["id"].(string)
+		}
+		respMap, _ := rm["responseDefinition"].(map[string]any)
+		st := ""
+		if respMap != nil {
+			st = fmt.Sprint(respMap["status"])
+		}
+		fmt.Fprintf(&b, "  matched=%v stub_id=%s response_status=%s url=%s body=%q\n", matched, stubID, st, urlStr, bodyStr)
+	}
+	if !found {
+		_, _ = b.WriteString("  (no PATCH .../subscriptions/... entries in this window)\n")
+	}
+	return b.String(), nil
+}
 
 func (w *WireMock) CreateWiremockStubsForOCM() error {
 	if err := w.CreateStubsForAccessReview(); err != nil {
@@ -265,6 +375,7 @@ func (w *WireMock) CreateStubsForCreatingAMSSubscription(resStatus int) error {
 	}
 
 	amsSubscriptionStub := w.CreateStubDefinition(ClusterAuthzPath, "POST", string(reqBody), string(resBody), resStatus)
+	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -283,6 +394,7 @@ func (w *WireMock) CreateStubsForGettingAMSSubscription(resStatus int, status st
 	}
 
 	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "GET", "", string(resBody), resStatus)
+	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err = w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -311,13 +423,13 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
+		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -341,43 +453,47 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
+		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
 	case SubscriptionUpdateOpenshiftClusterID:
 
-		type subscriptionUpdateRequest struct {
-			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
-		}
-
-		subRequest := subscriptionUpdateRequest{
-			ExternalClusterID: "${json-unit.any-string}",
-		}
-
 		subResponse := subscription{
 			ID: FakeSubscriptionID,
 		}
 
-		var reqBody []byte
-		reqBody, err := json.Marshal(subRequest)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
-		if err != nil {
-			return err
+		// matchesJsonPath matches PATCH bodies produced across ocm-sdk-go / ocm-api-model versions (they always
+		// include "kind" and may add fields). equalToJson against a minimal template is brittle and can let older
+		// duplicate 200 stubs win over a newly added 401 stub when many mappings accumulate.
+		amsSubscriptionStub := &StubDefinition{
+			Request: &RequestDefinition{
+				URL:    subscriptionPath,
+				Method: "PATCH",
+				BodyPatterns: []map[string]string{
+					{"matchesJsonPath": "$.external_cluster_id"},
+				},
+			},
+			Response: &ResponseDefinition{
+				Status: resStatus,
+				Body:   resBodyStr,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+			},
 		}
-
-		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -401,13 +517,13 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 			return err
 		}
 
-		var resBody []byte
-		resBody, err = json.Marshal(subResponse)
+		resBodyStr, err := subscriptionPatchWiremockResponse(resStatus, subResponse)
 		if err != nil {
 			return err
 		}
 
-		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "PATCH", string(reqBody), resBodyStr, resStatus)
+		setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 		_, err = w.AddStub(amsSubscriptionStub)
 		return err
 
@@ -420,6 +536,7 @@ func (w *WireMock) CreateStubsForUpdatingAMSSubscription(resStatus int, updateTy
 func (w *WireMock) CreateStubsForDeletingAMSSubscription(resStatus int) error {
 
 	amsSubscriptionStub := w.CreateStubDefinition(subscriptionPath, "DELETE", "", "", resStatus)
+	setWiremockStubPriorityIfError(amsSubscriptionStub, resStatus)
 	_, err := w.AddStub(amsSubscriptionStub)
 	return err
 }
@@ -832,6 +949,7 @@ func (w *WireMock) AddStub(stub *StubDefinition) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	w.lastCreatedMappingID = ret.ID
 	return ret.ID, nil
 }
 

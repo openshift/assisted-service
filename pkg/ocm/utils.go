@@ -94,8 +94,10 @@ func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response respo
 		}
 		return common.NewApiError(http.StatusServiceUnavailable, err)
 	}
-	// ocm-sdk-go SendContext can return err == nil with status >= 400 when the response body is empty
-	// (see accountsmgmt subscription Delete/Get SendContext). Treat non-success HTTP status as failure.
+	// Production safeguard: newer ocm-sdk-go accountsmgmt clients can return err == nil together with an HTTP
+	// error status when the response body is empty — SendContext uses Peek(1); on io.EOF it returns before
+	// unmarshalling an errors.Error (see e.g. accountsmgmt/v1 subscription_client.go SubscriptionUpdateRequest.SendContext).
+	// Callers must treat non-success HTTP status as failure even when err is nil.
 	if response != nil {
 		st := response.Status()
 		if st >= 400 {

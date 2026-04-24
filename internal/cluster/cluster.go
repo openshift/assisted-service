@@ -1176,17 +1176,19 @@ func (m *Manager) UploadEvents() {
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
+	// Reasons are persisted in PostgreSQL UTF-8 text; upstream errors may embed non-UTF8 (e.g. JSON parse debris).
+	reason := strings.ToValidUTF8(installErr.Error(), "\uFFFD")
 	err := m.db.Model(&models.Cluster{}).Where("id = ?", c.ID.String()).Updates(&models.Cluster{
 		LastInstallationPreparation: models.LastInstallationPreparation{
 			Status: models.LastInstallationPreparationStatusFailed,
-			Reason: installErr.Error(),
+			Reason: reason,
 		},
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
-		eventgen.SendPrepareInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, installErr.Error())
+		eventgen.SendPrepareInstallationFailedEvent(ctx, m.eventsHandler, *c.ID, reason)
 	}
 }
 
