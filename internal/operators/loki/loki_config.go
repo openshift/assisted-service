@@ -8,7 +8,7 @@ const (
 	// Operator metadata
 	Name             = "loki"
 	FullName         = "Loki Operator"
-	Namespace        = "openshift-loki"
+	Namespace        = "openshift-operators-redhat"
 	SubscriptionName = "loki-operator"
 	Source           = "redhat-operators"
 	SourceNamespace  = "openshift-marketplace"
