@@ -133,7 +133,6 @@ func init() {
 		pollDefaultTimeout,
 		VipAutoAllocOpenshiftVersion,
 	)
-	utils_test.TestContext.SetOCMHostForWiremockJournal(Options.OCMHost)
 
 	if Options.AuthType == auth.TypeRHSSO {
 		releaseSourcesString := os.Getenv("RELEASE_SOURCES")

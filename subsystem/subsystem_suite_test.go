@@ -33,10 +33,10 @@ import (
 var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
-var openshiftVersion string = "4.14"
-var snoVersion string = "4.14"
-var multiarchOpenshiftVersion string = "4.14.0-multi"
-var dualstackVipsOpenShiftVersion string = "4.14.0"
+var openshiftVersion string = "4.11"
+var snoVersion string = "4.11"
+var multiarchOpenshiftVersion string = "4.11.0-multi"
+var dualstackVipsOpenShiftVersion string = "4.13.0"
 var VipAutoAllocOpenshiftVersion string = "4.14.0"
 var SDNNetworkTypeOpenshiftVersion string = "4.14.0"
 var pullSecret = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dXNlcjpwYXNzd29yZAo=\",\"email\":\"r@r.com\"}}}" // #nosec
@@ -146,7 +146,6 @@ func init() {
 		pollDefaultTimeout,
 		VipAutoAllocOpenshiftVersion,
 	)
-	utils_test.TestContext.SetOCMHostForWiremockJournal(Options.OCMHost)
 
 	if Options.AuthType == auth.TypeRHSSO {
 		releaseSourcesString := os.Getenv("RELEASE_SOURCES")

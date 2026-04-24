@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
-	"os"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -40,9 +39,6 @@ type SubsystemTestContext struct {
 	pollDefaultInterval          time.Duration
 	pollDefaultTimeout           time.Duration
 	vipAutoAllocOpenshiftVersion string
-	// ocmHostForWiremockJournal is the OCM API host (subsystem: same as inventory; usually WireMock). Used only
-	// for optional HTTP diagnostics from the test process; set via SetOCMHostForWiremockJournal from suite init.
-	ocmHostForWiremockJournal string
 }
 
 func NewSubsystemTestContext(
@@ -79,15 +75,6 @@ func NewSubsystemTestContext(
 
 func (t *SubsystemTestContext) GetDB() *gorm.DB {
 	return t.db
-}
-
-// SetOCMHostForWiremockJournal sets the host:port used to query WireMock's __admin request journal from tests
-// (must be reachable from the test runner; may differ from in-cluster DNS if tests run outside the cluster).
-func (t *SubsystemTestContext) SetOCMHostForWiremockJournal(host string) {
-	if t == nil {
-		return
-	}
-	t.ocmHostForWiremockJournal = host
 }
 
 func (t *SubsystemTestContext) RegisterHost(infraEnvID strfmt.UUID) *models.HostRegistrationResponse {
@@ -555,69 +542,12 @@ func (t *SubsystemTestContext) GetCommonCluster(ctx context.Context, clusterID s
 	return &cluster
 }
 
-func (t *SubsystemTestContext) WaitForLastInstallationCompletionStatus(clusterID strfmt.UUID, wantStatus string) {
-	debugProgress := os.Getenv("SUBSYSTEM_DEBUG_LAST_INSTALL_PREP") != ""
-	var lastHeartbeat time.Time
-	var prevClusterStatus, prevPrepStatus, prevPrepReason string
-
+func (t *SubsystemTestContext) WaitForLastInstallationCompletionStatus(clusterID strfmt.UUID, status string) {
 	waitFunc := func(ctx context.Context) (bool, error) {
 		c := t.GetCommonCluster(ctx, clusterID)
-		clusterStatus := swag.StringValue(c.Status)
-		prepStatus := c.LastInstallationPreparation.Status
-		prepReason := c.LastInstallationPreparation.Reason
-		now := time.Now()
-
-		changed := clusterStatus != prevClusterStatus || prepStatus != prevPrepStatus || prepReason != prevPrepReason
-		if changed {
-			prevClusterStatus, prevPrepStatus, prevPrepReason = clusterStatus, prepStatus, prepReason
-			if debugProgress {
-				line := fmt.Sprintf("[last_install_prep] cluster=%s cluster_status=%s prep_status=%q prep_reason=%q want_prep_status=%q",
-					clusterID, clusterStatus, prepStatus, prepReason, wantStatus)
-				t.log.Info(line)
-				_, _ = fmt.Fprintln(GinkgoWriter, line)
-			}
-			lastHeartbeat = now
-		} else if debugProgress && (lastHeartbeat.IsZero() || now.Sub(lastHeartbeat) >= 3*time.Second) {
-			line := fmt.Sprintf("[last_install_prep] cluster=%s cluster_status=%s prep_status=%q prep_reason=%q want_prep_status=%q (heartbeat)",
-				clusterID, clusterStatus, prepStatus, prepReason, wantStatus)
-			t.log.Info(line)
-			_, _ = fmt.Fprintln(GinkgoWriter, line)
-			lastHeartbeat = now
-		}
-
-		return prepStatus == wantStatus, nil
+		return c.LastInstallationPreparation.Status == status, nil
 	}
 	err := wait.PollUntilContextTimeout(context.Background(), t.pollDefaultInterval, t.pollDefaultTimeout, false, waitFunc)
-	if err != nil {
-		c := t.GetCommonCluster(context.Background(), clusterID)
-		msg := fmt.Sprintf("[last_install_prep] poll failed: %v; cluster=%s cluster_status=%s prep_status=%q prep_reason=%q openshift_cluster_id=%s ams_subscription_console_url_set=%v want_prep_status=%q",
-			err, clusterID, swag.StringValue(c.Status),
-			c.LastInstallationPreparation.Status, c.LastInstallationPreparation.Reason,
-			c.OpenshiftClusterID.String(), c.IsAmsSubscriptionConsoleUrlSet, wantStatus)
-		t.log.Error(msg)
-		_, _ = fmt.Fprintln(GinkgoWriter, msg)
-		// When waiting for prep=failed (AMS negative tests) or SUBSYSTEM_DEBUG_AMS_WIREMOCK is set, dump recent
-		// WireMock PATCH /subscriptions journal. Host comes from suite SetOCMHostForWiremockJournal(Options.OCMHost)
-		// or SUBSYSTEM_OCM_HOST if the test runner cannot reach the default (e.g. use localhost:forwarded-port).
-		if os.Getenv("SUBSYSTEM_DEBUG_AMS_WIREMOCK") != "" || wantStatus == models.LastInstallationPreparationStatusFailed {
-			host := t.ocmHostForWiremockJournal
-			if host == "" {
-				host = os.Getenv("SUBSYSTEM_OCM_HOST")
-			}
-			if host != "" {
-				if dump, derr := FormatWiremockSubscriptionPatchJournal(host, 100); derr != nil {
-					t.log.Errorf("[last_install_prep] wiremock journal fetch error: %v", derr)
-					_, _ = fmt.Fprintf(GinkgoWriter, "[last_install_prep] wiremock journal fetch error: %v\n", derr)
-				} else if dump != "" {
-					t.log.Error("[last_install_prep] wiremock AMS PATCH journal:\n" + dump)
-					_, _ = fmt.Fprintln(GinkgoWriter, "[last_install_prep] wiremock AMS PATCH journal:")
-					_, _ = fmt.Fprintln(GinkgoWriter, dump)
-				}
-			} else {
-				_, _ = fmt.Fprintln(GinkgoWriter, "[last_install_prep] no OCM host for WireMock journal (Options.OCMHost unset and SUBSYSTEM_OCM_HOST unset); journal is fetched from the test process, not from assisted-service pods")
-			}
-		}
-	}
 	Expect(err).NotTo(HaveOccurred())
 }
 

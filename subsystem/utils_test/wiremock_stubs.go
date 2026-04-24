@@ -45,10 +45,9 @@ type Mapping struct {
 }
 
 type WireMock struct {
-	OCMHost              string
-	TestToken            string
-	ReleaseSources       models.ReleaseSources
-	lastCreatedMappingID string
+	OCMHost        string
+	TestToken      string
+	ReleaseSources models.ReleaseSources
 }
 
 type subscription struct {
@@ -94,10 +93,8 @@ func setWiremockStubPriorityIfError(stub *StubDefinition, resStatus int) {
 	}
 }
 
-// subscriptionPatchWiremockResponse returns the WireMock response body for AMS subscription PATCH stubs.
-// For HTTP status >= 400 the JSON must match what ocm-sdk-go/errors.UnmarshalErrorStatus expects (Error kind,
-// numeric status field, etc.). Returning a Subscription-shaped JSON with 401 breaks parsing and produces error
-// strings containing invalid UTF-8; persisting those as last_installation_preparation_reason then fails on PostgreSQL.
+// subscriptionPatchWiremockResponse builds PATCH stub bodies: success uses subscription JSON; HTTP errors use
+// ocm-sdk Error JSON so UnmarshalErrorStatus succeeds (subscription-shaped 401 bodies break parsing and UTF-8 DB writes).
 func subscriptionPatchWiremockResponse(resStatus int, ok subscription) (string, error) {
 	if resStatus >= http.StatusBadRequest {
 		payload := struct {
@@ -120,78 +117,6 @@ func subscriptionPatchWiremockResponse(resStatus int, ok subscription) (string, 
 	}
 	b, err := json.Marshal(ok)
 	return string(b), err
-}
-
-// LastCreatedMappingID returns the id from the most recent successful AddStub call (subsystem tests are single-threaded).
-func (w *WireMock) LastCreatedMappingID() string {
-	if w == nil {
-		return ""
-	}
-	return w.lastCreatedMappingID
-}
-
-// FormatWiremockSubscriptionPatchJournal returns recent WireMock request journal entries for AMS subscription PATCH calls.
-// Set SUBSYSTEM_OCM_HOST to the same host the deployed inventory uses for OCM (e.g. wiremock:8080).
-func FormatWiremockSubscriptionPatchJournal(ocmHost string, limit int) (string, error) {
-	if ocmHost == "" {
-		return "", nil
-	}
-	u := fmt.Sprintf("http://%s/__admin/requests?limit=%d", ocmHost, limit)
-	resp, err := http.Get(u)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-	var root map[string]any
-	if err := json.Unmarshal(body, &root); err != nil {
-		return fmt.Sprintf("(journal JSON parse error: %v; raw_len=%d)", err, len(body)), nil
-	}
-	reqs, _ := root["requests"].([]any)
-	var b strings.Builder
-	_, _ = b.WriteString(fmt.Sprintf("wiremock request journal (limit=%d, total meta=%v)\n", limit, root["meta"]))
-	found := false
-	for _, r := range reqs {
-		rm, ok := r.(map[string]any)
-		if !ok {
-			continue
-		}
-		req, _ := rm["request"].(map[string]any)
-		if req == nil {
-			continue
-		}
-		urlStr, _ := req["absoluteUrl"].(string)
-		if urlStr == "" {
-			urlStr = fmt.Sprint(req["url"])
-		}
-		m, _ := req["method"].(string)
-		if !strings.Contains(strings.ToLower(urlStr), "subscriptions") || m != "PATCH" {
-			continue
-		}
-		found = true
-		bodyStr := fmt.Sprint(req["body"])
-		if len(bodyStr) > 800 {
-			bodyStr = bodyStr[:800] + "...(truncated)"
-		}
-		matched, _ := rm["wasMatched"].(bool)
-		var stubID string
-		if sm, ok := rm["stubMapping"].(map[string]any); ok && sm != nil {
-			stubID, _ = sm["id"].(string)
-		}
-		respMap, _ := rm["responseDefinition"].(map[string]any)
-		st := ""
-		if respMap != nil {
-			st = fmt.Sprint(respMap["status"])
-		}
-		fmt.Fprintf(&b, "  matched=%v stub_id=%s response_status=%s url=%s body=%q\n", matched, stubID, st, urlStr, bodyStr)
-	}
-	if !found {
-		_, _ = b.WriteString("  (no PATCH .../subscriptions/... entries in this window)\n")
-	}
-	return b.String(), nil
 }
 
 func (w *WireMock) CreateWiremockStubsForOCM() error {
@@ -949,7 +874,6 @@ func (w *WireMock) AddStub(stub *StubDefinition) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	w.lastCreatedMappingID = ret.ID
 	return ret.ID, nil
 }
 

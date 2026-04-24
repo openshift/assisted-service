@@ -2,12 +2,9 @@ package subsystem
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
@@ -322,15 +319,6 @@ var _ = Describe("test AMS subscriptions", func() {
 			By("override wiremock stub to fail AMS call", func() {
 				err = wiremock.CreateStubsForUpdatingAMSSubscription(http.StatusUnauthorized, utils_test.SubscriptionUpdateOpenshiftClusterID)
 				Expect(err).ToNot(HaveOccurred())
-				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock stub: PATCH subscription openshift_cluster_id -> %d\n", http.StatusUnauthorized)
-				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock mapping id for that stub: %q\n", wiremock.LastCreatedMappingID())
-				if os.Getenv("SUBSYSTEM_DEBUG_AMS_WIREMOCK") != "" {
-					if j, je := utils_test.FormatWiremockSubscriptionPatchJournal(Options.OCMHost, 40); je != nil {
-						_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock journal (pre-install, debug): fetch err: %v\n", je)
-					} else {
-						_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] wiremock journal (pre-install, debug):\n%s", j)
-					}
-				}
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
@@ -340,17 +328,7 @@ var _ = Describe("test AMS subscriptions", func() {
 				Expect(err).NotTo(HaveOccurred())
 				c := reply.GetPayload()
 				Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] V2InstallCluster accepted cluster=%s status=%s status_info=%q\n",
-					clusterID, *c.Status, swag.StringValue(c.StatusInfo))
-				log.Infof("[AMS-test] V2InstallCluster accepted cluster=%s status=%s", clusterID, *c.Status)
-
 				utils_test.TestContext.GenerateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
-				cc := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
-				_, _ = fmt.Fprintf(GinkgoWriter, "[AMS-test] after GenerateEssentialPrepareForInstallationSteps: cluster_status=%s prep_status=%q prep_reason=%q openshift_cluster_id=%s (set SUBSYSTEM_DEBUG_LAST_INSTALL_PREP=1 for poll heartbeats)\n",
-					swag.StringValue(cc.Status), cc.LastInstallationPreparation.Status, cc.LastInstallationPreparation.Reason, cc.OpenshiftClusterID.String())
-				log.Infof("[AMS-test] after prepare steps cluster=%s cluster_status=%s prep_status=%s openshift_cluster_id=%s",
-					clusterID, swag.StringValue(cc.Status), cc.LastInstallationPreparation.Status, cc.OpenshiftClusterID.String())
-
 				utils_test.TestContext.WaitForLastInstallationCompletionStatus(clusterID, models.LastInstallationPreparationStatusFailed)
 			})
 		})
