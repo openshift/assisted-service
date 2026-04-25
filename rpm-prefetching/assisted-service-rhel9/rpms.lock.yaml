@@ -109,13 +109,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.10
     sourcerpm: glibc-2.34-231.el9_7.10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-611.47.1.el9_7.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-611.49.1.el9_7.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2986913
-    checksum: sha256:f768b38bcf574477b6b0fd6a621948447cb8f5aa4e3cf7392cc1a272e794049c
+    size: 2988409
+    checksum: sha256:f4be231908971931b17ecd7f0865ffab67195cd37bca710e8e5bd56f58c35107
     name: kernel-headers
-    evr: 5.14.0-611.47.1.el9_7
-    sourcerpm: kernel-5.14.0-611.47.1.el9_7.src.rpm
+    evr: 5.14.0-611.49.1.el9_7
+    sourcerpm: kernel-5.14.0-611.49.1.el9_7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-11.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 408716
@@ -1051,13 +1051,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.10
     sourcerpm: glibc-2.34-231.el9_7.10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-611.47.1.el9_7.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-611.49.1.el9_7.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 3008577
-    checksum: sha256:7eb6ce67e2ba48169392a4518c6941eeae855563070d07f6eaa831cf80606a74
+    size: 3010117
+    checksum: sha256:7a640b84f68a3378b24f6ffd84798ebe56d0916fb6cdc7e58c10f4ef5195cd8a
     name: kernel-headers
-    evr: 5.14.0-611.47.1.el9_7
-    sourcerpm: kernel-5.14.0-611.47.1.el9_7.src.rpm
+    evr: 5.14.0-611.49.1.el9_7
+    sourcerpm: kernel-5.14.0-611.49.1.el9_7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-11.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440457
@@ -2000,13 +2000,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.10
     sourcerpm: glibc-2.34-231.el9_7.10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-611.47.1.el9_7.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-611.49.1.el9_7.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 3017165
-    checksum: sha256:bccf67fd38fb285adc59ba6a0f0427553e39b917b699258cb8a7da8c7ca2a6dd
+    size: 3018649
+    checksum: sha256:cb6e540274cf90b2670d689c5dfd43dc13e31f7d414a0a9c690c89f5c48d8a16
     name: kernel-headers
-    evr: 5.14.0-611.47.1.el9_7
-    sourcerpm: kernel-5.14.0-611.47.1.el9_7.src.rpm
+    evr: 5.14.0-611.49.1.el9_7
+    sourcerpm: kernel-5.14.0-611.49.1.el9_7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-11.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412655
@@ -2949,13 +2949,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.10
     sourcerpm: glibc-2.34-231.el9_7.10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-611.47.1.el9_7.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-611.49.1.el9_7.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 3025981
-    checksum: sha256:551f1d5cb5981a364fd119aaeacaad54e69c886308a7aaba3b4fa2e507b58d5d
+    size: 3027437
+    checksum: sha256:9bbb4fc529d166ae0374f34820d1d8212ea25a0e8cc3a5b630c58f6e6be4a2d8
     name: kernel-headers
-    evr: 5.14.0-611.47.1.el9_7
-    sourcerpm: kernel-5.14.0-611.47.1.el9_7.src.rpm
+    evr: 5.14.0-611.49.1.el9_7
+    sourcerpm: kernel-5.14.0-611.49.1.el9_7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
