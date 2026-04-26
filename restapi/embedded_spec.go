@@ -1006,9 +1006,6 @@ func init() {
             ]
           },
           {
-            "urlAuth": []
-          },
-          {
             "agentAuth": []
           }
         ],
@@ -11685,9 +11682,6 @@ func init() {
             "userAuth": [
               "user"
             ]
-          },
-          {
-            "urlAuth": []
           },
           {
             "agentAuth": []
