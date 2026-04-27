@@ -53,9 +53,15 @@ func IsOciHost(host *models.Host) (bool, error) {
 	if host.Inventory == "" {
 		return false, nil
 	}
+
 	hostInventory, err := common.UnmarshalInventory(host.Inventory)
 	if err != nil {
-		return false, fmt.Errorf("error marshaling host to inventory, error %w", err)
+		return false, fmt.Errorf("error unmarshaling host to inventory, error %w", err)
 	}
+
+	if hostInventory == nil || hostInventory.SystemVendor == nil {
+		return false, nil
+	}
+
 	return hostInventory.SystemVendor.Manufacturer == OCIManufacturer, nil
 }
