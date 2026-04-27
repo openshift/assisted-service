@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/provider/external"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -712,6 +713,97 @@ var _ = Describe("installcmd arguments", func() {
 	})
 })
 
+var _ = Describe("isOciCluster", func() {
+	hostWithInventory := func(inv *models.Inventory) models.Host {
+		data, err := json.Marshal(inv)
+		Expect(err).NotTo(HaveOccurred())
+		return models.Host{Inventory: string(data)}
+	}
+
+	ociPlatform := &models.Platform{
+		Type: models.PlatformTypeExternal.Pointer(),
+		External: &models.PlatformExternal{
+			PlatformName:           swag.String(common.ExternalPlatformNameOci),
+			CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+		},
+	}
+
+	It("returns true when OCI external platform is set, without reading host (day-2)", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind:     swag.String(models.ClusterKindAddHostsCluster),
+				Platform: ociPlatform,
+			},
+		}
+		oci, err := isOciCluster(c, models.Host{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oci).To(BeTrue())
+	})
+
+	It("returns true when OCI platform is set even if not day-2", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind:     nil,
+				Platform: ociPlatform,
+			},
+		}
+		oci, err := isOciCluster(c, models.Host{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oci).To(BeTrue())
+	})
+
+	It("returns true for day-2 with no platform when host inventory is OCI", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind: swag.String(models.ClusterKindAddHostsCluster),
+			},
+		}
+		h := hostWithInventory(&models.Inventory{
+			SystemVendor: &models.SystemVendor{Manufacturer: external.OCIManufacturer},
+		})
+		oci, err := isOciCluster(c, h)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oci).To(BeTrue())
+	})
+
+	It("returns false for day-2 with no platform when host is not OCI", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind: swag.String(models.ClusterKindAddHostsCluster),
+			},
+		}
+		h := hostWithInventory(&models.Inventory{
+			SystemVendor: &models.SystemVendor{Manufacturer: "Dell Inc."},
+		})
+		oci, err := isOciCluster(c, h)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oci).To(BeFalse())
+	})
+
+	It("returns false for day-2 with no platform and empty host inventory", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind: swag.String(models.ClusterKindAddHostsCluster),
+			},
+		}
+		oci, err := isOciCluster(c, models.Host{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(oci).To(BeFalse())
+	})
+
+	It("returns an error for day-2 with no platform and invalid host inventory JSON", func() {
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				Kind: swag.String(models.ClusterKindAddHostsCluster),
+			},
+		}
+		h := models.Host{Inventory: "not-json"}
+		oci, err := isOciCluster(c, h)
+		Expect(err).To(HaveOccurred())
+		Expect(oci).To(BeFalse())
+	})
+})
+
 var _ = Describe("construct host install arguments", func() {
 	var (
 		cluster  *common.Cluster
@@ -1147,6 +1239,38 @@ var _ = Describe("construct host install arguments", func() {
 		}
 		host.InstallerArgs = ""
 		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["192.168.1.10/24"]
+				}
+			]
+		}`, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp"]`))
+	})
+	It("Day2 OCI iSCSI - platform unset, OCI from host inventory, ip kernel args when machine network unknown", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		cluster.MachineNetworks = nil
+		cluster.Platform = nil
+		host.InstallerArgs = ""
+		host.Inventory = fmt.Sprintf(`{
+			"system_vendor": { "manufacturer": "OracleCloud.com" },
 			"disks":[
 				{
 					"id": "install-id",
