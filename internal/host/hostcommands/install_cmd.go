@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/provider/external"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -315,6 +316,14 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		return "", fmt.Errorf("Missing inventory")
 	}
 
+	if cluster == nil {
+		return "", fmt.Errorf("cluster is nil")
+	}
+
+	if host == nil {
+		return "", fmt.Errorf("host is nil")
+	}
+
 	if host.InstallerArgs != "" {
 		err = json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
 		if err != nil {
@@ -322,8 +331,13 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		}
 	}
 
+	isOciCluster, err := isOciCluster(*cluster, *host)
+	if err != nil {
+		return "", fmt.Errorf("failed to check if cluster is OCI: %w", err)
+	}
+
 	hasUserConfiguredIP := hasUserConfiguredIP(installerArgs)
-	hasDay2UnknownMachineNetwork := hasDay2UnknownMachineNetwork(cluster, host, log)
+	hasDay2UnknownMachineNetwork := hasDay2UnknownMachineNetwork(cluster, host, isOciCluster, log)
 	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
 	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP || hasDay2UnknownMachineNetwork
 
@@ -351,8 +365,9 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 		// cannot propagate the configuration with --copy-network
 		// because it won't work along iSCSI:
 		// https://github.com/coreos/coreos-installer/issues/1389
+		// Static networks are not supported on OCI clusters, preventing the copy-network argument from being set.
 		hasIPConfigOverride = hasIPConfigOverride ||
-			(installationDisk.DriveType == models.DriveTypeISCSI && common.IsOciExternalIntegrationEnabled(cluster.Platform))
+			(installationDisk.DriveType == models.DriveTypeISCSI && isOciCluster)
 	} else {
 		log.Warnf("No installation disk found for host ID %s", host.ID)
 	}
@@ -363,6 +378,21 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	}
 
 	return toJSONString(installerArgs)
+}
+
+// isOciCluster reports whether install logic should treat the cluster as OCI.
+// It uses cluster.Platform when relevant.
+// Day2 clusters platform is not properly set, we need to check the hosts manufacturer
+func isOciCluster(clusterWithoutHosts common.Cluster, clusterHost models.Host) (bool, error) {
+	if common.IsOciExternalIntegrationEnabled(clusterWithoutHosts.Platform) {
+		return true, nil
+	}
+
+	if !common.IsDay2Cluster(&clusterWithoutHosts) {
+		return false, nil
+	}
+
+	return external.IsOciHost(&clusterHost)
 }
 
 func appendNetworkArgs(installerArgs []string, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, infraEnv *common.InfraEnv, hasIPConfigOverride bool, log logrus.FieldLogger) ([]string, error) {
@@ -599,13 +629,13 @@ func hasUserConfiguredIP(args []string) bool {
 
 // When true, iSCSI ip= kernel args should be skipped to allow RHCOS to auto-configure all
 // interfaces, preventing partial network configuration where only the iSCSI NIC comes up.
-func hasDay2UnknownMachineNetwork(cluster *common.Cluster, host *models.Host, log logrus.FieldLogger) bool {
+func hasDay2UnknownMachineNetwork(cluster *common.Cluster, host *models.Host, isOciCluster bool, log logrus.FieldLogger) bool {
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		return false
 	}
 
 	// In case of OCI, we do want to configure the iSCSI NIC because it's the only NIC that is auto configured
-	if common.IsOciExternalIntegrationEnabled(cluster.Platform) {
+	if isOciCluster {
 		return false
 	}
 
