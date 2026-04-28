@@ -11,7 +11,7 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/aws/aws-sdk-go v1.49.13
 	github.com/bombsimon/logrusr/v3 v3.0.0
-	github.com/buger/jsonparser v1.1.1
+	github.com/buger/jsonparser v1.1.2
 	github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
 	github.com/coreos/ignition/v2 v2.14.0
 	github.com/coreos/vcontext v0.0.0-20211021162308-f1dbbca7bef4
