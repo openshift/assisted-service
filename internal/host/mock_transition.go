@@ -45,7 +45,7 @@ func (m *MockTransitionHandler) ClusterWouldSucceedWithoutHost(sw stateswitch.St
 }
 
 // ClusterWouldSucceedWithoutHost indicates an expected call of ClusterWouldSucceedWithoutHost.
-func (mr *MockTransitionHandlerMockRecorder) ClusterWouldSucceedWithoutHost(sw, arg1 any) *gomock.Call {
+func (mr *MockTransitionHandlerMockRecorder) ClusterWouldSucceedWithoutHost(sw, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterWouldSucceedWithoutHost", reflect.TypeOf((*MockTransitionHandler)(nil).ClusterWouldSucceedWithoutHost), sw, arg1)
 }
@@ -90,7 +90,7 @@ func (m *MockTransitionHandler) HasPendingUserActionTimedOut(sw stateswitch.Stat
 }
 
 // HasPendingUserActionTimedOut indicates an expected call of HasPendingUserActionTimedOut.
-func (mr *MockTransitionHandlerMockRecorder) HasPendingUserActionTimedOut(sw, arg1 any) *gomock.Call {
+func (mr *MockTransitionHandlerMockRecorder) HasPendingUserActionTimedOut(sw, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPendingUserActionTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasPendingUserActionTimedOut), sw, arg1)
 }
