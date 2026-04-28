@@ -13821,9 +13821,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 	}
 
 	It("no hosts", func() {
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err := bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(platforms)).Should(Equal(1))
 		Expect(platforms[0]).Should(Equal(models.PlatformTypeNone))
 	})
@@ -13836,9 +13835,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 
 		addVsphereHost(clusterID, models.HostRoleMaster)
 		validateHostsInventory(1, 0)
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		Expect(platformReplay).Should(BeAssignableToTypeOf(installer.NewGetClusterSupportedPlatformsOK()))
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err := bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(platforms)).Should(Equal(1))
 		Expect(platforms[0]).Should(Equal(models.PlatformTypeNone))
 	})
@@ -13854,8 +13852,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		addNutanixHost(clusterID, models.HostRoleMaster)
 		expectedPlatforms := []models.PlatformType{"none", "nutanix", "baremetal"}
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err := bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(platforms)).Should(Equal(2))
 		Expect(platforms).To(Not(ContainElement(models.PlatformTypeNutanix)))
 
@@ -13865,8 +13863,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 			Update("openshift_version", "4.12")
 		Expect(db.Error).ToNot(HaveOccurred())
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
-		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err = bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		fmt.Fprintf(GinkgoWriter, "platforms: %v\n", platforms)
 		Expect(len(platforms)).Should(Equal(3))
 		Expect(platforms).To(ContainElement(models.PlatformTypeNutanix))
@@ -13883,8 +13881,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 		addNutanixHost(clusterID, models.HostRoleMaster)
 		expectedPlatforms := []models.PlatformType{"none", "external", "baremetal"}
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
-		platformReplay := bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		platforms := platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err := bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(platforms)).Should(Equal(2))
 		Expect(platforms).To(Not(ContainElement(models.PlatformTypeExternal)))
 
@@ -13894,8 +13892,8 @@ var _ = Describe("GetSupportedPlatformsFromInventory", func() {
 			Update("openshift_version", "4.14")
 		Expect(db.Error).ToNot(HaveOccurred())
 		mockProviderRegistry.EXPECT().GetSupportedProvidersByHosts(gomock.Any()).Return(expectedPlatforms, nil)
-		platformReplay = bm.GetClusterSupportedPlatforms(ctx, installer.GetClusterSupportedPlatformsParams{ClusterID: clusterID})
-		platforms = platformReplay.(*installer.GetClusterSupportedPlatformsOK).Payload
+		platforms, err = bm.getClusterSupportedPlatforms(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(platforms)).Should(Equal(3))
 		Expect(platforms).To(ContainElement(models.PlatformTypeExternal))
 	})

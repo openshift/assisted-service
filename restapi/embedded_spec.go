@@ -2777,69 +2777,6 @@ func init() {
         }
       }
     },
-    "/v2/clusters/{cluster_id}/supported-platforms": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "A list of platforms that this cluster can support in its current configuration.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "GetClusterSupportedPlatforms",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The cluster whose platform types should be retrieved.",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/platform_type"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/v2/clusters/{cluster_id}/ui-settings": {
       "get": {
         "description": "Fetch cluster specific UI settings.",
@@ -14276,69 +14213,6 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/v2/clusters/{cluster_id}/supported-platforms": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "A list of platforms that this cluster can support in its current configuration.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "GetClusterSupportedPlatforms",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The cluster whose platform types should be retrieved.",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/platform_type"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }

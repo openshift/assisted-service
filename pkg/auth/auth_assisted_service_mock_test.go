@@ -125,10 +125,6 @@ func (f fakeInventory) V2UpdateHostLogsProgress(ctx context.Context, params inst
 	return installer.NewV2UpdateHostLogsProgressNoContent()
 }
 
-func (f fakeInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
-	return installer.NewGetClusterSupportedPlatformsOK()
-}
-
 func (f fakeInventory) V2UpdateHostIgnition(ctx context.Context, params installer.V2UpdateHostIgnitionParams) middleware.Responder {
 	return installer.NewV2UpdateHostIgnitionCreated()
 }

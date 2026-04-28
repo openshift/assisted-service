@@ -84,20 +84,6 @@ func (mr *MockInstallerAPIMockRecorder) DownloadMinimalInitrd(ctx, params any) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadMinimalInitrd", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadMinimalInitrd), ctx, params)
 }
 
-// GetClusterSupportedPlatforms mocks base method.
-func (m *MockInstallerAPI) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClusterSupportedPlatforms", ctx, params)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// GetClusterSupportedPlatforms indicates an expected call of GetClusterSupportedPlatforms.
-func (mr *MockInstallerAPIMockRecorder) GetClusterSupportedPlatforms(ctx, params any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterSupportedPlatforms", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterSupportedPlatforms), ctx, params)
-}
-
 // GetDetailedSupportedFeatures mocks base method.
 func (m *MockInstallerAPI) GetDetailedSupportedFeatures(ctx context.Context, params installer.GetDetailedSupportedFeaturesParams) middleware.Responder {
 	m.ctrl.T.Helper()

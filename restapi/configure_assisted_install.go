@@ -52,9 +52,6 @@ type InstallerAPI interface {
 	 */
 	DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder
 
-	/* GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration. */
-	GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder
-
 	/* GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies. */
 	GetDetailedSupportedFeatures(ctx context.Context, params installer.GetDetailedSupportedFeaturesParams) middleware.Responder
 
@@ -447,11 +444,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadMinimalInitrd(ctx, params)
-	})
-	api.InstallerGetClusterSupportedPlatformsHandler = installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.GetClusterSupportedPlatforms(ctx, params)
 	})
 	api.InstallerGetDetailedSupportedFeaturesHandler = installer.GetDetailedSupportedFeaturesHandlerFunc(func(params installer.GetDetailedSupportedFeaturesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

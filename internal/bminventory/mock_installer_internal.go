@@ -148,21 +148,6 @@ func (mr *MockInstallerInternalsMockRecorder) GetClusterInternal(ctx, params any
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetClusterInternal), ctx, params)
 }
 
-// GetClusterSupportedPlatformsInternal mocks base method.
-func (m *MockInstallerInternals) GetClusterSupportedPlatformsInternal(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) (*[]models.PlatformType, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetClusterSupportedPlatformsInternal", ctx, params)
-	ret0, _ := ret[0].(*[]models.PlatformType)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetClusterSupportedPlatformsInternal indicates an expected call of GetClusterSupportedPlatformsInternal.
-func (mr *MockInstallerInternalsMockRecorder) GetClusterSupportedPlatformsInternal(ctx, params any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterSupportedPlatformsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetClusterSupportedPlatformsInternal), ctx, params)
-}
-
 // GetCommonHostInternal mocks base method.
 func (m *MockInstallerInternals) GetCommonHostInternal(ctx context.Context, infraEnvId, hostId string) (*common.Host, error) {
 	m.ctrl.T.Helper()
