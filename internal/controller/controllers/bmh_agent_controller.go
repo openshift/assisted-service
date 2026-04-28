@@ -1479,12 +1479,6 @@ func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient clie
 
 	checksum, _ = image["checksum"].(string)
 	url, _ = image["url"].(string)
-	if checksum == "" {
-		return "", "", errors.New("master machine ProviderSpec 'image' missing checksum"), false
-	}
-	if url == "" {
-		return "", "", errors.New("master machine ProviderSpec 'image' missing url"), false
-	}
 
 	return checksum, url, nil, false
 }
