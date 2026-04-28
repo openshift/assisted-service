@@ -20,14 +20,13 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/authorizations/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -82,9 +81,14 @@ func (r *TermsReviewPostRequest) Header(name string, value interface{}) *TermsRe
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *TermsReviewPostRequest) Impersonate(user string) *TermsReviewPostRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Request sets the value of the 'request' parameter.
-//
-//
 func (r *TermsReviewPostRequest) Request(value *TermsReviewRequest) *TermsReviewPostRequest {
 	r.request = value
 	return r
@@ -115,7 +119,7 @@ func (r *TermsReviewPostRequest) SendContext(ctx context.Context) (result *Terms
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -128,29 +132,25 @@ func (r *TermsReviewPostRequest) SendContext(ctx context.Context) (result *Terms
 	result = &TermsReviewPostResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readTermsReviewPostResponse(result, response.Body)
+	err = readTermsReviewPostResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'post' method.
-func (r *TermsReviewPostRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *TermsReviewPostRequest) stream(stream *jsoniter.Stream) {
 }
 
 // TermsReviewPostResponse is the response for the 'post' method.
@@ -186,8 +186,6 @@ func (r *TermsReviewPostResponse) Error() *errors.Error {
 }
 
 // Response returns the value of the 'response' parameter.
-//
-//
 func (r *TermsReviewPostResponse) Response() *TermsReviewResponse {
 	if r == nil {
 		return nil
@@ -197,8 +195,6 @@ func (r *TermsReviewPostResponse) Response() *TermsReviewResponse {
 
 // GetResponse returns the value of the 'response' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *TermsReviewPostResponse) GetResponse() (value *TermsReviewResponse, ok bool) {
 	ok = r != nil && r.response != nil
 	if ok {

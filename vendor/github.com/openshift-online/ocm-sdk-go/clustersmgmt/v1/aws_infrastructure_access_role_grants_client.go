@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -103,6 +102,13 @@ func (r *AWSInfrastructureAccessRoleGrantsAddRequest) Header(name string, value 
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AWSInfrastructureAccessRoleGrantsAddRequest) Impersonate(user string) *AWSInfrastructureAccessRoleGrantsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Description of the AWS infrastructure access role grant.
@@ -136,7 +142,7 @@ func (r *AWSInfrastructureAccessRoleGrantsAddRequest) SendContext(ctx context.Co
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -149,29 +155,25 @@ func (r *AWSInfrastructureAccessRoleGrantsAddRequest) SendContext(ctx context.Co
 	result = &AWSInfrastructureAccessRoleGrantsAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAWSInfrastructureAccessRoleGrantsAddResponse(result, response.Body)
+	err = readAWSInfrastructureAccessRoleGrantsAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *AWSInfrastructureAccessRoleGrantsAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *AWSInfrastructureAccessRoleGrantsAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // AWSInfrastructureAccessRoleGrantsAddResponse is the response for the 'add' method.
@@ -252,6 +254,13 @@ func (r *AWSInfrastructureAccessRoleGrantsListRequest) Header(name string, value
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AWSInfrastructureAccessRoleGrantsListRequest) Impersonate(user string) *AWSInfrastructureAccessRoleGrantsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -261,10 +270,9 @@ func (r *AWSInfrastructureAccessRoleGrantsListRequest) Header(name string, value
 // instead of the names of the columns of a table. For example, in order to sort the
 // AWS infrastructure access role grants descending by user ARN the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // user_arn desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -290,10 +298,9 @@ func (r *AWSInfrastructureAccessRoleGrantsListRequest) Page(value int) *AWSInfra
 // instead of the names of the columns of a table. For example, in order to retrieve
 // all the AWS infrastructure access role grants with a user ARN starting with `user` the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // user_arn like '%user'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the AWS
 // infrastructure access role grants that the user has permission to see will be returned.
@@ -354,15 +361,21 @@ func (r *AWSInfrastructureAccessRoleGrantsListRequest) SendContext(ctx context.C
 	result = &AWSInfrastructureAccessRoleGrantsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAWSInfrastructureAccessRoleGrantsListResponse(result, response.Body)
+	err = readAWSInfrastructureAccessRoleGrantsListResponse(result, reader)
 	if err != nil {
 		return
 	}

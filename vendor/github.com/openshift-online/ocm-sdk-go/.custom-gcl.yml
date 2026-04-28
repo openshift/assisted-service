@@ -1,0 +1,10 @@
+version: v2.8.0
+
+name: ocm-lint
+
+destination: ./bin
+
+plugins:
+  - module: 'github.com/openshift-online/ocm-sdk-go'
+    import: 'github.com/openshift-online/ocm-sdk-go/linters'
+    path: .

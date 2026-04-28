@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -48,8 +50,6 @@ func NewAlertsMetricQueryClient(transport http.RoundTripper, path string) *Alert
 }
 
 // Get creates a request for the 'get' method.
-//
-//
 func (c *AlertsMetricQueryClient) Get() *AlertsMetricQueryGetRequest {
 	return &AlertsMetricQueryGetRequest{
 		transport: c.transport,
@@ -156,16 +156,12 @@ func (r *AlertsMetricQueryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AlertsMetricQueryPollResponse) Body() *AlertsInfo {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AlertsMetricQueryPollResponse) GetBody() (value *AlertsInfo, ok bool) {
 	return r.response.GetBody()
 }
@@ -195,6 +191,13 @@ func (r *AlertsMetricQueryGetRequest) Parameter(name string, value interface{}) 
 // Header adds a request header.
 func (r *AlertsMetricQueryGetRequest) Header(name string, value interface{}) *AlertsMetricQueryGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AlertsMetricQueryGetRequest) Impersonate(user string) *AlertsMetricQueryGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -230,15 +233,21 @@ func (r *AlertsMetricQueryGetRequest) SendContext(ctx context.Context) (result *
 	result = &AlertsMetricQueryGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAlertsMetricQueryGetResponse(result, response.Body)
+	err = readAlertsMetricQueryGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -278,8 +287,6 @@ func (r *AlertsMetricQueryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *AlertsMetricQueryGetResponse) Body() *AlertsInfo {
 	if r == nil {
 		return nil
@@ -289,8 +296,6 @@ func (r *AlertsMetricQueryGetResponse) Body() *AlertsInfo {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *AlertsMetricQueryGetResponse) GetBody() (value *AlertsInfo, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
