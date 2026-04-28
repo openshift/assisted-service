@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -102,6 +101,13 @@ func (r *AccountsAddRequest) Header(name string, value interface{}) *AccountsAdd
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AccountsAddRequest) Impersonate(user string) *AccountsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Account data.
@@ -135,7 +141,7 @@ func (r *AccountsAddRequest) SendContext(ctx context.Context) (result *AccountsA
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +154,25 @@ func (r *AccountsAddRequest) SendContext(ctx context.Context) (result *AccountsA
 	result = &AccountsAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAccountsAddResponse(result, response.Body)
+	err = readAccountsAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *AccountsAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *AccountsAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // AccountsAddResponse is the response for the 'add' method.
@@ -229,16 +231,16 @@ func (r *AccountsAddResponse) GetBody() (value *Account, ok bool) {
 
 // AccountsListRequest is the request for the 'list' method.
 type AccountsListRequest struct {
-	transport         http.RoundTripper
-	path              string
-	query             url.Values
-	header            http.Header
-	fetchlabelsLabels *bool
-	fields            *string
-	order             *string
-	page              *int
-	search            *string
-	size              *int
+	transport   http.RoundTripper
+	path        string
+	query       url.Values
+	header      http.Header
+	fetchLabels *bool
+	fields      *string
+	order       *string
+	page        *int
+	search      *string
+	size        *int
 }
 
 // Parameter adds a query parameter.
@@ -253,11 +255,18 @@ func (r *AccountsListRequest) Header(name string, value interface{}) *AccountsLi
 	return r
 }
 
-// FetchlabelsLabels sets the value of the 'fetchlabels_labels' parameter.
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *AccountsListRequest) Impersonate(user string) *AccountsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
+// FetchLabels sets the value of the 'fetch_labels' parameter.
 //
 // If true, includes the labels on an account in the output. Could slow request response time.
-func (r *AccountsListRequest) FetchlabelsLabels(value bool) *AccountsListRequest {
-	r.fetchlabelsLabels = &value
+func (r *AccountsListRequest) FetchLabels(value bool) *AccountsListRequest {
+	r.fetchLabels = &value
 	return r
 }
 
@@ -268,7 +277,6 @@ func (r *AccountsListRequest) FetchlabelsLabels(value bool) *AccountsListRequest
 // a result. No new fields can be added, only existing ones can be filtered.
 // To specify a field 'id' of a structure 'plan' use 'plan.id'.
 // To specify all fields of a structure 'labels' use 'labels.*'.
-//
 func (r *AccountsListRequest) Fields(value string) *AccountsListRequest {
 	r.fields = &value
 	return r
@@ -282,10 +290,9 @@ func (r *AccountsListRequest) Fields(value string) *AccountsListRequest {
 // a SQL statement. For example, in order to sort the
 // accounts descending by name identifier the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -311,10 +318,9 @@ func (r *AccountsListRequest) Page(value int) *AccountsListRequest {
 // instead of the names of the columns of a table. For example, in order to
 // retrieve accounts with username starting with my:
 //
-// [source,sql]
-// ----
+// ```sql
 // username like 'my%'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // items that the user has permission to see will be returned.
@@ -342,8 +348,8 @@ func (r *AccountsListRequest) Send() (result *AccountsListResponse, err error) {
 // SendContext sends this request, waits for the response, and returns it.
 func (r *AccountsListRequest) SendContext(ctx context.Context) (result *AccountsListResponse, err error) {
 	query := helpers.CopyQuery(r.query)
-	if r.fetchlabelsLabels != nil {
-		helpers.AddValue(&query, "fetchlabels_labels", *r.fetchlabelsLabels)
+	if r.fetchLabels != nil {
+		helpers.AddValue(&query, "fetchLabels", *r.fetchLabels)
 	}
 	if r.fields != nil {
 		helpers.AddValue(&query, "fields", *r.fields)
@@ -381,15 +387,21 @@ func (r *AccountsListRequest) SendContext(ctx context.Context) (result *Accounts
 	result = &AccountsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readAccountsListResponse(result, response.Body)
+	err = readAccountsListResponse(result, reader)
 	if err != nil {
 		return
 	}

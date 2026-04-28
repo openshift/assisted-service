@@ -22,7 +22,7 @@ package sdk
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"mime"
 	"net/http"
 	"net/url"
@@ -69,7 +69,7 @@ func (d *dumpRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 	// reader that reads it from memory:
 	if request.Body != nil {
 		var body []byte
-		body, err = ioutil.ReadAll(request.Body)
+		body, err = io.ReadAll(request.Body)
 		if err != nil {
 			return
 		}
@@ -78,7 +78,7 @@ func (d *dumpRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 			return
 		}
 		d.dumpRequest(ctx, request, body)
-		request.Body = ioutil.NopCloser(bytes.NewBuffer(body))
+		request.Body = io.NopCloser(bytes.NewBuffer(body))
 	} else {
 		d.dumpRequest(ctx, request, nil)
 	}
@@ -93,7 +93,7 @@ func (d *dumpRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 	// with a reader that reads it from memory:
 	if response.Body != nil {
 		var body []byte
-		body, err = ioutil.ReadAll(response.Body)
+		body, err = io.ReadAll(response.Body)
 		if err != nil {
 			return
 		}
@@ -101,13 +101,8 @@ func (d *dumpRoundTripper) RoundTrip(request *http.Request) (response *http.Resp
 		if err != nil {
 			return
 		}
-		if len(body) == 0 {
-			d.dumpResponse(ctx, response, nil)
-			response.Body = http.NoBody // checked by Unmarshal* functions.
-		} else {
-			d.dumpResponse(ctx, response, body)
-			response.Body = ioutil.NopCloser(bytes.NewBuffer(body))
-		}
+		d.dumpResponse(ctx, response, body)
+		response.Body = io.NopCloser(bytes.NewBuffer(body))
 	} else {
 		d.dumpResponse(ctx, response, nil)
 	}
@@ -122,14 +117,16 @@ const (
 
 // redactFields are removed from log output when dumped.
 var redactFields = map[string]bool{
-	"access_token":  true,
-	"admin":         true,
-	"id_token":      true,
-	"refresh_token": true,
-	"password":      true,
-	"client_secret": true,
-	"kubeconfig":    true,
-	"ssh":           true,
+	"access_token":      true,
+	"admin":             true,
+	"id_token":          true,
+	"refresh_token":     true,
+	"password":          true,
+	"client_secret":     true,
+	"kubeconfig":        true,
+	"ssh":               true,
+	"access_key_id":     true,
+	"secret_access_key": true,
 }
 
 // dumpRequest dumps to the log, in debug level, the details of the given HTTP request.
@@ -249,7 +246,7 @@ func (d *dumpRoundTripper) dumpForm(ctx context.Context, data []byte) {
 		for _, value := range values {
 			var redacted string
 			if redactFields[name] {
-				redacted = "***"
+				redacted = redactionStr
 			} else {
 				redacted = url.QueryEscape(value)
 			}

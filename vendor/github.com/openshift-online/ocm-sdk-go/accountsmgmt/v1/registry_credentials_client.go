@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -102,6 +101,13 @@ func (r *RegistryCredentialsAddRequest) Header(name string, value interface{}) *
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RegistryCredentialsAddRequest) Impersonate(user string) *RegistryCredentialsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Registry credential data.
@@ -135,7 +141,7 @@ func (r *RegistryCredentialsAddRequest) SendContext(ctx context.Context) (result
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +154,25 @@ func (r *RegistryCredentialsAddRequest) SendContext(ctx context.Context) (result
 	result = &RegistryCredentialsAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRegistryCredentialsAddResponse(result, response.Body)
+	err = readRegistryCredentialsAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *RegistryCredentialsAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *RegistryCredentialsAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // RegistryCredentialsAddResponse is the response for the 'add' method.
@@ -251,6 +253,13 @@ func (r *RegistryCredentialsListRequest) Header(name string, value interface{}) 
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *RegistryCredentialsListRequest) Impersonate(user string) *RegistryCredentialsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -259,10 +268,9 @@ func (r *RegistryCredentialsListRequest) Header(name string, value interface{}) 
 // a SQL statement. For example, in order to sort the
 // RegistryCredentials descending by username the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // username desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -288,10 +296,9 @@ func (r *RegistryCredentialsListRequest) Page(value int) *RegistryCredentialsLis
 // of the names of the columns of a table. For example, in order to retrieve all the
 // RegistryCredentials for a user the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // username = 'abcxyz...'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // RegistryCredentials that the user has permission to see will be returned.
@@ -352,15 +359,21 @@ func (r *RegistryCredentialsListRequest) SendContext(ctx context.Context) (resul
 	result = &RegistryCredentialsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readRegistryCredentialsListResponse(result, response.Body)
+	err = readRegistryCredentialsListResponse(result, reader)
 	if err != nil {
 		return
 	}
