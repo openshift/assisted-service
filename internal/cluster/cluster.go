@@ -1373,7 +1373,7 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 			continue
 		}
 		fileName := fmt.Sprintf("%s/logs/cluster/manifest_%s_%s_%s", c.ID, manifestEntry.ManifestSource, manifestEntry.Folder, manifestEntry.FileName)
-		err = m.uploadDataAsFile(ctx, log, string(fileContent), fileName, objectHandler)
+		err = objectHandler.Upload(ctx, fileContent, fileName)
 		if err != nil {
 			log.WithError(err).Errorf("Unable to upload %s to logs for cluster id %s", fileName, *c.ID)
 		}
