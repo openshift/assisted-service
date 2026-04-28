@@ -404,6 +404,14 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 		installationDiskPath = common.GetDeviceFullName(installationDisk)
 		installationDiskID = common.GetDeviceIdentifier(installationDisk)
 	}
+	var hostName string = inventory.Hostname
+	//in case RequestedHostname already set from UpdateHostname, can not change it from inventory
+	if hostName == "" {
+		hostName = h.ID.String()
+	}
+	if h.RequestedHostname == "" {
+		h.RequestedHostname = hostName
+	}
 
 	disksToBeFormatted := strings.Join(common.GetDisksIdentifiersToBeFormatted(inventory), ",")
 
@@ -411,6 +419,8 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
 	updates := map[string]interface{}{
+		"Hostname":               hostName,
+		"RequestedHostname":      h.RequestedHostname,
 		"inventory":              inventoryStr,
 		"installation_disk_path": installationDiskPath,
 		"installation_disk_id":   installationDiskID,
