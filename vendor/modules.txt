@@ -106,7 +106,7 @@ github.com/blang/semver/v4
 # github.com/bombsimon/logrusr/v3 v3.0.0
 ## explicit; go 1.17
 github.com/bombsimon/logrusr/v3
-# github.com/buger/jsonparser v1.1.1
+# github.com/buger/jsonparser v1.1.2
 ## explicit; go 1.13
 github.com/buger/jsonparser
 # github.com/cavaliercoder/go-cpio v0.0.0-20180626203310-925f9528c45e
