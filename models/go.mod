@@ -35,3 +35,5 @@ require (
 )
 
 replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
+
+replace github.com/buger/jsonparser => github.com/buger/jsonparser v1.1.2
