@@ -41,10 +41,31 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-var (
-	BASIC_KUBECONFIG = `test`
-	BASIC_CERT       = `test`
-)
+var BASIC_KUBECONFIG = `test`
+
+var TEST_CA_CERT = `-----BEGIN CERTIFICATE-----
+MIIB+jCCAWOgAwIBAgIUHYXgAzuMB1SPO/O2h3zc9jdzXlAwDQYJKoZIhvcNAQEL
+BQAwDzENMAsGA1UEAwwEdGVzdDAeFw0yNjA0MjgxOTIwMTdaFw0zNjA0MjUxOTIw
+MTdaMA8xDTALBgNVBAMMBHRlc3QwgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB
+AK9FjzHGW5YZ9bXlVztSZ3hwYmwgSJ+urFfxuxQXm5NxPArYTy0mtEbaVbQmWTGs
+lXhPswGQjVQp2ZIfglN8G2nI4HydJB/+bkyYGCe7uUyaVm3ABASvkAfyEdjMrrGl
+CpScyvga3sMZoMeIHYqX/xWnhOHkL5WxTuffqrMFwefPAgMBAAGjUzBRMB0GA1Ud
+DgQWBBRiuYDtIHWKyqm+ZReN8tBHC/JumzAfBgNVHSMEGDAWgBRiuYDtIHWKyqm+
+ZReN8tBHC/JumzAPBgNVHRMBAf8EBTADAQH/MA0GCSqGSIb3DQEBCwUAA4GBAHUo
+tC8kB7HiXFUnpKxYmAsPs8ogTJxJR0CqDAukihAcBFcdK9w3J1x5KRY1LXQq6PCw
+RrLG4Jd2y9q40rXRUMaLKo9zZPWBSNtK8203EARzTpGtTe4ePN4ZPzMaCLLSE/v5
+P/lWAhXmWgP6xArUj0X22q1QzH4n0BJ6BX1weGRT
+-----END CERTIFICATE-----`
+
+var TEST_CA_CERT_2 = `-----BEGIN CERTIFICATE-----
+MIIBSDCB76ADAgECAgEBMAoGCCqGSM49BAMCMBQxEjAQBgNVBAMTCXRlc3QtY2Et
+MjAeFw0yNjA0MjgxOTI0MjVaFw0zNjA0MjUxOTI0MjVaMBQxEjAQBgNVBAMTCXRl
+c3QtY2EtMjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJ4JUfGt4Z+/RMLTBj+7
+8vjSpIARRNRoKnFSYxFT4QDAzPBuFiI4hS99OOc2wuOW/1HD4jD4VVz5TZdfkSW2
+rbejMjAwMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFBUX/GK82/Lfgb4aE2rr
+BKYRGM3LMAoGCCqGSM49BAMCA0gAMEUCIEng94ZWndeZxx8XvpXkKbYAsv56NKbi
+wR4QNmTniFNDAiEA6bV/XiJ9jEiHZyxO5qC9KhM80qK0EY480XUhoaLVJ+U=
+-----END CERTIFICATE-----`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
@@ -1552,7 +1573,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1574,7 +1595,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))))
 
 				By("Checking the spoke BMH exists and is correct")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1652,7 +1673,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1681,7 +1702,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1714,7 +1735,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))))
 
 				By("Checking the spoke BMH exists and is correct")
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
@@ -1817,7 +1838,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1836,7 +1857,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))))
 
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
 
@@ -1857,7 +1878,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -1879,7 +1900,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("assisted-service-controller"))
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).NotTo(Equal(""))
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))))
 
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host.Name)
 
@@ -1974,7 +1995,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -2004,8 +2025,8 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should prefer machine-config-server-ca over kube-system/root-ca", func() {
-				mcsCert := "mcs-ca-cert"
-				kubeCert := "kube-root-cert"
+				mcsCert := TEST_CA_CERT
+				kubeCert := TEST_CA_CERT_2
 
 				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
@@ -2046,7 +2067,7 @@ var _ = Describe("bmac reconcile", func() {
 						Name:      "root-ca",
 						Namespace: "kube-system",
 					},
-					Data: map[string]string{"ca.crt": BASIC_CERT},
+					Data: map[string]string{"ca.crt": TEST_CA_CERT},
 				})).ShouldNot(HaveOccurred())
 
 				for range [3]int{} {
@@ -2059,7 +2080,7 @@ var _ = Describe("bmac reconcile", func() {
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
-				encodedCert := base64.StdEncoding.EncodeToString([]byte(BASIC_CERT))
+				encodedCert := base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))
 				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(encodedCert))
 			})
 
@@ -2074,7 +2095,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-config",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
@@ -2094,13 +2115,82 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-config",
 					},
 					Data: map[string]string{
-						"ca.crt": BASIC_CERT,
+						"ca.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("should trim whitespace from certificate data", func() {
+				certWithWhitespace := "  \n\t" + TEST_CA_CERT + "\n  \t\n"
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
+					},
+					Data: map[string]string{"ca-bundle.crt": certWithWhitespace},
+				})).ShouldNot(HaveOccurred())
+
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+
+				overrides := updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]
+				encodedTrimmed := base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))
+				encodedUntrimmed := base64.StdEncoding.EncodeToString([]byte(certWithWhitespace))
+				Expect(overrides).To(ContainSubstring(encodedTrimmed))
+				Expect(overrides).NotTo(ContainSubstring(encodedUntrimmed))
+			})
+
+			It("should reject invalid PEM certificate data", func() {
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
+					},
+					Data: map[string]string{"ca-bundle.crt": "not-a-valid-certificate"},
+				})).ShouldNot(HaveOccurred())
+
+				// First reconcile advances past agent/cluster setup; cert validation runs on the second pass.
+				_, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				_, err = bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("openshift-machine-config-operator/machine-config-server-ca contains invalid CA certificate data"))
+			})
+
+			It("should accept a certificate bundle with multiple PEM blocks", func() {
+				certBundle := TEST_CA_CERT + "\n" + TEST_CA_CERT_2
+				Expect(bmhr.spokeClient.Create(ctx, &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "machine-config-server-ca",
+						Namespace: "openshift-machine-config-operator",
+					},
+					Data: map[string]string{"ca-bundle.crt": certBundle},
+				})).ShouldNot(HaveOccurred())
+
+				for range [3]int{} {
+					result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+					Expect(err).To(BeNil())
+					Expect(result).To(Equal(ctrl.Result{}))
+				}
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_AGENT_IGNITION_CONFIG_OVERRIDES))
+				encodedBundle := base64.StdEncoding.EncodeToString([]byte(certBundle))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(encodedBundle))
 			})
 		})
 	})
