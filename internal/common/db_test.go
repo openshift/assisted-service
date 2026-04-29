@@ -1,6 +1,8 @@
 package common
 
 import (
+	"encoding/json"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -418,6 +420,224 @@ var _ = Describe("GetClusterFromDB", func() {
 				Expect(clusterResult.IngressVips).To(BeEmpty())
 				Expect(clusterResult.ServiceNetworks).To(BeEmpty())
 				Expect(clusterResult.ClusterNetworks).To(BeEmpty())
+			})
+		})
+
+		Context("Bootstrap network order", func() {
+			addHost := func(bootstrap bool, ipv4, ipv6 []string) {
+				hostID := strfmt.UUID(uuid.New().String())
+				inv := models.Inventory{
+					Interfaces: []*models.Interface{{
+						Name:          "eth0",
+						IPV4Addresses: ipv4,
+						IPV6Addresses: ipv6,
+					}},
+				}
+				invJSON, err := json.Marshal(&inv)
+				Expect(err).ToNot(HaveOccurred())
+				host := &Host{Host: models.Host{
+					ID:         &hostID,
+					InfraEnvID: clusterID,
+					ClusterID:  &clusterID,
+					Bootstrap:  bootstrap,
+					Inventory:  string(invJSON),
+				}}
+				Expect(db.Create(host).Error).ToNot(HaveOccurred())
+			}
+
+			// Standalone cases: no networks or no IPs
+			It("should handle no machine networks", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID:              &clusterID,
+					MachineNetworks: []*models.MachineNetwork{},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, []string{"10.0.0.5/24"}, nil)
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(BeEmpty())
+			})
+
+			It("should handle no bootstrap host", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			It("should handle bootstrap host with no IPs", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, nil, nil)
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			It("should ignore non-bootstrap hosts", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(false, nil, []string{"2001:db8::5/64"})
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			// Single network: bootstrap ordering is a no-op
+			It("single IPv4 network with IPv4 bootstrap", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, []string{"192.168.1.5/24"}, nil)
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(1))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+			})
+
+			It("single IPv6 network with IPv6 bootstrap", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, nil, []string{"2001:db8::5/64"})
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(1))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			// Dual-stack: bootstrap determines order when no primary stack is set
+			It("dual-stack with IPv6-only bootstrap should put IPv6 first", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, nil, []string{"2001:db8::5/64"})
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("2001:db8::/64"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("192.168.1.0/24"))
+			})
+
+			It("dual-stack with IPv4-only bootstrap should put IPv4 first", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "2001:db8::/64"},
+						{Cidr: "192.168.1.0/24"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, []string{"192.168.1.5/24"}, nil)
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			It("dual-stack with dual-stack bootstrap should match both networks", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, []string{"192.168.1.5/24"}, []string{"2001:db8::5/64"})
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			It("dual-stack with unmatched bootstrap IP should not reorder", func() {
+				cluster := &Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+					MachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.1.0/24"},
+						{Cidr: "2001:db8::/64"},
+					},
+				}}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, []string{"172.16.0.5/24"}, nil)
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
+			})
+
+			// Primary IP stack takes precedence over bootstrap ordering
+			It("should prefer IP family over bootstrap network in dual-stack", func() {
+				cluster := &Cluster{
+					Cluster: models.Cluster{
+						ID: &clusterID,
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "2001:db8::/64"},
+							{Cidr: "192.168.1.0/24"},
+						},
+					},
+					PrimaryIPStack: &primaryv4,
+				}
+				Expect(db.Create(cluster).Error).ToNot(HaveOccurred())
+				addHost(true, nil, []string{"2001:db8::5/64"})
+
+				result, err := GetClusterFromDB(db, clusterID, true)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result.MachineNetworks).To(HaveLen(2))
+				Expect(string(result.MachineNetworks[0].Cidr)).To(Equal("192.168.1.0/24"))
+				Expect(string(result.MachineNetworks[1].Cidr)).To(Equal("2001:db8::/64"))
 			})
 		})
 	})

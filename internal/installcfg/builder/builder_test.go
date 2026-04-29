@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"go.uber.org/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
@@ -22,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
+	"go.uber.org/mock/gomock"
 )
 
 var (
@@ -857,26 +857,6 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Networking.MachineNetwork[0].Cidr).To(Equal("1.2.4.0/24"))
 	})
 
-	It("user-managed load balancer should move bootstrap host machine network to the first element", func() {
-		var result installcfg.InstallerConfigBaremetal
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-
-		cluster.MachineNetworks = []*models.MachineNetwork{
-			{Cidr: "1.2.4.0/24"},
-			{Cidr: "1.2.3.0/24"},
-		}
-		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
-
-		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		err = json.Unmarshal(data, &result)
-		Expect(err).ShouldNot(HaveOccurred())
-
-		Expect(result.Networking.MachineNetwork).To(HaveLen(2))
-		Expect(result.Networking.MachineNetwork[0].Cidr).To(Equal("1.2.3.0/24"))
-	})
-
 	Context("networking", func() {
 		It("Single network fields", func() {
 			var result installcfg.InstallerConfigBaremetal
@@ -1099,6 +1079,18 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
 		cluster.ControlPlaneCount = 1
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("user-managed load balancer without bootstrap host should not fail validation", func() {
+		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		cluster.LoadBalancer = &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged}
+		cluster.MachineNetworks = []*models.MachineNetwork{
+			{Cidr: "1.2.3.0/24"},
+			{Cidr: "1.2.4.0/24"},
+		}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
 		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
 		Expect(err).ShouldNot(HaveOccurred())
