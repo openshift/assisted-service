@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/go-toolset:1.25 AS golang
 
 RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:8805abe5b8a32c826d46926c069f20e6a7f854d59d5bd75c55e68278aea65ccc AS builder
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:ac1eee4b85ab5feed38bf0f743b9278ceb1f9105e33260d37dbe53dc218128ad AS builder
 
 RUN dnf install -y gcc git nmstate-devel openssl-devel make && \
     dnf clean all
@@ -22,7 +22,7 @@ RUN git config --global --add safe.directory /opt/app-root/src
 COPY . ./assisted-service
 RUN cd ./assisted-service && make build-minimal
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:7d4e47500f28ac3a2bff06c25eff9127ff21048538ae03ce240d57cf756acd00
 
 RUN microdnf install -y nmstate nmstate-libs && microdnf clean all
 
