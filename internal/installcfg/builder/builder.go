@@ -266,7 +266,7 @@ func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *insta
 	return nil
 }
 
-func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) (*installcfg.InstallerConfigBaremetal, error) {
+func (i *installConfigBuilder) buildInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv) (*installcfg.InstallerConfigBaremetal, error) {
 	cfg, err := i.getBasicInstallConfig(cluster)
 	if err != nil {
 		return nil, err
@@ -277,39 +277,39 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, cluster
 		return nil, fmt.Errorf(
 			"error while adding Platfom %s to install config, error is: %w", common.PlatformTypeValue(cluster.Platform.Type), err)
 	}
-	err = i.applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
-	if err != nil {
-		return nil, err
-	}
-	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
-	if caContent != "" {
-		cfg.AdditionalTrustBundle = caContent
-	}
 
 	return cfg, nil
 }
 
 func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error) {
-	cfg, err := i.getInstallConfig(cluster, clusterInfraenvs, rhRootCA)
+	cfg, err := i.buildInstallConfig(cluster, clusterInfraenvs)
 	if err != nil {
 		return nil, err
+	}
+
+	if err = i.applyConfigOverrides(cluster.InstallConfigOverrides, cfg); err != nil {
+		return nil, err
+	}
+
+	caContent := i.mergeAllCASources(cluster, clusterInfraenvs, rhRootCA, cfg.AdditionalTrustBundle)
+	if caContent != "" {
+		cfg.AdditionalTrustBundle = caContent
 	}
 
 	return json.Marshal(*cfg)
 }
 
 func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, patch string) error {
-	config, err := i.getInstallConfig(cluster, clusterInfraenvs, "")
+	cfg, err := i.buildInstallConfig(cluster, clusterInfraenvs)
 	if err != nil {
 		return err
 	}
 
-	err = i.applyConfigOverrides(patch, config)
-	if err != nil {
+	if err = i.applyConfigOverrides(patch, cfg); err != nil {
 		return err
 	}
 
-	return config.Validate()
+	return cfg.Validate()
 }
 
 func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Cluster, machineGroup string) string {
