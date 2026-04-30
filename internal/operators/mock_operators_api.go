@@ -101,6 +101,21 @@ func (mr *MockAPIMockRecorder) GetBundle(bundleID, featureIDs any) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundle", reflect.TypeOf((*MockAPI)(nil).GetBundle), bundleID, featureIDs)
 }
 
+// GetBundleWithGPUFilter mocks base method.
+func (m *MockAPI) GetBundleWithGPUFilter(arg0 string, arg1 []models.FeatureSupportLevelID, arg2 *GPUFilter) (*models.Bundle, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBundleWithGPUFilter", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*models.Bundle)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBundleWithGPUFilter indicates an expected call of GetBundleWithGPUFilter.
+func (mr *MockAPIMockRecorder) GetBundleWithGPUFilter(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBundleWithGPUFilter", reflect.TypeOf((*MockAPI)(nil).GetBundleWithGPUFilter), arg0, arg1, arg2)
+}
+
 // GetMonitoredOperatorsList mocks base method.
 func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
 	m.ctrl.T.Helper()
@@ -229,6 +244,20 @@ func (m *MockAPI) ListBundles(filters *featuresupport.SupportLevelFilters, featu
 func (mr *MockAPIMockRecorder) ListBundles(filters, featureIDs any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBundles", reflect.TypeOf((*MockAPI)(nil).ListBundles), filters, featureIDs)
+}
+
+// ListBundlesWithGPUFilter mocks base method.
+func (m *MockAPI) ListBundlesWithGPUFilter(arg0 *featuresupport.SupportLevelFilters, arg1 []models.FeatureSupportLevelID, arg2 *GPUFilter) []*models.Bundle {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListBundlesWithGPUFilter", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*models.Bundle)
+	return ret0
+}
+
+// ListBundlesWithGPUFilter indicates an expected call of ListBundlesWithGPUFilter.
+func (mr *MockAPIMockRecorder) ListBundlesWithGPUFilter(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBundlesWithGPUFilter", reflect.TypeOf((*MockAPI)(nil).ListBundlesWithGPUFilter), arg0, arg1, arg2)
 }
 
 // ResolveDependencies mocks base method.
