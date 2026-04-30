@@ -79,8 +79,6 @@ var ClusterOwnerFileNames = []string{
 type RegistrationAPI interface {
 	// Register a new cluster (handles all cluster types based on Kind field)
 	RegisterCluster(ctx context.Context, c *common.Cluster) error
-	// Register a new add-host-ocp cluster
-	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
 	//deregister cluster
 	DeregisterCluster(ctx context.Context, c *common.Cluster) error
 }
@@ -267,10 +265,6 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 		eventgen.SendClusterRegistrationSucceededEvent(ctx, m.eventsHandler, *c.ID, models.ClusterKindAddHostsCluster)
 	}
 	return nil
-}
-
-func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
-	return m.registrationAPI.RegisterAddHostsOCPCluster(c, db)
 }
 
 func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
