@@ -117,7 +117,7 @@ var _ = Describe("Loki Operator", func() {
 			monOp := operator.GetMonitoredOperator()
 			Expect(monOp).ToNot(BeNil())
 			Expect(monOp.Name).To(Equal("loki"))
-			Expect(monOp.Namespace).To(Equal("openshift-loki"))
+			Expect(monOp.Namespace).To(Equal("openshift-operators-redhat"))
 			Expect(monOp.SubscriptionName).To(Equal("loki-operator"))
 			Expect(monOp.OperatorType).To(Equal(models.OperatorTypeOlm))
 		})
