@@ -1450,10 +1450,10 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		var updated bool
-		sortedHosts, canRefreshRoles := host.SortHosts(cluster.Hosts)
+		sortedHosts, canRefreshRoles := host.SortHosts(cluster.Hosts, cluster.ControlPlaneCount)
 		if canRefreshRoles {
 			for i := range sortedHosts {
-				updated, err = b.hostApi.AutoAssignRole(ctx, cluster.Hosts[i], tx)
+				updated, err = b.hostApi.AutoAssignRole(ctx, sortedHosts[i], tx)
 				if err != nil {
 					return err
 				}
