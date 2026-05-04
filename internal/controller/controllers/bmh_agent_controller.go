@@ -34,6 +34,7 @@ import (
 	machinev1beta1 "github.com/openshift/api/machine/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
@@ -1599,7 +1600,7 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeCli
 			Name:      src.name,
 		}
 		if err = spokeClient.Get(ctx, key, configMap); err == nil {
-			certData = configMap.Data[src.key]
+			certData = strings.TrimSpace(configMap.Data[src.key])
 			break
 		}
 		// Only try the next source if the configmap doesn't exist.
@@ -1612,7 +1613,10 @@ func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, spokeCli
 		return encodedMCSCrt, ignitionWithMCSCert, err
 	}
 	if len(certData) == 0 {
-		return encodedMCSCrt, ignitionWithMCSCert, fmt.Errorf("Configmap %s/%s does not contain CA certificate data", configMap.Namespace, configMap.Name)
+		return encodedMCSCrt, ignitionWithMCSCert, fmt.Errorf("ConfigMap %s/%s does not contain CA certificate data", configMap.Namespace, configMap.Name)
+	}
+	if err = validations.ValidatePEMCertificateBundle(certData); err != nil {
+		return encodedMCSCrt, ignitionWithMCSCert, fmt.Errorf("ConfigMap %s/%s contains invalid CA certificate data: %w", configMap.Namespace, configMap.Name, err)
 	}
 	encodedMCSCrt = base64.StdEncoding.EncodeToString([]byte(certData))
 	ignitionWithMCSCert, err = r.formatMCSCertificateIgnition(encodedMCSCrt)
