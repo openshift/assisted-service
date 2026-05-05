@@ -616,3 +616,285 @@ func createClusterFromHosts(hosts []*models.Host) Cluster {
 		},
 	}
 }
+
+var _ = Describe("HostsInStatus", func() {
+	It("should return zero counts for empty cluster", func() {
+		cluster := createClusterFromHosts([]*models.Host{})
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(0))
+		Expect(workers).To(Equal(0))
+	})
+
+	It("should count masters in specified status", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+			createHost(models.HostRoleMaster, models.HostStatusInsufficient),
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(2))
+		Expect(workers).To(Equal(0))
+	})
+
+	It("should count workers in specified status", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+			createHost(models.HostRoleWorker, models.HostStatusKnown),
+			createHost(models.HostRoleWorker, models.HostStatusKnown),
+			createHost(models.HostRoleWorker, models.HostStatusInsufficient),
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(1))
+		Expect(workers).To(Equal(2))
+	})
+
+	It("should count hosts with multiple statuses", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+			createHost(models.HostRoleMaster, models.HostStatusInstalling),
+			createHost(models.HostRoleMaster, models.HostStatusInsufficient),
+			createHost(models.HostRoleWorker, models.HostStatusKnown),
+			createHost(models.HostRoleWorker, models.HostStatusInstalling),
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown, models.HostStatusInstalling})
+
+		Expect(masters).To(Equal(2))
+		Expect(workers).To(Equal(2))
+	})
+
+	It("should handle bootstrap hosts as masters", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleBootstrap, models.HostStatusKnown),
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(2))
+		Expect(workers).To(Equal(0))
+	})
+
+	It("should use effective role for auto-assigned hosts", func() {
+		hostId1 := strfmt.UUID(uuid.New().String())
+		clusterId1 := strfmt.UUID(uuid.New().String())
+		hostId2 := strfmt.UUID(uuid.New().String())
+		clusterId2 := strfmt.UUID(uuid.New().String())
+
+		hosts := []*models.Host{
+			{
+				ID:            &hostId1,
+				InfraEnvID:    strfmt.UUID(uuid.New().String()),
+				ClusterID:     &clusterId1,
+				Role:          models.HostRoleAutoAssign,
+				SuggestedRole: models.HostRoleMaster,
+				Status:        swag.String(models.HostStatusKnown),
+			},
+			{
+				ID:            &hostId2,
+				InfraEnvID:    strfmt.UUID(uuid.New().String()),
+				ClusterID:     &clusterId2,
+				Role:          models.HostRoleAutoAssign,
+				SuggestedRole: models.HostRoleWorker,
+				Status:        swag.String(models.HostStatusKnown),
+			},
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(1))
+		Expect(workers).To(Equal(1))
+	})
+
+	It("should return zero when no hosts match status", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleMaster, models.HostStatusInsufficient),
+			createHost(models.HostRoleWorker, models.HostStatusPendingForInput),
+		}
+		cluster := createClusterFromHosts(hosts)
+		masters, workers := HostsInStatus(&cluster, []string{models.HostStatusKnown})
+
+		Expect(masters).To(Equal(0))
+		Expect(workers).To(Equal(0))
+	})
+})
+
+var _ = Describe("HasEnoughMastersAndWorkers", func() {
+	Context("single node", func() {
+		It("should return true with exactly 1 master and 0 workers", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = 1
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeTrue())
+		})
+
+		It("should return false with 1 master and 1 worker", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = 1
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+
+		It("should return false with 0 masters", func() {
+			cluster := createClusterFromHosts([]*models.Host{})
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = 1
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+
+		It("should return false with 2 masters", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			cluster.ControlPlaneCount = 1
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+	})
+
+	Context("highly available", func() {
+		It("should return true with 3 masters and 0 workers", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeTrue())
+		})
+
+		It("should return true with 3 masters and 1 worker", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeTrue())
+		})
+
+		It("should return true with 3 masters and 2+ workers when all are in status", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeTrue())
+		})
+
+		It("should return false with 3 masters expected but only 2 in status", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusInsufficient),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+
+		It("should return false when expecting 2+ workers but only 1 in status", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusKnown),
+				createHost(models.HostRoleWorker, models.HostStatusInsufficient),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+
+		It("should return true with 5 masters", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 5
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeTrue())
+		})
+
+		It("should return false with less than minimum masters", func() {
+			hosts := []*models.Host{
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+				createHost(models.HostRoleMaster, models.HostStatusKnown),
+			}
+			cluster := createClusterFromHosts(hosts)
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			cluster.ControlPlaneCount = 3
+
+			result := HasEnoughMastersAndWorkers(&cluster, []string{models.HostStatusKnown})
+			Expect(result).To(BeFalse())
+		})
+	})
+
+	It("should count hosts in any of the specified statuses with multiple status values", func() {
+		hosts := []*models.Host{
+			createHost(models.HostRoleMaster, models.HostStatusKnown),
+			createHost(models.HostRoleMaster, models.HostStatusInstalling),
+			createHost(models.HostRoleMaster, models.HostStatusInstalled),
+		}
+		cluster := createClusterFromHosts(hosts)
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+		cluster.ControlPlaneCount = 3
+
+		result := HasEnoughMastersAndWorkers(&cluster, []string{
+			models.HostStatusKnown,
+			models.HostStatusInstalling,
+			models.HostStatusInstalled,
+		})
+		Expect(result).To(BeTrue())
+	})
+})

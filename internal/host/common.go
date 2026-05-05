@@ -46,6 +46,7 @@ const (
 	statusInfoHostReadyToBeBound                                   = "Host is ready to be bound to a cluster"
 	statusInfoBinding                                              = "Host is waiting to be bound to the cluster"
 	statusRebootTimeout                                            = "Host timed out when pulling the configuration files. Verify in the host console that the host boots from the OpenShift installation disk $INSTALLATION_DISK and has network access to the cluster API. The installation will resume after the host successfully boots and can access the cluster API"
+	statusInfoPendingUserActionTimeout                             = "Host failed to boot from the installation disk within the expected time."
 	statusInfoUnbinding                                            = "Host is waiting to be unbound from the cluster"
 	statusInfoRebootingDay2                                        = "Host has rebooted and no further updates will be posted. Please check console for progress and to possibly approve pending CSRs"
 	statusInfoRebootingForReclaim                                  = "Host is rebooting into the discovery image"
