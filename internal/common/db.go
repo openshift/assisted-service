@@ -448,6 +448,31 @@ func OrderByIPFamily(column, tableName string) func(db *gorm.DB) *gorm.DB {
 	}
 }
 
+// OrderByBootstrapNetwork orders machine networks so the one containing the
+// bootstrap host's IP comes first. cluster-etcd-operator relies on this ordering.
+// ref: https://github.com/openshift/cluster-etcd-operator/blob/cee7f9bbea0fce240a74872e3c3baf069bc5eaac/pkg/cmd/render/render.go#L490
+func OrderByBootstrapNetwork() func(db *gorm.DB) *gorm.DB {
+	return func(db *gorm.DB) *gorm.DB {
+		orderClause := `CASE WHEN EXISTS (
+			SELECT 1 FROM hosts h,
+				jsonb_array_elements(h.inventory::jsonb->'interfaces') AS iface,
+				jsonb_array_elements_text(
+					CASE WHEN family(machine_networks.cidr::inet) = 4
+						THEN COALESCE(NULLIF(iface->'ipv4_addresses', 'null'::jsonb), '[]'::jsonb)
+						ELSE COALESCE(NULLIF(iface->'ipv6_addresses', 'null'::jsonb), '[]'::jsonb)
+					END
+				) AS addr
+			WHERE h.cluster_id = machine_networks.cluster_id
+				AND h.bootstrap = true
+				AND h.deleted_at IS NULL
+				AND h.inventory IS NOT NULL
+				AND h.inventory != ''
+				AND host(addr::inet)::inet << machine_networks.cidr::cidr
+		) THEN 0 ELSE 1 END ASC`
+		return db.Order(orderClause)
+	}
+}
+
 // addNetworkCondition adds the order by clause for network tables based on the cluster's primary_ip_stack setting
 // to the conditions for a given table.
 func addNetworkCondition(tableName string, conditions ...interface{}) []interface{} {
@@ -455,6 +480,7 @@ func addNetworkCondition(tableName string, conditions ...interface{}) []interfac
 	switch tableName {
 	case MachineNetworksTable:
 		allConditions = append(allConditions, OrderByIPFamily("cidr", "machine_networks"))
+		allConditions = append(allConditions, OrderByBootstrapNetwork())
 	case ClusterNetworksTable:
 		allConditions = append(allConditions, OrderByIPFamily("cidr", "cluster_networks"))
 	case ServiceNetworksTable:
