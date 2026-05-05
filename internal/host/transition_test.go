@@ -2450,6 +2450,56 @@ var _ = Describe("Refresh Host", func() {
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
 		})
+
+		It("remains when cluster is already installed (post-installation host addition)", func() {
+			// Create 3 master hosts in installed status so cluster is viable
+			for range 3 {
+				masterId := strfmt.UUID(uuid.New().String())
+				master := hostutil.GenerateTestHostByKind(masterId, infraEnvId, &clusterId, models.HostStatusInstalled, models.HostKindHost, models.HostRoleMaster)
+				Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+			}
+
+			// Set cluster status to installed (post-installation state)
+			Expect(db.Model(&cluster).Update("status", models.ClusterStatusInstalled).Error).ShouldNot(HaveOccurred())
+
+			// Host has been stuck for > timeout but should NOT timeout because cluster is post-installation
+			host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-90 * time.Minute))
+			host.Role = models.HostRoleWorker
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			Expect(hapi.RefreshStatus(ctx, &host, db)).To(Succeed())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+		})
+
+		It("remains when cluster is adding hosts (imported cluster)", func() {
+			// Create 3 master hosts in installed status so cluster is viable
+			for range 3 {
+				masterId := strfmt.UUID(uuid.New().String())
+				master := hostutil.GenerateTestHostByKind(masterId, infraEnvId, &clusterId, models.HostStatusInstalled, models.HostKindHost, models.HostRoleMaster)
+				Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
+			}
+
+			// Set cluster status to adding-hosts (imported cluster state)
+			Expect(db.Model(&cluster).Updates(map[string]interface{}{
+				"status": models.ClusterStatusAddingHosts,
+				"kind":   models.ClusterKindAddHostsCluster,
+			}).Error).ShouldNot(HaveOccurred())
+
+			// Host has been stuck for > timeout but should NOT timeout because cluster is post-installation
+			host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-90 * time.Minute))
+			host.Role = models.HostRoleWorker
+			host.Kind = swag.String(models.HostKindAddToExistingClusterHost)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+			Expect(hapi.RefreshStatus(ctx, &host, db)).To(Succeed())
+
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusInstallingPendingUserAction))
+		})
 	})
 
 	Context("Installation disk error handling in status info", func() {
