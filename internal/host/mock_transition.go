@@ -130,6 +130,21 @@ func (mr *MockTransitionHandlerMockRecorder) HostNotResponsiveWhilePreparingInst
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostNotResponsiveWhilePreparingInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).HostNotResponsiveWhilePreparingInstallation), sw, args)
 }
 
+// IsClusterPostInstallation mocks base method.
+func (m *MockTransitionHandler) IsClusterPostInstallation(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsClusterPostInstallation", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// IsClusterPostInstallation indicates an expected call of IsClusterPostInstallation.
+func (mr *MockTransitionHandlerMockRecorder) IsClusterPostInstallation(sw, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsClusterPostInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).IsClusterPostInstallation), sw, arg1)
+}
+
 // IsDay2Host mocks base method.
 func (m *MockTransitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
