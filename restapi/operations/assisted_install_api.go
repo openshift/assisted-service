@@ -60,9 +60,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadMinimalInitrdHandler: installer.DownloadMinimalInitrdHandlerFunc(func(params installer.DownloadMinimalInitrdParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadMinimalInitrd has not yet been implemented")
 		}),
-		InstallerGetClusterSupportedPlatformsHandler: installer.GetClusterSupportedPlatformsHandlerFunc(func(params installer.GetClusterSupportedPlatformsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetClusterSupportedPlatforms has not yet been implemented")
-		}),
 		InstallerGetDetailedSupportedFeaturesHandler: installer.GetDetailedSupportedFeaturesHandlerFunc(func(params installer.GetDetailedSupportedFeaturesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetDetailedSupportedFeatures has not yet been implemented")
 		}),
@@ -396,8 +393,6 @@ type AssistedInstallAPI struct {
 	InstallerDeregisterInfraEnvHandler installer.DeregisterInfraEnvHandler
 	// InstallerDownloadMinimalInitrdHandler sets the operation handler for the download minimal initrd operation
 	InstallerDownloadMinimalInitrdHandler installer.DownloadMinimalInitrdHandler
-	// InstallerGetClusterSupportedPlatformsHandler sets the operation handler for the get cluster supported platforms operation
-	InstallerGetClusterSupportedPlatformsHandler installer.GetClusterSupportedPlatformsHandler
 	// InstallerGetDetailedSupportedFeaturesHandler sets the operation handler for the get detailed supported features operation
 	InstallerGetDetailedSupportedFeaturesHandler installer.GetDetailedSupportedFeaturesHandler
 	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
@@ -662,9 +657,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadMinimalInitrdHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadMinimalInitrdHandler")
-	}
-	if o.InstallerGetClusterSupportedPlatformsHandler == nil {
-		unregistered = append(unregistered, "installer.GetClusterSupportedPlatformsHandler")
 	}
 	if o.InstallerGetDetailedSupportedFeaturesHandler == nil {
 		unregistered = append(unregistered, "installer.GetDetailedSupportedFeaturesHandler")
@@ -1030,10 +1022,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/downloads/minimal-initrd"] = installer.NewDownloadMinimalInitrd(o.context, o.InstallerDownloadMinimalInitrdHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/v2/clusters/{cluster_id}/supported-platforms"] = installer.NewGetClusterSupportedPlatforms(o.context, o.InstallerGetClusterSupportedPlatformsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

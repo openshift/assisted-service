@@ -53,7 +53,6 @@ DownloadClusterCredentials        | N/A                                         
 GetPresignedForClusterCredentials | N/A                                                     | GET /v2/clusters/{cluster_id}/downloads/credentials-presigned | New V2 API - Get kubeadmin-password, kubeconfig, kubeconfig-noingress (only user, not admin/ro-admin)
 DownloadClusterKubeconfig         | GET /v1/clusters/{cluster_id}/downloads/kubeconfig      | N/A                                                           | Deprecated in favor of `DownloadClusterCredentials`
 GetCredentials                    | GET /v1/clusters/{cluster_id}/credentials               | GET /v2/clusters/{cluster_id}/credentials                     |
-GetClusterSupportedPlatforms      | N/A                                                     | GET /v2/clusters/{cluster_id}/supported-platforms             |
 GetClusterDefaultConfig           | GET /v1/clusters/default-config                         | GET /v2/clusters/default-config                               |
 GetClusterInstallConfig           | GET /v1/clusters/{cluster_id}/install-config            | GET /v2/clusters/{cluster_id}/install-config                  |
 UpdateClusterInstallConfig        | PATCH /v1/clusters/{cluster_id}/install-config          | PUT /v2/clusters/{cluster_id}/install-config                  |
