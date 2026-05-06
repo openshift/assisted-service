@@ -188,53 +188,6 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func HostsInStatus(c *common.Cluster, statuses []string) (int, int, int) {
-	mappedMastersByRole := MapMasterHostsByStatus(c)
-	mappedArbitersByRole := MapArbiterHostsByStatus(c)
-	mappedWorkersByRole := MapWorkersHostsByStatus(c)
-	mastersInSomeInstallingStatus := 0
-	arbitersInSomeInstallingStatus := 0
-	workersInSomeInstallingStatus := 0
-
-	for _, status := range statuses {
-		mastersInSomeInstallingStatus += len(mappedMastersByRole[status])
-		arbitersInSomeInstallingStatus += len(mappedArbitersByRole[status])
-		workersInSomeInstallingStatus += len(mappedWorkersByRole[status])
-	}
-	return mastersInSomeInstallingStatus, arbitersInSomeInstallingStatus, workersInSomeInstallingStatus
-}
-
-func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleMaster)
-}
-
-func MapArbiterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleArbiter)
-}
-
-func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, models.HostRoleWorker)
-}
-
-func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
-	hostMap := make(map[string][]*models.Host)
-	for _, host := range c.Hosts {
-		if role != "" && common.GetEffectiveRole(host) != role {
-			continue
-		}
-		if _, ok := hostMap[swag.StringValue(host.Status)]; ok {
-			hostMap[swag.StringValue(host.Status)] = append(hostMap[swag.StringValue(host.Status)], host)
-		} else {
-			hostMap[swag.StringValue(host.Status)] = []*models.Host{host}
-		}
-	}
-	return hostMap
-}
-
-func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
-	return mapHostsByStatus(c, "")
-}
-
 func UpdateMachineNetwork(db *gorm.DB, cluster *common.Cluster, machineNetwork []string) error {
 	if len(machineNetwork) > 2 {
 		return common.NewApiError(http.StatusInternalServerError,
