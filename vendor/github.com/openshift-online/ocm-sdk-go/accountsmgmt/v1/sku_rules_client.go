@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -90,6 +92,13 @@ func (r *SkuRulesListRequest) Header(name string, value interface{}) *SkuRulesLi
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *SkuRulesListRequest) Impersonate(user string) *SkuRulesListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Page sets the value of the 'page' parameter.
 //
 // Index of the requested page, where one corresponds to the first page.
@@ -107,10 +116,9 @@ func (r *SkuRulesListRequest) Page(value int) *SkuRulesListRequest {
 // instead of the names of the columns of a table. For example, in order to
 // retrieve SKUS large sized resources:
 //
-// [source,sql]
-// ----
+// ```sql
 // resource_name like '%large'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // items that the user has permission to see will be returned.
@@ -168,15 +176,21 @@ func (r *SkuRulesListRequest) SendContext(ctx context.Context) (result *SkuRules
 	result = &SkuRulesListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readSkuRulesListResponse(result, response.Body)
+	err = readSkuRulesListResponse(result, reader)
 	if err != nil {
 		return
 	}

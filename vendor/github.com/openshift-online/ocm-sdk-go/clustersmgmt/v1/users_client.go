@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -102,6 +101,13 @@ func (r *UsersAddRequest) Header(name string, value interface{}) *UsersAddReques
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *UsersAddRequest) Impersonate(user string) *UsersAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Description of the user.
@@ -135,7 +141,7 @@ func (r *UsersAddRequest) SendContext(ctx context.Context) (result *UsersAddResp
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +154,25 @@ func (r *UsersAddRequest) SendContext(ctx context.Context) (result *UsersAddResp
 	result = &UsersAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readUsersAddResponse(result, response.Body)
+	err = readUsersAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *UsersAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *UsersAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // UsersAddResponse is the response for the 'add' method.
@@ -249,6 +251,13 @@ func (r *UsersListRequest) Header(name string, value interface{}) *UsersListRequ
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *UsersListRequest) Impersonate(user string) *UsersListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Page sets the value of the 'page' parameter.
 //
 // Index of the requested page, where one corresponds to the first page.
@@ -303,15 +312,21 @@ func (r *UsersListRequest) SendContext(ctx context.Context) (result *UsersListRe
 	result = &UsersListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readUsersListResponse(result, response.Body)
+	err = readUsersListResponse(result, reader)
 	if err != nil {
 		return
 	}
