@@ -2788,11 +2788,12 @@ func init() {
             ]
           }
         ],
-        "description": "A list of platforms that this cluster can support in its current configuration.",
+        "description": "Deprecated. Returns a list of platforms that this cluster can support in its current configuration.\nPrefer deriving platform eligibility from cluster hosts and inventory together with\nGET /v2/support-levels/features (or GET /v2/support-levels/features/detailed) for the cluster OpenShift version and CPU architecture.\n",
         "tags": [
           "installer"
         ],
         "operationId": "GetClusterSupportedPlatforms",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",
@@ -14294,11 +14295,12 @@ func init() {
             ]
           }
         ],
-        "description": "A list of platforms that this cluster can support in its current configuration.",
+        "description": "Deprecated. Returns a list of platforms that this cluster can support in its current configuration.\nPrefer deriving platform eligibility from cluster hosts and inventory together with\nGET /v2/support-levels/features (or GET /v2/support-levels/features/detailed) for the cluster OpenShift version and CPU architecture.\n",
         "tags": [
           "installer"
         ],
         "operationId": "GetClusterSupportedPlatforms",
+        "deprecated": true,
         "parameters": [
           {
             "type": "string",

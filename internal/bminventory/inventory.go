@@ -1826,6 +1826,7 @@ func (b *bareMetalInventory) GetClusterSupportedPlatformsInternal(
 }
 
 func (b *bareMetalInventory) GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder {
+	logutil.FromContext(ctx, b.log).Warn("deprecated API invoked: GET /v2/clusters/{cluster_id}/supported-platforms; use cluster hosts plus GET /v2/support-levels/features instead")
 	supportedPlatforms, err := b.GetClusterSupportedPlatformsInternal(ctx, params)
 	if err != nil {
 		return common.GenerateErrorResponder(err)

@@ -433,7 +433,11 @@ paths:
     get:
       tags:
         - installer
-      description: A list of platforms that this cluster can support in its current configuration.
+      description: |
+        Deprecated. Returns a list of platforms that this cluster can support in its current configuration.
+        Prefer deriving platform eligibility from cluster hosts and inventory together with
+        GET /v2/support-levels/features (or GET /v2/support-levels/features/detailed) for the cluster OpenShift version and CPU architecture.
+      deprecated: true
       operationId: GetClusterSupportedPlatforms
       security:
         - userAuth: [ admin, read-only-admin, user ]

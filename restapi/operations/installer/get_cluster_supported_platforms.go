@@ -32,7 +32,9 @@ func NewGetClusterSupportedPlatforms(ctx *middleware.Context, handler GetCluster
 /*
 	GetClusterSupportedPlatforms swagger:route GET /v2/clusters/{cluster_id}/supported-platforms installer getClusterSupportedPlatforms
 
-A list of platforms that this cluster can support in its current configuration.
+Deprecated. Returns a list of platforms that this cluster can support in its current configuration.
+Prefer deriving platform eligibility from cluster hosts and inventory together with
+GET /v2/support-levels/features (or GET /v2/support-levels/features/detailed) for the cluster OpenShift version and CPU architecture.
 */
 type GetClusterSupportedPlatforms struct {
 	Context *middleware.Context
