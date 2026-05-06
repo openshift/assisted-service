@@ -35,6 +35,21 @@ func (m *MockTransitionHandler) EXPECT() *MockTransitionHandlerMockRecorder {
 	return m.recorder
 }
 
+// ClusterWouldSucceedWithoutHost mocks base method.
+func (m *MockTransitionHandler) ClusterWouldSucceedWithoutHost(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ClusterWouldSucceedWithoutHost", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ClusterWouldSucceedWithoutHost indicates an expected call of ClusterWouldSucceedWithoutHost.
+func (mr *MockTransitionHandlerMockRecorder) ClusterWouldSucceedWithoutHost(sw, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterWouldSucceedWithoutHost", reflect.TypeOf((*MockTransitionHandler)(nil).ClusterWouldSucceedWithoutHost), sw, arg1)
+}
+
 // HasClusterError mocks base method.
 func (m *MockTransitionHandler) HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	m.ctrl.T.Helper()
@@ -63,6 +78,21 @@ func (m *MockTransitionHandler) HasInstallationInProgressTimedOut(sw stateswitch
 func (mr *MockTransitionHandlerMockRecorder) HasInstallationInProgressTimedOut(sw, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasInstallationInProgressTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasInstallationInProgressTimedOut), sw, arg1)
+}
+
+// HasPendingUserActionTimedOut mocks base method.
+func (m *MockTransitionHandler) HasPendingUserActionTimedOut(sw stateswitch.StateSwitch, arg1 stateswitch.TransitionArgs) (bool, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HasPendingUserActionTimedOut", sw, arg1)
+	ret0, _ := ret[0].(bool)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HasPendingUserActionTimedOut indicates an expected call of HasPendingUserActionTimedOut.
+func (mr *MockTransitionHandlerMockRecorder) HasPendingUserActionTimedOut(sw, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasPendingUserActionTimedOut", reflect.TypeOf((*MockTransitionHandler)(nil).HasPendingUserActionTimedOut), sw, arg1)
 }
 
 // HasStatusTimedOut mocks base method.
