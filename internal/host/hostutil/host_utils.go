@@ -45,15 +45,14 @@ var ForbiddenHostnames = []string{
 }
 
 func GetCurrentHostName(host *models.Host) (string, error) {
-	var inventory models.Inventory
 	if host.RequestedHostname != "" {
 		return host.RequestedHostname, nil
 	}
-	err := json.Unmarshal([]byte(host.Inventory), &inventory)
-	if err != nil {
-		return "", err
+	// in case inventory Hostname was not set.
+	if host.Hostname == "" {
+		return "", errors.Errorf("hostname is empty")
 	}
-	return inventory.Hostname, nil
+	return host.Hostname, nil
 }
 
 func GetHostnameForMsg(host *models.Host) string {
