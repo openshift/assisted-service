@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
-	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -67,30 +66,30 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	lsoOperator := []string{lso.Operator.Name}
-	lvmOperator := []string{lvm.Operator.Name}
-
-	// Disable lso for ARM deployment as it's not supported
-	// to allow CNV ARM operator
-	if cluster.CPUArchitecture == common.ARM64CPUArchitecture || cluster.CPUArchitecture == common.MultiCPUArchitecture {
-		return make([]string, 0), nil
+	if !featuresupport.IsFeatureCompatibleWithArchitecture(models.FeatureSupportLevelIDLVM, cluster.OpenshiftVersion, cluster.CPUArchitecture) {
+		return []string{}, nil
 	}
 
 	if cluster.OpenshiftVersion == "" {
-		return lsoOperator, nil
+		return []string{lvm.Operator.Name}, nil
 	}
 
-	// SNO
 	if common.IsSingleNodeCluster(cluster) {
-		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
-			return lvmOperator, nil
+		if isSupported, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isSupported {
+			return []string{lvm.Operator.Name}, nil
 		}
+		return []string{}, nil
 	}
-	return lsoOperator, nil
+
+	if isSupported, _ := common.BaseVersionGreaterOrEqual(lvm.LvmMinMultiNodeSupportVersion, cluster.OpenshiftVersion); isSupported {
+		return []string{lvm.Operator.Name}, nil
+	}
+
+	return []string{}, nil
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLSO, models.FeatureSupportLevelIDLVM}
+	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLVM}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the Operator

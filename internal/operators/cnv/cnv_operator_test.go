@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
-	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -37,23 +36,43 @@ var _ = Describe("CNV operator", func() {
 		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
-	DescribeTable("getDependencies", func(ocpVersion string, haMode int64, expectedOperator string) {
-		cluster := common.Cluster{
-			Cluster: models.Cluster{ControlPlaneCount: haMode, OpenshiftVersion: ocpVersion},
-		}
+	DescribeTable("getDependencies",
+		func(ocpVersion string, cpuArch string, haMode int64, expectedDeps []string) {
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ControlPlaneCount: haMode,
+					OpenshiftVersion:  ocpVersion,
+					CPUArchitecture:   cpuArch,
+				},
+			}
 
-		requirements, err := operator.GetDependencies(&cluster)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requirements).ToNot(BeNil())
+			deps, err := operator.GetDependencies(&cluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deps).To(Equal(expectedDeps))
+		},
+		// SNO: LVM from 4.12+
+		Entry("LVM, Single node 4.12", "4.12", common.DefaultCPUArchitecture, int64(1), []string{lvm.Operator.Name}),
+		Entry("LVM, Single node 4.15", "4.15", common.DefaultCPUArchitecture, int64(1), []string{lvm.Operator.Name}),
+		Entry("No deps, Single node 4.11", "4.11", common.DefaultCPUArchitecture, int64(1), []string{}),
+		Entry("No deps, Single node 4.10", "4.10", common.DefaultCPUArchitecture, int64(1), []string{}),
 
-		Expect(requirements[0]).To(BeEquivalentTo(expectedOperator))
-	},
+		// Multi-node: LVM from 4.15+
+		Entry("LVM, Multi node 4.15", "4.15", common.DefaultCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{lvm.Operator.Name}),
+		Entry("LVM, Multi node 4.21", "4.21", common.DefaultCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{lvm.Operator.Name}),
+		Entry("No deps, Multi node 4.14", "4.14", common.DefaultCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{}),
+		Entry("No deps, Multi node 4.12", "4.12", common.DefaultCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{}),
 
-		Entry("LVM, Single node 4.12", "4.12", int64(1), lvm.Operator.Name),
-		Entry("LSO, Multi node 4.15", "4.15", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Multi node 4.21", "4.21", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Multi node 4.12", "4.12", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Single node 4.11", "4.11", int64(1), lso.Operator.Name),
+		// Unsupported architectures: no deps regardless of version
+		Entry("No deps, s390x architecture", "4.15", common.S390xCPUArchitecture, int64(1), []string{}),
+		Entry("No deps, ppc64le architecture", "4.15", common.PowerCPUArchitecture, int64(1), []string{}),
+
+		// ARM64 and multi-arch: LVM is supported
+		Entry("LVM, ARM64 SNO 4.15", "4.15", common.ARM64CPUArchitecture, int64(1), []string{lvm.Operator.Name}),
+		Entry("LVM, ARM64 Multi node 4.15", "4.15", common.ARM64CPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{lvm.Operator.Name}),
+		Entry("LVM, Multi arch Multi node 4.15", "4.15", common.MultiCPUArchitecture, int64(common.MinMasterHostsNeededForInstallationInHaMode), []string{lvm.Operator.Name}),
+
+		// Empty OCP version defaults to LVM
+		Entry("LVM, empty OCP version", "", common.DefaultCPUArchitecture, int64(1), []string{lvm.Operator.Name}),
 	)
 
 	Context("host requirements", func() {
@@ -297,18 +316,17 @@ var _ = Describe("CNV operator", func() {
 		)
 	})
 
-	DescribeTable("GetPreflightRequirements, should be returned", func(cfg cnv.Config, cluster common.Cluster) {
+	DescribeTable("GetPreflightRequirements, should be returned", func(cfg cnv.Config, cluster common.Cluster, expectedDeps []string) {
 		cnvOperator := cnv.NewCNVOperator(log, cfg)
 		requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
+		Expect(requirements.Dependencies).To(Equal(expectedDeps))
 		Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 		numQualitative := 3
 		workerRequirements := newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)
 		masterRequirements := newRequirements(cnv.MasterCPU, cnv.MasterMemory)
 
 		if common.IsSingleNodeCluster(&cluster) {
-			// CNV+SNO installs HPP storage; additional discoverable disk req
 			if cfg.SNOInstallHPP {
 				numQualitative += 1
 			}
@@ -321,18 +339,26 @@ var _ = Describe("CNV operator", func() {
 		Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(masterRequirements))
 		Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 	},
-		Entry("for non-SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:  "4.10",
+		Entry("for non-SNO 4.15", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+			OpenshiftVersion:  "4.15",
 			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
-		}}),
-		Entry("for SNO", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: true}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:  "4.10",
+		}}, []string{lvm.Operator.Name}),
+		Entry("for SNO 4.12", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+			OpenshiftVersion:  "4.12",
 			ControlPlaneCount: sno,
-		}}),
-		Entry("for SNO and opt out of HPP via env var", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: false}, common.Cluster{Cluster: models.Cluster{
-			OpenshiftVersion:  "4.10",
+		}}, []string{lvm.Operator.Name}),
+		Entry("for SNO 4.11 with HPP", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: true}, common.Cluster{Cluster: models.Cluster{
+			OpenshiftVersion:  "4.11",
 			ControlPlaneCount: sno,
-		}}),
+		}}, []string{}),
+		Entry("for SNO 4.11 opt out HPP", cnv.Config{SNOPoolSizeRequestHPPGib: 50, SNOInstallHPP: false}, common.Cluster{Cluster: models.Cluster{
+			OpenshiftVersion:  "4.11",
+			ControlPlaneCount: sno,
+		}}, []string{}),
+		Entry("for multi-node OCP < 4.15 with no LVM dependency", cnv.Config{SNOPoolSizeRequestHPPGib: 50}, common.Cluster{Cluster: models.Cluster{
+			OpenshiftVersion:  "4.14",
+			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+		}}, []string{}),
 	)
 
 	DescribeTable("Validate Cluster", func(ocpVersion []string, cpuArch string, expectedApiStatus api.ValidationStatus, errorMessage string) {
