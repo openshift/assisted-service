@@ -134,7 +134,7 @@ func (m *MockTransitionHandler) IsClusterPostInstallation(sw stateswitch.StateSw
 }
 
 // IsClusterPostInstallation indicates an expected call of IsClusterPostInstallation.
-func (mr *MockTransitionHandlerMockRecorder) IsClusterPostInstallation(sw, arg1 any) *gomock.Call {
+func (mr *MockTransitionHandlerMockRecorder) IsClusterPostInstallation(sw, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsClusterPostInstallation", reflect.TypeOf((*MockTransitionHandler)(nil).IsClusterPostInstallation), sw, arg1)
 }
