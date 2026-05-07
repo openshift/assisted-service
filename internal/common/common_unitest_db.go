@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
+	dbpkg "github.com/openshift/assisted-service/pkg/db"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -337,10 +338,8 @@ func DeleteTestDB(db *gorm.DB, dbName string) {
 
 func getDBDSN(dbName string) string {
 	host, port := getDBContext().GetHostPort()
-	dsn := fmt.Sprintf("host=%s port=%s user=postgres password=admin sslmode=disable", host, port)
-	if dbName != "" {
-		dsn = dsn + fmt.Sprintf(" database=%s", dbName)
-	}
+	dsn, err := dbpkg.LibpqDSN(host, port, "postgres", "admin", dbName)
+	Expect(err).ShouldNot(HaveOccurred())
 	return dsn
 }
 

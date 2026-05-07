@@ -802,8 +802,10 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
-	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s database=%s password=%s sslmode=disable",
-		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
+	dbConnectionStr, validationErr := Options.DBConfig.LibpqDSN()
+	if validationErr != nil {
+		log.WithError(validationErr).Fatal("Invalid DB connection config")
+	}
 	var db *gorm.DB
 	var err error
 	// Tries to open a db connection every 2 seconds

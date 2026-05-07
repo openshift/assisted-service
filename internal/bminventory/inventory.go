@@ -1561,7 +1561,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 
 		log.Infof("Storing OpenShift cluster ID of cluster %s to DB", cluster.ID.String())
 		var openshiftClusterID string
-		if openshiftClusterID, err = b.storeOpenshiftClusterID(ctx, cluster.ID.String()); err != nil {
+		if openshiftClusterID, err = b.storeOpenshiftClusterID(asyncCtx, cluster.ID.String()); err != nil {
 			return
 		}
 
