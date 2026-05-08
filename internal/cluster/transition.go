@@ -884,6 +884,13 @@ func addExtraParams(cluster *common.Cluster, srcState string) ([]interface{}, er
 		if srcState == models.ClusterStatusPreparingForInstallation {
 			extra = append(extra, initProgressParamsInstallingStage()...)
 		}
+	case models.ClusterStatusFinalizing:
+		// Reset the finalizing stage timeout when returning from pending-user-action
+		// to give the cluster a fresh timeout window
+		if srcState == models.ClusterStatusInstallingPendingUserAction {
+			extra = append(extra, "progress_finalizing_stage_started_at", strfmt.DateTime(time.Now()))
+			extra = append(extra, "progress_finalizing_stage_timed_out", false)
+		}
 	}
 	return extra, nil
 }
