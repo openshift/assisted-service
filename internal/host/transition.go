@@ -39,6 +39,7 @@ type TransitionHandler interface {
 	HasInstallationInProgressTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	HasPendingUserActionTimedOut(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	ClusterWouldSucceedWithoutHost(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
+	IsClusterPostInstallation(sw stateswitch.StateSwitch, _ stateswitch.TransitionArgs) (bool, error)
 	HasStatusTimedOut(timeout time.Duration) stateswitch.Condition
 	HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
 	IsDay2Host(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error)
@@ -782,6 +783,30 @@ func (th *transitionHandler) ClusterWouldSucceedWithoutHost(sw stateswitch.State
 	}
 
 	return common.HasEnoughMastersAndWorkers(cluster, []string{models.HostStatusInstalled}), nil
+}
+
+func (th *transitionHandler) IsClusterPostInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsClusterPostInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshHost)
+	if !ok {
+		return false, errors.New("IsClusterPostInstallation invalid argument")
+	}
+
+	// Get the cluster status
+	if sHost.host.ClusterID == nil {
+		return false, errors.New("cluster ID must not be nil")
+	}
+	var cluster common.Cluster
+	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
+	if err != nil {
+		return false, err
+	}
+
+	status := swag.StringValue(cluster.Status)
+	return status == models.ClusterStatusInstalled || status == models.ClusterStatusAddingHosts, nil
 }
 
 func (th *transitionHandler) PostHostPreparationTimeout() stateswitch.PostTransition {
