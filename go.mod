@@ -293,3 +293,5 @@ replace (
 )
 
 replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.13.0
+
+replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
