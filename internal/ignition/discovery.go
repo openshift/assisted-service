@@ -346,7 +346,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		var filesList []staticnetworkconfig.StaticNetworkConfigData
 		var newErr error
 		var shouldUseNmstateService bool
-		shouldUseNmstateService, err = ib.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
+		shouldUseNmstateService, err = ib.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
 		if err != nil {
 			return "", err
 		}

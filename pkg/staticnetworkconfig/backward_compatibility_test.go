@@ -1,10 +1,7 @@
 package staticnetworkconfig_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	snc "github.com/openshift/assisted-service/pkg/staticnetworkconfig"
@@ -12,52 +9,38 @@ import (
 )
 
 var _ = Describe("ShouldUseNmstateService", func() {
-	var (
-		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
-		hostsYAML              = `[{ "network_yaml": "%s" }]`
-		withMacIdentifier      = `interfaces:
-- name: eth0
-  type: ethernet
-  state: up
-  identifier: mac-address
-  mac-address: 02:00:00:80:12:14
-  ipv4:
-    enabled: true
-    address:
-      - ip: 192.0.2.1
-        prefix-length: 24`
-		withoutMacIdentifier = `interfaces:
-- name: eth0
-  type: ethernet
-  state: up
-  ipv4:
-    enabled: true
-    address:
-      - ip: 192.0.2.1
-        prefix-length: 24`
-		withAutoDnsSetToFalseDhcpTrue = `interfaces:
-- ipv4:
-    auto-dns: false
-    dhcp: true
-    enabled: true
-  ipv6:
-    enabled: false
-  name: eth0
-  state: up
-  type: ethernet
-`
-	)
-	table.DescribeTable("different scenarios", func(YAML, version string, expectedResult bool) {
-		escapedYamlContent, err := escapeYAMLForJSON(YAML)
-		Expect(err).NotTo(HaveOccurred())
+	var staticNetworkGenerator snc.StaticNetworkConfig
 
-		shouldUseNmstateService, err := staticNetworkGenerator.ShouldUseNmstateService(fmt.Sprintf(hostsYAML, escapedYamlContent), version)
+	BeforeEach(func() {
+		staticNetworkGenerator = snc.New(logrus.New(), snc.Config{MinVersionForNmstateService: common.MinimalVersionForNmstatectl})
+	})
+
+	It("returns false when version is empty", func() {
+		result, err := staticNetworkGenerator.ShouldUseNmstateService("")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(shouldUseNmstateService).To(Equal(expectedResult))
-	},
-		table.Entry("If the YAML contains a mac-identifier, and the version is >= MinimalVersionForNmstatectl,  we shouldn't use the nmstate service flow", withMacIdentifier, common.MinimalVersionForNmstatectl, false),
-		table.Entry("If the YAML contains a mac-identifier, and the version is < MinimalVersionForNmstatectl,  we shouldn't use the nmstate service flow", withMacIdentifier, "4.12", false),
-		table.Entry("If the YAML doesn't contain a mac-identifier and the version is >= MinimalVersionForNmstatectl, we should use the nmstate service flow", withoutMacIdentifier, common.MinimalVersionForNmstatectl, true),
-		table.Entry("If the YAML doesn't contain a mac-identifier, and the version < MinimalVersionForNmstatectl we shouldn't use the nmstate service flow.", withoutMacIdentifier, "4.12", false),
-		table.Entry("If the YAML contains a auto-dns: false, dhcp: true, and the version >= MinimalVersionForNmstatectl we shouldn't use the nmstate service flow.", withAutoDnsSetToFalseDhcpTrue, common.MinimalVersionForNmstatectl, false))
+		Expect(result).To(BeFalse())
+	})
+
+	It("returns false for version below minimum", func() {
+		result, err := staticNetworkGenerator.ShouldUseNmstateService("4.17")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(BeFalse())
+	})
+
+	It("returns true for the minimum version", func() {
+		result, err := staticNetworkGenerator.ShouldUseNmstateService(common.MinimalVersionForNmstatectl)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(BeTrue())
+	})
+
+	It("returns true for version above minimum", func() {
+		result, err := staticNetworkGenerator.ShouldUseNmstateService("4.19")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(result).To(BeTrue())
+	})
+
+	It("returns an error for an invalid version", func() {
+		_, err := staticNetworkGenerator.ShouldUseNmstateService("not-a-version")
+		Expect(err).To(HaveOccurred())
+	})
 })
