@@ -33,7 +33,7 @@ type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigDataYAML(staticNetworkConfigStr string) ([]StaticNetworkConfigData, error)
 	FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) (string, error)
 	ValidateStaticConfigParamsYAML(staticNetworkConfig []*models.HostStaticNetworkConfig) error
-	ShouldUseNmstateService(staticNetworkConfigStr, openshiftVersion string) (bool, error)
+	ShouldUseNmstateService(openshiftVersion string) (bool, error)
 }
 
 type StaticNetworkConfigGenerator struct {

@@ -87,18 +87,18 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigDataYA
 }
 
 // ShouldUseNmstateService mocks base method.
-func (m *MockStaticNetworkConfig) ShouldUseNmstateService(staticNetworkConfigStr, openshiftVersion string) (bool, error) {
+func (m *MockStaticNetworkConfig) ShouldUseNmstateService(openshiftVersion string) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ShouldUseNmstateService", staticNetworkConfigStr, openshiftVersion)
+	ret := m.ctrl.Call(m, "ShouldUseNmstateService", openshiftVersion)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ShouldUseNmstateService indicates an expected call of ShouldUseNmstateService.
-func (mr *MockStaticNetworkConfigMockRecorder) ShouldUseNmstateService(staticNetworkConfigStr, openshiftVersion any) *gomock.Call {
+func (mr *MockStaticNetworkConfigMockRecorder) ShouldUseNmstateService(openshiftVersion any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldUseNmstateService", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ShouldUseNmstateService), staticNetworkConfigStr, openshiftVersion)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ShouldUseNmstateService", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ShouldUseNmstateService), openshiftVersion)
 }
 
 // ValidateStaticConfigParamsYAML mocks base method.
