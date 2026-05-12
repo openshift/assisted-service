@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -13,10 +14,13 @@ import (
 	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"go.uber.org/mock/gomock"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 var _ = Describe("create agent CR", func() {
@@ -174,6 +178,68 @@ var _ = Describe("create agent CR", func() {
 
 			err := crdUtils.CreateAgentCR(ctx, log, hostId, infraEnv, cluster)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("Already existing agent update retries on conflict", func() {
+			clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
+			infraEnvImage := newInfraEnvImage(infraEnvName, infraEnvNamespace, v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      clusterDeployment.Name,
+					Namespace: clusterDeployment.Namespace,
+				},
+			})
+			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
+
+			hostId := uuid.New().String()
+			agent := newAgent(hostId, infraEnvNamespace, v1beta1.AgentSpec{})
+			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
+
+			id := strfmt.UUID(hostId)
+			otherClusterId := strfmt.UUID(uuid.New().String())
+			infraEnvId2 := strfmt.UUID(uuid.New().String())
+			h := common.Host{
+				Host: models.Host{
+					ID:         &id,
+					ClusterID:  &otherClusterId,
+					InfraEnvID: infraEnvId,
+				},
+			}
+			infraEnv2 := &common.InfraEnv{
+				KubeKeyNamespace: infraEnvNamespace,
+				InfraEnv: models.InfraEnv{
+					ID:   &infraEnvId2,
+					Name: &infraEnvName,
+				},
+			}
+
+			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
+			mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			updateCount := 0
+			conflictClient := fakeclient.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(clusterDeployment, infraEnvImage, agent).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Update: func(ctx context.Context, cl client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+						updateCount++
+						if updateCount == 1 {
+							return k8serrors.NewConflict(
+								schema.GroupResource{Group: "agent-install.openshift.io", Resource: "agents"},
+								obj.GetName(),
+								fmt.Errorf("the object has been modified"),
+							)
+						}
+						return cl.Update(ctx, obj, opts...)
+					},
+				}).
+				Build()
+
+			conflictCrdUtils := NewCRDUtils(conflictClient, mockHostApi)
+			err := conflictCrdUtils.CreateAgentCR(ctx, log, hostId, infraEnv2, cluster)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(updateCount).To(Equal(2))
 		})
 
 		It("Already existing agent different infraenv same namespace", func() {

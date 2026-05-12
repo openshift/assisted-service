@@ -13,6 +13,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -137,6 +138,26 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 			}
 		}
 
+		if err := u.updateAgentCR(ctx, namespacedName, labels, infraEnvCR, cluster); err != nil {
+			return err
+		}
+		// Update 'kube_key_namespace' in Host
+		if err := u.hostApi.UpdateKubeKeyNS(ctx, hostId, infraEnvCR.Namespace); err != nil {
+			return errors.Wrapf(err, "Failed to update 'kube_key_namespace' in host %s", hostId)
+		}
+		log.Infof("Updated Agent CR. Namespace: %s, Cluster: %s, HostID: %s", infraEnvCR.Namespace, clusterName, hostId)
+	}
+
+	return nil
+}
+
+func (u *CRDUtils) updateAgentCR(ctx context.Context, namespacedName types.NamespacedName, labels map[string]string, infraEnvCR *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+	return retry.RetryOnConflict(retry.DefaultBackoff, func() error {
+		current := &aiv1beta1.Agent{}
+		if err := u.client.Get(ctx, namespacedName, current); err != nil {
+			return err
+		}
+
 		updatedhost := &aiv1beta1.Agent{
 			Spec: aiv1beta1.AgentSpec{
 				Approved:                false,
@@ -148,10 +169,10 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				IgnitionConfigOverrides: "",
 			},
 			ObjectMeta: metav1.ObjectMeta{
-				Name:            hostId,
-				Namespace:       infraEnvCR.Namespace,
+				Name:            namespacedName.Name,
+				Namespace:       namespacedName.Namespace,
 				Labels:          labels,
-				ResourceVersion: host.ResourceVersion,
+				ResourceVersion: current.ResourceVersion,
 				OwnerReferences: []metav1.OwnerReference{
 					{
 						APIVersion: infraEnvCR.APIVersion,
@@ -162,22 +183,14 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				},
 			},
 		}
-
-		// Update 'kube_key_namespace' in Host
-		if err1 := u.hostApi.UpdateKubeKeyNS(ctx, hostId, infraEnvCR.Namespace); err1 != nil {
-			return errors.Wrapf(err, "Failed to update 'kube_key_namespace' in host %s", hostId)
-		}
 		if cluster != nil && cluster.KubeKeyNamespace != "" {
 			updatedhost.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{
 				Name:      cluster.KubeKeyName,
 				Namespace: cluster.KubeKeyNamespace,
 			}
 		}
-		log.Infof("Updating Agent CR. Namespace: %s, Cluster: %s, HostID: %s", infraEnvCR.Namespace, clusterName, hostId)
 		return u.client.Update(ctx, updatedhost)
-	}
-
-	return nil
+	})
 }
 
 type DummyCRDUtils struct{}
