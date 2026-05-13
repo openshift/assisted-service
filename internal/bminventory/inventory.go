@@ -4148,7 +4148,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
 		var shouldUseNmstateService bool
-		shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
+		shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -6505,7 +6505,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
 			var shouldUseNmstateService bool
-			shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.StaticNetworkConfig, infraEnv.OpenshiftVersion)
+			shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
 			if err != nil {
 				return common.GenerateErrorResponder(err)
 			}

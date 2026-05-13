@@ -11767,7 +11767,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 			infraEnv.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
 			infraEnv = applyProxy(infraEnv)
 			Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
-			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnv.OpenshiftVersion).Return(false, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(infraEnv.OpenshiftVersion).Return(false, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			validateArchiveStatNetFlow(infraEnv, false)
 		})
@@ -11777,7 +11777,7 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 			infraEnv.OpenshiftVersion = common.MinimalVersionForNmstatectl
 			infraEnv = applyProxy(infraEnv)
 			Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
-			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnv.OpenshiftVersion).Return(true, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(infraEnv.OpenshiftVersion).Return(true, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			validateArchiveStatNetFlow(infraEnv, true)
 		})
@@ -13539,7 +13539,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		It("old flow involving generating nmconnection files", func() {
 			infraEnvWithStatNet.OpenshiftVersion = ocpVersionInvolvingGenerateKeyfiles
 			Expect(db.Create(&infraEnvWithStatNet).Error).To(Succeed())
-			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnvWithStatNet.OpenshiftVersion).Return(false, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(infraEnvWithStatNet.OpenshiftVersion).Return(false, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(gomock.Any(), formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			content := getResponseData("static-network-config", false, nil, "", infraEnvWithStatNetID)
 			Expect(string(content)).To(ContainSubstring("/etc/assisted/network/nic10.nmconnection"))
@@ -13547,7 +13547,7 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		It("new flow involving nmpolicy and nmstate service", func() {
 			infraEnvWithStatNet.OpenshiftVersion = common.MinimalVersionForNmstatectl
 			Expect(db.Create(&infraEnvWithStatNet).Error).To(Succeed())
-			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(formattedInput, infraEnvWithStatNet.OpenshiftVersion).Return(true, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(infraEnvWithStatNet.OpenshiftVersion).Return(true, nil).Times(1)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			content := getResponseData("static-network-config", false, nil, "", infraEnvWithStatNetID)
 			Expect(string(content)).To(ContainSubstring("/etc/assisted/network/nic10.yml"))
