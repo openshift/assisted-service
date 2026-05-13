@@ -812,6 +812,40 @@ var _ = Describe("AreApiVipsIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "IPv6 expanded vs canonical notation",
+			n1: []*models.APIVip{
+				{IP: "fd9e:0001:0000:0000:0000:0000:0000:0bb8"},
+			},
+			n2: []*models.APIVip{
+				{IP: "fd9e:1::bb8"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Dual-stack with IPv6 expanded vs canonical",
+			n1: []*models.APIVip{
+				{IP: "172.20.5.100"},
+				{IP: "fd9e:0001:0000:0000:0000:0000:0000:0bb8"},
+			},
+			n2: []*models.APIVip{
+				{IP: "172.20.5.100"},
+				{IP: "fd9e:1::bb8"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different IPv6 addresses with different notation",
+			n1: []*models.APIVip{
+				{IP: "172.20.5.100"},
+				{IP: "fd9e:0001:0000:0000:0000:0000:0000:0bb8"},
+			},
+			n2: []*models.APIVip{
+				{IP: "172.20.5.100"},
+				{IP: "fd9e:1::cc9"},
+			},
+			expectedResult: false,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
@@ -929,6 +963,40 @@ var _ = Describe("AreIngressVipsIdentical", func() {
 				{
 					IP: "2.2.3.0",
 				},
+			},
+			expectedResult: false,
+		},
+		{
+			name: "IPv6 expanded vs canonical notation",
+			n1: []*models.IngressVip{
+				{IP: "fc00:0a23:0000:0000:0000:0000:0000:007f"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "fc00:a23::7f"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Dual-stack with IPv6 expanded vs canonical",
+			n1: []*models.IngressVip{
+				{IP: "10.35.72.5"},
+				{IP: "fc00:0a23:0000:0000:0000:0000:0000:007f"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "10.35.72.5"},
+				{IP: "fc00:a23::7f"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "Different IPv6 addresses with different notation",
+			n1: []*models.IngressVip{
+				{IP: "10.35.72.5"},
+				{IP: "fc00:0a23:0000:0000:0000:0000:0000:007f"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "10.35.72.5"},
+				{IP: "fc00:a23::80"},
 			},
 			expectedResult: false,
 		},
@@ -1457,3 +1525,4 @@ var _ = Describe("Network Comparison Functions with Dual-Stack Support", func() 
 		})
 	})
 })
+
