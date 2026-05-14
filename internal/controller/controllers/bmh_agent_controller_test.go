@@ -1673,7 +1673,7 @@ var _ = Describe("bmac reconcile", func() {
 						Namespace: "openshift-machine-config-operator",
 					},
 					Data: map[string]string{
-						"ca-bundle.crt": BASIC_CERT,
+						"ca-bundle.crt": TEST_CA_CERT,
 					},
 				}
 				Expect(bmhr.spokeClient.Create(ctx, configMap)).ShouldNot(HaveOccurred())
