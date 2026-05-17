@@ -108,6 +108,22 @@ IMAGE=$(echo $1 | sed 's/[@:].*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
+const agentPullImage = `#!/usr/bin/sh
+IMAGE=$1
+DELAY=5
+MAX_DELAY=300
+podman image exists "$IMAGE" && exit 0
+while true; do
+    podman pull "$IMAGE" && exit 0
+    echo "Pull failed for $IMAGE, retrying in ${DELAY}s..."
+    sleep $DELAY
+    DELAY=$((DELAY * 2))
+    if [ $DELAY -gt $MAX_DELAY ]; then
+        DELAY=$MAX_DELAY
+    fi
+done
+`
+
 const okdBinariesOverlayTemplate = `#!/bin/env bash
 set -eux
 # Fetch an image with OKD rpms
@@ -303,6 +319,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"PullSecretToken":     pullSecretToken,
 		"AGENT_MOTD":          url.PathEscape(agentMessageOfTheDay),
 		"AGENT_FIX_BZ1964591": url.PathEscape(agentFixBZ1964591),
+		"AGENT_PULL_IMAGE":    url.PathEscape(agentPullImage),
 		"IPv6_CONF":           url.PathEscape(common.Ipv6DuidDiscoveryConf),
 		"PULL_SECRET":         url.PathEscape(infraEnv.PullSecret),
 		"RH_ROOT_CA":          rhCa,
