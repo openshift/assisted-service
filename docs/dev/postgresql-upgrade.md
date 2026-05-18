@@ -45,9 +45,9 @@ The sclorg container images define these environment variables (baked into each 
 
 You can verify these by inspecting the container:
 ```bash
-podman run --rm quay.io/sclorg/postgresql-15-c9s:latest env | grep POSTGRESQL
-# POSTGRESQL_VERSION=15
-# POSTGRESQL_PREV_VERSION=13
+podman run --rm quay.io/sclorg/postgresql-16-c9s:latest env | grep POSTGRESQL
+# POSTGRESQL_VERSION=16
+# POSTGRESQL_PREV_VERSION=15
 ```
 
 ### Hardlink Mode
