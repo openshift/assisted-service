@@ -59,6 +59,7 @@ def main():
         expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
         sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
 
+    IMAGE_SERVICE_TIMEOUT = 60 * 45
     waiting.wait(
         lambda: is_service_ready(
             service="assisted-image-service",
@@ -67,7 +68,7 @@ def main():
             domain=deploy_options.domain,
             namespace=deploy_options.namespace,
             disable_tls=deploy_options.disable_tls),
-        timeout_seconds=TIMEOUT,
+        timeout_seconds=IMAGE_SERVICE_TIMEOUT,
         expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
         sleep_seconds=SLEEP, waiting_for="assisted-image-service to be healthy")
 
