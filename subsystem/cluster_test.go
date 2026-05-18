@@ -74,10 +74,14 @@ var _ = Describe("Cluster with Platform", func() {
 
 	Context("vSphere", func() {
 		It("vSphere cluster on OCP 4.13 - Success", func() {
+			openShiftVersion, ok := common.TestVersion().Exact("4.13").TryVersion()
+			if !ok {
+				Skip("4.13 not available")
+			}
 			cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.13"),
+					OpenshiftVersion:  swag.String(openShiftVersion),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -87,11 +91,15 @@ var _ = Describe("Cluster with Platform", func() {
 			Expect(*cluster.GetPayload().Platform.Type).Should(Equal(models.PlatformTypeVsphere))
 		})
 
-		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
+		It("vSphere cluster on OCP 4.13 with dual stack - Success", func() {
+			openShiftVersion, ok := common.TestVersion().Exact("4.13").TryVersion()
+			if !ok {
+				Skip("4.13 not available")
+			}
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.13"),
+					OpenshiftVersion:  swag.String(openShiftVersion),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
