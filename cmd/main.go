@@ -636,13 +636,13 @@ func main() {
 
 	failOnError(
 		versions.AddReleaseImagesToDBIfNeeded(db, releaseImagesArray, startupLeader, log, Options.EnableKubeAPI, Options.ReleaseSourcesConfig.ReleaseSources),
-		"error occured while adding configuration release images to the DB if needed",
+		"error occurred while adding configuration release images to the DB if needed",
 	)
 	openshiftReleaseSyncer, err := releasesources.RunOpenshiftReleaseSyncerIfNeeded(
 		releaseSourcesArray, releaseImagesArray, db, log, releaseHandler, lead, startupLeader, Options.EnableKubeAPI, Options.ReleaseSourcesConfig,
 	)
 
-	failOnError(err, "error occured while running OpenShift Release Syncer if needed")
+	failOnError(err, "error occurred while running OpenShift Release Syncer if needed")
 	defer releasesources.StopOpenshiftReleaseSyncerIfNeeded(openshiftReleaseSyncer)
 
 	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
