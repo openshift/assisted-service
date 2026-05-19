@@ -33,6 +33,7 @@ const (
 	wrongDriveTypeTemplate                  = "Drive type is %s, it must be one of %s."
 	wrongMultipathTypeTemplate              = "Multipath device has path of unsupported type. It must be %s"
 	mixedTypesInMultipath                   = "Multipath device has paths of different types, but they must all be the same type"
+	diskIsMultipathMember                   = "Disk is a member of multipath device %s and is not eligible for installation. Use the multipath device instead."
 	wrongISCSINetworkTemplate               = "iSCSI host IP %s is the same as host IP, they must be different"
 	ErrsInIscsiDisableMultipathInstallation = "Installation on multipath device is not possible due to errors on at least one iSCSI disk"
 	iscsiHostIPNotAvailable                 = "Host IP address is not available"
@@ -62,6 +63,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongMultipathTypeTemplate, ".*"),
 		compileDiskReasonTemplate(mixedTypesInMultipath),
+		compileDiskReasonTemplate(diskIsMultipathMember, ".*"),
 		compileDiskReasonTemplate(wrongISCSINetworkTemplate, ".*"),
 		compileDiskReasonTemplate(ErrsInIscsiDisableMultipathInstallation),
 		compileDiskReasonTemplate(iscsiHostIPNotAvailable),
@@ -160,6 +162,14 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(v.getValidDeviceStorageTypes(hostArchitecture, clusterVersion), ", ")))
 	}
 
+	// We do not allow FC or iSCSI disks that are members of a multipath device
+	if disk.DriveType == models.DriveTypeFC || disk.DriveType == models.DriveTypeISCSI {
+		err = hasMultipathHolder(disk, inventory)
+		if err != nil {
+			notEligibleReasons = append(notEligibleReasons, err.Error())
+		}
+	}
+
 	if disk.DriveType == models.DriveTypeMultipath {
 		fcDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, disk, models.DriveTypeFC)
 		iSCSIDisks := hostutil.GetDisksOfHolderByType(inventory.Disks, disk, models.DriveTypeISCSI)
@@ -201,6 +211,29 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 	}
 
 	return notEligibleReasons, nil
+}
+
+// hasMultipathHolder checks if a disk is a member of a multipath volume by
+// looking for multipath devices in its holders list.
+func hasMultipathHolder(disk *models.Disk, inventory *models.Inventory) error {
+	if disk.Holders == "" {
+		return nil
+	}
+
+	multipathDiskNamesMap := make(map[string]struct{})
+	for _, inventoryDisk := range inventory.Disks {
+		if inventoryDisk.DriveType == models.DriveTypeMultipath {
+			multipathDiskNamesMap[inventoryDisk.Name] = struct{}{}
+		}
+	}
+
+	holders := strings.Split(disk.Holders, ",")
+	for _, holder := range holders {
+		if _, exists := multipathDiskNamesMap[holder]; exists {
+			return fmt.Errorf(diskIsMultipathMember, holder)
+		}
+	}
+	return nil
 }
 
 // isISCSINetworkingValid checks if the iSCSI disk is not connected through the

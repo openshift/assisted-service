@@ -399,18 +399,6 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 	return ignitionEndpointUrl, cert, nil
 }
 
-// GetPreferredDiskID returns the ID of the preferred installation disk from a list of acceptable disks.
-// If any disk is a multipath device, it is preferred over raw paths (e.g. FC or iSCSI).
-// Otherwise, the first disk in the list is returned.
-func GetPreferredDiskID(disks []*models.Disk) string {
-	for _, disk := range disks {
-		if strings.EqualFold(string(disk.DriveType), string(models.DriveTypeMultipath)) {
-			return disk.ID
-		}
-	}
-	return disks[0].ID
-}
-
 func GetDisksOfHolderByType(allDisks []*models.Disk, holderDisk *models.Disk, driveTypeFilter models.DriveType) []*models.Disk {
 	disksOfHolder := GetAllDisksOfHolder(allDisks, holderDisk)
 	return lo.Filter(disksOfHolder, func(d *models.Disk, _ int) bool { return d.DriveType == driveTypeFilter })
