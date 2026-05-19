@@ -52,7 +52,10 @@ type InstallerAPI interface {
 	 */
 	DownloadMinimalInitrd(ctx context.Context, params installer.DownloadMinimalInitrdParams) middleware.Responder
 
-	/* GetClusterSupportedPlatforms A list of platforms that this cluster can support in its current configuration. */
+	/* GetClusterSupportedPlatforms Deprecated. Returns a list of platforms that this cluster can support in its current configuration.
+	   Prefer deriving platform eligibility from cluster hosts and inventory together with
+	   GET /v2/support-levels/features (or GET /v2/support-levels/features/detailed) for the cluster OpenShift version and CPU architecture.
+	*/
 	GetClusterSupportedPlatforms(ctx context.Context, params installer.GetClusterSupportedPlatformsParams) middleware.Responder
 
 	/* GetDetailedSupportedFeatures Retrieves detailed features information including support level, incompatibilities, and operator dependencies. */
