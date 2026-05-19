@@ -92,13 +92,15 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) 
 		},
 	})
 
+	var hasValidInventory = stateswitch.And(If(HasInventory), If(InventoryNotFullyTruncated))
+
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusDisconnectedUnbound),
 			stateswitch.State(models.HostStatusDiscoveringUnbound),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(HasInventory))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(hasValidInventory)),
 		DestinationState: stateswitch.State(models.HostStatusDiscoveringUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 		Documentation: stateswitch.TransitionRuleDoc{
@@ -118,7 +120,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) 
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory,
 			stateswitch.Not(sufficientToBeBound)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficientUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
@@ -152,7 +154,7 @@ func NewPoolHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) 
 			stateswitch.State(models.HostStatusInsufficientUnbound),
 			stateswitch.State(models.HostStatusKnownUnbound),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory,
 			sufficientToBeBound),
 		DestinationState: stateswitch.State(models.HostStatusKnownUnbound),
 		PostTransition:   th.PostRefreshHost(statusInfoHostReadyToBeBound),

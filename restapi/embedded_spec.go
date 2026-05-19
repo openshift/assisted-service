@@ -8902,6 +8902,8 @@ func init() {
         "connected",
         "media-connected",
         "has-inventory",
+        "inventory-not-partially-truncated",
+        "inventory-not-fully-truncated",
         "has-min-cpu-cores",
         "has-min-valid-disks",
         "has-min-memory",
@@ -9789,6 +9791,29 @@ func init() {
             "1.2",
             "2.0"
           ]
+        },
+        "truncation": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "reasons": {
+              "description": "Reasons for the truncation",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "partial",
+                "full"
+              ],
+              "x-nullable": false
+            }
+          }
         }
       }
     },
@@ -17989,6 +18014,29 @@ func init() {
         }
       }
     },
+    "InventoryTruncation": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "reasons": {
+          "description": "Reasons for the truncation",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "partial",
+            "full"
+          ],
+          "x-nullable": false
+        }
+      }
+    },
     "MacInterfaceMapItems0": {
       "type": "object",
       "required": [
@@ -20549,6 +20597,8 @@ func init() {
         "connected",
         "media-connected",
         "has-inventory",
+        "inventory-not-partially-truncated",
+        "inventory-not-fully-truncated",
         "has-min-cpu-cores",
         "has-min-valid-disks",
         "has-min-memory",
@@ -21441,6 +21491,29 @@ func init() {
             "1.2",
             "2.0"
           ]
+        },
+        "truncation": {
+          "type": "object",
+          "required": [
+            "type"
+          ],
+          "properties": {
+            "reasons": {
+              "description": "Reasons for the truncation",
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "partial",
+                "full"
+              ],
+              "x-nullable": false
+            }
+          }
         }
       }
     },

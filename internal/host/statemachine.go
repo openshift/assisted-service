@@ -970,13 +970,15 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		})
 	}
 
+	var hasValidInventory = stateswitch.And(If(HasInventory), If(InventoryNotFullyTruncated))
+
 	sm.AddTransitionRule(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusDiscovering),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(If(HasInventory))),
+		Condition:        stateswitch.And(If(IsConnected), If(IsMediaConnected), stateswitch.Not(hasValidInventory)),
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 		Documentation: stateswitch.TransitionRuleDoc{
@@ -1066,7 +1068,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory,
 			stateswitch.Not(hasMinRequiredHardware)),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoInsufficientHardware),
@@ -1085,7 +1087,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusKnown),
 			stateswitch.State(models.HostStatusPendingForInput),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory), If(VSphereHostUUIDEnabled),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory, If(VSphereHostUUIDEnabled),
 			hasMinRequiredHardware,
 			stateswitch.Not(requiredInputFieldsExist)),
 		DestinationState: stateswitch.State(models.HostStatusPendingForInput),
@@ -1106,7 +1108,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusKnown),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
-			hasMinRequiredHardware,
+			stateswitch.Or(hasMinRequiredHardware, stateswitch.Not(If(InventoryNotFullyTruncated))),
 			stateswitch.Or(stateswitch.Not(If(VSphereHostUUIDEnabled)),
 				stateswitch.And(requiredInputFieldsExist, stateswitch.Not(isSufficientForInstall)),
 			)),
@@ -1127,7 +1129,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 			stateswitch.State(models.HostStatusPendingForInput),
 			stateswitch.State(models.HostStatusDiscovering),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory,
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			isSufficientForInstall,
@@ -1146,7 +1148,7 @@ func NewHostStateMachine(sm stateswitch.StateMachine, th TransitionHandler) stat
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), If(HasInventory),
+		Condition: stateswitch.And(If(IsConnected), If(IsMediaConnected), hasValidInventory,
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			isSufficientForInstall,
