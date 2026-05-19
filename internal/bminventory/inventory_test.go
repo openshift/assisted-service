@@ -5209,6 +5209,17 @@ var _ = Describe("cluster", func() {
 			})
 
 			Context("Multiple VIPs forbidden in update for pre-4.12", func() {
+				var pre412Version string
+
+				BeforeEach(func() {
+					v, ok := common.TestVersion().LessThan("4.12").Latest().TryVersion()
+					if !ok {
+						Skip("no test version available below 4.12")
+					}
+					pre412Version = v
+					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", pre412Version).Error).ShouldNot(HaveOccurred())
+				})
+
 				It("2 APIVips and 2 IngressVips", func() {
 					apiVip := "8.8.8.7"
 					ingressVip := "8.8.8.1"
@@ -5223,7 +5234,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 
 				It("2 APIVips and 1 IngressVips", func() {
@@ -5240,7 +5251,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 
 				It("1 APIVip and 2 IngressVips", func() {
@@ -5257,7 +5268,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 			})
 		})
@@ -5355,6 +5366,7 @@ var _ = Describe("cluster", func() {
 			ID:               &clusterID,
 			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
+			CPUArchitecture:  common.DefaultCPUArchitecture,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusReady),
 		}}
@@ -5363,6 +5375,7 @@ var _ = Describe("cluster", func() {
 			ID:               &clusterID,
 			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
+			CPUArchitecture:  common.DefaultCPUArchitecture,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusInstalling),
 		},
@@ -15102,8 +15115,8 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(result.Platform.None).Should(BeNil())
 				Expect(result.Platform.Baremetal).Should(BeNil())
 
-				Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(apiVip))
-				Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(ingressVip))
+				Expect(result.Platform.Vsphere.APIVIPs).Should(ContainElement(apiVip))
+				Expect(result.Platform.Vsphere.IngressVIPs).Should(ContainElement(ingressVip))
 			})
 		})
 
@@ -17815,6 +17828,7 @@ var _ = Describe("AMS subscriptions", func() {
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:               &clusterID,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.DefaultCPUArchitecture,
 						Status:           swag.String(models.ClusterStatusReady),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
