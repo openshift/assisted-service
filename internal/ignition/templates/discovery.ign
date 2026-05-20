@@ -75,6 +75,15 @@
     },
     {
       "overwrite": true,
+      "path": "/usr/local/bin/agent-pull-image",
+      "mode": 493,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.AGENT_PULL_IMAGE}}" }
+    },
+    {
+      "overwrite": true,
       "path": "/etc/motd",
       "mode": 420,
       "user": {
