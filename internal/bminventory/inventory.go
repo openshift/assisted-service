@@ -743,6 +743,13 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 
 	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
 
+	for _, v := range params.NewClusterParams.APIVips {
+		v.IP = models.IP(network.NormalizeIP(string(v.IP)))
+	}
+	for _, v := range params.NewClusterParams.IngressVips {
+		v.IP = models.IP(network.NormalizeIP(string(v.IP)))
+	}
+
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
 			ID:                           &id,
@@ -2774,7 +2781,7 @@ func wereClusterVipsUpdated(clusterVips []string, paramVips []string) bool {
 		return true
 	}
 	for i := range clusterVips {
-		if clusterVips[i] != paramVips[i] {
+		if network.NormalizeIP(clusterVips[i]) != network.NormalizeIP(paramVips[i]) {
 			return true
 		}
 	}
@@ -3792,8 +3799,8 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 		log.WithError(err).Warnf("Json unmarshal dhcp allocation from host %s", host.ID.String())
 		return err
 	}
-	apiVip := dhcpAllocationReponse.APIVipAddress.String()
-	ingressVip := dhcpAllocationReponse.IngressVipAddress.String()
+	apiVip := network.NormalizeIP(dhcpAllocationReponse.APIVipAddress.String())
+	ingressVip := network.NormalizeIP(dhcpAllocationReponse.IngressVipAddress.String())
 	primaryMachineCIDR := ""
 	if network.IsMachineCidrAvailable(cluster) {
 		primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
