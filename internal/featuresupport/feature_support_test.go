@@ -167,7 +167,13 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry(
 				"external platform",
 				[]SupportLevelFeature{&ExternalPlatformFeature{}},
-				false,
+				true,
+			),
+
+			Entry(
+				"external platform oci",
+				[]SupportLevelFeature{&OciIntegrationFeature{}},
+				true,
 			),
 
 			Entry(
@@ -224,6 +230,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				false,
 			),
 		)
+
 	})
 
 	Context("Test TNA", func() {
@@ -1029,6 +1036,36 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 
 			err := ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureS390x, &cluster, &infraEnv, nil)
 			Expect(err).To(Not(BeNil()))
+		})
+		It("3 CP with external platform - pass", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:      common.MinimumVersionForNonStandardHAOCPControlPlane,
+				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
+				ControlPlaneCount:     3,
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
+		})
+		It("4 CP with external platform - pass", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:      common.MinimumVersionForNonStandardHAOCPControlPlane,
+				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
+				ControlPlaneCount:     4,
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
+		})
+		It("5 CP with external platform - pass", func() {
+			cluster := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion:      common.MinimumVersionForNonStandardHAOCPControlPlane,
+				CPUArchitecture:       models.ClusterCPUArchitectureX8664,
+				ControlPlaneCount:     5,
+				UserManagedNetworking: swag.Bool(true),
+				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeExternal)},
+			}}
+			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureX8664, &cluster, nil, nil)).To(BeNil())
 		})
 		It("Nutanix with incompatible features - fail", func() {
 			operatorsCNV := []*models.MonitoredOperator{
