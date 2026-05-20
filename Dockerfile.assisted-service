@@ -8,7 +8,7 @@ RUN go install github.com/google/go-licenses@v1.6.0
 RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 # Build binaries
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:8805abe5b8a32c826d46926c069f20e6a7f854d59d5bd75c55e68278aea65ccc AS builder
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:b6b93a577c6c6776f2a801a94b89b9e370996e8c4928d572223d44cd03ca4c3c AS builder
 
 # Build requirements
 RUN dnf install -y gcc git nmstate-devel openssl-devel && \
@@ -44,7 +44,7 @@ RUN cd ./cmd/agentbasedinstaller/client && CGO_ENABLED=1 GOFIPS140=v1.0.0 GOFLAG
 RUN git rev-parse --short HEAD > /commit-reference.txt
 
 # Create final image
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:fe688da81a696387ca53a4c19231e99289591f990c904ef913c51b6e87d4e4df
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:24650313873554b6ba16c1a1b6b9f9142604f6ab735113e1695faf2dd07fdede
 
 ARG release=main
 ARG version=latest
