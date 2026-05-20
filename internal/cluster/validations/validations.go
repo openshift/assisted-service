@@ -258,14 +258,31 @@ func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdate
 
 func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Cluster, params *models.V2ClusterUpdateParams, primaryIPStack *common.PrimaryIPStack) error {
 	var (
-		err                 error
-		targetConfiguration common.Cluster
-		apiVips             []*models.APIVip
-		ingressVips         []*models.IngressVip
+		err error
 	)
 
-	apiVips = params.APIVips
-	ingressVips = params.IngressVips
+	apiVips := cluster.APIVips
+	if params.APIVips != nil {
+		apiVips = params.APIVips
+	}
+	ingressVips := cluster.IngressVips
+	if params.IngressVips != nil {
+		ingressVips = params.IngressVips
+	}
+	// Clear VIPs when DHCP allocation mode changes (to or from DHCP) and the user
+	// didn't explicitly provide VIPs in the update params. This matches the behavior
+	// in inventory.go:updateNetworkParams which clears VIPs when VipDhcpAllocation
+	// changes to prevent:
+	// 1. Non-DHCP mode using VIPs previously obtained via DHCP
+	// 2. DHCP mode being fed with manually provided VIPs
+	// If the user explicitly provides VIPs while changing DHCP mode, validation will
+	// fail appropriately (e.g., "Setting API VIPs is forbidden when cluster is in
+	// vip-dhcp-allocation mode").
+	dhcpModeChanging := params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) != swag.BoolValue(cluster.VipDhcpAllocation)
+	if dhcpModeChanging && params.APIVips == nil && params.IngressVips == nil {
+		apiVips = []*models.APIVip{}
+		ingressVips = []*models.IngressVip{}
+	}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
 		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
@@ -289,22 +306,9 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 			err = errors.Errorf("%s cannot be set with %s", errParts[1], errParts[0])
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-
-		if cluster.VipDhcpAllocation != nil && swag.BoolValue(cluster.VipDhcpAllocation) { // override VIPs that were allocated via DHCP
-			params.APIVips = []*models.APIVip{}
-			apiVips = []*models.APIVip{}
-			params.IngressVips = []*models.IngressVip{}
-			ingressVips = []*models.IngressVip{}
-		} else {
-			if params.APIVips == nil {
-				apiVips = cluster.APIVips
-			}
-			if params.IngressVips == nil {
-				ingressVips = cluster.IngressVips
-			}
-		}
 	}
 
+	targetConfiguration := common.Cluster{}
 	targetConfiguration.ID = cluster.ID
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	targetConfiguration.APIVips = apiVips
@@ -313,6 +317,15 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
+	if params.ClusterNetworks == nil {
+		targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
+	}
+	if params.ServiceNetworks == nil {
+		targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
+	}
+	if params.MachineNetworks == nil {
+		targetConfiguration.MachineNetworks = cluster.MachineNetworks
+	}
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
 
 	// Copy fields that should be preserved from the existing cluster
