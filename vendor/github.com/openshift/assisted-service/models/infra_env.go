@@ -80,6 +80,11 @@ type InfraEnv struct {
 	// Required: true
 	Name *string `json:"name"`
 
+	// The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.
+	// This can be used on hosts that need time to discover their NICs.
+	// Minimum: 0
+	NetworkDiscoveryDelaySeconds *int64 `json:"network_discovery_delay_seconds,omitempty"`
+
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
@@ -154,6 +159,10 @@ func (m *InfraEnv) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNetworkDiscoveryDelaySeconds(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -336,6 +345,18 @@ func (m *InfraEnv) validateKind(formats strfmt.Registry) error {
 func (m *InfraEnv) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *InfraEnv) validateNetworkDiscoveryDelaySeconds(formats strfmt.Registry) error {
+	if swag.IsZero(m.NetworkDiscoveryDelaySeconds) { // not required
+		return nil
+	}
+
+	if err := validate.MinimumInt("network_discovery_delay_seconds", "body", *m.NetworkDiscoveryDelaySeconds, 0, false); err != nil {
 		return err
 	}
 

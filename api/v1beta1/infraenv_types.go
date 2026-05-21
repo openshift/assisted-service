@@ -152,6 +152,13 @@ type InfraEnvSpec struct {
 	// discovered by this InfraEnv.
 	// +optional
 	AgentApproval *AgentApproval `json:"agentApproval,omitempty"`
+
+	// NetworkDiscoveryDelaySeconds is the number of seconds to wait before mapping host MACs
+	// to interfaces when applying static network config on minimal ISO.
+	// This can be used on hosts that need time to discover their NICs.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	NetworkDiscoveryDelaySeconds *int64 `json:"networkDiscoveryDelaySeconds,omitempty"`
 }
 
 // AgentApproval defines configuration for automatic approval of Agents

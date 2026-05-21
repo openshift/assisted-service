@@ -9273,6 +9273,12 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -9378,6 +9384,12 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -9437,6 +9449,12 @@ func init() {
         },
         "kernel_arguments": {
           "$ref": "#/definitions/kernel_arguments"
+        },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OS image",
@@ -20874,6 +20892,13 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -20980,6 +21005,13 @@ func init() {
           "description": "Name of the infra-env.",
           "type": "string"
         },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
@@ -21039,6 +21071,13 @@ func init() {
         },
         "kernel_arguments": {
           "$ref": "#/definitions/kernel_arguments"
+        },
+        "network_discovery_delay_seconds": {
+          "description": "The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.\nThis can be used on hosts that need time to discover their NICs.",
+          "type": "integer",
+          "format": "int64",
+          "minimum": 0,
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OS image",
