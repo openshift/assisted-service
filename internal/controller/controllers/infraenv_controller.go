@@ -239,6 +239,13 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		updateParams.InfraEnvUpdateParams.KernelArguments = internalKernelArgs(infraEnv.Spec.KernelArguments)
 	}
 
+	if infraEnv.Spec.NetworkDiscoveryDelaySeconds != nil {
+		if internalInfraEnv.NetworkDiscoveryDelaySeconds == nil ||
+			*infraEnv.Spec.NetworkDiscoveryDelaySeconds != *internalInfraEnv.NetworkDiscoveryDelaySeconds {
+			updateParams.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds = infraEnv.Spec.NetworkDiscoveryDelaySeconds
+		}
+	}
+
 	mirrorRegistryConfiguration, err := r.processMirrorRegistryConfig(ctx, log, infraEnv)
 	if err != nil {
 		return nil, err
@@ -444,15 +451,16 @@ func (r *InfraEnvReconciler) reconcileInfraEnv(ctx context.Context, log logrus.F
 func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
-			Name:                   &infraEnv.Name,
-			ImageType:              imageType,
-			IgnitionConfigOverride: infraEnv.Spec.IgnitionConfigOverride,
-			PullSecret:             &pullSecret,
-			SSHAuthorizedKey:       &infraEnv.Spec.SSHAuthorizedKey,
-			CPUArchitecture:        infraEnv.Spec.CpuArchitecture,
-			ClusterID:              clusterID,
-			OpenshiftVersion:       openshiftVersion,
-			AdditionalTrustBundle:  infraEnv.Spec.AdditionalTrustBundle,
+			Name:                         &infraEnv.Name,
+			ImageType:                    imageType,
+			IgnitionConfigOverride:       infraEnv.Spec.IgnitionConfigOverride,
+			PullSecret:                   &pullSecret,
+			SSHAuthorizedKey:             &infraEnv.Spec.SSHAuthorizedKey,
+			CPUArchitecture:              infraEnv.Spec.CpuArchitecture,
+			ClusterID:                    clusterID,
+			OpenshiftVersion:             openshiftVersion,
+			AdditionalTrustBundle:        infraEnv.Spec.AdditionalTrustBundle,
+			NetworkDiscoveryDelaySeconds: infraEnv.Spec.NetworkDiscoveryDelaySeconds,
 		},
 	}
 	if infraEnv.Spec.Proxy != nil {

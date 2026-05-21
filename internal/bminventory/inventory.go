@@ -126,6 +126,7 @@ type Config struct {
 	TNFClustersSupport                  bool              `envconfig:"TNF_CLUSTERS_SUPPORT" default:"false"`
 	ForceInsecurePolicyJson             bool              `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	EnableImageService                  bool              `envconfig:"ENABLE_IMAGE_SERVICE" default:"true"`
+	NetworkDiscoveryDelaySeconds        int64             `envconfig:"NETWORK_DISCOVERY_DELAY_SECONDS" default:"0"`
 
 	// InfraEnv ID for the ephemeral installer. Should not be set explicitly.Ephemeral (agent) installer sets this env var
 	InfraEnvID strfmt.UUID `envconfig:"INFRA_ENV_ID" default:""`
@@ -4155,9 +4156,17 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 		}
 		if shouldUseNmstateService {
 			b.log.Info("Static network configuration using the nmstatectl service")
+			delay := b.NetworkDiscoveryDelaySeconds
+			if infraEnv.NetworkDiscoveryDelaySeconds != nil {
+				delay = *infraEnv.NetworkDiscoveryDelaySeconds
+			}
+			serviceContent, err = common.FormatMinimalISONetworkConfigServiceNmstatectl(delay)
+			if err != nil {
+				log.WithError(err).Error("Failed to format minimal ISO network config service")
+				return common.GenerateErrorResponder(err)
+			}
 			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigDataYAML(infraEnv.StaticNetworkConfig)
 			scriptContent = constants.PreNetworkConfigScriptWithNmstatectl
-			serviceContent = constants.MinimalISONetworkConfigServiceNmstatectl
 		} else {
 			b.log.Info("Static network configuration using generated keyfiles")
 			netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(ctx, infraEnv.StaticNetworkConfig)
@@ -5090,23 +5099,24 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		infraEnv = common.InfraEnv{
 			Generated: false,
 			InfraEnv: models.InfraEnv{
-				ID:                     &id,
-				Href:                   swag.String(url.String()),
-				Kind:                   swag.String(models.InfraEnvKindInfraEnv),
-				Name:                   params.InfraenvCreateParams.Name,
-				UserName:               ocm.UserNameFromContext(ctx),
-				OrgID:                  ocm.OrgIDFromContext(ctx),
-				EmailDomain:            ocm.EmailDomainFromContext(ctx),
-				OpenshiftVersion:       openshiftVersion,
-				IgnitionConfigOverride: params.InfraenvCreateParams.IgnitionConfigOverride,
-				StaticNetworkConfig:    staticNetworkConfig,
-				Type:                   common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
-				AdditionalNtpSources:   swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
-				SSHAuthorizedKey:       swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
-				RendezvousIP:           params.InfraenvCreateParams.RendezvousIP,
-				CPUArchitecture:        params.InfraenvCreateParams.CPUArchitecture,
-				KernelArguments:        kernelArguments,
-				AdditionalTrustBundle:  params.InfraenvCreateParams.AdditionalTrustBundle,
+				ID:                           &id,
+				Href:                         swag.String(url.String()),
+				Kind:                         swag.String(models.InfraEnvKindInfraEnv),
+				Name:                         params.InfraenvCreateParams.Name,
+				UserName:                     ocm.UserNameFromContext(ctx),
+				OrgID:                        ocm.OrgIDFromContext(ctx),
+				EmailDomain:                  ocm.EmailDomainFromContext(ctx),
+				OpenshiftVersion:             openshiftVersion,
+				IgnitionConfigOverride:       params.InfraenvCreateParams.IgnitionConfigOverride,
+				StaticNetworkConfig:          staticNetworkConfig,
+				Type:                         common.ImageTypePtr(params.InfraenvCreateParams.ImageType),
+				AdditionalNtpSources:         swag.StringValue(params.InfraenvCreateParams.AdditionalNtpSources),
+				SSHAuthorizedKey:             swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
+				RendezvousIP:                 params.InfraenvCreateParams.RendezvousIP,
+				CPUArchitecture:              params.InfraenvCreateParams.CPUArchitecture,
+				KernelArguments:              kernelArguments,
+				AdditionalTrustBundle:        params.InfraenvCreateParams.AdditionalTrustBundle,
+				NetworkDiscoveryDelaySeconds: params.InfraenvCreateParams.NetworkDiscoveryDelaySeconds,
 			},
 			KubeKeyNamespace: kubeKey.Namespace,
 			ImageTokenKey:    imageTokenKey,
@@ -5597,6 +5607,12 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 	}
 
 	b.applyRendezvousIPUpdates(infraEnv, rendezvousIP, targetImageType, updates)
+
+	if params.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds != nil {
+		if infraEnv.NetworkDiscoveryDelaySeconds == nil || *params.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds != *infraEnv.NetworkDiscoveryDelaySeconds {
+			updates["network_discovery_delay_seconds"] = *params.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds
+		}
+	}
 
 	if params.InfraEnvUpdateParams.PullSecret != "" && params.InfraEnvUpdateParams.PullSecret != infraEnv.PullSecret {
 		infraEnv.PullSecret = params.InfraEnvUpdateParams.PullSecret

@@ -11,6 +11,7 @@ import (
 	"github.com/cavaliercoder/go-cpio"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 )
@@ -119,7 +120,9 @@ var _ = Describe("RamdiskImageArchive", func() {
 			},
 		}
 
-		archive, err := RamdiskImageArchive(staticnetworkConfigOutput, &clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)
+		serviceContent, err := common.FormatMinimalISONetworkConfigServiceNmstatectl(0)
+		Expect(err).ToNot(HaveOccurred())
+		archive, err := RamdiskImageArchive(staticnetworkConfigOutput, &clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, serviceContent)
 		Expect(err).ToNot(HaveOccurred())
 
 		By("checking that the files are present in the archive")
@@ -149,7 +152,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 				Expect(err).ToNot(HaveOccurred())
 			case "/etc/systemd/system/pre-network-manager-config.service":
 				serviceBytes, err := io.ReadAll(r)
-				Expect(string(serviceBytes)).To(Equal(constants.MinimalISONetworkConfigServiceNmstatectl))
+				Expect(string(serviceBytes)).To(Equal(serviceContent))
 				Expect(err).ToNot(HaveOccurred())
 			case "/etc/systemd/system/initrd.target.wants/pre-network-manager-config.service":
 				Expect(hdr.Mode & cpio.ModeSymlink).ToNot(BeZero())
@@ -170,11 +173,45 @@ var _ = Describe("RamdiskImageArchive", func() {
 			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 		Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 	})
+	It("embeds discovery delay in nmstatectl minimal ISO service unit", func() {
+		serviceContent, err := common.FormatMinimalISONetworkConfigServiceNmstatectl(7)
+		Expect(err).ToNot(HaveOccurred())
+
+		archive, err := RamdiskImageArchive(
+			[]staticnetworkconfig.StaticNetworkConfigData{{FilePath: "host0/host.yml", FileContents: "content"}},
+			&ClusterProxyInfo{},
+			constants.PreNetworkConfigScriptWithNmstatectl,
+			serviceContent,
+		)
+		Expect(err).ToNot(HaveOccurred())
+
+		gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
+		Expect(err).ToNot(HaveOccurred())
+
+		r := cpio.NewReader(gzipReader)
+		for {
+			hdr, err := r.Next()
+			if err == io.EOF {
+				break
+			}
+			Expect(err).ToNot(HaveOccurred())
+			if hdr.Name == "/etc/systemd/system/pre-network-manager-config.service" {
+				serviceBytes, err := io.ReadAll(r)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(string(serviceBytes)).To(ContainSubstring("Environment=DISCOVERY_DELAY_SECONDS=7"))
+				Expect(string(serviceBytes)).To(ContainSubstring("TimeoutSec=67"))
+				return
+			}
+		}
+		Fail("pre-network-manager-config.service not found in archive")
+	})
 	It("returns nothing when given nothing - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
+		serviceContent, err := common.FormatMinimalISONetworkConfigServiceNmstatectl(0)
+		Expect(err).ToNot(HaveOccurred())
 		archive, err := RamdiskImageArchive(
 			[]staticnetworkconfig.StaticNetworkConfigData{},
 			&ClusterProxyInfo{},
-			constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)
+			constants.PreNetworkConfigScriptWithNmstatectl, serviceContent)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(archive).To(BeNil())
 	})
@@ -207,7 +244,9 @@ var _ = Describe("RamdiskImageArchive", func() {
 
 			By("checking proxy settings " + tc.description + "are correctly included in the archive")
 
-			archive, err := RamdiskImageArchive([]staticnetworkconfig.StaticNetworkConfigData{}, &tc.clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, constants.MinimalISONetworkConfigServiceNmstatectl)
+			serviceContent, err := common.FormatMinimalISONetworkConfigServiceNmstatectl(0)
+			Expect(err).ToNot(HaveOccurred())
+			archive, err := RamdiskImageArchive([]staticnetworkconfig.StaticNetworkConfigData{}, &tc.clusterProxyInfo, constants.PreNetworkConfigScriptWithNmstatectl, serviceContent)
 			Expect(err).ToNot(HaveOccurred())
 
 			gzipReader, err := gzip.NewReader(bytes.NewReader(archive))

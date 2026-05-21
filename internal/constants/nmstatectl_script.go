@@ -81,23 +81,16 @@ function process_host_directories_by_mac_address {
 
 echo "PreNetworkConfig Start"
 
+discovery_delay_seconds=${DISCOVERY_DELAY_SECONDS:-0}
+if [[ "$discovery_delay_seconds" -gt 0 ]]; then
+  echo "Info: Waiting ${discovery_delay_seconds} seconds for network interface discovery"
+  sleep "$discovery_delay_seconds"
+fi
+
 # Get the mac to host nic mapping from local machine
 map_host_macs_to_interfaces
 
 process_host_directories_by_mac_address
 
 echo "PreNetworkConfig End"
-`
-
-const MinimalISONetworkConfigServiceNmstatectl = `
-[Unit]
-Description=Assisted static network config
-DefaultDependencies=no
-After=nm-initrd.service systemd-udev-settle.service
-Before=coreos-livepxe-rootfs.service
-
-[Service]
-Type=oneshot
-RemainAfterExit=yes
-ExecStart=/usr/local/bin/pre-network-manager-config.sh
 `
