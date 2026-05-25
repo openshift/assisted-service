@@ -651,6 +651,20 @@ Cluster and Host entities use explicit state machines:
 
 Commit messages should describe the change clearly. Pull request titles must reference a JIRA/GitHub issue (e.g., `MGMT-1234:`) or use `NO-ISSUE:` prefix.
 
+When Claude Code assists with commits, you MUST add AI attribution as the last line of every commit message. Either format is valid:
+
+```
+Assisted-by: Claude Code <noreply@anthropic.com>
+```
+
+or:
+
+```
+Co-Authored-By: Claude Code <noreply@anthropic.com>
+```
+
+Omitting attribution entirely is NOT acceptable.
+
 For complete guidelines and examples, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Important Files
