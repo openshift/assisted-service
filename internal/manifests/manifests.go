@@ -339,6 +339,10 @@ func (m *Manifests) setUsage(active bool, clusterID strfmt.UUID) error {
 	return err
 }
 
+func (m *Manifests) SetCustomManifestUsage(ctx context.Context, clusterID strfmt.UUID, active bool) error {
+	return m.setUsage(active, clusterID)
+}
+
 // GetManifestObjectName returns the manifest object name as stored in S3
 func GetManifestObjectName(clusterID strfmt.UUID, fileName string) string {
 	return filepath.Join(string(clusterID), constants.ManifestFolder, fileName)
