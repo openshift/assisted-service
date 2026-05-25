@@ -200,6 +200,89 @@ var _ = Describe("loadFencingCredentials", func() {
 		})
 	})
 
+	Context("when fencing-credentials.yaml has MAC-only entries", func() {
+		It("should parse and key credentials by MAC address", func() {
+			content := `credentials:
+- macaddress: aa:bb:cc:dd:ee:01
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+  certificateVerification: Disabled
+- macaddress: aa:bb:cc:dd:ee:02
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/def
+  username: admin2
+  password: password456
+  certificateVerification: Enabled
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds).To(HaveLen(2))
+
+			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:01"))
+			Expect(*creds["aa:bb:cc:dd:ee:01"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*creds["aa:bb:cc:dd:ee:01"].Username).To(Equal("admin"))
+			Expect(*creds["aa:bb:cc:dd:ee:01"].Password).To(Equal("password123"))
+			Expect(*creds["aa:bb:cc:dd:ee:01"].CertificateVerification).To(Equal("Disabled"))
+
+			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
+			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
+			Expect(*creds["aa:bb:cc:dd:ee:02"].Username).To(Equal("admin2"))
+			Expect(*creds["aa:bb:cc:dd:ee:02"].Password).To(Equal("password456"))
+			Expect(*creds["aa:bb:cc:dd:ee:02"].CertificateVerification).To(Equal("Enabled"))
+		})
+	})
+
+	Context("when fencing-credentials.yaml has mixed hostname and MAC entries", func() {
+		It("should key by hostname when present, by MAC when hostname is absent", func() {
+			content := `credentials:
+- hostname: master-0
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+  certificateVerification: Disabled
+- macaddress: aa:bb:cc:dd:ee:02
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/def
+  username: admin2
+  password: password456
+  certificateVerification: Enabled
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds).To(HaveLen(2))
+
+			Expect(creds).To(HaveKey("master-0"))
+			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+
+			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
+			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
+		})
+
+		It("should prefer hostname over MAC when both are present on same entry", func() {
+			content := `credentials:
+- hostname: master-0
+  macaddress: aa:bb:cc:dd:ee:01
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(creds).To(HaveLen(1))
+
+			Expect(creds).To(HaveKey("master-0"))
+			Expect(creds).NotTo(HaveKey("aa:bb:cc:dd:ee:01"))
+		})
+	})
+
 	Context("YAML round-trip compatibility with installer output", func() {
 		It("should correctly parse installer-generated YAML format", func() {
 			// This YAML matches the exact format the installer produces
@@ -259,12 +342,126 @@ var _ = Describe("applyFencingCredentials", func() {
 		}
 	})
 
-	Context("when config has no fencing credentials (MAC-based config)", func() {
+	Context("when config has neither hostname nor MAC addresses", func() {
+		It("should return false without attempting to load credentials", func() {
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			config := &hostConfig{
+				configDir: tempDir,
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
+		})
+	})
+
+	Context("when config has no fencing credentials file", func() {
 		It("should return false without modifying updateParams", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				// MAC-based config - no hostname means FencingCredentials() returns nil
+				configDir:    tempDir,
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeFalse())
+			Expect(updateParams.FencingCredentials).To(BeNil())
+		})
+	})
+
+	Context("when fencing credentials file is corrupt", func() {
+		It("should return error", func() {
+			content := `not valid yaml: [[[`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			config := &hostConfig{
+				configDir: tempDir,
+				hostname:  "master-0",
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).To(HaveOccurred())
+			Expect(applied).To(BeFalse())
+		})
+	})
+
+	Context("when MAC-based config has matching fencing credentials", func() {
+		It("should set fencing credentials and return true", func() {
+			content := `credentials:
+- macaddress: aa:bb:cc:dd:ee:ff
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password
+  certificateVerification: Disabled
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			config := &hostConfig{
+				configDir:    tempDir,
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeTrue())
+			Expect(updateParams.FencingCredentials).NotTo(BeNil())
+			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
+			Expect(*updateParams.FencingCredentials.Password).To(Equal("password"))
+			Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
+		})
+
+		It("should match using second MAC address when first does not match", func() {
+			content := `credentials:
+- macaddress: 11:22:33:44:55:66
+  address: redfish+https://192.168.111.2:8000/redfish/v1/Systems/xyz
+  username: admin
+  password: password
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			config := &hostConfig{
+				configDir:    tempDir,
+				macAddresses: []string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"},
+			}
+			updateParams := &models.HostUpdateParams{}
+
+			applied, err := applyFencingCredentials(testLogger, host, config, updateParams)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(applied).To(BeTrue())
+			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.2:8000/redfish/v1/Systems/xyz"))
+		})
+
+		It("should return false when no MAC address matches", func() {
+			content := `credentials:
+- macaddress: 99:99:99:99:99:99
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password
+`
+			err := os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(content), 0600)
+			Expect(err).NotTo(HaveOccurred())
+
+			testLogger, _ := test.NewNullLogger()
+			host := &models.Host{}
+			config := &hostConfig{
 				configDir:    tempDir,
 				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
 			}
