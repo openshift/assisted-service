@@ -1218,14 +1218,13 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileError{err: err}
 	}
 
-	checksum, url, err, stopReconcileLoop := r.getChecksumAndURL(ctx, spokeClient)
+	masterProviderSpec, stopLoop, err := r.getMasterProviderSpec(ctx, spokeClient)
 	if err != nil {
-		log.WithError(err).Errorf("failed to get checksum and url value from master spoke machine")
-		if stopReconcileLoop {
-			log.Debug("Stopping reconcileDay2SpokeBMH")
-			return reconcileComplete{stop: stopReconcileLoop}
+		if stopLoop {
+			log.WithError(err).Errorf("failed to get providerSpec from master spoke machine")
+			return reconcileComplete{stop: true}
 		}
-		return reconcileError{err: err}
+		log.WithError(err).Warnf("could not get providerSpec from existing master machine, using minimal fallback")
 	}
 
 	machineNSName := types.NamespacedName{
@@ -1239,7 +1238,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileError{err: err}
 	}
 
-	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, checksum, url, string(agent.Status.Role))
+	_, err = r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd, machineNSName, masterProviderSpec, string(agent.Status.Role))
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke Machine")
 		return reconcileError{err: err}
@@ -1445,47 +1444,25 @@ func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, log logrus.FieldLog
 	return bmhSpoke, nil
 }
 
-// get spokeMachineMaster and retrieve checksum , url to set into spokeMachineWorker
-func (r *BMACReconciler) getChecksumAndURL(ctx context.Context, spokeClient client.Client) (string, string, error, bool) {
-	var checksum, url string
+// getMasterProviderSpec retrieves the full providerSpec from an existing master
+// Machine on the spoke. This is used as the template for new Day 2 Machines,
+// ensuring the new Machine has the same platform configuration (including
+// customDeploy, image, hostSelector, etc.) as existing masters.
+// The boolean return indicates whether reconciliation should stop (fatal).
+func (r *BMACReconciler) getMasterProviderSpec(ctx context.Context, spokeClient client.Client) (*runtime.RawExtension, bool, error) {
 	machineList := &machinev1beta1.MachineList{}
 	err := spokeClient.List(ctx, machineList, client.MatchingLabels{MACHINE_TYPE: string(models.HostRoleMaster)})
 	if err != nil {
-		return checksum, url, err, false
+		return nil, false, err
 	}
-	//MGMT-10570 check that the master list is not empty before referencing it
-	//Stop the reconciliation in this case because it is a fatal error
 	if len(machineList.Items) == 0 {
-		return checksum, url, errors.New("There are no machines with master label"), true
+		return nil, true, errors.New("no machines with master label found on spoke")
 	}
-
-	providerSpec := machineList.Items[0].Spec.ProviderSpec.Value
-	if providerSpec == nil {
-		return checksum, url, errors.New("master machine has nil ProviderSpec"), false
-	}
-
-	var providerSpecValueObj map[string]interface{}
-	if err = json.Unmarshal(providerSpec.Raw, &providerSpecValueObj); err != nil {
-		return checksum, url, err, false
-	}
-
-	imageRaw, ok := providerSpecValueObj["image"]
-	if !ok || imageRaw == nil {
-		return checksum, url, errors.New("master machine ProviderSpec missing 'image' field"), false
-	}
-	image, ok := imageRaw.(map[string]interface{})
-	if !ok {
-		return checksum, url, errors.New("master machine ProviderSpec 'image' field has unexpected type"), false
-	}
-
-	checksum, _ = image["checksum"].(string)
-	url, _ = image["url"].(string)
-
-	return checksum, url, nil, false
+	return machineList.Items[0].Spec.ProviderSpec.Value, false, nil
 }
 
-func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum, URL, role string) (*machinev1beta1.Machine, error) {
-	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, machineName, checksum, URL, role)
+func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, masterProviderSpec *runtime.RawExtension, role string) (*machinev1beta1.Machine, error) {
+	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment, machineName, masterProviderSpec, role)
 	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, machineSpoke, mutateFn); err != nil {
 		return nil, err
 	} else if result != controllerutil.OperationResultNone {
@@ -1655,7 +1632,7 @@ func (r *BMACReconciler) newSpokeBMH(log logrus.FieldLogger, bmh *bmh_v1alpha1.B
 	return bmhSpoke, mutateFn
 }
 
-func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, checksum, URL, role string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
+func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment, machineName types.NamespacedName, masterProviderSpec *runtime.RawExtension, role string) (*machinev1beta1.Machine, controllerutil.MutateFn) {
 	machine := &machinev1beta1.Machine{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      machineName.Name,
@@ -1665,37 +1642,13 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 	mutateFn := func() error {
 		setAnnotation(&machine.ObjectMeta, BMH_ANNOTATION, fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, bmh.Name))
 
-		providerSpecValueFormat := `{
-						"apiVersion": "{{.BMH_API_VERSION}}",
-						"kind": "BareMetalMachineProviderSpec",
-						"image": {
-						"checksum": "{{.CHECKSUM}}",
-						"url": "{{.URL}}"
-						}}`
-
-		tmpl, err := template.New("valueString").Parse(providerSpecValueFormat)
-		if err != nil {
-			return err
-		}
-		buf := &bytes.Buffer{}
-		var providerSpecValue = map[string]interface{}{
-			"BMH_API_VERSION": BMH_API_VERSION,
-			"CHECKSUM":        checksum,
-			"URL":             URL,
-		}
-		if err = tmpl.Execute(buf, providerSpecValue); err != nil {
-			return err
+		if masterProviderSpec != nil {
+			machine.Spec.ProviderSpec.Value = masterProviderSpec
+		} else {
+			fallback := fmt.Sprintf(`{"apiVersion":"%s","kind":"BareMetalMachineProviderSpec","image":{"checksum":"","url":""}}`, BMH_API_VERSION)
+			machine.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: []byte(fallback)}
 		}
 
-		machine.Spec = machinev1beta1.MachineSpec{
-			ProviderSpec: machinev1beta1.ProviderSpec{
-				Value: &runtime.RawExtension{
-					Raw: buf.Bytes(),
-				},
-			},
-		}
-
-		// Setting the same labels as the rest of the machines in the spoke cluster
 		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
 		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, role)
 		machine.Labels = AddLabel(machine.Labels, MACHINE_TYPE, role)

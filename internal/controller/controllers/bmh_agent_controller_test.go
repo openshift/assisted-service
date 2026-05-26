@@ -4383,7 +4383,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 	})
 })
 
-var _ = Describe("getChecksumAndURL", func() {
+var _ = Describe("getMasterProviderSpec", func() {
 	var (
 		bmhr        *BMACReconciler
 		spokeClient client.Client
@@ -4410,69 +4410,70 @@ var _ = Describe("getChecksumAndURL", func() {
 		Expect(spokeClient.Create(ctx, m)).To(Succeed())
 	}
 
-	It("returns error when no master machines exist", func() {
-		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+	It("returns error and stops reconciliation when no master machines exist", func() {
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
 		Expect(err).To(HaveOccurred())
-		Expect(stop).To(BeTrue())
+		Expect(err.Error()).To(ContainSubstring("no machines with master label"))
+		Expect(stopLoop).To(BeTrue())
+		Expect(result).To(BeNil())
 	})
 
-	It("returns error when ProviderSpec.Value is nil", func() {
+	It("returns nil providerSpec (no error) when ProviderSpec.Value is nil", func() {
 		createMasterMachine(nil)
-		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("nil ProviderSpec"))
-		Expect(stop).To(BeFalse())
-	})
-
-	It("returns error when image field is null", func() {
-		createMasterMachine([]byte(`{"image": null}`))
-		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
-		Expect(stop).To(BeFalse())
-	})
-
-	It("returns error when image field is absent", func() {
-		createMasterMachine([]byte(`{}`))
-		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("missing 'image' field"))
-		Expect(stop).To(BeFalse())
-	})
-
-	It("returns error when image field is not a map", func() {
-		createMasterMachine([]byte(`{"image": "not-a-map"}`))
-		_, _, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("unexpected type"))
-		Expect(stop).To(BeFalse())
-	})
-
-	It("returns empty strings when checksum is missing (valid for customDeploy)", func() {
-		createMasterMachine([]byte(`{"image": {"url": "http://example.com/image"}}`))
-		checksum, url, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(stop).To(BeFalse())
-		Expect(checksum).To(Equal(""))
-		Expect(url).To(Equal("http://example.com/image"))
+		Expect(stopLoop).To(BeFalse())
+		Expect(result).To(BeNil())
 	})
 
-	It("returns empty strings when url is missing (valid for customDeploy)", func() {
-		createMasterMachine([]byte(`{"image": {"checksum": "abc123"}}`))
-		checksum, url, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+	It("returns full providerSpec for assisted-install cluster (customDeploy, empty image)", func() {
+		spec := []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","kind":"BareMetalMachineProviderSpec","customDeploy":{"method":"install_coreos"},"image":{"checksum":"","url":""}}`)
+		createMasterMachine(spec)
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(stop).To(BeFalse())
-		Expect(checksum).To(Equal("abc123"))
-		Expect(url).To(Equal(""))
+		Expect(stopLoop).To(BeFalse())
+		Expect(result).ToNot(BeNil())
+		Expect(result.Raw).To(Equal(spec))
 	})
 
-	It("returns checksum and url when both are present", func() {
-		createMasterMachine([]byte(`{"image": {"checksum": "abc123", "url": "http://example.com/image"}}`))
-		checksum, url, err, stop := bmhr.getChecksumAndURL(ctx, spokeClient)
+	It("returns full providerSpec for IPI cluster (populated image)", func() {
+		spec := []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","kind":"BareMetalMachineProviderSpec","image":{"checksum":"abc123","url":"http://example.com/image.raw.gz"}}`)
+		createMasterMachine(spec)
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(stop).To(BeFalse())
-		Expect(checksum).To(Equal("abc123"))
-		Expect(url).To(Equal("http://example.com/image"))
+		Expect(stopLoop).To(BeFalse())
+		Expect(result).ToNot(BeNil())
+		Expect(result.Raw).To(Equal(spec))
+	})
+
+	It("returns providerSpec even when image field is absent", func() {
+		spec := []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","kind":"BareMetalMachineProviderSpec","customDeploy":{"method":"install_coreos"}}`)
+		createMasterMachine(spec)
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stopLoop).To(BeFalse())
+		Expect(result).ToNot(BeNil())
+		Expect(result.Raw).To(Equal(spec))
+	})
+
+	It("returns providerSpec from first master when multiple masters exist", func() {
+		spec1 := []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","kind":"BareMetalMachineProviderSpec","image":{"checksum":"first","url":"http://first"}}`)
+		createMasterMachine(spec1)
+		m2 := &machinev1beta1.Machine{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "master-1",
+				Namespace: OPENSHIFT_MACHINE_API_NAMESPACE,
+				Labels:    map[string]string{MACHINE_TYPE: string(models.HostRoleMaster)},
+			},
+		}
+		spec2 := []byte(`{"apiVersion":"baremetal.cluster.k8s.io/v1alpha1","kind":"BareMetalMachineProviderSpec","image":{"checksum":"second","url":"http://second"}}`)
+		m2.Spec.ProviderSpec.Value = &runtime.RawExtension{Raw: spec2}
+		Expect(spokeClient.Create(ctx, m2)).To(Succeed())
+
+		result, stopLoop, err := bmhr.getMasterProviderSpec(ctx, spokeClient)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stopLoop).To(BeFalse())
+		Expect(result).ToNot(BeNil())
 	})
 })
 
