@@ -16,6 +16,7 @@ spec:
           op: In
           value:
           - "75a3" # MI355X
+          - "75a8" # MI350P
           - "75a0" # MI350X
           - "74a5" # MI325X
           - "74a2" # MI308X
