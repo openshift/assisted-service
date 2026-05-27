@@ -21,5 +21,8 @@ func NewMockRelease(path string, eventsHandler eventsapi.Handler) *Release {
 	return &Release{
 		Path:          path,
 		eventsHandler: eventsHandler,
+		cleanup: func() error {
+			return nil
+		},
 	}
 }
