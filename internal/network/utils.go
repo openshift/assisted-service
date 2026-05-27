@@ -564,34 +564,32 @@ func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 
 func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
 	if isDualStackItems(n1) && isDualStackItems(n2) {
-		// For dual-stack, order matters
 		if len(n1) != len(n2) {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].IP != n2[i].IP {
+			if !ipsEqual(n1[i].IP, n2[i].IP) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return ipsEqual(n1[i].IP, n2[j].IP) })
 }
 
 func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
 	if isDualStackItems(n1) && isDualStackItems(n2) {
-		// For dual-stack, order matters
 		if len(n1) != len(n2) {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].IP != n2[i].IP {
+			if !ipsEqual(n1[i].IP, n2[i].IP) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP == n2[j].IP })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return ipsEqual(n1[i].IP, n2[j].IP) })
 }
 
 func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
@@ -734,4 +732,21 @@ func NormalizeCIDR(cidr string) (string, error) {
 		return "", err
 	}
 	return ipnet.String(), nil
+}
+
+func NormalizeIP(ip string) string {
+	addr, err := netip.ParseAddr(ip)
+	if err != nil {
+		return ip
+	}
+	return addr.String()
+}
+
+func ipsEqual(a, b models.IP) bool {
+	ipA, errA := netip.ParseAddr(string(a))
+	ipB, errB := netip.ParseAddr(string(b))
+	if errA != nil || errB != nil {
+		return string(a) == string(b)
+	}
+	return ipA == ipB
 }
