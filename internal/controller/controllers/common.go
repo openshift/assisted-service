@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -357,7 +358,7 @@ func ApiVipsArrayToStrings(vips []*models.APIVip) []string {
 
 func ApiVipsEntriesToArray(entries []string) []*models.APIVip {
 	return funk.Map(entries, func(entry string) *models.APIVip {
-		return &models.APIVip{IP: models.IP(entry)}
+		return &models.APIVip{IP: models.IP(network.NormalizeIP(entry))}
 	}).([]*models.APIVip)
 }
 
@@ -369,7 +370,7 @@ func IngressVipsArrayToStrings(vips []*models.IngressVip) []string {
 
 func IngressVipsEntriesToArray(entries []string) []*models.IngressVip {
 	return funk.Map(entries, func(entry string) *models.IngressVip {
-		return &models.IngressVip{IP: models.IP(entry)}
+		return &models.IngressVip{IP: models.IP(network.NormalizeIP(entry))}
 	}).([]*models.IngressVip)
 }
 

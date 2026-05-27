@@ -173,7 +173,7 @@ func HandleApiVipBackwardsCompatibility(clusterId *strfmt.UUID, apiVip string, a
 		return vips, nil
 	}
 	// Both APIVip and APIVips were provided.
-	if apiVip != "" && len(apiVips) > 0 && apiVip != string(apiVips[0].IP) {
+	if apiVip != "" && len(apiVips) > 0 && network.NormalizeIP(apiVip) != network.NormalizeIP(string(apiVips[0].IP)) {
 		return nil, errors.New("apiVIP must be the same as the first element of apiVIPs")
 	}
 	return apiVips, nil
@@ -189,7 +189,7 @@ func HandleIngressVipBackwardsCompatibility(clusterId *strfmt.UUID, ingressVip s
 		return vips, nil
 	}
 	// Both IngressVip and IngressVips were provided.
-	if ingressVip != "" && len(ingressVips) > 0 && ingressVip != string(ingressVips[0].IP) {
+	if ingressVip != "" && len(ingressVips) > 0 && network.NormalizeIP(ingressVip) != network.NormalizeIP(string(ingressVips[0].IP)) {
 		return nil, errors.New("ingressVIP must be the same as the first element of ingressVIPs")
 	}
 	return ingressVips, nil

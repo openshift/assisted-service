@@ -1169,6 +1169,8 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	if db == nil {
 		db = m.db
 	}
+	apiVip = network.NormalizeIP(apiVip)
+	ingressVip = network.NormalizeIP(ingressVip)
 	log := logutil.FromContext(ctx, m.log)
 	formattedApiLease := network.FormatLease(apiVipLease)
 	formattedIngressLease := network.FormatLease(ingressVipLease)
