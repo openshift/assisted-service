@@ -812,6 +812,46 @@ var _ = Describe("AreApiVipsIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "IPv6 expanded vs canonical",
+			n1: []*models.APIVip{
+				{IP: "2620:0052:0009:164d:0000:0000:0000:0046"},
+			},
+			n2: []*models.APIVip{
+				{IP: "2620:52:9:164d::46"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 leading zeros stripped",
+			n1: []*models.APIVip{
+				{IP: "2001:0db8:0000:0000:0000:0000:0000:0001"},
+			},
+			n2: []*models.APIVip{
+				{IP: "2001:db8::1"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 mixed case",
+			n1: []*models.APIVip{
+				{IP: "2001:0DB8::ABCD"},
+			},
+			n2: []*models.APIVip{
+				{IP: "2001:db8::abcd"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 actually different",
+			n1: []*models.APIVip{
+				{IP: "2001:db8::1"},
+			},
+			n2: []*models.APIVip{
+				{IP: "2001:db8::2"},
+			},
+			expectedResult: false,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
@@ -932,11 +972,106 @@ var _ = Describe("AreIngressVipsIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "IPv6 expanded vs canonical",
+			n1: []*models.IngressVip{
+				{IP: "2620:0052:0009:164d:0000:0000:0000:0046"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "2620:52:9:164d::46"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 leading zeros stripped",
+			n1: []*models.IngressVip{
+				{IP: "2001:0db8:0000:0000:0000:0000:0000:0001"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "2001:db8::1"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 mixed case",
+			n1: []*models.IngressVip{
+				{IP: "2001:0DB8::ABCD"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "2001:db8::abcd"},
+			},
+			expectedResult: true,
+		},
+		{
+			name: "IPv6 actually different",
+			n1: []*models.IngressVip{
+				{IP: "2001:db8::1"},
+			},
+			n2: []*models.IngressVip{
+				{IP: "2001:db8::2"},
+			},
+			expectedResult: false,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
 			Expect(AreIngressVipsIdentical(t.n1, t.n2)).To(Equal(t.expectedResult))
+		})
+	}
+})
+
+var _ = Describe("NormalizeIP", func() {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "IPv6 expanded to canonical",
+			input:    "2620:0052:0009:164d:0000:0000:0000:0046",
+			expected: "2620:52:9:164d::46",
+		},
+		{
+			name:     "IPv6 leading zeros",
+			input:    "2001:0db8:0000:0000:0000:0000:0000:0001",
+			expected: "2001:db8::1",
+		},
+		{
+			name:     "IPv6 mixed case normalized to lowercase",
+			input:    "2001:0DB8::ABCD",
+			expected: "2001:db8::abcd",
+		},
+		{
+			name:     "IPv6 already canonical unchanged",
+			input:    "2001:db8::1",
+			expected: "2001:db8::1",
+		},
+		{
+			name:     "IPv6 loopback",
+			input:    "0000:0000:0000:0000:0000:0000:0000:0001",
+			expected: "::1",
+		},
+		{
+			name:     "IPv4 unchanged",
+			input:    "192.168.1.100",
+			expected: "192.168.1.100",
+		},
+		{
+			name:     "Empty string unchanged",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "Invalid input unchanged",
+			input:    "not-an-ip",
+			expected: "not-an-ip",
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			Expect(NormalizeIP(t.input)).To(Equal(t.expected))
 		})
 	}
 })
@@ -1326,6 +1461,18 @@ var _ = Describe("Network Comparison Functions with Dual-Stack Support", func() 
 				}
 				Expect(AreApiVipsIdentical(n1, n2)).To(BeFalse())
 			})
+
+			It("should return true for dual-stack VIPs with non-canonical IPv6", func() {
+				n1 := []*models.APIVip{
+					{IP: "10.0.1.1"},
+					{IP: "2620:0052:0009:164d:0000:0000:0000:0046"},
+				}
+				n2 := []*models.APIVip{
+					{IP: "10.0.1.1"},
+					{IP: "2620:52:9:164d::46"},
+				}
+				Expect(AreApiVipsIdentical(n1, n2)).To(BeTrue())
+			})
 		})
 	})
 
@@ -1367,6 +1514,18 @@ var _ = Describe("Network Comparison Functions with Dual-Stack Support", func() 
 					{IP: "10.0.1.3"},
 				}
 				Expect(AreIngressVipsIdentical(n1, n2)).To(BeFalse())
+			})
+
+			It("should return true for dual-stack VIPs with non-canonical IPv6", func() {
+				n1 := []*models.IngressVip{
+					{IP: "10.0.1.3"},
+					{IP: "2620:0052:0009:164d:0000:0000:0000:0047"},
+				}
+				n2 := []*models.IngressVip{
+					{IP: "10.0.1.3"},
+					{IP: "2620:52:9:164d::47"},
+				}
+				Expect(AreIngressVipsIdentical(n1, n2)).To(BeTrue())
 			})
 		})
 	})
