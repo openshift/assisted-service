@@ -1439,6 +1439,10 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 	return configuredManifests, nil
 }
 
+// getManifestConfigMap fetches a single ConfigMap by name. Called in a loop but reads from the
+// informer cache (ConfigMap watch registered in SetupWithManager), so no API-server round-trips.
+// TODO: label manifest ConfigMaps and replace per-name Gets with a single List call.
+// Note: pre-existing ConfigMaps will need labels backfilled (e.g. via reconcile-time migration).
 func (r *ClusterDeploymentsReconciler) getManifestConfigMap(ctx context.Context, log logrus.FieldLogger,
 	clusterInstall *hiveext.AgentClusterInstall, configMapName string) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
