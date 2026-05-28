@@ -7874,6 +7874,14 @@ definitions:
           infra-env will trust the certificates in this bundle. Clusters formed
           from the hosts discovered by this infra-env will also trust the
           certificates in this bundle.
+      network_discovery_delay_seconds:
+        type: integer
+        format: int64
+        minimum: 0
+        x-nullable: true
+        description: |-
+          The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.
+          This can be used on hosts that need time to discover their NICs.
   proxy:
     type: object
     x-go-custom-tag: gorm:"embedded;embeddedPrefix:proxy_"
@@ -7966,6 +7974,14 @@ definitions:
           infra-env will trust the certificates in this bundle. Clusters formed
           from the hosts discovered by this infra-env will also trust the
           certificates in this bundle.
+      network_discovery_delay_seconds:
+        type: integer
+        format: int64
+        minimum: 0
+        x-nullable: true
+        description: |-
+          The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.
+          This can be used on hosts that need time to discover their NICs.
   infra-env-update-params:
     type: object
     properties:
@@ -8010,6 +8026,14 @@ definitions:
         type: string
         description: Version of the OS image
         x-nullable: true
+      network_discovery_delay_seconds:
+        type: integer
+        format: int64
+        minimum: 0
+        x-nullable: true
+        description: |-
+          The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.
+          This can be used on hosts that need time to discover their NICs.
 
   ip:
     type: string
