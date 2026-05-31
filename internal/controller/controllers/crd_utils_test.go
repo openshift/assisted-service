@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"context"
-	"fmt"
 
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -14,13 +13,10 @@ import (
 	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"go.uber.org/mock/gomock"
-	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 )
 
 var _ = Describe("create agent CR", func() {
@@ -180,7 +176,7 @@ var _ = Describe("create agent CR", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("Already existing agent update retries on conflict", func() {
+		It("Already existing agent update succeeds despite concurrent modification", func() {
 			clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
 			infraEnvImage := newInfraEnvImage(infraEnvName, infraEnvNamespace, v1beta1.InfraEnvSpec{
@@ -192,8 +188,26 @@ var _ = Describe("create agent CR", func() {
 			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
 
 			hostId := uuid.New().String()
-			agent := newAgent(hostId, infraEnvNamespace, v1beta1.AgentSpec{})
+			agent := newAgent(hostId, infraEnvNamespace, v1beta1.AgentSpec{
+				Approved:                true,
+				Hostname:                "old-hostname",
+				Role:                    "master",
+				MachineConfigPool:       "worker-custom",
+				InstallationDiskID:      "/dev/sda",
+				InstallerArgs:           `["--save-partlabel","data"]`,
+				IgnitionConfigOverrides: `{"ignition":{"version":"3.1.0"}}`,
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "old-cluster",
+					Namespace: "old-namespace",
+				},
+			})
 			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
+
+			namespacedName := types.NamespacedName{Name: hostId, Namespace: infraEnvNamespace}
+			concurrentAgent := &v1beta1.Agent{}
+			Expect(c.Get(ctx, namespacedName, concurrentAgent)).ShouldNot(HaveOccurred())
+			concurrentAgent.SetAnnotations(map[string]string{"reconciler": "was-here"})
+			Expect(c.Update(ctx, concurrentAgent)).ShouldNot(HaveOccurred())
 
 			id := strfmt.UUID(hostId)
 			otherClusterId := strfmt.UUID(uuid.New().String())
@@ -217,29 +231,24 @@ var _ = Describe("create agent CR", func() {
 			mockHostApi.EXPECT().UnRegisterHost(ctx, gomock.Any()).Return(nil).Times(1)
 			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
-			updateCount := 0
-			conflictClient := fakeclient.NewClientBuilder().
-				WithScheme(scheme.Scheme).
-				WithObjects(clusterDeployment, infraEnvImage, agent).
-				WithInterceptorFuncs(interceptor.Funcs{
-					Update: func(ctx context.Context, cl client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
-						updateCount++
-						if updateCount == 1 {
-							return k8serrors.NewConflict(
-								schema.GroupResource{Group: "agent-install.openshift.io", Resource: "agents"},
-								obj.GetName(),
-								fmt.Errorf("the object has been modified"),
-							)
-						}
-						return cl.Update(ctx, obj, opts...)
-					},
-				}).
-				Build()
-
-			conflictCrdUtils := NewCRDUtils(conflictClient, mockHostApi)
-			err := conflictCrdUtils.CreateAgentCR(ctx, log, hostId, infraEnv2, cluster)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, infraEnv2, cluster)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(updateCount).To(Equal(2))
+
+			updated := &v1beta1.Agent{}
+			Expect(c.Get(ctx, namespacedName, updated)).ShouldNot(HaveOccurred())
+			Expect(updated.Annotations["reconciler"]).To(Equal("was-here"))
+			Expect(updated.Labels[v1beta1.InfraEnvNameLabel]).To(Equal(infraEnvName))
+			Expect(updated.Spec.Approved).To(BeFalse())
+			Expect(updated.Spec.Hostname).To(BeEmpty())
+			Expect(string(updated.Spec.Role)).To(BeEmpty())
+			Expect(updated.Spec.MachineConfigPool).To(BeEmpty())
+			Expect(updated.Spec.InstallationDiskID).To(BeEmpty())
+			Expect(updated.Spec.InstallerArgs).To(BeEmpty())
+			Expect(updated.Spec.IgnitionConfigOverrides).To(BeEmpty())
+			Expect(updated.Spec.ClusterDeploymentName).To(Equal(&v1beta1.ClusterReference{
+				Name:      cluster.KubeKeyName,
+				Namespace: cluster.KubeKeyNamespace,
+			}))
 		})
 
 		It("Already existing agent different infraenv same namespace", func() {
