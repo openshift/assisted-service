@@ -334,11 +334,13 @@ func GetClusterNTPSources(db *gorm.DB, clusterID strfmt.UUID) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	if cluster.NtpSources != "" {
+		return cluster.NtpSources, nil
+	}
 	if cluster.AdditionalNtpSource != "" {
 		return cluster.AdditionalNtpSource, nil
-	} else {
-		return getUnifiedNTPSources(db, clusterID)
 	}
+	return getUnifiedNTPSources(db, clusterID)
 }
 
 func GetHostNTPSources(db *gorm.DB, host *models.Host) (string, error) {
@@ -352,6 +354,9 @@ func GetHostNTPSources(db *gorm.DB, host *models.Host) (string, error) {
 	infraEnv, err = GetInfraEnvFromDB(db, host.InfraEnvID)
 	if err != nil {
 		return "", err
+	}
+	if infraEnv.NtpSources != "" {
+		return infraEnv.NtpSources, nil
 	}
 	return infraEnv.AdditionalNtpSources, nil
 }

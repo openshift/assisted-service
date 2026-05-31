@@ -54,7 +54,7 @@
         "enabled": true,
         "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
     }
-    {{end}}{{if .AdditionalNtpSources}},
+    {{end}}{{if .DesiredNtpSources}},
     {
         "name": "add-ntp-sources.service",
         "enabled": true,
@@ -269,7 +269,7 @@
         "name": "root"
       },
       "contents": { "source": "{{.ProfileProxyExports}}" }
-    }{{end}}{{if .AdditionalNtpSources}},
+    }{{end}}{{if .DesiredNtpSources}},
     {
       "path": "/usr/local/bin/add-ntp-sources.sh",
       "mode": 493,
