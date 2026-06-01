@@ -52,13 +52,14 @@ const TestDiskPath = "/dev/test-disk"
 const MinimalVersionForNmstatectl = "4.18"
 
 var (
-	OpenShiftVersion string = "4.6"
-	ReleaseVersion          = "4.6.0"
-	ReleaseImageURL         = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
-	RhcosImage              = "rhcos_4.6.0"
-	RhcosVersion            = "version-46.123-0"
-	SupportLevel            = "beta"
-	CPUArchitecture         = DefaultCPUArchitecture
+	DefaultTestVersion = TestVersion().Latest()
+	OpenShiftVersion   = DefaultTestVersion.Version()
+	ReleaseVersion     = DefaultTestVersion.ReleaseVersion()
+	ReleaseImageURL    = DefaultTestVersion.ReleaseImageURL()
+	RhcosImageURL      = DefaultTestVersion.RhcosImageURL()
+	RhcosVersion       = DefaultTestVersion.RhcosVersion()
+	SupportLevel       = "beta"
+	CPUArchitecture    = DefaultCPUArchitecture
 )
 
 // Defaults to be used by all testing modules
@@ -77,7 +78,7 @@ var TestDefaultConfig = &TestConfiguration{
 	OsImage: &models.OsImage{
 		CPUArchitecture:  &CPUArchitecture,
 		OpenshiftVersion: &OpenShiftVersion,
-		URL:              &RhcosImage,
+		URL:              &RhcosImageURL,
 		Version:          &RhcosVersion,
 	},
 	Status:            "status",

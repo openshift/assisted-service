@@ -5209,6 +5209,12 @@ var _ = Describe("cluster", func() {
 			})
 
 			Context("Multiple VIPs forbidden in update for pre-4.12", func() {
+				pre412Version := "4.11"
+
+				BeforeEach(func() {
+					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("openshift_version", pre412Version).Error).ShouldNot(HaveOccurred())
+				})
+
 				It("2 APIVips and 2 IngressVips", func() {
 					apiVip := "8.8.8.7"
 					ingressVip := "8.8.8.1"
@@ -5223,7 +5229,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 
 				It("2 APIVips and 1 IngressVips", func() {
@@ -5240,7 +5246,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 
 				It("1 APIVip and 2 IngressVips", func() {
@@ -5257,7 +5263,7 @@ var _ = Describe("cluster", func() {
 						},
 					})
 
-					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift 4.6")
+					verifyApiErrorString(reply, http.StatusBadRequest, "dual-stack VIPs are not supported in OpenShift "+pre412Version)
 				})
 			})
 		})
@@ -5355,6 +5361,7 @@ var _ = Describe("cluster", func() {
 			ID:               &clusterID,
 			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
+			CPUArchitecture:  common.DefaultCPUArchitecture,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusReady),
 		}}
@@ -5363,6 +5370,7 @@ var _ = Describe("cluster", func() {
 			ID:               &clusterID,
 			APIVips:          []*models.APIVip{{IP: "10.11.12.13"}},
 			IngressVips:      []*models.IngressVip{{IP: "10.11.20.50"}},
+			CPUArchitecture:  common.DefaultCPUArchitecture,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Status:           swag.String(models.ClusterStatusInstalling),
 		},
@@ -15102,6 +15110,41 @@ var _ = Describe("RegisterCluster", func() {
 				Expect(result.Platform.None).Should(BeNil())
 				Expect(result.Platform.Baremetal).Should(BeNil())
 
+				Expect(result.Platform.Vsphere.APIVIPs).Should(ContainElement(apiVip))
+				Expect(result.Platform.Vsphere.IngressVIPs).Should(ContainElement(ingressVip))
+			})
+
+			It("vsphere platform pre-4.12 populates deprecated single-VIP fields", func() {
+				oldVersion := "4.11"
+
+				mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, oldVersion)
+				mockAMSSubscription(ctx)
+
+				apiVip := "1.2.3.5"
+				ingressVip := "1.2.3.6"
+
+				params := getClusterCreateParams(nil)
+				params.OpenshiftVersion = swag.String(oldVersion)
+				params.APIVips = []*models.APIVip{{IP: models.IP(apiVip)}}
+				params.IngressVips = []*models.IngressVip{{IP: models.IP(ingressVip)}}
+				params.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)}
+				params.UserManagedNetworking = swag.Bool(false)
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: params,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated).Payload
+				Expect(*actual.Platform.Type).To(Equal(models.PlatformTypeVsphere))
+
+				var result installcfg.InstallerConfigBaremetal
+				installConfig := createInstallConfigBuilder()
+				mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+				data, err := installConfig.GetInstallConfig(&common.Cluster{Cluster: *actual}, []*common.InfraEnv{}, "")
+				Expect(err).ShouldNot(HaveOccurred())
+				err = json.Unmarshal(data, &result)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+
 				Expect(result.Platform.Vsphere.DeprecatedAPIVIP).Should(Equal(apiVip))
 				Expect(result.Platform.Vsphere.DeprecatedIngressVIP).Should(Equal(ingressVip))
 			})
@@ -17815,6 +17858,7 @@ var _ = Describe("AMS subscriptions", func() {
 					err := db.Create(&common.Cluster{Cluster: models.Cluster{
 						ID:               &clusterID,
 						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						CPUArchitecture:  common.DefaultCPUArchitecture,
 						Status:           swag.String(models.ClusterStatusReady),
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
