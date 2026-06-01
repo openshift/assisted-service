@@ -11781,6 +11781,41 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
 			validateArchiveStatNetFlow(infraEnv, true)
 		})
+		It("embeds per-infra-env network discovery delay in nmstatectl minimal ISO service", func() {
+			delay := int64(8)
+			infraEnv := createInfraEnv(models.ImageTypeMinimalIso)
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.OpenshiftVersion = common.MinimalVersionForNmstatectl
+			infraEnv.NetworkDiscoveryDelaySeconds = &delay
+			infraEnv = applyProxy(infraEnv)
+			Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
+			mockStaticNetworkConfig.EXPECT().ShouldUseNmstateService(infraEnv.OpenshiftVersion).Return(true, nil).Times(1)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigDataYAML(formattedInput).Return(staticNetworkConfigNmpolicyOutput, nil).Times(1)
+
+			params := installer.DownloadMinimalInitrdParams{InfraEnvID: id}
+			responsePayload := bm.DownloadMinimalInitrd(ctx, params).(*installer.DownloadMinimalInitrdOK).Payload
+
+			gzipReader, err := gzip.NewReader(responsePayload)
+			Expect(err).ToNot(HaveOccurred())
+			defer gzipReader.Close()
+
+			r := cpio.NewReader(gzipReader)
+			for {
+				hdr, err := r.Next()
+				if err == io.EOF {
+					break
+				}
+				Expect(err).ToNot(HaveOccurred())
+				if hdr.Name == "/etc/systemd/system/pre-network-manager-config.service" {
+					serviceBytes, err := io.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(serviceBytes)).To(ContainSubstring("Environment=DISCOVERY_DELAY_SECONDS=8"))
+					Expect(string(serviceBytes)).To(ContainSubstring("TimeoutSec=68"))
+					return
+				}
+			}
+			Fail("pre-network-manager-config.service not found in archive")
+		})
 	})
 })
 
