@@ -192,6 +192,14 @@ spec:
                 - name
                 - namespace
                 type: object
+              networkDiscoveryDelaySeconds:
+                description: |-
+                  NetworkDiscoveryDelaySeconds is the number of seconds to wait before mapping host MACs
+                  to interfaces when applying static network config on minimal ISO.
+                  This can be used on hosts that need time to discover their NICs.
+                format: int64
+                minimum: 0
+                type: integer
               nmStateConfigLabelSelector:
                 description: |-
                   NMStateConfigLabelSelector uses label matching to associate NMStateConfig resources with this InfraEnv.

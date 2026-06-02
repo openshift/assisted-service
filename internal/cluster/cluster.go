@@ -1268,6 +1268,8 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	if db == nil {
 		db = m.db
 	}
+	apiVip = network.NormalizeIP(apiVip)
+	ingressVip = network.NormalizeIP(ingressVip)
 	log := logutil.FromContext(ctx, m.log)
 	formattedApiLease := network.FormatLease(apiVipLease)
 	formattedIngressLease := network.FormatLease(ingressVipLease)
@@ -1358,12 +1360,13 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 		if !exists {
 			continue
 		}
-		response, numberOfBytes, err := m.objectHandler.Download(ctx, objectName)
+		response, numberOfBytes, err := objectHandler.Download(ctx, objectName)
 		if err != nil {
 			log.WithError(err).Errorf("failed to download file %s from cluster while building log: %s", path, *c.ID)
 			continue
 		}
 		fileContent, err := io.ReadAll(response)
+		response.Close()
 		if err != nil {
 			log.WithError(err).Errorf("failed to read file data %s (%d) from cluster while building log: %s", path, numberOfBytes, *c.ID)
 			continue

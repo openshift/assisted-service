@@ -16,6 +16,7 @@ spec:
           op: In
           value:
           - "75b3" # MI355X VF
+          - "75b8" # MI350P VF
           - "75b0" # MI350X VF
           - "74b9" # MI325X VF
           - "74b6" # MI308X VF
