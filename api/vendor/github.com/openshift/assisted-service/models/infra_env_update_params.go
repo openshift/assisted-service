@@ -41,6 +41,9 @@ type InfraEnvUpdateParams struct {
 	// Minimum: 0
 	NetworkDiscoveryDelaySeconds *int64 `json:"network_discovery_delay_seconds,omitempty"`
 
+	// A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.
+	NtpSources *string `json:"ntp_sources,omitempty"`
+
 	// Version of the OS image
 	OpenshiftVersion *string `json:"openshift_version,omitempty"`
 

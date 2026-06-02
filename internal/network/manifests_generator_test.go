@@ -264,6 +264,72 @@ var _ = Describe("chrony manifest", func() {
 			Expect(chronyConfServers).To(ConsistOf("from.cluster"))
 		})
 
+		It("Uses ntp_sources without default pool, includes discovered sources", func() {
+			cluster.NtpSources = "my-ntp.corp.com"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+					common.TestNTPSourceUnsynced,
+				}),
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConf := extractChronyConf(response)
+			Expect(chronyConf).ToNot(ContainSubstring("pool"))
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf(
+				common.TestNTPSourceSynced.SourceName,
+				common.TestNTPSourceUnsynced.SourceName,
+				"my-ntp.corp.com",
+			))
+		})
+
+		It("Uses multiple ntp_sources when set", func() {
+			cluster.NtpSources = "ntp1.corp.com,ntp2.corp.com"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				createHost(nil),
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConf := extractChronyConf(response)
+			Expect(chronyConf).ToNot(ContainSubstring("pool"))
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf("ntp1.corp.com", "ntp2.corp.com"))
+		})
+
+		It("Falls back to default behavior when ntp_sources is empty", func() {
+			cluster.AdditionalNtpSource = "from.cluster"
+			db.Save(cluster)
+			Expect(db.Error).ToNot(HaveOccurred())
+
+			cluster.Hosts = []*models.Host{
+				createHost([]*models.NtpSource{
+					common.TestNTPSourceSynced,
+				}),
+			}
+
+			response, err := ntpUtils.createChronyManifestContent(cluster, models.HostRoleMaster, log)
+			Expect(err).ToNot(HaveOccurred())
+
+			chronyConf := extractChronyConf(response)
+			Expect(chronyConf).To(ContainSubstring("pool"))
+
+			chronyConfServers := extractChronyConfServers(response)
+			Expect(chronyConfServers).To(ConsistOf(common.TestNTPSourceSynced.SourceName, "from.cluster"))
+		})
+
 		It("Adds sources from infra-env if hosts don't have reference to cluster", func() {
 			host := createHost(nil)
 			host.ClusterID = nil

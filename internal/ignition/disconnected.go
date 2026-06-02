@@ -155,14 +155,18 @@ func createInfraEnvManifest(infraEnv *common.InfraEnv, manifestsDir string) erro
 		}
 	}
 
-	var additionalNtpSources []string
-	for _, source := range strings.Split(infraEnv.AdditionalNtpSources, ",") {
+	ntpSourcesRaw := infraEnv.AdditionalNtpSources
+	if infraEnv.NtpSources != "" {
+		ntpSourcesRaw = infraEnv.NtpSources
+	}
+	var desiredNtpSources []string
+	for _, source := range strings.Split(ntpSourcesRaw, ",") {
 		source = strings.TrimSpace(source)
 		if source != "" {
-			additionalNtpSources = append(additionalNtpSources, source)
+			desiredNtpSources = append(desiredNtpSources, source)
 		}
 	}
-	spec.AdditionalNTPSources = additionalNtpSources
+	spec.AdditionalNTPSources = desiredNtpSources
 
 	if strings.TrimSpace(infraEnv.StaticNetworkConfig) != "" {
 		if infraEnv.ID == nil {

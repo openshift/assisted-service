@@ -306,9 +306,14 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 
 	// If the list of additional NTP sources is empty then we want to pass an empty list to the
 	// template, but the Split method returns a slice with one empty element in that case.
-	additionalNtpSources := strings.Split(infraEnv.AdditionalNtpSources, ",")
-	if len(additionalNtpSources) == 1 && additionalNtpSources[0] == "" {
-		additionalNtpSources = []string{}
+	// When ntp_sources is set, use it for discovery so the user's servers are available from the start.
+	ntpSourcesRaw := infraEnv.AdditionalNtpSources
+	if infraEnv.NtpSources != "" {
+		ntpSourcesRaw = infraEnv.NtpSources
+	}
+	desiredNtpSources := strings.Split(ntpSourcesRaw, ",")
+	if len(desiredNtpSources) == 1 && desiredNtpSources[0] == "" {
+		desiredNtpSources = []string{}
 	}
 
 	var ignitionParams = map[string]interface{}{
@@ -334,7 +339,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
 		"ProfileProxyExports":  dataurl.EncodeBytes([]byte(GetProfileProxyEntries(httpProxy, httpsProxy, noProxy))),
-		"AdditionalNtpSources": additionalNtpSources,
+		"DesiredNtpSources":    desiredNtpSources,
+		"OverwriteNtpConfig":   infraEnv.NtpSources != "",
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
