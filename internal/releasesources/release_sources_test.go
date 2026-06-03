@@ -1,6 +1,7 @@
 package releasesources
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/go-openapi/swag"
@@ -212,7 +213,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - invalid cpu architecture", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: testSupportedMultiArchitectures,
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
@@ -262,7 +263,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - invalid channel", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: testSupportedMultiArchitectures,
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
@@ -287,7 +288,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - invalid multi_cpu_architectures", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: []string{"invalid arch"},
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
@@ -398,7 +399,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - missing multi_cpu_architectures", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion: swag.String("4.12"),
+				OpenshiftVersion: swag.String(common.TestVersion().Version()),
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
 						CPUArchitecture: swag.String(common.X86CPUArchitecture),
@@ -422,7 +423,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - missing upgrade_channels", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: testSupportedMultiArchitectures,
 			},
 		}
@@ -441,7 +442,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - missing cpu_architecture", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: testSupportedMultiArchitectures,
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
@@ -464,7 +465,7 @@ var _ = Describe("SyncReleaseImages", func() {
 	It("Should cause an error with invalid release sources - missing channels", func() {
 		releaseSources := models.ReleaseSources{
 			{
-				OpenshiftVersion:      swag.String("4.12"),
+				OpenshiftVersion:      swag.String(common.TestVersion().Version()),
 				MultiCPUArchitectures: testSupportedMultiArchitectures,
 				UpgradeChannels: []*models.UpgradeChannel{
 					{
@@ -560,11 +561,16 @@ var _ = Describe("SyncReleaseImages", func() {
 	})
 
 	It("Should cause an error with missing required fields", func() {
+		testVersion := common.TestVersion()
+		openshiftVersion := testVersion.Version()
+		testReleaseVersion := testVersion.ReleaseVersion()
+		testURL := testVersion.ReleaseImageURL()
+
 		releaseImages := models.ReleaseImages{
 			{
-				Version:         swag.String("4.11.1"),
+				Version:         swag.String(testReleaseVersion),
 				CPUArchitecture: swag.String(common.X86CPUArchitecture),
-				URL:             swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				URL:             swag.String(testURL),
 			},
 		}
 		handler, err = newReleaseSourcesHandler(
@@ -579,9 +585,9 @@ var _ = Describe("SyncReleaseImages", func() {
 
 		releaseImages = models.ReleaseImages{
 			{
-				OpenshiftVersion: swag.String("4.11"),
+				OpenshiftVersion: swag.String(openshiftVersion),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				URL:              swag.String(testURL),
 			},
 		}
 
@@ -597,9 +603,9 @@ var _ = Describe("SyncReleaseImages", func() {
 
 		releaseImages = models.ReleaseImages{
 			{
-				OpenshiftVersion: swag.String("4.11"),
-				Version:          swag.String("4.11.1"),
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				Version:          swag.String(testReleaseVersion),
+				URL:              swag.String(testURL),
 			},
 		}
 
@@ -615,8 +621,8 @@ var _ = Describe("SyncReleaseImages", func() {
 
 		releaseImages = models.ReleaseImages{
 			{
-				OpenshiftVersion: swag.String("4.11"),
-				Version:          swag.String("4.11.1"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				Version:          swag.String(testReleaseVersion),
 				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
 			},
 		}
@@ -663,12 +669,16 @@ var _ = Describe("SyncReleaseImages", func() {
 	})
 
 	It("Should cause an error with invalid fields", func() {
+		testVersion := common.TestVersion().Version()
+		testFullVersion := testVersion + ".1"
+		testURL := fmt.Sprintf("quay.io/openshift-release-dev/ocp-release:%s-x86_64", testFullVersion)
+
 		releaseImages := models.ReleaseImages{
 			{
-				OpenshiftVersion: swag.String("4.11"),
-				Version:          swag.String("4.11.1"),
+				OpenshiftVersion: swag.String(testVersion),
+				Version:          swag.String(testFullVersion),
 				CPUArchitecture:  swag.String("invalidCPUArch"),
-				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.11.1-x86_64"),
+				URL:              swag.String(testURL),
 			},
 		}
 
