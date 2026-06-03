@@ -1862,6 +1862,25 @@ var _ = Describe("Preflight host requirements", func() {
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
 		})
 
+		It("TPM - unset enable_on with tpmv2 mode is treated as disabled", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					Mode: swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
+		})
+
 		It("Tang - all roles", func() {
 
 			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
