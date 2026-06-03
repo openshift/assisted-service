@@ -399,9 +399,14 @@ func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *c
 }
 
 func isDiskEncryptionSetWithTpm(c *common.Cluster) bool {
-	return c.DiskEncryption != nil &&
-		swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone &&
-		swag.StringValue(c.DiskEncryption.Mode) == models.DiskEncryptionModeTpmv2
+	if c.DiskEncryption == nil {
+		return false
+	}
+	enableOn := swag.StringValue(c.DiskEncryption.EnableOn)
+	if enableOn == "" || enableOn == models.DiskEncryptionEnableOnNone {
+		return false
+	}
+	return swag.StringValue(c.DiskEncryption.Mode) == models.DiskEncryptionModeTpmv2
 }
 
 func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
