@@ -677,10 +677,11 @@ func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
 		APIVersion: "v1",
 		BaseDomain: "test.base.domain",
 		Networking: struct {
-			NetworkType    string                      `json:"networkType"`
-			ClusterNetwork []installcfg.ClusterNetwork `json:"clusterNetwork"`
-			MachineNetwork []installcfg.MachineNetwork `json:"machineNetwork,omitempty"`
-			ServiceNetwork []string                    `json:"serviceNetwork"`
+			NetworkType         string                      `json:"networkType"`
+			ClusterNetwork      []installcfg.ClusterNetwork `json:"clusterNetwork"`
+			MachineNetwork      []installcfg.MachineNetwork `json:"machineNetwork,omitempty"`
+			ServiceNetwork      []string                    `json:"serviceNetwork"`
+			OVNKubernetesConfig *installcfg.OVNKConfig      `json:"ovnKubernetesConfig,omitempty"`
 		}{
 			NetworkType:    "OpenShiftSDN",
 			ClusterNetwork: []installcfg.ClusterNetwork{{Cidr: "10.128.0.0/14", HostPrefix: 23}},
