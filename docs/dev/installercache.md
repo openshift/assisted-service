@@ -13,7 +13,7 @@ The installer cache has a number of settings, which can be overridden by providi
 This defaults to `0`, which means that there is no limit to the size of the installer cache.
 This should be kept at zero if the storage directory is not ephemeral.
 
-Otherwise, it will accept a capacity, followed by either "GiB", "MiB", "KiB" or "B" 
+Otherwise, it will accept a capacity, followed by either "GiB", "MiB", "KiB", "GB", "MB", "KB" or "B"
 
 For example "32GiB"
 
@@ -22,7 +22,7 @@ For example "32GiB"
 This is the estimated maximum size that we believe any Openshift release could ever be. The default at the time of writing is 2GiB.
 This setting is used by the installercache to decide if there is enough space to write a release to the cache or if some things will need to be evicted first.
 
-This will accept a capacity, followed by either "GiB", "MiB", "KiB" or "B" 
+This will accept a capacity, followed by either "GiB", "MiB", "KiB", "GB", "MB", "KB" or "B"
 For example "1GiB"
 
 ### INSTALLER_CACHE_RELEASE_FETCH_RETRY_INTERVAL
