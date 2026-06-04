@@ -5,10 +5,8 @@ import (
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -25,9 +23,6 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "nfd",
 	TimeoutSeconds:   30 * 60,
-	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAI.ID,
-	},
 }
 
 // operator is an node feature discovery OLM operator plugin.
@@ -150,5 +145,5 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
-	return []string(Operator.Bundles)
+	return []string{}
 }
