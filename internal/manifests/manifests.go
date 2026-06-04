@@ -207,6 +207,10 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 
 	_, _, path := m.getManifestPathsFromParameters(ctx, params.Folder, &params.FileName)
 
+	if err = m.validateManifestFileNames(ctx, params.ClusterID, []string{params.FileName}); err != nil {
+		return err
+	}
+
 	err = m.deleteManifest(ctx, params.ClusterID, path)
 	if err != nil {
 		return err
@@ -296,6 +300,10 @@ func (m *Manifests) V2DownloadClusterManifest(ctx context.Context, params operat
 	// at the application level.
 	if _, err := common.GetClusterFromDB(m.db, params.ClusterID, false); err != nil {
 		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
+	}
+
+	if err := m.validateManifestFileNames(ctx, params.ClusterID, []string{params.FileName}); err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
 	objectName := GetManifestObjectName(params.ClusterID, path)

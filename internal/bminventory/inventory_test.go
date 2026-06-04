@@ -11615,6 +11615,28 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(*replyPayload.URL).Should(Equal("url"))
 	})
 
+	It("V2 presigned rejects path traversal in additional_name", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		traversalName := "../../other-cluster-uuid/kubeconfig"
+		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
+			ClusterID:      clusterID,
+			FileName:       constants.ManifestFolder,
+			AdditionalName: &traversalName,
+		})
+		verifyApiError(generateReply, http.StatusBadRequest)
+	})
+
+	It("V2 presigned rejects absolute path in additional_name", func() {
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		absoluteName := "/etc/passwd"
+		generateReply := bm.V2GetPresignedForClusterFiles(ctx, installer.V2GetPresignedForClusterFilesParams{
+			ClusterID:      clusterID,
+			FileName:       constants.ManifestFolder,
+			AdditionalName: &absoluteName,
+		})
+		verifyApiError(generateReply, http.StatusBadRequest)
+	})
+
 })
 
 var _ = Describe("DownloadMinimalInitrd", func() {
