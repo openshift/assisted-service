@@ -61,6 +61,14 @@ type Operator interface {
 	GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string
 }
 
+// OptionalBundleOperator is implemented by operators that are optional members of a bundle.
+// The manager uses a type assertion to check for this interface — only operators that
+// can be optionally selected by the user (e.g., GPU vendors in the OpenShift AI bundle)
+// need to implement it.
+type OptionalBundleOperator interface {
+	GetOptionalBundleLabels(featureIDs []models.FeatureSupportLevelID) []string
+}
+
 // Storage Operator provide a generic API for storage operators
 type StorageOperator interface {
 	Operator

@@ -2,14 +2,11 @@ package kmm
 
 import (
 	"context"
-	"slices"
 	"text/template"
 
 	"github.com/kelseyhightower/envconfig"
-	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -26,9 +23,6 @@ var Operator = models.MonitoredOperator{
 	OperatorType:     models.OperatorTypeOlm,
 	SubscriptionName: "kernel-module-management",
 	TimeoutSeconds:   30 * 60,
-	Bundles: pq.StringArray{
-		operatorscommon.BundleOpenShiftAI.ID,
-	},
 }
 
 // operator is a KMM OLM operator plugin.
@@ -184,11 +178,5 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
-	// For SNO feature, exclude from openshift-ai bundle
-	if slices.Contains(featureIDs, models.FeatureSupportLevelIDSNO) {
-		return []string{}
-	}
-
-	// For non-SNO deployments, use the default bundle behavior
-	return []string(Operator.Bundles)
+	return []string{}
 }

@@ -11,6 +11,7 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"slices"
 	"strings"
 	"time"
 
@@ -559,22 +560,31 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 }
 
 func (b *bareMetalInventory) getOLMMonitoredOperators(log *logrus.Entry, cluster *common.Cluster, params installer.V2RegisterClusterParams, releaseImageVersion string) ([]*models.MonitoredOperator, error) {
-	if params.NewClusterParams.OlmOperators != nil {
-		var newOLMOperators []*models.MonitoredOperator
-		newOLMOperators, err := b.getOLMOperators(cluster, params.NewClusterParams.OlmOperators, log)
-		if err != nil {
-			return nil, err
-		}
-
-		err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, releaseImageVersion, params.NewClusterParams.CPUArchitecture, newOLMOperators)
-		if err != nil {
-			log.Error(err)
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		return newOLMOperators, nil
+	if params.NewClusterParams.OlmOperators == nil && params.NewClusterParams.OperatorBundles == nil {
+		return nil, nil
 	}
-	return nil, nil
+
+	allOperators, sourceBundlesMap, err := b.expandAndMergeOperators(
+		params.NewClusterParams.OperatorBundles,
+		params.NewClusterParams.OlmOperators,
+		log,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	newOLMOperators, err := b.getOLMOperators(cluster, allOperators, sourceBundlesMap, log)
+	if err != nil {
+		return nil, err
+	}
+
+	err = b.operatorManagerApi.EnsureOperatorPrerequisite(cluster, releaseImageVersion, params.NewClusterParams.CPUArchitecture, newOLMOperators)
+	if err != nil {
+		log.Error(err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	return newOLMOperators, nil
 }
 
 func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, params *models.ClusterCreateParams, arch string) (*models.ReleaseImage, error) {
@@ -3358,11 +3368,20 @@ func (b *bareMetalInventory) updateClusterCPUFeatureUsage(cpuArchitecture string
 // This code is very similar to internal/cluster/refresh_status_preprocessor.go:recalculateOperatorDependencies
 // TODO: Refactor this to a common place if possible
 func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
-	if params.ClusterUpdateParams.OlmOperators == nil {
+	if params.ClusterUpdateParams.OlmOperators == nil && params.ClusterUpdateParams.OperatorBundles == nil {
 		return nil
 	}
 
-	updateOLMOperators, err := b.getOLMOperators(cluster, params.ClusterUpdateParams.OlmOperators, log)
+	allOperators, sourceBundlesMap, err := b.expandAndMergeOperators(
+		params.ClusterUpdateParams.OperatorBundles,
+		params.ClusterUpdateParams.OlmOperators,
+		log,
+	)
+	if err != nil {
+		return err
+	}
+
+	updateOLMOperators, err := b.getOLMOperators(cluster, allOperators, sourceBundlesMap, log)
 	if err != nil {
 		return err
 	}
@@ -3431,7 +3450,45 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 	return nil
 }
 
-func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperators []*models.OperatorCreateParams, log logrus.FieldLogger) ([]*models.MonitoredOperator, error) {
+func (b *bareMetalInventory) expandAndMergeOperators(
+	bundles []*models.BundleCreateParams,
+	standaloneOperators []*models.OperatorCreateParams,
+	log logrus.FieldLogger,
+) ([]*models.OperatorCreateParams, map[string][]string, error) {
+	sourceBundlesMap := make(map[string][]string)
+	seen := make(map[string]bool)
+	var allOperators []*models.OperatorCreateParams
+
+	for _, bundle := range bundles {
+		bundleID := swag.StringValue(bundle.ID)
+		expanded, err := b.operatorManagerApi.ExpandBundleOperators(bundleID, bundle.OptionalOperators, nil)
+		if err != nil {
+			return nil, nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+		for _, op := range expanded {
+			sourceBundlesMap[op.Name] = append(sourceBundlesMap[op.Name], bundleID)
+			if !seen[op.Name] {
+				allOperators = append(allOperators, op)
+				seen[op.Name] = true
+			}
+		}
+	}
+
+	for _, op := range standaloneOperators {
+		if _, fromBundle := sourceBundlesMap[op.Name]; fromBundle {
+			log.Infof("Operator %s selected both in bundle and standalone — standalone takes priority", op.Name)
+			delete(sourceBundlesMap, op.Name)
+		}
+		if !seen[op.Name] {
+			allOperators = append(allOperators, op)
+			seen[op.Name] = true
+		}
+	}
+
+	return allOperators, sourceBundlesMap, nil
+}
+
+func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperators []*models.OperatorCreateParams, sourceBundlesMap map[string][]string, log logrus.FieldLogger) ([]*models.MonitoredOperator, error) {
 	monitoredOperators := make([]*models.MonitoredOperator, 0)
 
 	for _, newOperator := range newOperators {
@@ -3444,6 +3501,9 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 		}
 
 		operator.Properties = newOperator.Properties
+		if bundleIDs, ok := sourceBundlesMap[newOperator.Name]; ok {
+			operator.SourceBundles = bundleIDs
+		}
 		monitoredOperators = append(monitoredOperators, operator)
 	}
 
@@ -3471,6 +3531,37 @@ func (b *bareMetalInventory) getOLMOperators(cluster *common.Cluster, newOperato
 	}
 
 	return operatorDependencies, nil
+}
+
+func (b *bareMetalInventory) populateOperatorBundles(cluster *models.Cluster) {
+	bundleOperators := make(map[string][]string)
+
+	for _, op := range cluster.MonitoredOperators {
+		for _, bundleID := range op.SourceBundles {
+			bundleOperators[bundleID] = append(bundleOperators[bundleID], op.Name)
+		}
+	}
+
+	cluster.OperatorBundles = make([]*models.BundleCreateParams, 0, len(bundleOperators))
+	for bundleID, opNames := range bundleOperators {
+		bundle, err := b.operatorManagerApi.GetBundle(bundleID, nil)
+		if err != nil {
+			continue
+		}
+
+		var selectedOptionals []string
+		for _, optOp := range bundle.OptionalOperators {
+			if slices.Contains(opNames, optOp) {
+				selectedOptionals = append(selectedOptionals, optOp)
+			}
+		}
+
+		id := bundleID
+		cluster.OperatorBundles = append(cluster.OperatorBundles, &models.BundleCreateParams{
+			ID:                &id,
+			OptionalOperators: selectedOptionals,
+		})
+	}
 }
 
 func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {
