@@ -439,6 +439,27 @@ var _ = Describe("update_progress", func() {
 				Expect(hostFromDB.StageUpdatedAt.String()).Should(Equal(updatedAt))
 			})
 
+			It("same_stage_different_info_preserves_stage_updated_at", func() {
+				progress.CurrentStage = models.HostStageWritingImageToDisk
+				progress.ProgressInfo = "20%"
+				mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.HostStatusUpdatedEventName),
+					eventstest.WithHostIdMatcher(host.ID.String()),
+					eventstest.WithInfraEnvIdMatcher(host.InfraEnvID.String()),
+					eventstest.WithClusterIdMatcher(host.ClusterID.String()),
+					eventstest.WithSeverityMatcher(models.EventSeverityInfo)))
+				Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+				hostFromDB = hostutil.GetHostFromDB(*host.ID, host.InfraEnvID, db)
+				Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
+				updatedAt := hostFromDB.StageUpdatedAt.String()
+
+				progress.ProgressInfo = "50%"
+				Expect(state.UpdateInstallProgress(ctx, &hostFromDB.Host, &progress)).ShouldNot(HaveOccurred())
+				hostFromDB = hostutil.GetHostFromDB(*hostFromDB.ID, host.InfraEnvID, db)
+				Expect(hostFromDB.Progress.ProgressInfo).Should(Equal("50%"))
+				Expect(hostFromDB.StageUpdatedAt.String()).Should(Equal(updatedAt))
+			})
+
 			It("writing to disk", func() {
 				progress.CurrentStage = models.HostStageWritingImageToDisk
 				progress.ProgressInfo = "20%"

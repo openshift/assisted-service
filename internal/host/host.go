@@ -586,8 +586,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			return nil
 		}
 		updates := map[string]interface{}{
-			"progress_progress_info":    progress.ProgressInfo,
-			"progress_stage_updated_at": strfmt.DateTime(time.Now()),
+			"progress_progress_info": progress.ProgressInfo,
 		}
 		return m.updateHostAndNotify(ctx, m.db, h, updates).Error
 	}
