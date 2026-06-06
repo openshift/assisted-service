@@ -68,7 +68,7 @@ func (m *Manager) initMonitoringQueryGenerator() {
 	}
 }
 
-func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
+func SortHosts(hosts []*models.Host, controlPlaneCount int64) ([]*models.Host, bool) {
 	diskCapacityGiB := func(disks []*models.Disk) int64 {
 		return funk.Reduce(disks, func(acc int64, d *models.Disk) int64 {
 			if d.InstallationEligibility.Eligible {
@@ -116,6 +116,9 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 		}
 	}
 
+	isTwoNodeTopology := controlPlaneCount >= common.MinMasterHostsNeededForInstallationInHaArbiterMode &&
+		controlPlaneCount < common.MinMasterHostsNeededForInstallationInHaMode
+
 	sortByWeight := func(hostList []*models.Host) {
 		sort.SliceStable(hostList, func(i, j int) bool {
 			inventory_i, _ := common.UnmarshalInventory(hostList[i].Inventory)
@@ -137,6 +140,10 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 				HostWeightMemWeight*(float64(memInGib(inventory_j))-HostWeightMinimumMemGib) +
 				HostWeightDiskWeight*(float64(diskCapacityGiB(inventory_j.Disks))-HostWeightMinimumDiskCapacityGib)
 
+			if isTwoNodeTopology {
+				return wi > wj
+			}
+
 			return wi < wj
 		})
 	}
@@ -149,6 +156,17 @@ func SortHosts(hosts []*models.Host) ([]*models.Host, bool) {
 	result := make([]*models.Host, 0, len(hosts))
 	result = append(result, hostsWithoutGPU...)
 	result = append(result, hostsWithGPU...)
+
+	// for TNA, move the least capable non-GPU host (last in the non-GPU
+	// descending section) to the arbiter position so that the greedy algorithm
+	// in selectRole assings it as a arbiter instead of a more capable worker.
+	if isTwoNodeTopology && len(hostsWithoutGPU) > int(controlPlaneCount) {
+		lastNonGPUIdx := len(hostsWithoutGPU) - 1
+		leastCapable := result[lastNonGPUIdx]
+		arbiterPos := int(controlPlaneCount)
+		copy(result[arbiterPos+1:], result[arbiterPos:lastNonGPUIdx])
+		result[arbiterPos] = leastCapable
+	}
 
 	return result, allHostsHasInventory
 }
@@ -202,7 +220,7 @@ func (m *Manager) clusterHostMonitoring() {
 
 		for _, c := range clusters {
 			inventoryCache := make(InventoryCache)
-			sortedHosts, canRefreshRoles := SortHosts(c.Hosts)
+			sortedHosts, canRefreshRoles := SortHosts(c.Hosts, c.ControlPlaneCount)
 
 			log = log.WithField("cluster", c.ID.String())
 
