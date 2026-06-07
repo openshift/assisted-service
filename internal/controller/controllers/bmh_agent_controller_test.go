@@ -1518,6 +1518,17 @@ var _ = Describe("bmac reconcile", func() {
 				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
 				Expect(c.Update(ctx, agent_day2)).To(BeNil())
 
+				rootCAConfigMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{
+						"ca.crt": BASIC_CERT,
+					},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, rootCAConfigMap)).ShouldNot(HaveOccurred())
+
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "machine-config-server-ca",
