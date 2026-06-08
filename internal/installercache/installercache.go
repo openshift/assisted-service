@@ -53,11 +53,15 @@ type Config struct {
 }
 
 func (s *Size) Decode(value string) error {
-	bytes, err := units.ParseBase2Bytes(value)
+	toParse := strings.ReplaceAll(strings.TrimSpace(value), " ", "")
+
+	bytes, err := units.ParseStrictBytes(toParse)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to parse size %q (from %q): %w", toParse, value, err)
 	}
+
 	*s = Size(bytes)
+
 	return nil
 }
 

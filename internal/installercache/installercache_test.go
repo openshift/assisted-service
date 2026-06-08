@@ -16,6 +16,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -449,6 +450,56 @@ var _ = Describe("installer cache", func() {
 		Expect(linkCount).To(Equal(numberOfLinks - numberOfExpiredLinks))
 	})
 
+})
+
+var _ = Describe("Size.Decode", func() {
+	const (
+		oneGiB int64 = 1024 * 1024 * 1024
+		oneGB  int64 = 1000 * 1000 * 1000
+	)
+
+	DescribeTable("accepts unambiguous strings",
+		func(input string, expected Size) {
+			var s Size
+			Expect(s.Decode(input)).To(Succeed())
+			Expect(s).To(Equal(expected))
+		},
+
+		Entry("gibibytes", "20GiB", Size(20*oneGiB)),
+		Entry("mebibytes", "512MiB", Size(512*1024*1024)),
+		Entry("gigabyte", "20GB", Size(20*oneGB)),
+		Entry("megabytes", "512MB", Size(512*1000*1000)),
+		Entry("zero", "0", Size(0)),
+		Entry("zero with unit", "0GiB", Size(0)),
+		Entry("space between magnitude and unit", "20 GiB", Size(20*oneGiB)),
+	)
+
+	It("does not equate decimal GB with binary GiB", func() {
+		var gb, gib Size
+		Expect(gb.Decode("20GB")).To(Succeed())
+		Expect(gib.Decode("20GiB")).To(Succeed())
+		Expect(gb).NotTo(Equal(gib))
+	})
+
+	DescribeTable("rejects non-canonical unit casing",
+		func(input string) {
+			var s Size
+			Expect(s.Decode(input)).NotTo(Succeed())
+		},
+		Entry("lowercase gb", "20gb"),
+		Entry("all-caps iB suffix", "20GIB"),
+		Entry("mixed Gib looks like giga-bit not gibibyte", "20Gib"),
+		Entry("bare G without B", "20G"),
+	)
+
+	DescribeTable("rejects invalid spellings",
+		func(input string) {
+			var s Size
+			Expect(s.Decode(input)).NotTo(Succeed())
+		},
+		Entry("unit only", "GiB"),
+		Entry("unknown suffix", "20XB"),
+	)
 })
 
 func TestInstallerCache(t *testing.T) {
