@@ -4,7 +4,6 @@ metadata:
   name: {{ .Operator.SubscriptionName }}
   namespace: {{ .Operator.Namespace }}
 spec:
-  channel: stable-6.3
   installPlanApproval: Automatic
   name: {{ .Operator.SubscriptionName }}
   source: redhat-operators
