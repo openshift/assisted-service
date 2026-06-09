@@ -1151,8 +1151,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		if cluster.DiskEncryption == nil { // true when current cluster configuration does not include disk encryption
 			cluster.DiskEncryption = &models.DiskEncryption{}
 		}
-		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn), swag.StringValue(cluster.DiskEncryption.EnableOn), &params.DiskEncryption.EnableOn)
-		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.Mode), swag.StringValue(cluster.DiskEncryption.Mode), &params.DiskEncryption.Mode)
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+		)
+		updateString(enableOn, swag.StringValue(cluster.DiskEncryption.EnableOn), &params.DiskEncryption.EnableOn)
+		updateString(mode, swag.StringValue(cluster.DiskEncryption.Mode), &params.DiskEncryption.Mode)
 		if clusterInstall.Spec.DiskEncryption.TangServers != cluster.DiskEncryption.TangServers {
 			params.DiskEncryption.TangServers = clusterInstall.Spec.DiskEncryption.TangServers
 			update = true
@@ -1440,9 +1444,13 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 	}
 
 	if isDiskEncryptionEnabled(clusterInstall) {
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+		)
 		clusterParams.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    clusterInstall.Spec.DiskEncryption.EnableOn,
-			Mode:        clusterInstall.Spec.DiskEncryption.Mode,
+			EnableOn:    swag.String(enableOn),
+			Mode:        swag.String(mode),
 			TangServers: clusterInstall.Spec.DiskEncryption.TangServers,
 		}
 	}
