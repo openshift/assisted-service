@@ -3388,7 +3388,7 @@ location = "%s"
 		}
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
-		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnNone), nil, "")
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnNone), swag.String(models.DiskEncryptionModeTpmv2), "")
 
 		By("update deployment with disk encryption enabled with tpmv2 on master only")
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
