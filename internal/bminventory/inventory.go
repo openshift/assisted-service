@@ -10,6 +10,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
@@ -4155,6 +4156,10 @@ func (b *bareMetalInventory) V2GetPresignedForClusterFiles(ctx context.Context, 
 	if params.FileName == constants.ManifestFolder {
 		if params.AdditionalName != nil {
 			additionalName := *params.AdditionalName
+			if !filepath.IsLocal(additionalName) {
+				return common.NewApiError(http.StatusBadRequest,
+					errors.New("additional_name must be local to the manifest directory"))
+			}
 			fullFileName = manifests.GetManifestObjectName(params.ClusterID, additionalName)
 			downloadFilename = additionalName[strings.LastIndex(additionalName, "/")+1:]
 		} else {
