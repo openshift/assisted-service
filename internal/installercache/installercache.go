@@ -23,10 +23,6 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var (
-	linkPruningGracePeriod time.Duration = 5 * time.Minute
-)
-
 // Installers implements a thread safe LRU cache for ocp install binaries
 // on the pod's ephermal file system. The number of binaries stored is
 // limited by the storageCapacity parameter.
@@ -101,6 +97,8 @@ type Release struct {
 	cached bool
 	// extractDuration is the amount of time taken to perform extraction, zero if no extraction took place.
 	extractDuration float64
+	// cleanup is called to clean up the release when it is no longer needed
+	cleanup func() error
 }
 
 // Cleanup is called to signal that the caller has finished using the release and that resources may be released.
@@ -116,49 +114,31 @@ func (rl *Release) Cleanup(ctx context.Context) error {
 		"extract_duration", rl.extractDuration,
 	)
 
-	var ret error
-
-	// Ensure page cache is removed for the file
-	if err := rl.cleanPageCache(); err != nil {
-		ret = errors.Join(ret, fmt.Errorf("failed to clean page cache: %w", err))
-	}
-
-	if err := os.Remove(rl.Path); err != nil && !os.IsNotExist(err) {
-		ret = errors.Join(ret, fmt.Errorf("failed to remove binary: %w", err))
-	}
-
-	return ret
-}
-
-func (r *Release) cleanPageCache() error {
-	f, err := os.Open(r.Path)
-	if err != nil {
-		switch {
-		case os.IsNotExist(err):
-			return nil
-		default:
-			return fmt.Errorf("failed to open binary file %s: %w", r.Path, err)
-		}
-	}
-
-	defer f.Close()
-
-	err = unix.Fadvise(int(f.Fd()), 0, 0, unix.FADV_DONTNEED)
-	if err != nil {
-		return fmt.Errorf("fadvise failed: %w", err)
-	}
-
-	return nil
+	return rl.cleanup()
 }
 
 // New constructs an installer cache with a given storage capacity
+// If the cache directory already exists, it will be removed and a new one will be created.
 func New(config Config, eventsHandler eventsapi.Handler, metricsAPI metrics.API, diskStatsHelper metrics.DiskStatsHelper, log logrus.FieldLogger) (*Installers, error) {
+	log.Infof("Creating installer cache with config: %+v", config)
+
 	if config.MaxCapacity > 0 && config.MaxReleaseSize == 0 {
 		return nil, fmt.Errorf("config.MaxReleaseSize (%d bytes) must not be zero", config.MaxReleaseSize)
 	}
 	if config.MaxCapacity > 0 && config.MaxReleaseSize > config.MaxCapacity {
 		return nil, fmt.Errorf("config.MaxReleaseSize (%d bytes) must not be greater than config.MaxCapacity (%d bytes)", config.MaxReleaseSize, config.MaxCapacity)
 	}
+
+	err := os.RemoveAll(config.CacheDir)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("failed to remove cache directory %s: %w", config.CacheDir, err)
+	}
+
+	err = os.MkdirAll(config.CacheDir, 0755)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create cache directory %s: %w", config.CacheDir, err)
+	}
+
 	return &Installers{
 		log:             log,
 		eventsHandler:   eventsHandler,
@@ -261,6 +241,13 @@ func (i *Installers) get(releaseID, releaseIDMirror, pullSecret string, ocReleas
 		return nil, err
 	}
 
+	release.cleanup = func() error {
+		i.Lock()
+		defer i.Unlock()
+
+		return cleanHardLink(release.Path)
+	}
+
 	return release, nil
 }
 
@@ -293,7 +280,6 @@ func (i *Installers) shouldEvict(totalUsed int64) (shouldEvict bool) {
 func (i *Installers) evict() bool {
 	// store the file paths
 	files := NewPriorityQueue(&fileInfo{})
-	links := make([]*fileInfo, 0)
 	var totalSize int64
 
 	// visit process the file/dir pointed by path and store relevant
@@ -306,9 +292,8 @@ func (i *Installers) evict() bool {
 		if !info.Mode().IsRegular() {
 			return nil
 		}
-		//find hard links
+		//skip hard links
 		if strings.HasPrefix(info.Name(), "ln_") {
-			links = append(links, &fileInfo{path, info})
 			return nil
 		}
 
@@ -326,25 +311,23 @@ func (i *Installers) evict() bool {
 
 	err := filepath.Walk(i.config.CacheDir, visit)
 	if err != nil {
-		if !os.IsNotExist(err) { //ignore first invocation where the cacheDir does not exist
-			i.log.WithError(err).Errorf("release binary eviction failed to inspect directory %s", i.config.CacheDir)
-		}
+		i.log.WithError(err).Errorf("release binary eviction failed to inspect directory %s", i.config.CacheDir)
+
 		return false
 	}
-
-	// TODO: We might want to consider if we need to do this longer term, in theory every hardlink should be automatically freed.
-	i.pruneExpiredHardLinks(links, linkPruningGracePeriod)
 
 	// delete the oldest file if necessary
 	evicted := false
 	for i.shouldEvict(totalSize) && files.Len() > 0 {
 		finfo, _ := files.Pop()
-		totalSize -= finfo.info.Size()
+
 		//remove the file
 		if err := i.evictFile(finfo.path); err != nil {
 			i.log.WithError(err).Errorf("failed to evict file %s", finfo.path)
 			continue
 		}
+
+		totalSize -= finfo.info.Size()
 		evicted = true
 	}
 	i.metricsAPI.InstallerCacheReleaseEvicted(evicted)
@@ -353,7 +336,13 @@ func (i *Installers) evict() bool {
 
 func (i *Installers) evictFile(filePath string) error {
 	i.log.Infof("evicting binary file %s due to storage pressure", filePath)
-	err := os.Remove(filePath)
+
+	err := cleanPageCache(filePath)
+	if err != nil {
+		i.log.WithError(err).Warnf("failed to clean page cache for %s", filePath)
+	}
+
+	err = os.Remove(filePath)
 	if err != nil {
 		return err
 	}
@@ -370,18 +359,71 @@ func (i *Installers) evictFile(filePath string) error {
 	return nil
 }
 
-// pruneExpiredHardLinks removes any hardlinks that have been around for too long
-// the grace period is used to determine which links should be removed.
-func (i *Installers) pruneExpiredHardLinks(links []*fileInfo, gracePeriod time.Duration) {
-	for idx := 0; idx < len(links); idx++ {
-		finfo := links[idx]
-		graceTime := time.Now().Add(-1 * gracePeriod)
-		grace := graceTime.Unix()
-		if finfo.info.ModTime().Unix() < grace {
-			i.log.Infof("attempting to prune hard link %s", finfo.path)
-			if err := os.Remove(finfo.path); err != nil {
-				i.log.WithError(err).Errorf("failed to prune hard link %s", finfo.path)
-			}
+func cleanHardLink(path string) error {
+	var ret error
+
+	// Ensure page cache is removed for the file
+	if err := cleanPageCacheForHardLink(path); err != nil {
+		ret = errors.Join(ret, fmt.Errorf("failed to clean page cache: %w", err))
+	}
+
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		ret = errors.Join(ret, fmt.Errorf("failed to remove binary: %w", err))
+	}
+
+	return ret
+}
+
+func cleanPageCacheForHardLink(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		switch {
+		case os.IsNotExist(err):
+			return nil
+		default:
+			return fmt.Errorf("failed to open file %s: %w", path, err)
 		}
 	}
+
+	defer f.Close()
+
+	info, err := f.Stat()
+	if err != nil {
+		return fmt.Errorf("failed to stat file %s: %w", path, err)
+	}
+
+	stat, ok := info.Sys().(*syscall.Stat_t)
+	// If we can't determine the hardlink status, run fadvise to be safe
+	// If there are more than 2 links, we don't need to run fadvise, as the file is still in use
+	if ok && stat != nil && stat.Nlink > 2 {
+		return nil
+	}
+
+	err = cleanPageCache(path)
+	if err != nil {
+		return fmt.Errorf("failed to clean page cache: %w", err)
+	}
+
+	return nil
+}
+
+func cleanPageCache(path string) error {
+	f, err := os.Open(path)
+	if err != nil {
+		switch {
+		case os.IsNotExist(err):
+			return nil
+		default:
+			return fmt.Errorf("failed to open file %s: %w", path, err)
+		}
+	}
+
+	defer f.Close()
+
+	err = unix.Fadvise(int(f.Fd()), 0, 0, unix.FADV_DONTNEED)
+	if err != nil {
+		return fmt.Errorf("fadvise failed: %w", err)
+	}
+
+	return nil
 }

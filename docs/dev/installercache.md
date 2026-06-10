@@ -25,6 +25,8 @@ This setting is used by the installercache to decide if there is enough space to
 This will accept a capacity, followed by either "GiB", "MiB", "KiB", "GB", "MB", "KB" or "B"
 For example "1GiB"
 
+Any existing content will be deleted when the service starts.
+
 ### INSTALLER_CACHE_RELEASE_FETCH_RETRY_INTERVAL
 
 If the cache finds itself unable to write a release (as indicated by `INSTALLER_CACHE_MAX_RELEASE_SIZE`) to the cache without breaking the cache limit

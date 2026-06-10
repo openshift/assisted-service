@@ -2,12 +2,9 @@ package installercache
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -52,6 +49,9 @@ var _ = Describe("release event", func() {
 			releaseID:       releaseID,
 			cached:          false,
 			extractDuration: 19.5,
+			cleanup: func() error {
+				return nil
+			},
 		}
 		eventsHandler.EXPECT().V2AddMetricsEvent(
 			ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, metricEventInstallerCacheRelease, gomock.Any(),
@@ -99,8 +99,6 @@ var _ = Describe("installer cache", func() {
 		var err error
 		cacheDir, err = os.MkdirTemp("/tmp", "cacheDir")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(os.Mkdir(filepath.Join(cacheDir, "quay.io"), 0755)).To(Succeed())
-		Expect(os.Mkdir(filepath.Join(filepath.Join(cacheDir, "quay.io"), "release-dev"), 0755)).To(Succeed())
 		manager, err = New(getInstallerCacheConfig(12, 5), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 		ctx = context.TODO()
@@ -405,51 +403,18 @@ var _ = Describe("installer cache", func() {
 		Expect(getUsedBytesForDirectory(manager.config.CacheDir)).To(BeNumerically("<=", manager.config.MaxCapacity))
 	})
 
-	It("should remove expired links while leaving non expired links intact", func() {
+	It("should reset the cache directory contents on construction", func() {
+		cacheConfig := getInstallerCacheConfig(10, 5)
 
-		numberOfLinks := 10
-		numberOfExpiredLinks := 5
-		directory, err := os.MkdirTemp("", "testPruneExpiredHardLinks")
+		Expect(os.MkdirAll(cacheConfig.CacheDir, 0755)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(cacheConfig.CacheDir, "test.txt"), []byte("test"), 0600)).To(Succeed())
+
+		_, err := New(cacheConfig, eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).ToNot(HaveOccurred())
 
-		defer os.RemoveAll(directory)
-
-		for i := 0; i < numberOfLinks; i++ {
-			var someFile *os.File
-			someFile, err = os.CreateTemp(directory, "somefile")
-			Expect(err).ToNot(HaveOccurred())
-			linkPath := filepath.Join(directory, fmt.Sprintf("ln_%s", uuid.NewString()))
-			err = os.Link(someFile.Name(), linkPath)
-			Expect(err).ToNot(HaveOccurred())
-			if i > numberOfExpiredLinks-1 {
-				err = os.Chtimes(linkPath, time.Now().Add(-10*time.Minute), time.Now().Add(-10*time.Minute))
-				Expect(err).ToNot(HaveOccurred())
-			}
-		}
-
-		links := make([]*fileInfo, 0)
-		err = filepath.Walk(directory, func(path string, info fs.FileInfo, err error) error {
-			if strings.HasPrefix(info.Name(), "ln_") {
-				links = append(links, &fileInfo{path, info})
-			}
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(links)).To(Equal(10))
-
-		manager.pruneExpiredHardLinks(links, linkPruningGracePeriod)
-
-		linkCount := 0
-		err = filepath.Walk(directory, func(path string, info fs.FileInfo, err error) error {
-			if strings.HasPrefix(info.Name(), "ln_") {
-				linkCount++
-			}
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(linkCount).To(Equal(numberOfLinks - numberOfExpiredLinks))
+		_, err = os.Stat(filepath.Join(cacheConfig.CacheDir, "test.txt"))
+		Expect(os.IsNotExist(err)).To(BeTrue())
 	})
-
 })
 
 var _ = Describe("Size.Decode", func() {
