@@ -48,6 +48,7 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	type fencingCredentialsFile struct {
 		Credentials []struct {
 			Hostname                string  `yaml:"hostname"`
+			MACAddress              string  `yaml:"macaddress"`
 			Address                 *string `yaml:"address"`
 			Username                *string `yaml:"username"`
 			Password                *string `yaml:"password"`
@@ -63,17 +64,24 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	credentialsMap := make(map[string]*models.FencingCredentialsParams)
 
 	for _, cred := range fcFile.Credentials {
-		if cred.Hostname == "" {
-			log.Warn("Skipping fencing credential with empty hostname")
+		if cred.Hostname == "" && cred.MACAddress == "" {
+			log.Warn("Skipping fencing credential with empty hostname and MAC address")
 			continue
 		}
-		credentialsMap[cred.Hostname] = &models.FencingCredentialsParams{
+		var key string
+		if cred.Hostname != "" {
+			key = cred.Hostname
+		} else {
+			key = cred.MACAddress
+		}
+
+		credentialsMap[key] = &models.FencingCredentialsParams{
 			Address:                 cred.Address,
 			Username:                cred.Username,
 			Password:                cred.Password,
 			CertificateVerification: cred.CertificateVerification,
 		}
-		log.Infof("Loaded fencing credential for hostname: %s", cred.Hostname)
+		log.Infof("Loaded fencing credential for key: %s", key)
 	}
 
 	log.Infof("Loaded %d fencing credentials from file", len(credentialsMap))
@@ -438,8 +446,8 @@ func (hc hostConfig) Role() (*string, error) {
 }
 
 func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, error) {
-	// Only hostname-based configs have fencing credentials
-	if hc.hostname == "" {
+	// Only hostname-based or MAC based configs have fencing credentials
+	if hc.hostname == "" && len(hc.macAddresses) == 0 {
 		return nil, nil
 	}
 
@@ -451,7 +459,17 @@ func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, err
 		return nil, nil
 	}
 
-	return creds[hc.hostname], nil
+	// lookup by hostname if present
+	if hc.hostname != "" {
+		return creds[hc.hostname], nil
+	}
+	// otherwise by MAC address
+	for _, macAddress := range hc.macAddresses {
+		if _, ok := creds[macAddress]; ok {
+			return creds[macAddress], nil
+		}
+	}
+	return nil, nil
 }
 
 type HostConfigs []*hostConfig
