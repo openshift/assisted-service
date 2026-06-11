@@ -266,7 +266,7 @@ var _ = Describe("Infra_Env", func() {
 				IgnitionConfigOverride: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 				SSHAuthorizedKey:       swag.String(newSshKey),
 				Proxy:                  &models.Proxy{HTTPProxy: swag.String("http://proxy.proxy"), HTTPSProxy: nil, NoProxy: swag.String("proxy.proxy")},
-				OpenshiftVersion:       swag.String("4.16"),
+				OpenshiftVersion:       swag.String(common.TestVersion().Version()),
 			},
 		}
 
@@ -278,7 +278,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(swag.StringValue(updateInfraEnv.Proxy.HTTPSProxy)).To(BeEmpty())
 		Expect(swag.StringValue(updateInfraEnv.Proxy.NoProxy)).To(Equal("proxy.proxy"))
 		Expect(common.ImageTypeValue(updateInfraEnv.Type)).To(Equal(models.ImageTypeMinimalIso))
-		Expect(updateInfraEnv.OpenshiftVersion).To(Equal("4.16"))
+		Expect(updateInfraEnv.OpenshiftVersion).To(Equal(common.TestVersion().Version()))
 	})
 
 	It("download minimal-iso image success", func() {
@@ -315,7 +315,7 @@ var _ = Describe("Infra_Env", func() {
 		Expect(s.Size()).ShouldNot(Equal(0))
 	})
 
-	DescribeTable("download infra-env files static network config file", func(ocpVersion string) {
+	downloadStaticNetworkConfigTest := func(ocpVersion string) {
 		By("Patching the infra env with a static network config")
 		netYaml := `interfaces:
 - ipv4:
@@ -359,10 +359,23 @@ var _ = Describe("Infra_Env", func() {
 			Expect(contents).To(ContainSubstring("192.0.2.1/24"))
 		}
 		Expect(contents).To(ContainSubstring("eth0"))
-	},
-		Entry("ocp versions greater than/ equal to MinimalVersionForNmstatectl", common.MinimalVersionForNmstatectl),
-		Entry("ocp versions less than MinimalVersionForNmstatectl", "4.13"),
-	)
+	}
+
+	It("download static network config - ocp version >= MinimalVersionForNmstatectl", func() {
+		version, ok := common.TestVersion().GreaterThanOrEqual(common.MinimalVersionForNmstatectl).TryVersion()
+		if !ok {
+			Skip("no available version >= " + common.MinimalVersionForNmstatectl)
+		}
+		downloadStaticNetworkConfigTest(version)
+	})
+
+	It("download static network config - ocp version < MinimalVersionForNmstatectl", func() {
+		version, ok := common.TestVersion().LessThan(common.MinimalVersionForNmstatectl).TryVersion()
+		if !ok {
+			Skip("no available version below " + common.MinimalVersionForNmstatectl)
+		}
+		downloadStaticNetworkConfigTest(version)
+	})
 
 	It("download infra-env files invalid filename option", func() {
 		file, err := os.CreateTemp("", "tmp")
