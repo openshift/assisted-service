@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
-	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -95,7 +95,7 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 
 	Context("when IRI resource was found", func() {
 		It("add IRI mirrors to bootstrap.ign/registries.conf", func() {
-			iriPatcher.iri = &mcfgv1alpha1.InternalReleaseImage{}
+			iriPatcher.iri = &mcfgv1.InternalReleaseImage{}
 			bootstrapIgnition := iriBootstrapIgnition()
 
 			err := iriPatcher.UpdateBootstrap(bootstrapIgnition)

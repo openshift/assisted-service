@@ -12,7 +12,7 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
 	configv1 "github.com/openshift/api/config/v1"
-	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
+	mcfgv1 "github.com/openshift/api/machineconfiguration/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
@@ -49,7 +49,7 @@ type internalReleaseImagePatcher struct {
 	s3Client          s3wrapper.API
 	manifestApi       manifestsapi.ManifestsAPI
 	iriRegistryDomain string
-	iri               *mcfgv1alpha1.InternalReleaseImage
+	iri               *mcfgv1.InternalReleaseImage
 }
 
 // NewInternalReleaseImagePatcher creates a new internalReleaseImagePatcher instance.
@@ -153,7 +153,7 @@ func (i *internalReleaseImagePatcher) getInternalReleaseImageManifest(ctx contex
 		if err != nil {
 			return err
 		}
-		obj := &mcfgv1alpha1.InternalReleaseImage{}
+		obj := &mcfgv1.InternalReleaseImage{}
 		err = yaml.Unmarshal(content, obj)
 		if err != nil {
 			i.log.Debugf("Cannot decode manifest %s, skipping", f.Path)
