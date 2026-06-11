@@ -6592,6 +6592,20 @@ definitions:
       tpm_version:
         type: string
         enum: ['none', '1.2', '2.0']
+      truncation:
+        type: object
+        required:
+          - type
+        properties:
+          type:
+            type: string
+            enum: ['partial', 'full']
+            x-nullable: false
+          reasons:
+            type: array
+            description: Reasons for the truncation
+            items:
+              type: string
 
   free_network_addresses:
     type: object
@@ -6986,6 +7000,8 @@ definitions:
       - 'connected'
       - 'media-connected'
       - 'has-inventory'
+      - 'inventory-not-partially-truncated'
+      - 'inventory-not-fully-truncated'
       - 'has-min-cpu-cores'
       - 'has-min-valid-disks'
       - 'has-min-memory'

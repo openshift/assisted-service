@@ -74,7 +74,7 @@ For cluster level validations, these are:
 
 For host level validations, these are: 
 ```
-"connected", "has-inventory", "machine-cidr-defined", "hostname-unique", "hostname-valid"
+"connected", "has-inventory", "inventory-not-fully-truncated", "machine-cidr-defined", "hostname-unique", "hostname-valid"
 ```
 
 ### The implementation of ignored-validations

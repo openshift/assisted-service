@@ -421,7 +421,7 @@ $ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io my-cluster 
 
 Note that certain mandatory validations cannot be ignored. For cluster validations these are:
 `api-vips-defined`, `ingress-vips-defined`, `all-hosts-are-ready-to-install`, `sufficient-masters-count`, `pull-secret-set`.
-For host validations: `connected`, `has-inventory`, `machine-cidr-defined`, `hostname-unique`, `hostname-valid`.
+For host validations: `connected`, `has-inventory`, `inventory-not-fully-truncated`, `machine-cidr-defined`, `hostname-unique`, `hostname-valid`.
 
 #### Annotation format and database representation
 
