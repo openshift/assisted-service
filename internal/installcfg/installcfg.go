@@ -198,6 +198,14 @@ type MachineNetwork struct {
 	Cidr string `json:"cidr"`
 }
 
+type IPv4OVNKConfig struct {
+	InternalJoinSubnet string `json:"internalJoinSubnet,omitempty"`
+}
+
+type OVNKConfig struct {
+	IPv4 *IPv4OVNKConfig `json:"ipv4,omitempty"`
+}
+
 type Capabilities struct {
 	BaselineCapabilitySet         configv1.ClusterVersionCapabilitySet `json:"baselineCapabilitySet,omitempty"`
 	AdditionalEnabledCapabilities []configv1.ClusterVersionCapability  `json:"additionalEnabledCapabilities,omitempty"`
@@ -244,10 +252,11 @@ type InstallerConfigBaremetal struct {
 	BaseDomain string `json:"baseDomain"`
 	Proxy      *Proxy `json:"proxy,omitempty"`
 	Networking struct {
-		NetworkType    string           `json:"networkType"`
-		ClusterNetwork []ClusterNetwork `json:"clusterNetwork"`
-		MachineNetwork []MachineNetwork `json:"machineNetwork,omitempty"`
-		ServiceNetwork []string         `json:"serviceNetwork"`
+		NetworkType         string           `json:"networkType"`
+		ClusterNetwork      []ClusterNetwork `json:"clusterNetwork"`
+		MachineNetwork      []MachineNetwork `json:"machineNetwork,omitempty"`
+		ServiceNetwork      []string         `json:"serviceNetwork"`
+		OVNKubernetesConfig *OVNKConfig      `json:"ovnKubernetesConfig,omitempty"`
 	} `json:"networking"`
 	Metadata struct {
 		Name string `json:"name"`
