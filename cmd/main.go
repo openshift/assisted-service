@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -160,6 +161,8 @@ var Options struct {
 	MaxIdleConns                         int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
 	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
+	DBLogSlowQueries                     bool          `envconfig:"DB_LOG_SLOW_QUERIES" default:"false"`
+	DBSlowQueryThreshold                 time.Duration `envconfig:"DB_SLOW_QUERY_THRESHOLD" default:"200ms"`
 	FileSystemUsageThreshold             int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableNotificationStreaming          bool          `envconfig:"ENABLE_EVENT_STREAMING" default:"false"`
 	WorkDir                              string        `envconfig:"WORK_DIR" default:"/data/"`
@@ -801,6 +804,21 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 	}
 }
 
+func newGormLogger(fieldLog logrus.FieldLogger) logger.Interface {
+	if !Options.DBLogSlowQueries {
+		return logger.Default.LogMode(logger.Silent)
+	}
+	fieldLog.WithField("slow_threshold", Options.DBSlowQueryThreshold).Info("GORM slow query logging enabled")
+	return logger.New(
+		log.New(os.Stdout, "\r\n", log.LstdFlags),
+		logger.Config{
+			SlowThreshold:             Options.DBSlowQueryThreshold,
+			LogLevel:                  logger.Warn,
+			IgnoreRecordNotFoundError: true,
+		},
+	)
+}
+
 func setupDB(log logrus.FieldLogger) *gorm.DB {
 	dbConnectionStr, validationErr := Options.DBConfig.LibpqDSN()
 	if validationErr != nil {
@@ -816,7 +834,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	wait.UntilWithContext(ctx, func(ctx context.Context) {
 		db, err = gorm.Open(postgres.Open(dbConnectionStr), &gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger:                                   logger.Default.LogMode(logger.Silent),
+			Logger:                                   newGormLogger(log),
 		})
 		if err != nil {
 			log.WithError(err).Info("Failed to connect to DB, retrying")
