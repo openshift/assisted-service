@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
@@ -64,6 +63,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	paramctx "github.com/openshift/assisted-service/pkg/context"
 	dbPkg "github.com/openshift/assisted-service/pkg/db"
+	"github.com/openshift/assisted-service/pkg/db/slowquery"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -82,7 +82,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-	"gorm.io/gorm/logger"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/selection"
@@ -162,7 +161,9 @@ var Options struct {
 	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
 	DBLogSlowQueries                     bool          `envconfig:"DB_LOG_SLOW_QUERIES" default:"false"`
+	DBSlowQueryScopes                    string        `envconfig:"DB_SLOW_QUERY_SCOPES" default:""`
 	DBSlowQueryThreshold                 time.Duration `envconfig:"DB_SLOW_QUERY_THRESHOLD" default:"200ms"`
+	DBSlowQueryHTTPRoutes                string        `envconfig:"DB_SLOW_QUERY_HTTP_ROUTES" default:""`
 	FileSystemUsageThreshold             int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableNotificationStreaming          bool          `envconfig:"ENABLE_EVENT_STREAMING" default:"false"`
 	WorkDir                              string        `envconfig:"WORK_DIR" default:"/data/"`
@@ -449,8 +450,22 @@ func main() {
 	log.Println(fmt.Sprintf("Started service with OS Images %v, Release Images %v, Release Sources %v, Ignored OpenShift Versions %v",
 		Options.OsImages, Options.ReleaseImages, Options.ReleaseSourcesConfig.ReleaseSources, Options.IgnoredOpenshiftVersions))
 
+	slowQueryConfig := slowquery.NewConfig(
+		Options.DBSlowQueryScopes,
+		Options.DBLogSlowQueries,
+		Options.DBSlowQueryThreshold,
+		Options.DBSlowQueryHTTPRoutes,
+	)
+	if slowQueryConfig.Enabled() {
+		log.WithFields(logrus.Fields{
+			"scopes":         Options.DBSlowQueryScopes,
+			"slow_threshold": Options.DBSlowQueryThreshold,
+			"http_routes":    Options.DBSlowQueryHTTPRoutes,
+		}).Info("GORM scoped slow query logging enabled")
+	}
+
 	// Connect to db
-	db := setupDB(log)
+	db := setupDB(log, slowQueryConfig)
 	defer common.CloseDB(db)
 
 	ctrlMgr, err := createControllerManager()
@@ -729,6 +744,7 @@ func main() {
 		return func(h http.Handler) http.Handler {
 			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
 
+			wrapped = slowquery.Middleware(slowQueryConfig)(wrapped)
 			wrapped = paramctx.ContextHandler()(wrapped)
 			return wrapped
 		}
@@ -804,22 +820,7 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 	}
 }
 
-func newGormLogger(fieldLog logrus.FieldLogger) logger.Interface {
-	if !Options.DBLogSlowQueries {
-		return logger.Default.LogMode(logger.Silent)
-	}
-	fieldLog.WithField("slow_threshold", Options.DBSlowQueryThreshold).Info("GORM slow query logging enabled")
-	return logger.New(
-		log.New(os.Stdout, "\r\n", log.LstdFlags),
-		logger.Config{
-			SlowThreshold:             Options.DBSlowQueryThreshold,
-			LogLevel:                  logger.Warn,
-			IgnoreRecordNotFoundError: true,
-		},
-	)
-}
-
-func setupDB(log logrus.FieldLogger) *gorm.DB {
+func setupDB(log logrus.FieldLogger, slowQueryConfig slowquery.Config) *gorm.DB {
 	dbConnectionStr, validationErr := Options.DBConfig.LibpqDSN()
 	if validationErr != nil {
 		log.WithError(validationErr).Fatal("Invalid DB connection config")
@@ -834,7 +835,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 	wait.UntilWithContext(ctx, func(ctx context.Context) {
 		db, err = gorm.Open(postgres.Open(dbConnectionStr), &gorm.Config{
 			DisableForeignKeyConstraintWhenMigrating: true,
-			Logger:                                   newGormLogger(log),
+			Logger:                                   slowquery.NewLogger(slowQueryConfig, os.Stdout),
 		})
 		if err != nil {
 			log.WithError(err).Info("Failed to connect to DB, retrying")
