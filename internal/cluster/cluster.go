@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/db/slowquery"
 	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -624,6 +625,9 @@ func (m *Manager) ClusterMonitoring() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
 	}
+	slowquery.SetGoroutineScope(slowquery.ScopeClusterMonitor, "")
+	defer slowquery.ClearGoroutineScope()
+
 	m.log.Debugf("Running ClusterMonitoring")
 	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 
@@ -700,7 +704,7 @@ type monitoringCycle struct {
 // initMonitoringCycle sets up the context, logging, deadlines, and query for a monitoring cycle
 func (m *Manager) initMonitoringCycle() *monitoringCycle {
 	requestID := requestid.NewID()
-	baseCtx := requestid.ToContext(context.Background(), requestID)
+	baseCtx := slowquery.WithScope(requestid.ToContext(context.Background(), requestID), slowquery.ScopeClusterMonitor)
 	log := requestid.RequestIDLogger(m.log, requestID)
 
 	startTime := time.Now()
