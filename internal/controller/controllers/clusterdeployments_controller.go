@@ -264,6 +264,17 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
 
+	if err = r.syncManifestConfigMapUsage(ctx, log, clusterInstall, cluster); err != nil {
+		log.WithError(err).Error("failed to sync manifest ConfigMap usage")
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
+	}
+
+	return r.reconcileExistingCluster(ctx, log, clusterDeployment, clusterInstall, cluster)
+}
+
+func (r *ClusterDeploymentsReconciler) reconcileExistingCluster(ctx context.Context, log logrus.FieldLogger,
+	clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
+
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		return r.handleClusterInstalled(ctx, log, cluster, clusterInstall, clusterDeployment)
@@ -271,9 +282,9 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 	// Create Kubeconfig no-ingress if needed
 	if *cluster.Status == models.ClusterStatusInstalling || *cluster.Status == models.ClusterStatusFinalizing {
-		if err1 := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err1 != nil {
-			log.WithError(err1).Error("failed to create kubeconfig no-ingress secret")
-			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err1)
+		if err := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err != nil {
+			log.WithError(err).Error("failed to create kubeconfig no-ingress secret")
+			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 		}
 	}
 
@@ -1428,6 +1439,10 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 	return configuredManifests, nil
 }
 
+// getManifestConfigMap fetches a single ConfigMap by name. Called in a loop but reads from the
+// informer cache (ConfigMap watch registered in SetupWithManager), so no API-server round-trips.
+// TODO: label manifest ConfigMaps and replace per-name Gets with a single List call.
+// Note: pre-existing ConfigMaps will need labels backfilled (e.g. via reconcile-time migration).
 func (r *ClusterDeploymentsReconciler) getManifestConfigMap(ctx context.Context, log logrus.FieldLogger,
 	clusterInstall *hiveext.AgentClusterInstall, configMapName string) (*corev1.ConfigMap, error) {
 	configMap := &corev1.ConfigMap{}
@@ -1444,6 +1459,50 @@ func (r *ClusterDeploymentsReconciler) getManifestConfigMap(ctx context.Context,
 		return nil, err
 	}
 	return configMap, nil
+}
+
+func getManifestConfigMapNames(clusterInstall *hiveext.AgentClusterInstall) []string {
+	if clusterInstall.Spec.ManifestsConfigMapRefs != nil {
+		names := make([]string, 0, len(clusterInstall.Spec.ManifestsConfigMapRefs))
+		for _, ref := range clusterInstall.Spec.ManifestsConfigMapRefs {
+			names = append(names, ref.Name)
+		}
+		return names
+	}
+	if clusterInstall.Spec.ManifestsConfigMapRef != nil {
+		return []string{clusterInstall.Spec.ManifestsConfigMapRef.Name}
+	}
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) syncManifestConfigMapUsage(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
+
+	if r.Manifests == nil || cluster.ID == nil {
+		return nil
+	}
+
+	configMapNames := getManifestConfigMapNames(clusterInstall)
+	if len(configMapNames) == 0 {
+		return r.Manifests.SetCustomManifestUsage(ctx, *cluster.ID, false)
+	}
+
+	hasData := false
+	for _, name := range configMapNames {
+		cm, err := r.getManifestConfigMap(ctx, log, clusterInstall, name)
+		if err != nil {
+			if k8serrors.IsNotFound(err) {
+				continue
+			}
+			return err
+		}
+		if len(cm.Data) > 0 {
+			hasData = true
+			break
+		}
+	}
+
+	return r.Manifests.SetCustomManifestUsage(ctx, *cluster.ID, hasData)
 }
 
 func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, log logrus.FieldLogger,
@@ -1957,8 +2016,47 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&aiv1beta1.Agent{},
 			handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment),
 			agentSpecStatusChangedPredicate).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToClusterDeployment)).
 		WatchesRawSource(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
+}
+
+func (r *ClusterDeploymentsReconciler) mapConfigMapToClusterDeployment(ctx context.Context, obj client.Object) []reconcile.Request {
+	log := logutil.FromContext(ctx, r.Log).WithFields(logrus.Fields{
+		"configmap":           obj.GetName(),
+		"configmap_namespace": obj.GetNamespace(),
+	})
+
+	aciList := &hiveext.AgentClusterInstallList{}
+	if err := r.List(ctx, aciList, client.InNamespace(obj.GetNamespace())); err != nil {
+		log.WithError(err).Error("failed to list AgentClusterInstalls for ConfigMap mapper")
+		return []reconcile.Request{}
+	}
+
+	var requests []reconcile.Request
+	for i := range aciList.Items {
+		aci := &aciList.Items[i]
+		if matchesManifestConfigMap(aci, obj.GetName()) {
+			log.Debugf("ConfigMap %s matches ACI %s, enqueueing ClusterDeployment %s",
+				obj.GetName(), aci.Name, aci.Spec.ClusterDeploymentRef.Name)
+			requests = append(requests, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: aci.Namespace,
+					Name:      aci.Spec.ClusterDeploymentRef.Name,
+				},
+			})
+		}
+	}
+	return requests
+}
+
+func matchesManifestConfigMap(aci *hiveext.AgentClusterInstall, configMapName string) bool {
+	for _, name := range getManifestConfigMapNames(aci) {
+		if name == configMapName {
+			return true
+		}
+	}
+	return false
 }
 
 // updateStatus is updating all the AgentClusterInstall Conditions.

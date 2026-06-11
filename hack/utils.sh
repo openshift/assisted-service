@@ -37,10 +37,10 @@ function select_podman_client() {
   if [ "$(get_container_runtime_command)" = "podman-remote" ]; then
     if podman-remote4 info 2>&1 | grep "server API version is too old" &> /dev/null; then
       echo "using podman-remote version 3"
-      ln $(which podman-remote3) /tools/podman-remote
+      ln "$(command -v podman-remote3)" /tools/podman-remote
     else
       echo "using podman-remote version 4"
-      ln $(which podman-remote4) /tools/podman-remote
+      ln "$(command -v podman-remote4)" /tools/podman-remote
     fi
   fi
 }

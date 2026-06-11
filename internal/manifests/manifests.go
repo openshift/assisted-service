@@ -99,6 +99,12 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
+	if isCustomManifest {
+		if usageErr := m.setUsage(true, params.ClusterID); usageErr != nil {
+			log.Errorf("Failed to set feature usage '%s': %v", usage.CustomManifest, usageErr)
+		}
+	}
+
 	log.Infof("Done creating manifest %s for cluster %s", path, params.ClusterID.String())
 	manifest := models.Manifest{FileName: fileName, Folder: folder, ManifestSource: manifestSource}
 	return &manifest, nil
@@ -214,6 +220,15 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 	err = m.deleteManifest(ctx, params.ClusterID, path)
 	if err != nil {
 		return err
+	}
+
+	manifests, listErr := m.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: params.ClusterID})
+	if listErr != nil {
+		log.Errorf("Failed to check remaining manifests after deletion: %v", listErr)
+	} else if len(manifests) == 0 {
+		if usageErr := m.setUsage(false, params.ClusterID); usageErr != nil {
+			log.Errorf("Failed to unset feature usage '%s': %v", usage.CustomManifest, usageErr)
+		}
 	}
 
 	log.Infof("Done deleting cluster manifest %s for cluster %s", path, params.ClusterID.String())
@@ -345,6 +360,10 @@ func (m *Manifests) setUsage(active bool, clusterID strfmt.UUID) error {
 		return nil
 	})
 	return err
+}
+
+func (m *Manifests) SetCustomManifestUsage(ctx context.Context, clusterID strfmt.UUID, active bool) error {
+	return m.setUsage(active, clusterID)
 }
 
 // GetManifestObjectName returns the manifest object name as stored in S3

@@ -513,6 +513,7 @@ var _ = Describe("cluster reconcile", func() {
 			VersionsHandler:               mockVersions,
 			MirrorRegistriesConfigBuilder: mockMirrorRegistries,
 		}
+		mockManifestsApi.EXPECT().SetCustomManifestUsage(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -2105,6 +2106,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Hosts = hosts
 			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).AnyTimes()
+			mockManifestsApi.EXPECT().SetCustomManifestUsage(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 		})
 
@@ -3421,6 +3423,123 @@ var _ = Describe("cluster reconcile", func() {
 		result, err := cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(result.Requeue).To(BeFalse())
+	})
+
+	Context("manifest ConfigMap usage sync", func() {
+		var (
+			sId            strfmt.UUID
+			cluster        *hivev1.ClusterDeployment
+			aci            *hiveext.AgentClusterInstall
+			backEndCluster *common.Cluster
+		)
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
+			Expect(c.Create(ctx, imageSet)).To(BeNil())
+			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			id := uuid.New()
+			sId = strfmt.UUID(id.String())
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+			backEndCluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:           swag.String(models.ClusterStatusInsufficient),
+					IngressVips:      []*models.IngressVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.IngressVIP)}},
+					APIVips:          []*models.APIVip{{ClusterID: sId, IP: models.IP(defaultAgentClusterInstallSpec.APIVIP)}},
+					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
+					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:   models.ClusterHyperthreadingAll,
+					Kind:             swag.String(models.ClusterKindCluster),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).AnyTimes()
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil).AnyTimes()
+			mockClusterApi.EXPECT().GetHostCountByRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(swag.Int64(0), nil).AnyTimes()
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil).AnyTimes()
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+		})
+
+		It("sets CustomManifest FeatureUsage when ConfigMap has data", func() {
+			configMapName := "cni-manifests"
+			aci.Spec.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{
+				{Name: configMapName},
+			}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      configMapName,
+				},
+				Data: map[string]string{"cilium.yaml": "apiVersion: v1\nkind: ConfigMap"},
+			}
+			Expect(c.Create(ctx, cm)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("unsets CustomManifest FeatureUsage when ConfigMap is missing", func() {
+			configMapName := "cni-manifests-gone"
+			aci.Spec.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{
+				{Name: configMapName},
+			}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("unsets CustomManifest FeatureUsage when no ConfigMap refs", func() {
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("sets FeatureUsage with deprecated ManifestsConfigMapRef", func() {
+			configMapName := "legacy-cni-manifests"
+			aci.Spec.ManifestsConfigMapRef = &corev1.LocalObjectReference{Name: configMapName}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+
+			cm := &corev1.ConfigMap{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: testNamespace,
+					Name:      configMapName,
+				},
+				Data: map[string]string{"calico.yaml": "apiVersion: v1\nkind: Namespace"},
+			}
+			Expect(c.Create(ctx, cm)).To(BeNil())
+
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
 	})
 
 	Context("cluster update", func() {
@@ -5544,5 +5663,126 @@ var _ = Describe("day2 cluster", func() {
 		result, err = cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
+	})
+})
+
+var _ = Describe("mapConfigMapToClusterDeployment", func() {
+	var (
+		c                    client.Client
+		cr                   *ClusterDeploymentsReconciler
+		ctx                  = context.Background()
+		mockCtrl             *gomock.Controller
+		mockCRDEventsHandler *MockCRDEventsHandler
+	)
+
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+			WithStatusSubresource(&hiveext.AgentClusterInstall{}).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
+		cr = &ClusterDeploymentsReconciler{
+			Client:           c,
+			APIReader:        c,
+			Scheme:           scheme.Scheme,
+			Log:              common.GetTestLog(),
+			CRDEventsHandler: mockCRDEventsHandler,
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	It("enqueues ClusterDeployment when ConfigMap matches ManifestsConfigMapRefs", func() {
+		clusterName := "test-cd"
+		aciName := "test-aci"
+		cmName := "cni-manifests"
+
+		cd := newClusterDeployment(clusterName, testNamespace, getDefaultClusterDeploymentSpec(clusterName, aciName, "pull-secret"))
+		Expect(c.Create(ctx, cd)).ShouldNot(HaveOccurred())
+
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterName)
+		aciSpec.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{{Name: cmName}}
+		aci := newAgentClusterInstall(aciName, testNamespace, aciSpec, cd)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: testNamespace,
+			},
+		}
+
+		requests := cr.mapConfigMapToClusterDeployment(ctx, cm)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal(clusterName))
+		Expect(requests[0].Namespace).To(Equal(testNamespace))
+	})
+
+	It("returns empty when ConfigMap does not match any ACI", func() {
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "unrelated-configmap",
+				Namespace: testNamespace,
+			},
+		}
+
+		requests := cr.mapConfigMapToClusterDeployment(ctx, cm)
+		Expect(requests).To(BeEmpty())
+	})
+
+	It("enqueues ClusterDeployment when ConfigMap matches deprecated ManifestsConfigMapRef", func() {
+		clusterName := "test-cd-legacy"
+		aciName := "test-aci-legacy"
+		cmName := "legacy-cni"
+
+		cd := newClusterDeployment(clusterName, testNamespace, getDefaultClusterDeploymentSpec(clusterName, aciName, "pull-secret"))
+		Expect(c.Create(ctx, cd)).ShouldNot(HaveOccurred())
+
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterName)
+		aciSpec.ManifestsConfigMapRef = &corev1.LocalObjectReference{Name: cmName}
+		aci := newAgentClusterInstall(aciName, testNamespace, aciSpec, cd)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: testNamespace,
+			},
+		}
+
+		requests := cr.mapConfigMapToClusterDeployment(ctx, cm)
+		Expect(requests).To(HaveLen(1))
+		Expect(requests[0].Name).To(Equal(clusterName))
+	})
+
+	It("enqueues multiple ClusterDeployments when ConfigMap is shared", func() {
+		cmName := "shared-cni"
+
+		cd1 := newClusterDeployment("cd-1", testNamespace, getDefaultClusterDeploymentSpec("cd-1", "aci-1", "pull-secret"))
+		Expect(c.Create(ctx, cd1)).ShouldNot(HaveOccurred())
+		aciSpec1 := getDefaultAgentClusterInstallSpec("cd-1")
+		aciSpec1.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{{Name: cmName}}
+		aci1 := newAgentClusterInstall("aci-1", testNamespace, aciSpec1, cd1)
+		Expect(c.Create(ctx, aci1)).ShouldNot(HaveOccurred())
+
+		cd2 := newClusterDeployment("cd-2", testNamespace, getDefaultClusterDeploymentSpec("cd-2", "aci-2", "pull-secret"))
+		Expect(c.Create(ctx, cd2)).ShouldNot(HaveOccurred())
+		aciSpec2 := getDefaultAgentClusterInstallSpec("cd-2")
+		aciSpec2.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{{Name: cmName}}
+		aci2 := newAgentClusterInstall("aci-2", testNamespace, aciSpec2, cd2)
+		Expect(c.Create(ctx, aci2)).ShouldNot(HaveOccurred())
+
+		cm := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      cmName,
+				Namespace: testNamespace,
+			},
+		}
+
+		requests := cr.mapConfigMapToClusterDeployment(ctx, cm)
+		Expect(requests).To(HaveLen(2))
+		names := []string{requests[0].Name, requests[1].Name}
+		Expect(names).To(ContainElements("cd-1", "cd-2"))
 	})
 })

@@ -103,6 +103,20 @@ func (mr *MockManifestsAPIMockRecorder) ListClusterManifestsInternal(ctx, params
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListClusterManifestsInternal", reflect.TypeOf((*MockManifestsAPI)(nil).ListClusterManifestsInternal), ctx, params)
 }
 
+// SetCustomManifestUsage mocks base method.
+func (m *MockManifestsAPI) SetCustomManifestUsage(ctx context.Context, clusterID strfmt.UUID, active bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetCustomManifestUsage", ctx, clusterID, active)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetCustomManifestUsage indicates an expected call of SetCustomManifestUsage.
+func (mr *MockManifestsAPIMockRecorder) SetCustomManifestUsage(ctx, clusterID, active any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetCustomManifestUsage", reflect.TypeOf((*MockManifestsAPI)(nil).SetCustomManifestUsage), ctx, clusterID, active)
+}
+
 // UpdateClusterManifestInternal mocks base method.
 func (m *MockManifestsAPI) UpdateClusterManifestInternal(ctx context.Context, params manifests.V2UpdateClusterManifestParams) (*models.Manifest, error) {
 	m.ctrl.T.Helper()
