@@ -155,15 +155,13 @@ var _ = Describe("Operators endpoint tests", func() {
 			serviceCIDR := "172.30.0.0/16"
 			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:     "example.com",
-					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
-					PullSecret:        swag.String(pullSecret),
-					SSHPublicKey:      utils_test.SshPublicKey,
-					VipDhcpAllocation: swag.Bool(true),
-					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     utils_test.SshPublicKey,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -222,7 +220,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 			By("add hosts with a minimal worker (cnv operator is not enabled)")
 			infraEnvID := registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, cluster.OpenshiftVersion).ID
-			hosts := registerHostsAndSetRolesDHCP(clusterID, *infraEnvID, 6, "test-cluster", "example.com")
+			hosts := registerHostsAndSetRoles(clusterID, *infraEnvID, 6, "test-cluster", "example.com")
 
 			worker := utils_test.TestContext.GetHostV2(*infraEnvID, *hosts[5].ID)
 			updateCpuCores(worker, 2)
@@ -291,22 +289,20 @@ var _ = Describe("Operators endpoint tests", func() {
 		}
 
 		It("LSO as ODF dependency on Z CPU architecture", func() {
-			// Register cluster with ppc64le CPU architecture
 			cluster := registerNewCluster(
-				"4.13.0",
+				common.TestVersion().ForArch("s390x").MultiVersion(),
 				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureS390x),
 				swag.Bool(false),
 			)
-			Expect(cluster.Payload.CPUArchitecture).To(Equal(models.ClusterCPUArchitectureS390x))
+			Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
 
-			// Register infra-env with ppc64le CPU architecture
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: common.TestVersion().ForArch("s390x").Version(),
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
@@ -364,11 +360,11 @@ var _ = Describe("Operators endpoint tests", func() {
 
 		It("LSO as ODF dependency on ARM arch", func() {
 			cluster := registerNewCluster(
-				"4.13-multi",
+				common.TestVersion().ForArch("arm64").MultiVersion(),
 				int64(common.MinMasterHostsNeededForInstallationInHaMode),
 				nil,
 				swag.String(models.ClusterCPUArchitectureArm64),
-				nil,
+				swag.Bool(false),
 			)
 			Expect(cluster.Payload.CPUArchitecture).To(Equal(common.MultiCPUArchitecture))
 			Expect(len(cluster.Payload.MonitoredOperators)).To(Equal(1))
@@ -376,7 +372,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			infraEnvParams := installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("infra-env-1"),
-					OpenshiftVersion: "4.13.0",
+					OpenshiftVersion: common.TestVersion().ForArch("arm64").Version(),
 					ClusterID:        cluster.Payload.ID,
 					PullSecret:       swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
@@ -391,7 +387,6 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(len(ops.GetPayload())).To(BeNumerically("==", 1))
 
-			// Update cluster with ODF operator
 			_, err = utils_test.TestContext.User2BMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
 				ClusterUpdateParams: &models.V2ClusterUpdateParams{
 					OlmOperators: []*models.OperatorCreateParams{
@@ -401,12 +396,12 @@ var _ = Describe("Operators endpoint tests", func() {
 				ClusterID: *cluster.Payload.ID,
 			})
 			reason := err.(*installer.V2UpdateClusterBadRequest).Payload.Reason
-			Expect(*reason).To(ContainSubstring("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version 4.13"))
+			Expect(*reason).To(ContainSubstring(fmt.Sprintf("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version %s", common.TestVersion().ForArch("arm64").Version())))
 		})
 
 		It("should lvm installed as cnv dependency", func() {
 			cluster := registerNewCluster(
-				"4.13.0",
+				common.TestVersion().GreaterThanOrEqual("4.12").Version(),
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -434,9 +429,10 @@ var _ = Describe("Operators endpoint tests", func() {
 			))
 		})
 
-		It("should lvm have right subscription name on 4.13", func() {
+		// LVM subscription name changed at 4.12: lvmo (<4.12) -> lvms (>=4.12)
+		It("should lvm have right subscription name on version >= 4.12", func() {
 			cluster := registerNewCluster(
-				"4.13.0",
+				common.TestVersion().GreaterThanOrEqual("4.12").Version(),
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
 				nil,
@@ -457,9 +453,13 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(operatorSubscriptionName).To(Equal(lvm.LvmsSubscriptionName))
 		})
 
-		It("should lvm have right subscription name on 4.11", func() {
+		It("should lvm have right subscription name on version < 4.12", func() {
+			version, ok := common.TestVersion().LessThan("4.12").TryVersion()
+			if !ok {
+				Skip("LVM old subscription name (lvmo) requires OCP < 4.12")
+			}
 			cluster := registerNewCluster(
-				"4.11",
+				version,
 				int64(1),
 				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
 				nil,
@@ -538,7 +538,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			utils_test.TestContext.V2ReportMonitoredOperatorStatus(ctx, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, "4.13")
+			utils_test.TestContext.V2ReportMonitoredOperatorStatus(ctx, *cluster.Payload.ID, odf.Operator.Name, models.OperatorStatusFailed, common.TestVersion().Version())
 
 			ops, err := utils_test.TestContext.AgentBMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
@@ -549,13 +549,13 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(operators).To(HaveLen(1))
 			Expect(operators[0].StatusInfo).To(BeEquivalentTo(string(models.OperatorStatusFailed)))
 			Expect(operators[0].Status).To(BeEquivalentTo(models.OperatorStatusFailed))
-			Expect(operators[0].Version).To(BeEquivalentTo("4.13"))
+			Expect(operators[0].Version).To(BeEquivalentTo(common.TestVersion().Version()))
 		})
 	})
 
 	Context("Installation", func() {
 		BeforeEach(func() {
-			cID, err := utils_test.TestContext.RegisterCluster(context.TODO(), utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+			cID, err := utils_test.TestContext.RegisterCluster(context.TODO(), utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 			clusterID = cID
 			infraEnvID := registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID

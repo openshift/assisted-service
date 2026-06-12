@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"os"
+	"regexp"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -11,6 +12,18 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/subsystem/utils_test"
 )
+
+var clusterImageSetVersionRe = regexp.MustCompile(`releaseImage:\s*\S+:(\d+\.\d+\.\d+)`)
+
+// versionFromClusterImageSet derives the expected version from the same YAML fixture used as input to RegisterCluster so test assertions stay in sync when the fixture is updated.
+func versionFromClusterImageSet() string {
+	clusterImageSetPath := "../docs/hive-integration/crds/clusterImageSet.yaml"
+	data, err := os.ReadFile(clusterImageSetPath)
+	Expect(err).NotTo(HaveOccurred())
+	match := clusterImageSetVersionRe.FindSubmatch(data)
+	Expect(match).NotTo(BeNil(), "no release image version found in %s", clusterImageSetPath)
+	return string(match[1])
+}
 
 // Note: utils_test.TestContext.UserBMClient is used because subsystems defaults to use "rhsso" as AUTH_TYPE.
 // The ephermeral installer environment will use the "none" AUTH_TYPE at the start, and
@@ -28,7 +41,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.16.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(versionFromClusterImageSet()))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
 
@@ -50,7 +63,7 @@ var _ = Describe("RegisterClusterAndInfraEnv", func() {
 		Expect(registerClusterErr).NotTo(HaveOccurred())
 		Expect(network.GetApiVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.8"))
 		Expect(network.GetIngressVipById(&common.Cluster{Cluster: *modelCluster}, 0)).To(Equal("1.2.3.9"))
-		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring("4.16.0"))
+		Expect(modelCluster.OpenshiftVersion).To(ContainSubstring(versionFromClusterImageSet()))
 		Expect(modelCluster.CPUArchitecture).To(Equal("x86_64"))
 		Expect(modelCluster.InstallConfigOverrides).To(Equal(`{"fips": true}`))
 		Expect(modelCluster.Name).To(Equal("test-cluster"))
