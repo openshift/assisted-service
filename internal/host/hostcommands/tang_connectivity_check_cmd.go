@@ -71,8 +71,7 @@ func (c *tangConnectivityCheckCmd) shouldRunTangConnectivityCheck(cluster common
 	// 1. DiskEncryption not set or not enabled.
 	// 2. DiskEncryption mode is not tang based.
 	// 3. DiskEncryption is not enabled, for the host role.
-	if cluster.DiskEncryption == nil ||
-		!diskencryption.IsEnabled(cluster.DiskEncryption.EnableOn) ||
+	if !diskencryption.IsConfigured(cluster.DiskEncryption) ||
 		swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTpmv2 ||
 		!diskencryption.EnabledForRole(*cluster.DiskEncryption, common.GetEffectiveRole(host)) {
 		c.log.Debugf("skipping tangConnectivityCheck for host %s, cluster DiskEncryption config does not require validation here",

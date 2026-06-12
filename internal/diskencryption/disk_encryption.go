@@ -15,6 +15,11 @@ func IsEnabled(enableOn *string) bool {
 	return v != "" && v != models.DiskEncryptionEnableOnNone
 }
 
+// IsConfigured reports whether disk encryption is enabled on the cluster.
+func IsConfigured(diskEncryption *models.DiskEncryption) bool {
+	return diskEncryption != nil && IsEnabled(diskEncryption.EnableOn)
+}
+
 // DiskEncryptionFieldDefaults returns enable_on and mode with defaults for nil or empty values.
 func DiskEncryptionFieldDefaults(enableOn, mode *string) (string, string) {
 	enableOnValue := swag.StringValue(enableOn)

@@ -15,6 +15,22 @@ func TestDiskEncryption(t *testing.T) {
 	RunSpecs(t, "Disk encryption tests")
 }
 
+var _ = Describe("IsConfigured", func() {
+	It("returns false when disk encryption is not configured", func() {
+		Expect(IsConfigured(nil)).To(BeFalse())
+		Expect(IsConfigured(&models.DiskEncryption{})).To(BeFalse())
+		Expect(IsConfigured(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+		})).To(BeFalse())
+	})
+
+	It("returns true when disk encryption is enabled", func() {
+		Expect(IsConfigured(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+		})).To(BeTrue())
+	})
+})
+
 var _ = Describe("IsEnabled", func() {
 	It("returns false for nil, empty, and none", func() {
 		Expect(IsEnabled(nil)).To(BeFalse())
