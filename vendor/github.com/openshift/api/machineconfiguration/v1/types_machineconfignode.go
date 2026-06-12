@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -10,13 +10,13 @@ import (
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=machineconfignodes,scope=Cluster
 // +kubebuilder:subresource:status
-// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2256
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/2255
 // +openshift:file-pattern=cvoRunLevel=0000_80,operatorName=machine-config,operatorOrdering=01
-// +openshift:enable:FeatureGate=MachineConfigNodes
 // +kubebuilder:printcolumn:name="PoolName",type="string",JSONPath=.spec.pool.name,priority=0
 // +kubebuilder:printcolumn:name="DesiredConfig",type="string",JSONPath=.spec.configVersion.desired,priority=0
 // +kubebuilder:printcolumn:name="CurrentConfig",type="string",JSONPath=.status.configVersion.current,priority=0
 // +kubebuilder:printcolumn:name="Updated",type="string",JSONPath=.status.conditions[?(@.type=="Updated")].status,priority=0
+// +kubebuilder:printcolumn:name="Age",type="date",JSONPath=".metadata.creationTimestamp",priority=0
 // +kubebuilder:printcolumn:name="UpdatePrepared",type="string",JSONPath=.status.conditions[?(@.type=="UpdatePrepared")].status,priority=1
 // +kubebuilder:printcolumn:name="UpdateExecuted",type="string",JSONPath=.status.conditions[?(@.type=="UpdateExecuted")].status,priority=1
 // +kubebuilder:printcolumn:name="UpdatePostActionComplete",type="string",JSONPath=.status.conditions[?(@.type=="UpdatePostActionComplete")].status,priority=1
@@ -30,8 +30,8 @@ import (
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 
 // MachineConfigNode describes the health of the Machines on the system
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == self.spec.node.name",message="spec.node.name should match metadata.name"
 type MachineConfigNode struct {
 	metav1.TypeMeta `json:",inline"`
@@ -53,8 +53,8 @@ type MachineConfigNode struct {
 
 // MachineConfigNodeList describes all of the MachinesStates on the system
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type MachineConfigNodeList struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -99,20 +99,23 @@ type MachineConfigNodeSpec struct {
 	// +required
 	ConfigVersion MachineConfigNodeSpecMachineConfigVersion `json:"configVersion"`
 
-	// pinnedImageSets is a user defined value that holds the names of the desired image sets that the node should pull and pin.
-	// +listType=map
-	// +listMapKey=name
-	// +kubebuilder:validation:MaxItems=100
+	// configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields
+	// When omitted, Image Mode is not be enabled and the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	// When specified, Image Mode is enabled and will attempt to update the node to use the desired image. Following this, the node will follow the standard update process of creating a rendered MachineConfig and updating to its specifications.
+	// +openshift:enable:FeatureGate=ImageModeStatusReporting
 	// +optional
-	// Tombstone: Functionality to correctly and consistely populate this field was not implemented in the MCO, so
-	// when applying a PIS, this field is not being updated. Since this field is not being used, it is being removed
-	// before this API is GAed.
-	// PinnedImageSets []MachineConfigNodeSpecPinnedImageSet `json:"pinnedImageSets,omitempty"`
+	ConfigImage MachineConfigNodeSpecConfigImage `json:"configImage,omitempty,omitzero"`
 }
 
 // MachineConfigNodeStatus holds the reported information on a particular machine config node.
 type MachineConfigNodeStatus struct {
-	// conditions represent the observations of a machine config node's current state.
+	// conditions represent the observations of a machine config node's current state. Valid types are:
+	// UpdatePrepared, UpdateExecuted, UpdatePostActionComplete, UpdateComplete, Updated, Resumed,
+	// Drained, AppliedFilesAndOS, Cordoned, Uncordoned, RebootedNode, NodeDegraded, PinnedImageSetsProgressing,
+	// and PinnedImageSetsDegraded.
+	// The following types are only available when the ImageModeStatusReporting feature gate is enabled: ImagePulledFromRegistry,
+	// AppliedOSImage, AppliedFiles
+	// The following types are only available when the NoRegistryClusterInstall feature gate is enabled: InternalReleaseImageDegraded
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MaxItems=20
@@ -121,18 +124,145 @@ type MachineConfigNodeStatus struct {
 	// observedGeneration represents the generation of the MachineConfigNode object observed by the Machine Config Operator's controller.
 	// This field is updated when the controller observes a change to the desiredConfig in the configVersion of the machine config node spec.
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="observedGeneration must not decrease"
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 	// configVersion describes the current and desired machine config version for this node.
-	// +required
-	ConfigVersion MachineConfigNodeStatusMachineConfigVersion `json:"configVersion"`
+	// +optional
+	ConfigVersion *MachineConfigNodeStatusMachineConfigVersion `json:"configVersion,omitempty"`
+	// configImage is an optional field for configuring the OS image to be used for this node. This field will only exist if the node belongs to a pool opted into on-cluster image builds, and will override any MachineConfig referenced OSImageURL fields.
+	// When omitted, this means that the Image Mode feature is not being used and the node will be up to date with the specific current rendered config version for the nodes MachinePool.
+	// When specified, the Image Mode feature is enabled and the contents of this field show the observed state of the node image.
+	// When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is not created, only the configVersion field will change.
+	// When Image Mode is enabled and a new MachineConfig is applied such that a new OS image build is created, then only the configImage field will change. It is also possible that both the configImage
+	// and configVersion change during the same update.
+	// +openshift:enable:FeatureGate=ImageModeStatusReporting
+	// +optional
+	ConfigImage MachineConfigNodeStatusConfigImage `json:"configImage,omitempty,omitzero"`
 	// pinnedImageSets describes the current and desired pinned image sets for this node.
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=100
 	// +optional
 	PinnedImageSets []MachineConfigNodeStatusPinnedImageSet `json:"pinnedImageSets,omitempty"`
+	// irreconcilableChanges is an optional field that contains the observed differences between this nodes
+	// configuration and the target rendered MachineConfig.
+	// This field will be set when there are changes to the target rendered MachineConfig that can only be applied to
+	// new nodes joining the cluster.
+	// Entries must be unique, keyed on the fieldPath field.
+	// Must not exceed 32 entries.
+	// +listType=map
+	// +listMapKey=fieldPath
+	// +openshift:enable:FeatureGate=IrreconcilableMachineConfig
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	// +optional
+	IrreconcilableChanges []IrreconcilableChangeDiff `json:"irreconcilableChanges,omitempty"`
+	// internalReleaseImage describes the status of the release payloads stored in the node.
+	// When specified, an internalReleaseImage custom resource exists on the cluster, and the specified images will be made available on the control plane nodes.
+	// This field will reflect the actual on-disk state of those release images.
+	// +openshift:enable:FeatureGate=NoRegistryClusterInstall
+	// +optional
+	InternalReleaseImage MachineConfigNodeStatusInternalReleaseImage `json:"internalReleaseImage,omitzero,omitempty"`
+}
+
+// MachineConfigNodeStatusInternalReleaseImage holds information about the current and discovered release bundles for the observed machine
+// config node.
+type MachineConfigNodeStatusInternalReleaseImage struct {
+	// releases is a list of the release bundles currently owned and managed by the
+	// cluster.
+	// A release bundle content could be safely pulled only when its Conditions field
+	// contains at least an Available entry set to "True" and Degraded to "False".
+	// Entries must be unique, keyed on the name field.
+	// releases must contain at least one entry and must not exceed 32 entries.
+	// +listType=map
+	// +listMapKey=name
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=32
+	// +required
+	Releases []MachineConfigNodeStatusInternalReleaseImageRef `json:"releases,omitempty"`
+}
+
+// MachineConfigNodeStatusInternalReleaseImageRef is used to provide a more detailed reference for
+// a release bundle.
+type MachineConfigNodeStatusInternalReleaseImageRef struct {
+	// conditions represent the observations of an internal release image current state. Valid types are:
+	// Mounted, Installing, Available, Removing and Degraded.
+	//
+	// If Mounted is true, that means that a valid ISO has been mounted on the current node.
+	// If Installing is true, that means that a new release bundle is currently being copied on the current node, and not yet completed.
+	// If Available is true, it means that the release has been previously installed on the current node, and it can be used.
+	// If Removing is true, it means that a release deletion is in progress on the current node, and not yet completed.
+	// If Degraded is true, that means something has gone wrong in the current node.
+	//
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=5
+	// +optional
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+	// name indicates the desired release bundle identifier. This field is required and must be between 1 and 64 characters long.
+	// The expected name format is ocp-release-bundle-<version>-<arch|stream>.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=64
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^ocp-release-bundle-[0-9]+\\.[0-9]+\\.[0-9]+-[A-Za-z0-9._-]+$')`,message="must be ocp-release-bundle-<version>-<arch|stream> and <= 64 chars"
+	// +required
+	Name string `json:"name,omitempty"`
+	// image is an OCP release image referenced by digest.
+	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
+	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// The host must be either exactly "localhost" or a dot-qualified domain name.
+	// Single-label hosts other than "localhost" are not permitted.
+	// The length of the whole spec must be between 1 to 447 characters.
+	// The field is optional, and it will be provided after a release will be successfully installed.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=447
+	// +kubebuilder:validation:XValidation:rule=`(self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$'))`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"
+	// +kubebuilder:validation:XValidation:rule=`(self.split('@')[0].matches('^(localhost|([a-zA-Z0-9-]+\\.)+[a-zA-Z0-9-]+)(:[0-9]{2,5})?/([a-zA-Z0-9-_]{0,61}/)?[a-zA-Z0-9-_.]*?$'))`,message="the OCI Image name should follow the host[:port][/namespace]/name format, resembling a valid URL without the scheme; host must be either 'localhost' or a dot-qualified domain name"
+	// +optional
+	Image string `json:"image,omitempty"`
+}
+
+// InternalReleaseImageConditionType is each possible state for each possible InternalReleaseImageBundleStatus
+// conditions type.
+// +enum
+type InternalReleaseImageConditionType string
+
+const (
+	// InternalReleaseImageConditionTypeMounted describes a new release, not yet installed, that has been discovered when an ISO has been attached to
+	// the current node
+	InternalReleaseImageConditionTypeMounted InternalReleaseImageConditionType = "Mounted"
+	// InternalReleaseImageConditionTypeInstalling describes a new release that is getting installed on the current node. Due the size of the data
+	// transfered, the operation could take several minutes
+	InternalReleaseImageConditionTypeInstalling InternalReleaseImageConditionType = "Installing"
+	// InternalReleaseImageConditionTypeAvailable describes a release that has been successfully installed on the current node, ready to be consumed
+	InternalReleaseImageConditionTypeAvailable InternalReleaseImageConditionType = "Available"
+	// InternalReleaseImageConditionTypeRemoving describes an existing release that is getting removed from the current node
+	InternalReleaseImageConditionTypeRemoving InternalReleaseImageConditionType = "Removing"
+	// InternalReleaseImageConditionTypeDegraded describes a failure for the current release
+	InternalReleaseImageConditionTypeDegraded InternalReleaseImageConditionType = "Degraded"
+)
+
+// IrreconcilableChangeDiff holds an individual diff between the initial install-time MachineConfig
+// and the latest applied one caused by the presence of irreconcilable changes.
+type IrreconcilableChangeDiff struct {
+	// fieldPath is a required reference to the path in the latest rendered MachineConfig that differs from this nodes
+	// configuration.
+	// Must not be empty and must not exceed 70 characters in length.
+	// Must begin with the prefix 'spec.' and only contain alphanumeric characters, square brackets ('[]'), or dots ('.').
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=70
+	// +kubebuilder:validation:XValidation:rule="self.startsWith('spec.')",message="The fieldPath must start with `spec.`"
+	// +kubebuilder:validation:XValidation:rule=`self.matches('^[\\da-zA-Z\\.\\[\\]]+$')`,message="The fieldPath must consist only of alphanumeric characters, brackets [] and dots ('.')."
+	FieldPath string `json:"fieldPath,omitempty"`
+	// diff is a required field containing the difference between the nodes current configuration and the latest
+	// rendered MachineConfig for the field specified in fieldPath.
+	// Must not be an empty string and must not exceed 4096 characters in length.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=4096
+	Diff string `json:"diff,omitempty"`
 }
 
 // MachineConfigNodeStatusPinnedImageSet holds information about the current, desired, and failed pinned image sets for the observed machine config node.
@@ -150,17 +280,17 @@ type MachineConfigNodeStatusPinnedImageSet struct {
 	Name string `json:"name"`
 	// currentGeneration is the generation of the pinned image set that has most recently been successfully pulled and pinned on this node.
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="currentGeneration must not decrease"
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1
 	// +optional
 	CurrentGeneration int32 `json:"currentGeneration,omitempty"`
 	// desiredGeneration is the generation of the pinned image set that is targeted to be pulled and pinned on this node.
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="desiredGeneration must not decrease"
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1
 	// +optional
 	DesiredGeneration int32 `json:"desiredGeneration,omitempty"`
 	// lastFailedGeneration is the generation of the most recent pinned image set that failed to be pulled and pinned on this node.
 	// +kubebuilder:validation:XValidation:rule="self >= oldSelf", message="lastFailedGeneration must not decrease"
-	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Minimum=1
 	// +optional
 	LastFailedGeneration int32 `json:"lastFailedGeneration,omitempty"`
 	// lastFailedGenerationError is the error explaining why the desired images failed to be pulled and pinned.
@@ -168,11 +298,6 @@ type MachineConfigNodeStatusPinnedImageSet struct {
 	// +kubebuilder:validation:MaxLength=32768
 	// +optional
 	LastFailedGenerationError string `json:"lastFailedGenerationError,omitempty"`
-	// Previously, failures associated with pinning and pulling images where shared in a list of strings under `LastFailedGenerationErrors`.
-	// This field is being removed and a `LastFailedGenerationError` field of type string is being added in its place as this field will
-	// contain a single error and there is no need for a list anymore.
-	// Tombstone: legacy field no longer needed
-	// LastFailedGenerationErrors []string `json:"lastFailedGenerationErrors,omitempty"`
 }
 
 // MachineConfigNodeStatusMachineConfigVersion holds the current and desired config versions as last updated in the MCN status.
@@ -221,23 +346,42 @@ type MachineConfigNodeSpecMachineConfigVersion struct {
 	Desired string `json:"desired"`
 }
 
-// Tombstone: This struct defines the type of `Spec.PinnedImageSets`, which is being removed. Therefore, this field
-// is also being tombstoned.
-// MachineConfigNodeSpecPinnedImageSet holds information on the desired pinned image sets that the current observed machine config node
-// should pin and pull.
-// type MachineConfigNodeSpecPinnedImageSet struct {
-// 	// name is the name of the pinned image set.
-// 	// Must be a lowercase RFC-1123 subdomain name (https://tools.ietf.org/html/rfc1123) consisting
-// 	// of only lowercase alphanumeric characters, hyphens (-), and periods (.), and must start and end
-// 	// with an alphanumeric character, and be at most 253 characters in length.
-// 	// +kubebuilder:validation:MaxLength:=253
-// 	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a lowercase RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
-// 	// +required
-// 	Name string `json:"name"`
-// }
+// MachineConfigNodeSpecConfigImage holds the desired image for the node.
+// This structure is populated from the `machineconfiguration.openshift.io/desiredImage`
+// annotation on the target node, which is set by the Machine Config Pool controller
+// to signal the desired image pullspec for the node to update to.
+type MachineConfigNodeSpecConfigImage struct {
+	// desiredImage is a required field that configures the image that the node should be updated to use.
+	// It must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// desiredImage must not be an empty string and must not exceed 447 characters in length.
+	// +required
+	DesiredImage ImageDigestFormat `json:"desiredImage,omitempty"`
+}
+
+// MachineConfigNodeStatusConfigImage holds the observed state of the image
+// on the node, including both the image targeted for an update and the image
+// currently applied. This allows for monitoring the progress of the layering
+// rollout. If Image Mode is enabled, desiredImage must be defined.
+// +kubebuilder:validation:MinProperties:=1
+type MachineConfigNodeStatusConfigImage struct {
+	// currentImage is an optional field that represents the current image that is applied to the node.
+	// When omitted, this means that no image updates have been applied to the node and it will be up to date with the specific current rendered config version.
+	// When specified, this means that the node is currently using this image.
+	// currentImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// currentImage must not be an empty string and must not exceed 447 characters in length.
+	// +optional
+	CurrentImage ImageDigestFormat `json:"currentImage,omitzero,omitempty"`
+	// desiredImage is an optional field that represents the currently observed state of image that the node should be updated to use.
+	// When not specified, this means that Image Mode has been disabled and the node will up to date with the specific current rendered config version.
+	// When specified, this means that Image Mode has been enabled and the node is actively progressing to update the node to this image.
+	// If currentImage and desiredImage match, the node has been successfully updated to use the desired image.
+	// desiredImage must be a fully qualified OCI image pull spec of the format host[:port][/namespace]/name@sha256:, where the digest must be exactly 64 characters in length and consist only of lowercase hexadecimal characters, a-f and 0-9.
+	// desiredImage must not be an empty string and must not exceed 447 characters in length.
+	// +optional
+	DesiredImage ImageDigestFormat `json:"desiredImage,omitzero,omitempty"`
+}
 
 // StateProgress is each possible state for each possible MachineConfigNodeType
-// Please note: These conditions are subject to change. Both additions and deletions may be made.
 // +enum
 type StateProgress string
 
@@ -256,8 +400,14 @@ const (
 	MachineConfigNodeResumed StateProgress = "Resumed"
 	// MachineConfigNodeUpdateDrained describes the part of the in progress phase where the node drains
 	MachineConfigNodeUpdateDrained StateProgress = "Drained"
+	// MachineConfigNodeUpdateFiles describes the part of the in progress phase where the nodes files changes
+	MachineConfigNodeUpdateFiles StateProgress = "AppliedFiles"
+	// MachineConfigNodeUpdateOS describes the part of the in progress phase where the OS config changes
+	MachineConfigNodeUpdateOS StateProgress = "AppliedOSImage"
 	// MachineConfigNodeUpdateFilesAndOS describes the part of the in progress phase where the nodes files and OS config change
 	MachineConfigNodeUpdateFilesAndOS StateProgress = "AppliedFilesAndOS"
+	// MachineConfigNodeImagePulledFromRegistry describes the part of the in progress phase where the update image is pulled from the registry
+	MachineConfigNodeImagePulledFromRegistry StateProgress = "ImagePulledFromRegistry"
 	// MachineConfigNodeUpdateCordoned describes the part of the in progress phase where the node cordons
 	MachineConfigNodeUpdateCordoned StateProgress = "Cordoned"
 	// MachineConfigNodeUpdateUncordoned describes the part of the completing phase where the node uncordons
@@ -270,4 +420,6 @@ const (
 	MachineConfigNodePinnedImageSetsProgressing StateProgress = "PinnedImageSetsProgressing"
 	// MachineConfigNodePinnedImageSetsDegraded describes a machine that has failed to progress to the desired pinned image sets
 	MachineConfigNodePinnedImageSetsDegraded StateProgress = "PinnedImageSetsDegraded"
+	// MachineConfigNodeInternalReleaseImageDegraded describes a machine where the local InternalReleaseImage registry is not properly working
+	MachineConfigNodeInternalReleaseImageDegraded StateProgress = "InternalReleaseImageDegraded"
 )

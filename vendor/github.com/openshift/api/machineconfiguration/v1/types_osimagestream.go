@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,8 +13,8 @@ import (
 //
 // The resource is a singleton named "cluster".
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 // +kubebuilder:object:root=true
 // +kubebuilder:resource:path=osimagestreams,scope=Cluster
 // +kubebuilder:subresource:status
@@ -23,6 +23,7 @@ import (
 // +openshift:enable:FeatureGate=OSStreams
 // +kubebuilder:metadata:labels=openshift.io/operator-managed=
 // +kubebuilder:validation:XValidation:rule="self.metadata.name == 'cluster'",message="osimagestream is a singleton, .metadata.name must be 'cluster'"
+// +kubebuilder:validation:XValidation:rule="self.spec == oldSelf.spec || !has(self.status) || self.spec.defaultStream in self.status.availableStreams.map(s, s.name)",message="spec.defaultStream must reference an existing stream name from status.availableStreams"
 type OSImageStream struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -33,7 +34,7 @@ type OSImageStream struct {
 
 	// spec contains the desired OSImageStream config configuration.
 	// +required
-	Spec *OSImageStreamSpec `json:"spec,omitempty"`
+	Spec OSImageStreamSpec `json:"spec,omitzero,omitempty"`
 
 	// status describes the last observed state of this OSImageStream.
 	// Populated by the MachineConfigOperator after reading release metadata.
@@ -74,6 +75,36 @@ type OSImageStreamStatus struct {
 
 // OSImageStreamSpec defines the desired state of a OSImageStream.
 type OSImageStreamSpec struct {
+	// defaultStream is the desired name of the stream that should be used as the
+	// default when no specific stream is requested by a MachineConfigPool.
+	//
+	// This field is set by the installer during installation. Users may need to
+	// update it if the currently selected stream is no longer available, for
+	// example when the stream has reached its End of Life.
+	// The MachineConfigOperator uses this value to determine which stream from
+	// status.availableStreams to apply as the default for MachineConfigPools
+	// that do not specify a stream override.
+	//
+	// When status.availableStreams has been populated by the operator, updating
+	// this field requires that the new value references the name of one of the
+	// streams in status.availableStreams. Status-only updates by the operator
+	// are not subject to this constraint, allowing the operator to update
+	// availableStreams independently of this field.
+	// During initial creation, before the operator has populated status, any
+	// valid value is accepted.
+	//
+	// For upgrade scenarios where the source OCP version doesn't have this CRD
+	// the MCO creates and populates the OSImageStream cluster singleton setting
+	// this field with the proper value based on the source OCP version.
+	//
+	// It must be a valid RFC 1123 subdomain between 1 and 253 characters in length,
+	// consisting of lowercase alphanumeric characters, hyphens ('-'), and periods ('.').
+	//
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:MaxLength=253
+	// +kubebuilder:validation:XValidation:rule="!format.dns1123Subdomain().validate(self).hasValue()",message="a RFC 1123 subdomain must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character."
+	DefaultStream string `json:"defaultStream,omitempty"`
 }
 
 type OSImageStreamSet struct {
@@ -118,8 +149,8 @@ type OSImageStreamSet struct {
 
 // OSImageStreamList is a list of OSImageStream resources
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type OSImageStreamList struct {
 	metav1.TypeMeta `json:",inline"`
 

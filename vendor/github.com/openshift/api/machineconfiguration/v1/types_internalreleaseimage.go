@@ -1,4 +1,4 @@
-package v1alpha1
+package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,9 +19,10 @@ import (
 // InternalReleaseImage is used to keep track and manage a set
 // of release bundles (OCP and OLM operators images) that are stored
 // into the control planes nodes.
+// This is a singleton resource with 'cluster' as the only valid name. 
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type InternalReleaseImage struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -32,11 +33,11 @@ type InternalReleaseImage struct {
 
 	// spec describes the configuration of this internal release image.
 	// +required
-	Spec InternalReleaseImageSpec `json:"spec,omitempty,omitzero"`
+	Spec InternalReleaseImageSpec `json:"spec,omitzero"`
 
 	// status describes the last observed state of this internal release image.
 	// +optional
-	Status InternalReleaseImageStatus `json:"status,omitempty,omitzero"`
+	Status InternalReleaseImageStatus `json:"status,omitzero"`
 }
 
 // InternalReleaseImageSpec defines the desired state of a InternalReleaseImage.
@@ -70,10 +71,11 @@ type InternalReleaseImageStatus struct {
 	// conditions represent the observations of the InternalReleaseImage controller current state.
 	// Valid types are: Degraded.
 	// If Degraded is true, that means something has gone wrong in the controller.
+	// The conditions list must contain at most 5 entries.
 	// +listType=map
 	// +listMapKey=type
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:MaxItems=20
+	// +kubebuilder:validation:MaxItems=5
 	// +optional
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 	// releases is a list of the release bundles currently owned and managed by the
@@ -99,6 +101,7 @@ const (
 	InternalReleaseImageStatusConditionTypeDegraded InternalReleaseImageStatusConditionType = "Degraded"
 )
 
+// InternalReleaseImageBundleStatus describes the observed state of a single release bundle managed by the cluster.
 type InternalReleaseImageBundleStatus struct {
 	// conditions represent the observations of an internal release image current state. Valid types are:
 	// Mounted, Installing, Available, Removing and Degraded.
@@ -111,6 +114,7 @@ type InternalReleaseImageBundleStatus struct {
 	//
 	// In general, after installing a new release bundle, it is required to wait for the Conditions "Available" to become "True" (and all
 	// the other conditions to be equal to "False") before being able to pull its content.
+	// When present, conditions must contain at least 1 entry and must not exceed 5 entries.
 	//
 	// +listType=map
 	// +listMapKey=type
@@ -129,7 +133,7 @@ type InternalReleaseImageBundleStatus struct {
 	// The format of the image pull spec is: host[:port][/namespace]/name@sha256:<digest>,
 	// where the digest must be 64 characters long, and consist only of lowercase hexadecimal characters, a-f and 0-9.
 	// The length of the whole spec must be between 1 to 447 characters.
-	// The field is optional, and it will be provided after a release will be successfully installed.
+	// The field is optional, and it will be provided after a release has been successfully installed.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=447
 	// +kubebuilder:validation:XValidation:rule=`(self.split('@').size() == 2 && self.split('@')[1].matches('^sha256:[a-f0-9]{64}$'))`,message="the OCI Image reference must end with a valid '@sha256:<digest>' suffix, where '<digest>' is 64 characters long"
@@ -138,35 +142,12 @@ type InternalReleaseImageBundleStatus struct {
 	Image string `json:"image,omitempty"`
 }
 
-// InternalReleaseImageConditionType is each possible state for each possible InternalReleaseImageBundleStatus
-// conditions type.
-// +enum
-type InternalReleaseImageConditionType string
-
-const (
-	// InternalReleaseImageConditionTypeMounted describes a new release, not yet installed, that has been discovered when an ISO has been attached to
-	// one of the control plane nodes
-	InternalReleaseImageConditionTypeMounted InternalReleaseImageConditionType = "Mounted"
-	// InternalReleaseImageConditionTypeInstalling describes a new release that is getting installed in the cluster. Due the size of the data
-	// transfered, the operation could take several minutes. The condition will remain in such state until all the control plane nodes will
-	// complete the installing operation
-	InternalReleaseImageConditionTypeInstalling InternalReleaseImageConditionType = "Installing"
-	// InternalReleaseImageConditionTypeAvailable describes a release that has been successfully installed in the cluster, ready to be consumed. This
-	// means that the release has been successfully installed on all the control plane nodes
-	InternalReleaseImageConditionTypeAvailable InternalReleaseImageConditionType = "Available"
-	// InternalReleaseImageConditionTypeRemoving describes an existing release that is getting removed from the cluster. The condition will remain in such
-	// state until all the control plane nodes will complete the removal operation
-	InternalReleaseImageConditionTypeRemoving InternalReleaseImageConditionType = "Removing"
-	// InternalReleaseImageConditionTypeDegraded describes a failure, happened in one or more control plane nodes, for the current release
-	InternalReleaseImageConditionTypeDegraded InternalReleaseImageConditionType = "Degraded"
-)
-
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // InternalReleaseImageList is a list of InternalReleaseImage resources
 //
-// Compatibility level 4: No compatibility is provided, the API can change at any point for any reason. These capabilities should not be used by applications needing long term support.
-// +openshift:compatibility-gen:level=4
+// Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
+// +openshift:compatibility-gen:level=1
 type InternalReleaseImageList struct {
 	metav1.TypeMeta `json:",inline"`
 
