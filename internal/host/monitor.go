@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/commonutils"
+	"github.com/openshift/assisted-service/pkg/db/slowquery"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
@@ -176,7 +177,7 @@ func (m *Manager) resetRoleAssignmentIfNotAllRolesAreSet() {
 func (m *Manager) clusterHostMonitoring() {
 	var (
 		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
+		ctx       = slowquery.WithScope(requestid.ToContext(context.Background(), requestID), slowquery.ScopeHostMonitor)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 		clusters  []*common.Cluster
 		err       error
@@ -255,7 +256,7 @@ func (m *Manager) clusterHostMonitoring() {
 func (m *Manager) infraEnvHostMonitoring() {
 	var (
 		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
+		ctx       = slowquery.WithScope(requestid.ToContext(context.Background(), requestID), slowquery.ScopeHostMonitor)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 		infraEnvs []*common.InfraEnv
 		err       error
@@ -317,6 +318,9 @@ func (m *Manager) HostMonitoring() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
+	slowquery.SetGoroutineScope(slowquery.ScopeHostMonitor, "")
+	defer slowquery.ClearGoroutineScope()
+
 	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
 	m.initMonitoringQueryGenerator()
 	m.clusterHostMonitoring()
