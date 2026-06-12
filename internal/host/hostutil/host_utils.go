@@ -307,24 +307,6 @@ func SaveDiskPartitionsIsSet(installerArgs string) bool {
 	return false
 }
 
-func IsDiskEncryptionEnabledForRole(encryption models.DiskEncryption, role models.HostRole) bool {
-	if swag.StringValue(encryption.EnableOn) == models.DiskEncryptionEnableOnAll {
-		return true
-	}
-
-	enabledGroups := strings.Split(swag.StringValue(encryption.EnableOn), ",")
-	if role == models.HostRoleMaster || role == models.HostRoleBootstrap {
-		return funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters)
-	}
-	if role == models.HostRoleArbiter {
-		return funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters)
-	}
-	if role == models.HostRoleWorker {
-		return funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers)
-	}
-	return false
-}
-
 func GetDiskEncryptionForDay2(log logrus.FieldLogger, host *models.Host) (*ignition_types.Luks, error) {
 	var response models.APIVipConnectivityResponse
 	if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {

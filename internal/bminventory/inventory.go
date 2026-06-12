@@ -28,6 +28,7 @@ import (
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/dns"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/featuresupport"
@@ -933,7 +934,7 @@ func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEn
 	}
 
 	c.DiskEncryption = config
-	common.ApplyDiskEncryptionDefaults(c.DiskEncryption)
+	diskencryption.ApplyDiskEncryptionDefaults(c.DiskEncryption)
 }
 
 func updateSSHPublicKey(cluster *common.Cluster) error {
@@ -2727,12 +2728,12 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
-			enableOn, _ := common.DiskEncryptionFieldDefaults(params.ClusterUpdateParams.DiskEncryption.EnableOn, nil)
+			enableOn, _ := diskencryption.DiskEncryptionFieldDefaults(params.ClusterUpdateParams.DiskEncryption.EnableOn, nil)
 			params.ClusterUpdateParams.DiskEncryption.EnableOn = swag.String(enableOn)
 			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
 		}
 		if params.ClusterUpdateParams.DiskEncryption.Mode != nil {
-			_, mode := common.DiskEncryptionFieldDefaults(nil, params.ClusterUpdateParams.DiskEncryption.Mode)
+			_, mode := diskencryption.DiskEncryptionFieldDefaults(nil, params.ClusterUpdateParams.DiskEncryption.Mode)
 			params.ClusterUpdateParams.DiskEncryption.Mode = swag.String(mode)
 			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
 		}
