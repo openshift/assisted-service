@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/kmm"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -72,11 +73,17 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
-	return []string{kmm.Operator.Name}, nil
+	return []string{
+		nodefeaturediscovery.Operator.Name,
+		kmm.Operator.Name,
+	}, nil
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDKMM}
+	return []models.FeatureSupportLevelID{
+		models.FeatureSupportLevelIDNODEFEATUREDISCOVERY,
+		models.FeatureSupportLevelIDKMM,
+	}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the operator.
@@ -274,5 +281,9 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
+	return []string{}
+}
+
+func (o *operator) GetOptionalBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }

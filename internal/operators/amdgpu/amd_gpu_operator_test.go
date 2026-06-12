@@ -9,6 +9,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/kmm"
+	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -277,6 +279,20 @@ var _ = Describe("Operator", func() {
 			true,
 		),
 	)
+
+	Context("Dependencies", func() {
+		It("Depends on the node feature discovery operator", func() {
+			deps, err := operator.GetDependencies(&common.Cluster{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deps).To(ContainElement(nodefeaturediscovery.Operator.Name))
+		})
+
+		It("Depends on the kmm operator", func() {
+			deps, err := operator.GetDependencies(&common.Cluster{})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(deps).To(ContainElement(kmm.Operator.Name))
+		})
+	})
 
 	Context("Testing ClusterHasGPU", func() {
 		When("Inventory string is not a valid json", func() {
