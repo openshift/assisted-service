@@ -17,6 +17,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -529,7 +530,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		if role == models.HostRoleAutoAssign {
 			return ValidationPending, "Missing role assignment"
 		}
-		if !hostutil.IsDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
+		if !diskencryption.EnabledForRole(*c.cluster.DiskEncryption, role) {
 			return ValidationSuccessSuppressOutput, ""
 		}
 		if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {

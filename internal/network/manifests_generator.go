@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	operatorcommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -338,7 +339,7 @@ func (m *ManifestsGenerator) createDiskEncryptionManifest(ctx context.Context, l
 
 func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 
-	if swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if c.DiskEncryption == nil || !diskencryption.IsEnabled(c.DiskEncryption.EnableOn) {
 		return nil
 	}
 

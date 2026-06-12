@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -760,11 +761,6 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 		clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 && clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
-	return clusterInstall.Spec.DiskEncryption != nil &&
-		swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone
-}
-
 // see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
@@ -1152,7 +1148,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		if cluster.DiskEncryption == nil { // true when current cluster configuration does not include disk encryption
 			cluster.DiskEncryption = &models.DiskEncryption{}
 		}
-		enableOn, mode := common.DiskEncryptionFieldDefaults(
+		enableOn, mode := diskencryption.DiskEncryptionFieldDefaults(
 			clusterInstall.Spec.DiskEncryption.EnableOn,
 			clusterInstall.Spec.DiskEncryption.Mode,
 		)
@@ -1530,8 +1526,8 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if isDiskEncryptionEnabled(clusterInstall) {
-		enableOn, mode := common.DiskEncryptionFieldDefaults(
+	if clusterInstall.Spec.DiskEncryption != nil && diskencryption.IsEnabled(clusterInstall.Spec.DiskEncryption.EnableOn) {
+		enableOn, mode := diskencryption.DiskEncryptionFieldDefaults(
 			clusterInstall.Spec.DiskEncryption.EnableOn,
 			clusterInstall.Spec.DiskEncryption.Mode,
 		)
