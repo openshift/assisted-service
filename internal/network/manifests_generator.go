@@ -350,7 +350,7 @@ func (m *ManifestsGenerator) createDiskEncryptionManifest(ctx context.Context, l
 
 func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 
-	if c.DiskEncryption == nil || !diskencryption.IsEnabled(c.DiskEncryption.EnableOn) {
+	if !diskencryption.IsConfigured(c.DiskEncryption) {
 		return nil
 	}
 

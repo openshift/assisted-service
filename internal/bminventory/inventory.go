@@ -2644,7 +2644,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUI
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
 
-	if c.DiskEncryption == nil || swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if !diskencryption.IsConfigured(c.DiskEncryption) {
 		return
 	}
 
@@ -2656,7 +2656,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 		props["mode"] = swag.StringValue(diskEncryption.Mode)
 		props["tang_servers"] = diskEncryption.TangServers
 	}
-	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
+	b.setUsage(diskencryption.IsConfigured(c.DiskEncryption), usage.DiskEncryption, &props, usages)
 }
 
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, primaryIPStackUpdated bool, primaryIPStack *common.PrimaryIPStack) error {

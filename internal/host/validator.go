@@ -489,7 +489,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 	var status ValidationStatus
 	var message string
 
-	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if c.infraEnv != nil || !diskencryption.IsConfigured(c.cluster.DiskEncryption) {
 		return ValidationSuccessSuppressOutput, ""
 	}
 	if c.inventory == nil {
