@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/openshift/assisted-image-service/pkg/isoeditor"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -776,7 +777,7 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	if diskEncryptionParams == nil {
 		return nil
 	}
-	if !DiskEncryptionSupport && swag.StringValue(diskEncryptionParams.EnableOn) != models.DiskEncryptionEnableOnNone {
+	if !DiskEncryptionSupport && diskencryption.IsEnabled(diskEncryptionParams.EnableOn) {
 		return errors.New("Disk encryption support is not enabled. Cannot apply configurations to the cluster")
 	}
 	if diskEncryptionParams.Mode != nil && swag.StringValue(diskEncryptionParams.Mode) == models.DiskEncryptionModeTang {

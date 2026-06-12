@@ -7,6 +7,7 @@ import (
 	ignition_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -70,10 +71,9 @@ func (c *tangConnectivityCheckCmd) shouldRunTangConnectivityCheck(cluster common
 	// 1. DiskEncryption not set or not enabled.
 	// 2. DiskEncryption mode is not tang based.
 	// 3. DiskEncryption is not enabled, for the host role.
-	if cluster.DiskEncryption == nil ||
-		swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone ||
+	if !diskencryption.IsConfigured(cluster.DiskEncryption) ||
 		swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTpmv2 ||
-		!hostutil.IsDiskEncryptionEnabledForRole(*cluster.DiskEncryption, common.GetEffectiveRole(host)) {
+		!diskencryption.EnabledForRole(*cluster.DiskEncryption, common.GetEffectiveRole(host)) {
 		c.log.Debugf("skipping tangConnectivityCheck for host %s, cluster DiskEncryption config does not require validation here",
 			host.ID.String())
 		return false
