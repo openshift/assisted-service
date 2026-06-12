@@ -1341,11 +1341,14 @@ func (g *installerGenerator) isFeatureGateEnabled(feature v1.FeatureGateName) bo
 			}
 		}
 	default:
-		feats, err := features.FeatureSets(features.SelfManaged, installConfig.FeatureSet)
-		if err != nil {
-			g.log.Errorf("error while retrieving features definition: %v", err)
-			break
+		var ocpVersion uint64
+		if g.cluster != nil {
+			versionParts := strings.SplitN(g.cluster.OpenshiftVersion, ".", 2)
+			if len(versionParts) > 0 {
+				ocpVersion, _ = strconv.ParseUint(versionParts[0], 10, 64)
+			}
 		}
+		feats := features.FeatureSets(ocpVersion, features.SelfManaged, installConfig.FeatureSet)
 
 		for _, f := range feats.Enabled {
 			if f.FeatureGateAttributes.Name == feature {

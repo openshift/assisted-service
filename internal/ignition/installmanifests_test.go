@@ -70,6 +70,11 @@ var _ = Describe("Feature gates check", func() {
 		return &installerGenerator{
 			log:              logrus.New(),
 			rawInstallConfig: bytes,
+			cluster: &common.Cluster{
+				Cluster: models.Cluster{
+					OpenshiftVersion: "4.17",
+				},
+			},
 		}
 	}
 
