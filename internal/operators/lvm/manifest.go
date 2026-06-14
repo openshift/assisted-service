@@ -30,6 +30,18 @@ func Manifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
 
 	openshiftManifests := make(map[string][]byte)
 
+	needsFallbackCatalog, err := common.BaseVersionGreaterOrEqual(LvmsCatalogFallbackMinVersion, cluster.OpenshiftVersion)
+	if err != nil {
+		return nil, nil, err
+	}
+	if needsFallbackCatalog {
+		lvmCatalogSource, err := getCatalogSource()
+		if err != nil {
+			return nil, nil, err
+		}
+		openshiftManifests["50_openshift-lvm_catalog_source.yaml"] = lvmCatalogSource
+	}
+
 	openshiftManifests["50_openshift-lvm_ns.yaml"] = lvmNamespace
 	openshiftManifests["50_openshift-lvm_operator_group.yaml"] = lvmOperatorGroup
 	openshiftManifests["50_openshift-lvm_subscription.yaml"] = lvmSubscription
@@ -42,11 +54,22 @@ func getSubscriptionInfo(openshiftVersion string) (map[string]string, error) {
 		return map[string]string{}, err
 	}
 
+	needsFallbackCatalog, err := common.BaseVersionGreaterOrEqual(LvmsCatalogFallbackMinVersion, openshiftVersion)
+	if err != nil {
+		return map[string]string{}, err
+	}
+
+	catalogSource := "redhat-operators"
+	if needsFallbackCatalog {
+		catalogSource = LvmsCatalogFallbackName
+	}
+
 	if !isGreaterOrEqual {
 		return map[string]string{
 			"OPERATOR_NAMESPACE":              Operator.Namespace,
 			"OPERATOR_SUBSCRIPTION_NAME":      LvmoSubscriptionName,
 			"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmoSubscriptionName,
+			"OPERATOR_CATALOG_SOURCE":         catalogSource,
 		}, nil
 	}
 
@@ -54,7 +77,16 @@ func getSubscriptionInfo(openshiftVersion string) (map[string]string, error) {
 		"OPERATOR_NAMESPACE":              Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME":      LvmsSubscriptionName,
 		"OPERATOR_SUBSCRIPTION_SPEC_NAME": LvmsSubscriptionName,
+		"OPERATOR_CATALOG_SOURCE":         catalogSource,
 	}, nil
+}
+
+func getCatalogSource() ([]byte, error) {
+	data := map[string]string{
+		"CATALOG_SOURCE_NAME":  LvmsCatalogFallbackName,
+		"CATALOG_SOURCE_IMAGE": LvmsCatalogFallbackImage,
+	}
+	return executeTemplate(data, "LvmCatalogSource", LvmCatalogSource)
 }
 
 func getSubscription(cluster *common.Cluster) ([]byte, error) {
@@ -109,8 +141,26 @@ metadata:
 spec:
   installPlanApproval: Automatic
   name: "{{.OPERATOR_SUBSCRIPTION_SPEC_NAME}}"
-  source: redhat-operators
+  source: "{{.OPERATOR_CATALOG_SOURCE}}"
   sourceNamespace: openshift-marketplace`
+
+// LvmCatalogSource is injected when the default redhat-operators catalog does not publish
+// lvms-operator for the target OCP version. The Subscription is pointed at this source instead.
+// TODO: Remove once lvms-operator is published to the redhat-operators catalog for the target version.
+const LvmCatalogSource = `apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: "{{.CATALOG_SOURCE_NAME}}"
+  namespace: openshift-marketplace
+spec:
+  displayName: Red Hat Operators v4.21
+  image: "{{.CATALOG_SOURCE_IMAGE}}"
+  priority: -100
+  publisher: Red Hat
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 10m0s`
 
 const LvmNamespace = `apiVersion: v1
 kind: Namespace
