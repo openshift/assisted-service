@@ -489,7 +489,10 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 	var status ValidationStatus
 	var message string
 
-	if c.infraEnv != nil || !diskencryption.IsConfigured(c.cluster.DiskEncryption) {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	if !hostutil.IsDay2Host(c.host) && !diskencryption.IsConfigured(c.cluster.DiskEncryption) {
 		return ValidationSuccessSuppressOutput, ""
 	}
 	if c.inventory == nil {
@@ -501,6 +504,9 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		//according to that information
 		luks, err := hostutil.GetDiskEncryptionForDay2(v.log, c.host)
 		if err != nil {
+			if swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+				return ValidationSuccessSuppressOutput, ""
+			}
 			return ValidationPending, "Missing ignition information"
 		}
 		if luks == nil || luks.Clevis == nil {
