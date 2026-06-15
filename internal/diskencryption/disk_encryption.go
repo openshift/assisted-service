@@ -20,6 +20,17 @@ func IsConfigured(diskEncryption *models.DiskEncryption) bool {
 	return diskEncryption != nil && IsEnabled(diskEncryption.EnableOn)
 }
 
+// RequestsConfiguration reports whether an API payload carries explicit disk encryption
+// settings beyond the disabled defaults, including tang configuration without enable_on.
+func RequestsConfiguration(diskEncryption *models.DiskEncryption) bool {
+	if diskEncryption == nil {
+		return false
+	}
+	return IsEnabled(diskEncryption.EnableOn) ||
+		swag.StringValue(diskEncryption.Mode) == models.DiskEncryptionModeTang ||
+		diskEncryption.TangServers != ""
+}
+
 // DiskEncryptionFieldDefaults returns enable_on and mode with defaults for nil or empty values.
 func DiskEncryptionFieldDefaults(enableOn, mode *string) (string, string) {
 	enableOnValue := swag.StringValue(enableOn)
