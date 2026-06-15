@@ -15,6 +15,33 @@ func TestDiskEncryption(t *testing.T) {
 	RunSpecs(t, "Disk encryption tests")
 }
 
+var _ = Describe("RequestsConfiguration", func() {
+	It("returns false for nil or disabled configuration", func() {
+		Expect(RequestsConfiguration(nil)).To(BeFalse())
+		Expect(RequestsConfiguration(&models.DiskEncryption{})).To(BeFalse())
+		Expect(RequestsConfiguration(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		})).To(BeFalse())
+	})
+
+	It("returns true when enable_on requests encryption", func() {
+		Expect(RequestsConfiguration(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+		})).To(BeTrue())
+	})
+
+	It("returns true when tang is configured without enable_on", func() {
+		Expect(RequestsConfiguration(&models.DiskEncryption{
+			Mode:        swag.String(models.DiskEncryptionModeTang),
+			TangServers: `[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+		})).To(BeTrue())
+		Expect(RequestsConfiguration(&models.DiskEncryption{
+			TangServers: `[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+		})).To(BeTrue())
+	})
+})
+
 var _ = Describe("IsConfigured", func() {
 	It("returns false when disk encryption is not configured", func() {
 		Expect(IsConfigured(nil)).To(BeFalse())
