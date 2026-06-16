@@ -272,8 +272,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.18-x86_64",
-        "version": "4.21.18"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-x86_64",
+        "version": "4.21.19"
     },
     {
         "openshift_version": "4.21",
@@ -281,8 +281,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.18-aarch64",
-        "version": "4.21.18"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-aarch64",
+        "version": "4.21.19"
     },
     {
         "openshift_version": "4.21-multi",
@@ -293,8 +293,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.18-multi",
-        "version": "4.21.18-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-multi",
+        "version": "4.21.19-multi"
     },
     {
         "openshift_version": "4.22",
@@ -333,9 +333,9 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.2-x86_64",
+        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.3-x86_64",
         "support_level": "beta",
-        "version": "5.0.0-ec.2"
+        "version": "5.0.0-ec.3"
     },
     {
         "openshift_version": "5.0",
@@ -343,9 +343,9 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.2-aarch64",
+        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.3-aarch64",
         "support_level": "beta",
-        "version": "5.0.0-ec.2"
+        "version": "5.0.0-ec.3"
     },
     {
         "openshift_version": "5.0-multi",
@@ -356,8 +356,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.2-multi",
+        "url": "quay.io/openshift-release-dev/ocp-release:5.0.0-ec.3-multi",
         "support_level": "beta",
-        "version": "5.0.0-ec.2-multi"
+        "version": "5.0.0-ec.3-multi"
     }
 ]
