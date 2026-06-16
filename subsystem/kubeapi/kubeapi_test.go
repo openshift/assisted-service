@@ -4724,8 +4724,10 @@ location = "%s"
 		}, "30s", "10s").Should(Equal(firstAgentEventsURL))
 
 		By("Check host is removed from first backend cluster")
-		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		Expect(len(cluster.Hosts)).Should(Equal(0))
+		Eventually(func() int {
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			return len(cluster.Hosts)
+		}, "30s", "10s").Should(Equal(0))
 
 		By("Delete Original Clusterdeployment")
 		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKey)

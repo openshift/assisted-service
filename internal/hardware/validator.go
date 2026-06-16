@@ -14,7 +14,6 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/feature"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -408,7 +407,7 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 	if err != nil {
 		return nil, err
 	}
-	if diskencryption.IsSetWithTpm(cluster.DiskEncryption) {
+	if common.IsSetWithTpm(cluster.DiskEncryption) {
 		valid := false
 		isDiskEncryptionOnAll := swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll
 		enabledGroups := strings.Split(swag.StringValue(cluster.DiskEncryption.EnableOn), ",")
