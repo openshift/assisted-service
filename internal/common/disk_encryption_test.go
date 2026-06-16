@@ -1,19 +1,12 @@
-package diskencryption
+package common
 
 import (
-	"testing"
-
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 )
-
-func TestDiskEncryption(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Disk encryption tests")
-}
 
 var _ = Describe("RequestsConfiguration", func() {
 	It("returns false for nil or disabled configuration", func() {

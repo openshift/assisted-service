@@ -42,7 +42,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/controller/controllers/mirrorregistry"
-	"github.com/openshift/assisted-service/internal/diskencryption"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -1147,7 +1146,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		if cluster.DiskEncryption == nil { // true when current cluster configuration does not include disk encryption
 			cluster.DiskEncryption = &models.DiskEncryption{}
 		}
-		enableOn, mode := diskencryption.DiskEncryptionFieldDefaults(
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
 			clusterInstall.Spec.DiskEncryption.EnableOn,
 			clusterInstall.Spec.DiskEncryption.Mode,
 		)
@@ -1439,8 +1438,8 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if clusterInstall.Spec.DiskEncryption != nil && diskencryption.IsEnabled(clusterInstall.Spec.DiskEncryption.EnableOn) {
-		enableOn, mode := diskencryption.DiskEncryptionFieldDefaults(
+	if clusterInstall.Spec.DiskEncryption != nil && common.IsEnabled(clusterInstall.Spec.DiskEncryption.EnableOn) {
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
 			clusterInstall.Spec.DiskEncryption.EnableOn,
 			clusterInstall.Spec.DiskEncryption.Mode,
 		)
