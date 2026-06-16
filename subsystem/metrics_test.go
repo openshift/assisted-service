@@ -205,7 +205,7 @@ var _ = Describe("Metrics tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+		clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 		Expect(err).NotTo(HaveOccurred())
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
 	})
@@ -505,6 +505,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			utils_test.TestContext.GenerateHWPostStepReply(ctx, h, utils_test.ValidHwInfo, "master-0")
+			utils_test.TestContext.UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDMachineCidrDefined)
 
 			// check generated events
@@ -601,11 +602,15 @@ var _ = Describe("Metrics tests", func() {
 		})
 
 		It("'belongs-to-machine-cidr' failed", func() {
+			// anchor host keeps VIP-based machine CIDR stable when test host's IP is removed
+			anchor := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "anchor", utils_test.DefaultCIDRv4)
+			_ = anchor
 
 			// create a validation success
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
+			utils_test.TestContext.UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.HostValidationIDBelongsToMachineCidr), hostValidationChangedMetric)
@@ -614,7 +619,6 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			// machine-cidr doesn't change after it is set
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
 
 			// check generated events
@@ -627,15 +631,18 @@ var _ = Describe("Metrics tests", func() {
 		})
 
 		It("'belongs-to-machine-cidr' got fixed", func() {
+			// anchor host keeps VIP-based machine CIDR stable when test host's IP is removed
+			anchor := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "anchor", utils_test.DefaultCIDRv4)
+			_ = anchor
 
 			// create a validation failure
 			h := &utils_test.TestContext.RegisterHost(*infraEnvID).Host
 			err := db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("1.2.3.4/24")}).Error
 			Expect(err).NotTo(HaveOccurred())
+			utils_test.TestContext.UpdateVipParams(ctx, clusterID)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
-			// machine-cidr removed after the network interface was deleted
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h.ID, "failure", models.HostValidationIDBelongsToMachineCidr)
 
 			// create a validation success
@@ -699,6 +706,7 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.UpdateVipParams(ctx, clusterID)
 			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
@@ -729,6 +737,7 @@ var _ = Describe("Metrics tests", func() {
 			h2 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h2", ips[1])
 			h3 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h3", ips[2])
 			h4 := utils_test.TestContext.RegisterNode(ctx, *infraEnvID, "h4", ips[3])
+			utils_test.TestContext.UpdateVipParams(ctx, clusterID)
 			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
 			utils_test.TestContext.WaitForHostValidationStatus(clusterID, *infraEnvID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 

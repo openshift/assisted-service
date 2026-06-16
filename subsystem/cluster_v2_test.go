@@ -426,7 +426,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			clusterReq, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(multiarchOpenshiftVersion),
+					OpenshiftVersion: swag.String(common.TestVersion().ForArch("arm64").MultiVersion()),
 					PullSecret:       swag.String(pullSecret),
 					BaseDNSDomain:    "example.com",
 					// If for the same version there is both single-arch and multi-arch release image, the logic
@@ -515,7 +515,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env"),
-					OpenshiftVersion: multiarchOpenshiftVersion,
+					OpenshiftVersion: common.TestVersion().ForArch("arm64").MultiVersion(),
 					PullSecret:       swag.String(pullSecret),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeFullIso,
@@ -541,7 +541,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			clusterReq, err := utils_test.TestContext.User2BMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:                  swag.String("test-cluster"),
-					OpenshiftVersion:      swag.String("4.13-multi"),
+					OpenshiftVersion:      swag.String(common.TestVersion().ForArch("s390x").MultiVersion()),
 					PullSecret:            swag.String(fmt.Sprintf(psTemplate, utils_test.FakePS2)),
 					BaseDNSDomain:         "example.com",
 					UserManagedNetworking: swag.Bool(true),
@@ -580,7 +580,7 @@ var _ = Describe("[V2ClusterTests] multiarch", func() {
 			_, err := utils_test.TestContext.UserBMClient.Installer.RegisterInfraEnv(context.Background(), &installer.RegisterInfraEnvParams{
 				InfraenvCreateParams: &models.InfraEnvCreateParams{
 					Name:             swag.String("test-infra-env"),
-					OpenshiftVersion: "4.13",
+					OpenshiftVersion: common.TestVersion().ForArch("s390x").Version(),
 					PullSecret:       swag.String(pullSecret),
 					SSHAuthorizedKey: swag.String(utils_test.SshPublicKey),
 					ImageType:        models.ImageTypeMinimalIso,

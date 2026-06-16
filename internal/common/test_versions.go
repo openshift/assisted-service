@@ -2,11 +2,21 @@ package common
 
 import (
 	"fmt"
-	"slices"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/go-version"
 )
+
+type testOsImage struct {
+	Version string
+	URL     string
+}
+
+type testReleaseImage struct {
+	Version string
+	URL     string
+}
 
 type TestVersionBuilder struct {
 	arch        string
@@ -67,15 +77,14 @@ func (b *TestVersionBuilder) GreaterThanOrEqual(threshold string) *TestVersionBu
 	return b
 }
 
-// Constrains to versions that also exist in each of the given arches
 func (b *TestVersionBuilder) AvailableForArches(arches ...string) *TestVersionBuilder {
 	b.constraints = append(b.constraints, func(v string) bool {
 		for _, arch := range arches {
-			archVersions, ok := testVersionsByArch[arch]
+			archImages, ok := testOsImagesByArch[arch]
 			if !ok {
 				return false
 			}
-			if !slices.Contains(archVersions, v) {
+			if _, ok := archImages[v]; !ok {
 				return false
 			}
 		}
@@ -112,24 +121,40 @@ func (b *TestVersionBuilder) Version() string {
 }
 
 func (b *TestVersionBuilder) ReleaseVersion() string {
-	return b.Version() + ".0"
+	v := b.Version()
+	if img, ok := b.lookupReleaseImage(b.arch, v); ok {
+		return img.Version
+	}
+	// Fall back to multi-arch release URL if no standalone release exists for the selected arch
+	if img, ok := b.lookupReleaseImage(MultiCPUArchitecture, v); ok {
+		return strings.TrimSuffix(img.Version, "-"+MultiCPUArchitecture)
+	}
+	return v + ".0"
 }
 
-// Returns Version() with "-multi" appended, matching how createReleaseImage
-// stores multi-arch OpenshiftVersion fields in the database.
 func (b *TestVersionBuilder) MultiVersion() string {
 	return b.Version() + "-" + MultiCPUArchitecture
 }
 
-// Returns ReleaseVersion() with "-multi" appended, matching how createReleaseImage
-// stores multi-arch Version fields in the database.
 func (b *TestVersionBuilder) MultiReleaseVersion() string {
+	v := b.Version()
+	if img, ok := b.lookupReleaseImage(MultiCPUArchitecture, v); ok {
+		return img.Version
+	}
 	return b.ReleaseVersion() + "-" + MultiCPUArchitecture
 }
 
-// Mirrors getReleaseImageReference in internal/releasesources/release_sources.go
 func (b *TestVersionBuilder) ReleaseImageURL() string {
+	v := b.Version()
+	if img, ok := b.lookupReleaseImage(b.arch, v); ok {
+		return img.URL
+	}
+	// Fall back to multi-arch release URL if no standalone release exists for the selected arch
+	if img, ok := b.lookupReleaseImage(MultiCPUArchitecture, v); ok {
+		return img.URL
+	}
 	// Quay.io tags use "aarch64" while the service internally uses "arm64"
+	// Mirrors getReleaseImageReference in internal/releasesources/release_sources.go
 	suffix := b.arch
 	if suffix == ARM64CPUArchitecture {
 		suffix = AARCH64CPUArchitecture
@@ -137,21 +162,50 @@ func (b *TestVersionBuilder) ReleaseImageURL() string {
 	return fmt.Sprintf("quay.io/openshift-release-dev/ocp-release:%s-%s", b.ReleaseVersion(), suffix)
 }
 
+func (b *TestVersionBuilder) MultiReleaseImageURL() string {
+	v := b.Version()
+	if img, ok := b.lookupReleaseImage(MultiCPUArchitecture, v); ok {
+		return img.URL
+	}
+	return fmt.Sprintf("quay.io/openshift-release-dev/ocp-release:%s-%s", b.ReleaseVersion(), MultiCPUArchitecture)
+}
+
 func (b *TestVersionBuilder) RhcosImageURL() string {
+	v := b.Version()
+	if archImages, ok := testOsImagesByArch[b.arch]; ok {
+		if img, ok := archImages[v]; ok {
+			return img.URL
+		}
+	}
 	return fmt.Sprintf("https://mirror.openshift.com/pub/openshift-v4/%s/dependencies/rhcos/%s/%s/rhcos-%s-%s-live.%s.iso",
-		b.arch, b.Version(), b.RhcosVersion(), b.RhcosVersion(), b.arch, b.arch)
+		b.arch, v, b.RhcosVersion(), b.RhcosVersion(), b.arch, b.arch)
 }
 
 func (b *TestVersionBuilder) RhcosVersion() string {
-	return fmt.Sprintf("version-%s.123-0", strings.ReplaceAll(b.Version(), ".", ""))
+	v := b.Version()
+	if archImages, ok := testOsImagesByArch[b.arch]; ok {
+		if img, ok := archImages[v]; ok {
+			return img.Version
+		}
+	}
+	return fmt.Sprintf("version-%s.123-0", strings.ReplaceAll(v, ".", ""))
 }
 
 func (b *TestVersionBuilder) versions() []string {
-	all, ok := testVersionsByArch[b.arch]
+	archImages, ok := testOsImagesByArch[b.arch]
 	if !ok {
 		return []string{}
 	}
-	if len(b.constraints) == 0 || len(all) == 0 {
+	all := make([]string, 0, len(archImages))
+	for v := range archImages {
+		all = append(all, v)
+	}
+	sort.Slice(all, func(i, j int) bool {
+		vi, _ := version.NewVersion(all[i])
+		vj, _ := version.NewVersion(all[j])
+		return vi.LessThan(vj)
+	})
+	if len(b.constraints) == 0 {
 		return all
 	}
 	var filtered []string
@@ -161,6 +215,15 @@ func (b *TestVersionBuilder) versions() []string {
 		}
 	}
 	return filtered
+}
+
+func (b *TestVersionBuilder) lookupReleaseImage(arch, v string) (testReleaseImage, bool) {
+	if archImages, ok := testReleaseImagesByArch[arch]; ok {
+		if img, ok := archImages[v]; ok {
+			return img, true
+		}
+	}
+	return testReleaseImage{}, false
 }
 
 func (b *TestVersionBuilder) passesConstraints(v string) bool {

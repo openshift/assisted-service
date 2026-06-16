@@ -99,11 +99,11 @@ var _ = Describe("test authorization", func() {
 			Skip("auth is disabled")
 		}
 
-		userClusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "user-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS))
+		userClusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "user-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS), openshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
-		userClusterID2, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.User2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS2))
+		userClusterID2, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.User2BMClient, "user2-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS2), openshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
-		userClusterID3, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.EditclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS3))
+		userClusterID3, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.EditclusterUserBMClient, "user3-cluster", fmt.Sprintf(psTemplate, utils_test.FakePS3), openshiftVersion)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -157,7 +157,7 @@ var _ = Describe("test authorization", func() {
 
 		It("can update day2 cluster", func() {
 			// Install day1 cluster
-			clusterId, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+			clusterId, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 			infraEnvID := registerInfraEnv(&clusterId, models.ImageTypeMinimalIso).ID
 			registerHostsAndSetRoles(clusterId, *infraEnvID, utils_test.MinHosts, "test-cluster", "example.com")
@@ -442,7 +442,7 @@ var _ = Describe("Make sure that sensitive files are accessible only by owners o
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
@@ -512,7 +512,7 @@ var _ = Describe("Cluster credentials should be accessed only by cluster owner",
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 		Expect(err).ToNot(HaveOccurred())
 		clusterID = cID
 		infraEnvID = registerInfraEnv(&clusterID, models.ImageTypeMinimalIso).ID
