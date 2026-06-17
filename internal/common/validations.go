@@ -19,6 +19,7 @@ func IsAgentCompatible(expectedImage, agentImage string) bool {
 var NonIgnorableHostValidations []string = []string{
 	string(models.HostValidationIDConnected),
 	string(models.HostValidationIDHasInventory),
+	string(models.HostValidationIDInventoryNotFullyTruncated),
 	string(models.HostValidationIDMachineCidrDefined),
 	string(models.HostValidationIDHostnameUnique),
 	string(models.HostValidationIDHostnameValid),

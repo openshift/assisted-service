@@ -410,6 +410,54 @@ func (v *validator) hasInventory(c *validationContext) (ValidationStatus, string
 	}
 }
 
+func (v *validator) inventoryNotPartiallyTruncated(c *validationContext) (ValidationStatus, string) {
+	if c.inventory == nil {
+		return ValidationPending, "Missing inventory"
+	}
+
+	if c.inventory.Truncation == nil {
+		return ValidationSuccess, "Inventory is not truncated"
+	}
+
+	switch c.inventory.Truncation.Type {
+	case models.InventoryTruncationTypePartial:
+		return ValidationFailure, createTruncationReason(*c.inventory.Truncation)
+	case models.InventoryTruncationTypeFull:
+		return ValidationSuccess, "Inventory is not partially truncated (inventory fully truncated)" // To be sure we don't duplicate the message with the next validation
+	default:
+		return ValidationError, "Unexpected inventory truncation type"
+	}
+}
+
+func (v *validator) inventoryNotFullyTruncated(c *validationContext) (ValidationStatus, string) {
+	if c.inventory == nil {
+		return ValidationPending, "Missing inventory"
+	}
+
+	if c.inventory.Truncation == nil {
+		return ValidationSuccess, "Inventory is not truncated"
+	}
+
+	switch c.inventory.Truncation.Type {
+	case models.InventoryTruncationTypePartial:
+		return ValidationSuccess, "Inventory is partially truncated"
+	case models.InventoryTruncationTypeFull:
+		return ValidationFailure, createTruncationReason(*c.inventory.Truncation)
+	default:
+		return ValidationError, "Unexpected inventory truncation type"
+	}
+}
+
+func createTruncationReason(truncation models.InventoryTruncation) string {
+	ret := fmt.Sprintf("Inventory is truncated (%s)", truncation.Type)
+
+	if len(truncation.Reasons) > 0 {
+		ret = fmt.Sprintf("%s: %s", ret, strings.Join(truncation.Reasons, "; "))
+	}
+
+	return ret
+}
+
 func (v *validator) hasMinCpuCores(c *validationContext) (ValidationStatus, string) {
 	if c.inventory == nil {
 		return ValidationPending, "Missing inventory"

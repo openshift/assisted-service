@@ -11,9 +11,17 @@ import (
 type validationID models.HostValidationID
 
 const (
-	IsMediaConnected                               = validationID(models.HostValidationIDMediaConnected)
-	IsConnected                                    = validationID(models.HostValidationIDConnected)
-	HasInventory                                   = validationID(models.HostValidationIDHasInventory)
+	IsMediaConnected = validationID(models.HostValidationIDMediaConnected)
+	IsConnected      = validationID(models.HostValidationIDConnected)
+	HasInventory     = validationID(models.HostValidationIDHasInventory)
+	// InventoryNotPartiallyTruncated reports whether the agent has partially truncated the inventory,
+	// because it was too large compared to AGENT_INVENTORY_MAX_SIZE.
+	// This should not block the host from being installed, but it should be reported to the user as a warning.
+	InventoryNotPartiallyTruncated = validationID(models.HostValidationIDInventoryNotPartiallyTruncated)
+	// InventoryNotFullyTruncated reports whether the agent has fully truncated the inventory,
+	// because it was too large compared to AGENT_INVENTORY_MAX_SIZE, event after trying to truncate it partially.
+	// This should block the host from being installed, and the user should be notified that the inventory is too large.
+	InventoryNotFullyTruncated                     = validationID(models.HostValidationIDInventoryNotFullyTruncated)
 	IsMachineCidrDefined                           = validationID(models.HostValidationIDMachineCidrDefined)
 	BelongsToMachineCidr                           = validationID(models.HostValidationIDBelongsToMachineCidr)
 	HasMinCPUCores                                 = validationID(models.HostValidationIDHasMinCPUCores)
@@ -104,6 +112,8 @@ func (v validationID) category() (string, error) {
 		NoIscsiNicBelongsToMachineCidr:
 		return "network", nil
 	case HasInventory,
+		InventoryNotPartiallyTruncated,
+		InventoryNotFullyTruncated,
 		HasMinCPUCores,
 		HasMinValidDisks,
 		HasMinMemory,
