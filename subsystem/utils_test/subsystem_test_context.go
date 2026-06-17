@@ -26,19 +26,18 @@ import (
 )
 
 type SubsystemTestContext struct {
-	log                          *logrus.Logger
-	db                           *gorm.DB
-	AgentBMClient                *client.AssistedInstall
-	UserBMClient                 *client.AssistedInstall
-	Agent2BMClient               *client.AssistedInstall
-	User2BMClient                *client.AssistedInstall
-	ReadOnlyAdminUserBMClient    *client.AssistedInstall
-	UnallowedUserBMClient        *client.AssistedInstall
-	EditclusterUserBMClient      *client.AssistedInstall
-	BadAgentBMClient             *client.AssistedInstall
-	pollDefaultInterval          time.Duration
-	pollDefaultTimeout           time.Duration
-	vipAutoAllocOpenshiftVersion string
+	log                       *logrus.Logger
+	db                        *gorm.DB
+	AgentBMClient             *client.AssistedInstall
+	UserBMClient              *client.AssistedInstall
+	Agent2BMClient            *client.AssistedInstall
+	User2BMClient             *client.AssistedInstall
+	ReadOnlyAdminUserBMClient *client.AssistedInstall
+	UnallowedUserBMClient     *client.AssistedInstall
+	EditclusterUserBMClient   *client.AssistedInstall
+	BadAgentBMClient          *client.AssistedInstall
+	pollDefaultInterval       time.Duration
+	pollDefaultTimeout        time.Duration
 }
 
 func NewSubsystemTestContext(
@@ -54,22 +53,20 @@ func NewSubsystemTestContext(
 	badAgentBMClient *client.AssistedInstall,
 	pollDefaultInterval time.Duration,
 	pollDefaultTimeout time.Duration,
-	vipAutoAllocOpenshiftVersion string,
 ) *SubsystemTestContext {
 	return &SubsystemTestContext{
-		log:                          log,
-		db:                           db,
-		AgentBMClient:                agentBMClient,
-		UserBMClient:                 userBMClient,
-		Agent2BMClient:               agent2BMClient,
-		User2BMClient:                user2BMClient,
-		ReadOnlyAdminUserBMClient:    readOnlyAdminUserBMClient,
-		UnallowedUserBMClient:        unallowedUserBMClient,
-		EditclusterUserBMClient:      editclusterUserBMClient,
-		BadAgentBMClient:             badAgentBMClient,
-		pollDefaultInterval:          pollDefaultInterval,
-		pollDefaultTimeout:           pollDefaultTimeout,
-		vipAutoAllocOpenshiftVersion: vipAutoAllocOpenshiftVersion,
+		log:                       log,
+		db:                        db,
+		AgentBMClient:             agentBMClient,
+		UserBMClient:              userBMClient,
+		Agent2BMClient:            agent2BMClient,
+		User2BMClient:             user2BMClient,
+		ReadOnlyAdminUserBMClient: readOnlyAdminUserBMClient,
+		UnallowedUserBMClient:     unallowedUserBMClient,
+		EditclusterUserBMClient:   editclusterUserBMClient,
+		BadAgentBMClient:          badAgentBMClient,
+		pollDefaultInterval:       pollDefaultInterval,
+		pollDefaultTimeout:        pollDefaultTimeout,
 	}
 }
 
@@ -695,14 +692,13 @@ func (t *SubsystemTestContext) GetDefaultVmwareInventory(cidr string) *models.In
 	return &vmwareInventory
 }
 
-func (t *SubsystemTestContext) RegisterCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) (strfmt.UUID, error) {
+func (t *SubsystemTestContext) RegisterCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string, openshiftVersion string) (strfmt.UUID, error) {
 	var cluster, err = client.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
-			Name:              swag.String(clusterName),
-			OpenshiftVersion:  swag.String(t.vipAutoAllocOpenshiftVersion),
-			PullSecret:        swag.String(pullSecret),
-			BaseDNSDomain:     "example.com",
-			VipDhcpAllocation: swag.Bool(true),
+			Name:             swag.String(clusterName),
+			OpenshiftVersion: swag.String(openshiftVersion),
+			PullSecret:       swag.String(pullSecret),
+			BaseDNSDomain:    "example.com",
 		},
 	})
 	if err != nil {
