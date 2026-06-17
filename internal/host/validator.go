@@ -503,7 +503,7 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		//according to that information
 		luks, err := hostutil.GetDiskEncryptionForDay2(v.log, c.host)
 		if err != nil {
-			if swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+			if !common.IsConfigured(c.cluster.DiskEncryption) {
 				return ValidationSuccessSuppressOutput, ""
 			}
 			return ValidationPending, "Missing ignition information"
@@ -538,12 +538,12 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		if !common.EnabledForRole(*c.cluster.DiskEncryption, role) {
 			return ValidationSuccessSuppressOutput, ""
 		}
-		if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+		if common.IsSetWithTang(c.cluster.DiskEncryption) {
 			status, message = v.areTangServersReachable(c)
 			if status == ValidationFailure {
 				return status, message
 			}
-		} else { // Mode TPMv2
+		} else if common.IsSetWithTpm(c.cluster.DiskEncryption) {
 			status = boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 		}
 

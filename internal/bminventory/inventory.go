@@ -443,11 +443,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	}
 	if params.NewClusterParams.DiskEncryption == nil {
-		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{
-			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
-			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
-		}
+		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{}
 	}
+	common.ApplyDiskEncryptionDefaults(params.NewClusterParams.DiskEncryption)
 
 	params.NewClusterParams.NetworkType, err = getDefaultNetworkType(params)
 	if err != nil {

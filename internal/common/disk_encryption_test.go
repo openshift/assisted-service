@@ -32,6 +32,11 @@ var _ = Describe("RequestsConfiguration", func() {
 		Expect(RequestsConfiguration(&models.DiskEncryption{
 			TangServers: `[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
 		})).To(BeTrue())
+		Expect(RequestsDiskEncryptionConfiguration(
+			nil,
+			swag.String(models.DiskEncryptionModeTang),
+			`[{"url":"http://tang.example.com:7500","thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`,
+		)).To(BeTrue())
 	})
 })
 
@@ -119,6 +124,25 @@ var _ = Describe("ApplyDiskEncryptionDefaults", func() {
 	})
 })
 
+var _ = Describe("HasMode", func() {
+	It("returns false for nil or non-matching mode", func() {
+		Expect(HasMode(nil, models.DiskEncryptionModeTang)).To(BeFalse())
+		Expect(HasMode(&models.DiskEncryption{}, models.DiskEncryptionModeTang)).To(BeFalse())
+		Expect(HasMode(&models.DiskEncryption{
+			Mode: swag.String(models.DiskEncryptionModeTpmv2),
+		}, models.DiskEncryptionModeTang)).To(BeFalse())
+	})
+
+	It("returns true when mode matches", func() {
+		Expect(HasMode(&models.DiskEncryption{
+			Mode: swag.String(models.DiskEncryptionModeTang),
+		}, models.DiskEncryptionModeTang)).To(BeTrue())
+		Expect(HasMode(&models.DiskEncryption{
+			Mode: swag.String(models.DiskEncryptionModeTpmv2),
+		}, models.DiskEncryptionModeTpmv2)).To(BeTrue())
+	})
+})
+
 var _ = Describe("IsSetWithTpm", func() {
 	It("returns false when TPM encryption is not configured", func() {
 		Expect(IsSetWithTpm(nil)).To(BeFalse())
@@ -140,6 +164,34 @@ var _ = Describe("IsSetWithTpm", func() {
 		Expect(IsSetWithTpm(&models.DiskEncryption{
 			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
 			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		})).To(BeTrue())
+	})
+})
+
+var _ = Describe("IsSetWithTang", func() {
+	It("returns false when Tang encryption is not configured", func() {
+		Expect(IsSetWithTang(nil)).To(BeFalse())
+		Expect(IsSetWithTang(&models.DiskEncryption{
+			EnableOn: swag.String(""),
+			Mode:     swag.String(models.DiskEncryptionModeTang),
+		})).To(BeFalse())
+		Expect(IsSetWithTang(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
+			Mode:     swag.String(models.DiskEncryptionModeTang),
+		})).To(BeFalse())
+		Expect(IsSetWithTang(&models.DiskEncryption{
+			Mode: swag.String(models.DiskEncryptionModeTang),
+		})).To(BeFalse())
+		Expect(IsSetWithTang(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+		})).To(BeFalse())
+	})
+
+	It("returns true when Tang encryption is configured", func() {
+		Expect(IsSetWithTang(&models.DiskEncryption{
+			EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+			Mode:     swag.String(models.DiskEncryptionModeTang),
 		})).To(BeTrue())
 	})
 })

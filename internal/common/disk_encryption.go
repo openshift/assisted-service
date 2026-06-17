@@ -26,9 +26,20 @@ func RequestsConfiguration(diskEncryption *models.DiskEncryption) bool {
 	if diskEncryption == nil {
 		return false
 	}
-	return IsEnabled(diskEncryption.EnableOn) ||
-		swag.StringValue(diskEncryption.Mode) == models.DiskEncryptionModeTang ||
-		diskEncryption.TangServers != ""
+	return RequestsDiskEncryptionConfiguration(
+		diskEncryption.EnableOn,
+		diskEncryption.Mode,
+		diskEncryption.TangServers,
+	)
+}
+
+// RequestsDiskEncryptionConfiguration reports whether disk encryption fields carry explicit
+// configuration beyond disabled defaults. Use this when the caller has separate fields
+// instead of a models.DiskEncryption payload (for example AgentClusterInstall spec).
+func RequestsDiskEncryptionConfiguration(enableOn, mode *string, tangServers string) bool {
+	return IsEnabled(enableOn) ||
+		HasMode(&models.DiskEncryption{Mode: mode}, models.DiskEncryptionModeTang) ||
+		tangServers != ""
 }
 
 // DiskEncryptionFieldDefaults returns enable_on and mode with defaults for nil or empty values.
@@ -54,15 +65,22 @@ func ApplyDiskEncryptionDefaults(diskEncryption *models.DiskEncryption) {
 	diskEncryption.Mode = swag.String(mode)
 }
 
-// IsSetWithTpm reports whether TPM-based disk encryption is configured for any role.
-func IsSetWithTpm(diskEncryption *models.DiskEncryption) bool {
+// HasMode reports whether disk encryption mode equals the given value.
+func HasMode(diskEncryption *models.DiskEncryption, mode string) bool {
 	if diskEncryption == nil {
 		return false
 	}
-	if !IsEnabled(diskEncryption.EnableOn) {
-		return false
-	}
-	return swag.StringValue(diskEncryption.Mode) == models.DiskEncryptionModeTpmv2
+	return swag.StringValue(diskEncryption.Mode) == mode
+}
+
+// IsSetWithTpm reports whether TPM-based disk encryption is configured for any role.
+func IsSetWithTpm(diskEncryption *models.DiskEncryption) bool {
+	return IsConfigured(diskEncryption) && HasMode(diskEncryption, models.DiskEncryptionModeTpmv2)
+}
+
+// IsSetWithTang reports whether Tang-based disk encryption is configured for any role.
+func IsSetWithTang(diskEncryption *models.DiskEncryption) bool {
+	return IsConfigured(diskEncryption) && HasMode(diskEncryption, models.DiskEncryptionModeTang)
 }
 
 // EnabledForRole reports whether disk encryption is enabled for the given host role.

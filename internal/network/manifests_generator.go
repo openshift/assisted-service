@@ -22,7 +22,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"gorm.io/gorm"
 )
 
@@ -346,14 +345,9 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		"CIPHER": m.GetDiskEncryptionCipher(log),
 	}
 
-	switch *c.DiskEncryption.Mode {
-
-	case models.DiskEncryptionModeTpmv2:
-
+	if common.IsSetWithTpm(c.DiskEncryption) {
 		manifestParams["MODE"] = "tpm"
-
-	case models.DiskEncryptionModeTang:
-
+	} else if common.IsSetWithTang(c.DiskEncryption) {
 		tangServers, err := tang.UnmarshalTangServers(c.DiskEncryption.TangServers)
 		if err != nil {
 			log.WithError(err).Error("failed to unmarshal tang_server from cluster object")
@@ -364,17 +358,16 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		manifestParams["TANG_SERVERS"] = tangServers
 	}
 
-	enabledGroups := strings.Split(swag.StringValue(c.DiskEncryption.EnableOn), ",")
-	isDiskEncryptionOnAll := swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll
+	diskEncryption := *c.DiskEncryption
 
-	if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
+	if common.EnabledForRole(diskEncryption, models.HostRoleMaster) {
 		manifestParams["ROLE"] = "master"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
 		}
 	}
 
-	if (isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters)) &&
+	if common.EnabledForRole(diskEncryption, models.HostRoleArbiter) &&
 		common.IsClusterTopologyHighlyAvailableArbiter(c) {
 		manifestParams["ROLE"] = "arbiter"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
@@ -382,7 +375,7 @@ func (m *ManifestsGenerator) AddDiskEncryptionManifest(ctx context.Context, log 
 		}
 	}
 
-	if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
+	if common.EnabledForRole(diskEncryption, models.HostRoleWorker) {
 		manifestParams["ROLE"] = "worker"
 		if err := m.createDiskEncryptionManifest(ctx, log, c, manifestParams); err != nil {
 			return err
