@@ -4183,7 +4183,7 @@ func registerHostsAndSetRoles(clusterID, infraenvID strfmt.UUID, numHosts int, c
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	cluster := utils_test.TestContext.GetCluster(clusterID)
-	if cluster.DiskEncryption != nil && swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+	if common.IsSetWithTang(cluster.DiskEncryption) {
 		utils_test.TestContext.GenerateTangPostStepReply(ctx, true, hosts...)
 	}
 
@@ -4245,7 +4245,7 @@ func registerHostsAndSetRolesTang(clusterID, infraenvID strfmt.UUID, numHosts in
 	}
 	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	cluster := utils_test.TestContext.GetCluster(clusterID)
-	if cluster.DiskEncryption != nil && swag.StringValue(cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+	if common.IsSetWithTang(cluster.DiskEncryption) {
 		utils_test.TestContext.GenerateTangPostStepReply(ctx, tangValidated, hosts...)
 	}
 

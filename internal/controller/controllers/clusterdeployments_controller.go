@@ -1438,7 +1438,12 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if clusterInstall.Spec.DiskEncryption != nil && common.IsEnabled(clusterInstall.Spec.DiskEncryption.EnableOn) {
+	if clusterInstall.Spec.DiskEncryption != nil &&
+		common.RequestsDiskEncryptionConfiguration(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+			clusterInstall.Spec.DiskEncryption.TangServers,
+		) {
 		enableOn, mode := common.DiskEncryptionFieldDefaults(
 			clusterInstall.Spec.DiskEncryption.EnableOn,
 			clusterInstall.Spec.DiskEncryption.Mode,
