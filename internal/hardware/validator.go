@@ -23,7 +23,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 	"k8s.io/utils/ptr"
 )
 
@@ -408,24 +407,18 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 		return nil, err
 	}
 	if common.IsSetWithTpm(cluster.DiskEncryption) {
-		valid := false
-		isDiskEncryptionOnAll := swag.StringValue(cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnAll
-		enabledGroups := strings.Split(swag.StringValue(cluster.DiskEncryption.EnableOn), ",")
+		diskEncryption := *cluster.DiskEncryption
+		if !common.EnabledForRole(diskEncryption, models.HostRoleMaster) &&
+			!common.EnabledForRole(diskEncryption, models.HostRoleArbiter) &&
+			!common.EnabledForRole(diskEncryption, models.HostRoleWorker) {
+			return nil, fmt.Errorf("disk-encryption is enabled on non-valid role: %s", swag.StringValue(cluster.DiskEncryption.EnableOn))
+		}
 
-		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnMasters) {
-			valid = true
+		if common.EnabledForRole(diskEncryption, models.HostRoleMaster) {
 			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
 		}
-		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnArbiters) {
-			valid = true
-		}
-		if isDiskEncryptionOnAll || funk.ContainsString(enabledGroups, models.DiskEncryptionEnableOnWorkers) {
-			valid = true
+		if common.EnabledForRole(diskEncryption, models.HostRoleWorker) {
 			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
-		}
-
-		if !valid {
-			return nil, fmt.Errorf("disk-encryption is enabled on non-valid role: %s", swag.StringValue(cluster.DiskEncryption.EnableOn))
 		}
 	}
 
