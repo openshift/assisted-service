@@ -56,6 +56,7 @@ func NewManifestsGenerator(manifestsApi manifestsapi.ManifestsAPI, config Config
 
 const defaultChronyConf = `
 pool 0.rhel.pool.ntp.org iburst
+sourcedir /run/chrony-dhcp
 driftfile /var/lib/chrony/drift
 makestep 1.0 3
 rtcsync
