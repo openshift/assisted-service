@@ -674,7 +674,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 	if err := validations.ValidateNetworkCIDRs(params.NewClusterParams.MachineNetworks, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
+	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion), false); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil
@@ -2266,7 +2266,7 @@ func (b *bareMetalInventory) validateUpdateCluster(
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
 	alreadyUserManagedLoadBalancer := network.IsLoadBalancerUserManaged(cluster)
 
-	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, alreadyUserManagedLoadBalancer, cluster.OpenshiftVersion); err != nil {
+	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, alreadyUserManagedLoadBalancer, cluster.OpenshiftVersion, common.IsClusterTopologyHighlyAvailableArbiter(cluster)); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 
