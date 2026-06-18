@@ -62,6 +62,12 @@ const highlyAvailableInfrastructureTopologyPatch = `---
   value: HighlyAvailable
 `
 
+const dualReplicaControlPlaneTopologyPatch = `---
+- op: replace
+  path: /status/controlPlaneTopology
+  value: DualReplica
+`
+
 type clusterVersion struct {
 	APIVersion string `yaml:"apiVersion"`
 	Metadata   struct {
@@ -453,6 +459,9 @@ func (g *installerGenerator) applyManifestPatches(ctx context.Context) error {
 func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) error {
 	log := logutil.FromContext(ctx, g.log)
 
+	needsInfraTopologyPatch := false
+	needsControlPlaneTopologyPatch := false
+
 	// hosts roles are known at this stage
 	_, _, workers, _ := common.GetHostsByEachRole(&g.cluster.Cluster, false)
 	// Patch the InfrastructureCR only if there is exactly one worker.
@@ -460,13 +469,20 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	// When there are no workers, the control plane nodes also act as workers, so 'infrastructureTopology: HighlyAvailable' is set automatically.
 	// Explicitly set 'infrastructureTopology: HighlyAvailable' for a single-worker setup, as specified in
 	// https://github.com/openshift/assisted-service/blob/master/docs/enhancements/4-nodes-cluster-deployment.md
-	numberOfWorkers := len(workers)
-	if numberOfWorkers != 1 {
-		log.Debugf("There are '%d' workers, no need to patch the Infrastructure CR", numberOfWorkers)
-		return nil
+	if len(workers) == 1 {
+		log.Infof("Patching Infrastructure CR: Number of workers: %d", len(workers))
+		needsInfraTopologyPatch = true
 	}
 
-	log.Infof("Patching Infrastructure CR: Number of workers: %d", numberOfWorkers)
+	if common.IsClusterTopologyTwoNodesWithFencing(g.cluster) {
+		log.Info("Patching Infrastructure CR: setting controlPlaneTopology to DualReplica for TNF cluster")
+		needsControlPlaneTopologyPatch = true
+	}
+
+	if !needsInfraTopologyPatch && !needsControlPlaneTopologyPatch {
+		log.Debug("No Infrastructure CR patches needed")
+		return nil
+	}
 
 	infraManifest := filepath.Join(g.workDir, "manifests", "cluster-infrastructure-02-config.yml")
 	data, err := os.ReadFile(infraManifest)
@@ -475,11 +491,21 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	}
 	log.Debugf("read the infrastructure manifest at %s", infraManifest)
 
-	data, err = common.ApplyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
-	if err != nil {
-		return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
+	if needsInfraTopologyPatch {
+		data, err = common.ApplyYamlPatch(data, []byte(highlyAvailableInfrastructureTopologyPatch))
+		if err != nil {
+			return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
+		}
 	}
-	log.Debugf("applied the yaml patch to the infrastructure manifest at %s: \n %s", infraManifest, string(data[:]))
+
+	if needsControlPlaneTopologyPatch {
+		data, err = common.ApplyYamlPatch(data, []byte(dualReplicaControlPlaneTopologyPatch))
+		if err != nil {
+			return errors.Wrapf(err, "failed to patch Infrastructure Manifest \"%s\"", infraManifest)
+		}
+	}
+
+	log.Debugf("applied patches to the infrastructure manifest at %s: \n %s", infraManifest, string(data[:]))
 
 	err = os.WriteFile(infraManifest, data, 0600)
 	if err != nil {
