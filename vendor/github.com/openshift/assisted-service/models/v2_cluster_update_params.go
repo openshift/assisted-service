@@ -102,6 +102,9 @@ type V2ClusterUpdateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
+	// A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for the cluster hosts.
+	NtpSources *string `json:"ntp_sources,omitempty"`
+
 	// List of OLM operators to be installed.
 	// For the full list of supported operators, check the endpoint `/v2/supported-operators`:
 	//

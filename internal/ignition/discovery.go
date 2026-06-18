@@ -108,6 +108,22 @@ IMAGE=$(echo $1 | sed 's/[@:].*//')
 podman images | grep $IMAGE || podman rmi --force $1 || true
 `
 
+const agentPullImage = `#!/usr/bin/sh
+IMAGE=$1
+DELAY=5
+MAX_DELAY=300
+podman image exists "$IMAGE" && exit 0
+while true; do
+    podman pull "$IMAGE" && exit 0
+    echo "Pull failed for $IMAGE, retrying in ${DELAY}s..."
+    sleep $DELAY
+    DELAY=$((DELAY * 2))
+    if [ $DELAY -gt $MAX_DELAY ]; then
+        DELAY=$MAX_DELAY
+    fi
+done
+`
+
 const okdBinariesOverlayTemplate = `#!/bin/env bash
 set -eux
 # Fetch an image with OKD rpms
@@ -290,9 +306,14 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 
 	// If the list of additional NTP sources is empty then we want to pass an empty list to the
 	// template, but the Split method returns a slice with one empty element in that case.
-	additionalNtpSources := strings.Split(infraEnv.AdditionalNtpSources, ",")
-	if len(additionalNtpSources) == 1 && additionalNtpSources[0] == "" {
-		additionalNtpSources = []string{}
+	// When ntp_sources is set, use it for discovery so the user's servers are available from the start.
+	ntpSourcesRaw := infraEnv.AdditionalNtpSources
+	if infraEnv.NtpSources != "" {
+		ntpSourcesRaw = infraEnv.NtpSources
+	}
+	desiredNtpSources := strings.Split(ntpSourcesRaw, ",")
+	if len(desiredNtpSources) == 1 && desiredNtpSources[0] == "" {
+		desiredNtpSources = []string{}
 	}
 
 	var ignitionParams = map[string]interface{}{
@@ -303,6 +324,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"PullSecretToken":     pullSecretToken,
 		"AGENT_MOTD":          url.PathEscape(agentMessageOfTheDay),
 		"AGENT_FIX_BZ1964591": url.PathEscape(agentFixBZ1964591),
+		"AGENT_PULL_IMAGE":    url.PathEscape(agentPullImage),
 		"IPv6_CONF":           url.PathEscape(common.Ipv6DuidDiscoveryConf),
 		"PULL_SECRET":         url.PathEscape(infraEnv.PullSecret),
 		"RH_ROOT_CA":          rhCa,
@@ -317,7 +339,8 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
 		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
 		"ProfileProxyExports":  dataurl.EncodeBytes([]byte(GetProfileProxyEntries(httpProxy, httpsProxy, noProxy))),
-		"AdditionalNtpSources": additionalNtpSources,
+		"DesiredNtpSources":    desiredNtpSources,
+		"OverwriteNtpConfig":   infraEnv.NtpSources != "",
 	}
 	if safeForLogs {
 		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {

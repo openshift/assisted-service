@@ -2,12 +2,9 @@ package installercache
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"syscall"
 	"testing"
@@ -16,6 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -51,6 +49,9 @@ var _ = Describe("release event", func() {
 			releaseID:       releaseID,
 			cached:          false,
 			extractDuration: 19.5,
+			cleanup: func() error {
+				return nil
+			},
 		}
 		eventsHandler.EXPECT().V2AddMetricsEvent(
 			ctx, &clusterID, nil, nil, "", models.EventSeverityInfo, metricEventInstallerCacheRelease, gomock.Any(),
@@ -98,8 +99,6 @@ var _ = Describe("installer cache", func() {
 		var err error
 		cacheDir, err = os.MkdirTemp("/tmp", "cacheDir")
 		Expect(err).NotTo(HaveOccurred())
-		Expect(os.Mkdir(filepath.Join(cacheDir, "quay.io"), 0755)).To(Succeed())
-		Expect(os.Mkdir(filepath.Join(filepath.Join(cacheDir, "quay.io"), "release-dev"), 0755)).To(Succeed())
 		manager, err = New(getInstallerCacheConfig(12, 5), eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).NotTo(HaveOccurred())
 		ctx = context.TODO()
@@ -404,51 +403,68 @@ var _ = Describe("installer cache", func() {
 		Expect(getUsedBytesForDirectory(manager.config.CacheDir)).To(BeNumerically("<=", manager.config.MaxCapacity))
 	})
 
-	It("should remove expired links while leaving non expired links intact", func() {
+	It("should reset the cache directory contents on construction", func() {
+		cacheConfig := getInstallerCacheConfig(10, 5)
 
-		numberOfLinks := 10
-		numberOfExpiredLinks := 5
-		directory, err := os.MkdirTemp("", "testPruneExpiredHardLinks")
+		Expect(os.MkdirAll(cacheConfig.CacheDir, 0755)).To(Succeed())
+		Expect(os.WriteFile(filepath.Join(cacheConfig.CacheDir, "test.txt"), []byte("test"), 0600)).To(Succeed())
+
+		_, err := New(cacheConfig, eventsHandler, metricsAPI, diskStatsHelper, logrus.New())
 		Expect(err).ToNot(HaveOccurred())
 
-		defer os.RemoveAll(directory)
+		_, err = os.Stat(filepath.Join(cacheConfig.CacheDir, "test.txt"))
+		Expect(os.IsNotExist(err)).To(BeTrue())
+	})
+})
 
-		for i := 0; i < numberOfLinks; i++ {
-			var someFile *os.File
-			someFile, err = os.CreateTemp(directory, "somefile")
-			Expect(err).ToNot(HaveOccurred())
-			linkPath := filepath.Join(directory, fmt.Sprintf("ln_%s", uuid.NewString()))
-			err = os.Link(someFile.Name(), linkPath)
-			Expect(err).ToNot(HaveOccurred())
-			if i > numberOfExpiredLinks-1 {
-				err = os.Chtimes(linkPath, time.Now().Add(-10*time.Minute), time.Now().Add(-10*time.Minute))
-				Expect(err).ToNot(HaveOccurred())
-			}
-		}
+var _ = Describe("Size.Decode", func() {
+	const (
+		oneGiB int64 = 1024 * 1024 * 1024
+		oneGB  int64 = 1000 * 1000 * 1000
+	)
 
-		links := make([]*fileInfo, 0)
-		err = filepath.Walk(directory, func(path string, info fs.FileInfo, err error) error {
-			if strings.HasPrefix(info.Name(), "ln_") {
-				links = append(links, &fileInfo{path, info})
-			}
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(len(links)).To(Equal(10))
+	DescribeTable("accepts unambiguous strings",
+		func(input string, expected Size) {
+			var s Size
+			Expect(s.Decode(input)).To(Succeed())
+			Expect(s).To(Equal(expected))
+		},
 
-		manager.pruneExpiredHardLinks(links, linkPruningGracePeriod)
+		Entry("gibibytes", "20GiB", Size(20*oneGiB)),
+		Entry("mebibytes", "512MiB", Size(512*1024*1024)),
+		Entry("gigabyte", "20GB", Size(20*oneGB)),
+		Entry("megabytes", "512MB", Size(512*1000*1000)),
+		Entry("zero", "0", Size(0)),
+		Entry("zero with unit", "0GiB", Size(0)),
+		Entry("space between magnitude and unit", "20 GiB", Size(20*oneGiB)),
+	)
 
-		linkCount := 0
-		err = filepath.Walk(directory, func(path string, info fs.FileInfo, err error) error {
-			if strings.HasPrefix(info.Name(), "ln_") {
-				linkCount++
-			}
-			return nil
-		})
-		Expect(err).ToNot(HaveOccurred())
-		Expect(linkCount).To(Equal(numberOfLinks - numberOfExpiredLinks))
+	It("does not equate decimal GB with binary GiB", func() {
+		var gb, gib Size
+		Expect(gb.Decode("20GB")).To(Succeed())
+		Expect(gib.Decode("20GiB")).To(Succeed())
+		Expect(gb).NotTo(Equal(gib))
 	})
 
+	DescribeTable("rejects non-canonical unit casing",
+		func(input string) {
+			var s Size
+			Expect(s.Decode(input)).NotTo(Succeed())
+		},
+		Entry("lowercase gb", "20gb"),
+		Entry("all-caps iB suffix", "20GIB"),
+		Entry("mixed Gib looks like giga-bit not gibibyte", "20Gib"),
+		Entry("bare G without B", "20G"),
+	)
+
+	DescribeTable("rejects invalid spellings",
+		func(input string) {
+			var s Size
+			Expect(s.Decode(input)).NotTo(Succeed())
+		},
+		Entry("unit only", "GiB"),
+		Entry("unknown suffix", "20XB"),
+	)
 })
 
 func TestInstallerCache(t *testing.T) {

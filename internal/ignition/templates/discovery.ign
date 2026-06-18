@@ -54,7 +54,7 @@
         "enabled": true,
         "contents": {{ executeTemplate "systemd-journal-gatewayd.socket" . | toString | toJson }}
     }
-    {{end}}{{if .AdditionalNtpSources}},
+    {{end}}{{if .DesiredNtpSources}},
     {
         "name": "add-ntp-sources.service",
         "enabled": true,
@@ -72,6 +72,15 @@
           "name": "root"
       },
       "contents": { "source": "data:,{{.AGENT_FIX_BZ1964591}}" }
+    },
+    {
+      "overwrite": true,
+      "path": "/usr/local/bin/agent-pull-image",
+      "mode": 493,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.AGENT_PULL_IMAGE}}" }
     },
     {
       "overwrite": true,
@@ -269,7 +278,7 @@
         "name": "root"
       },
       "contents": { "source": "{{.ProfileProxyExports}}" }
-    }{{end}}{{if .AdditionalNtpSources}},
+    }{{end}}{{if .DesiredNtpSources}},
     {
       "path": "/usr/local/bin/add-ntp-sources.sh",
       "mode": 493,

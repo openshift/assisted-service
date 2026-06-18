@@ -6952,6 +6952,8 @@ var allValidationIDs = []validationID{
 	IsMediaConnected,
 	IsConnected,
 	HasInventory,
+	InventoryNotPartiallyTruncated,
+	InventoryNotFullyTruncated,
 	IsMachineCidrDefined,
 	BelongsToMachineCidr,
 	HasMinCPUCores,
@@ -7174,6 +7176,22 @@ var _ = Describe("State machine test - refresh transition", func() {
 			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
 
 			refreshHostArgs.conditions[string(NoIscsiNicBelongsToMachineCidr)] = true
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))
+		})
+
+		It("Moves from known to insufficient when inventory is fully truncated", func() {
+			refreshHostArgs.conditions[string(InventoryNotFullyTruncated)] = false
+			// The "Host not ready" transition also requires its second Or to be true; with all other
+			// validations passing, Not(VSphereHostUUIDEnabled) satisfies that disjunct.
+			refreshHostArgs.conditions[string(VSphereHostUUIDEnabled)] = false
+
+			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
+			Expect(string(testState.State())).To(Equal(models.HostStatusInsufficient))
+
+			refreshHostArgs.conditions[string(InventoryNotFullyTruncated)] = true
+			refreshHostArgs.conditions[string(VSphereHostUUIDEnabled)] = true
 
 			Expect(stateMachine.Run(TransitionTypeRefresh, testState, &refreshHostArgs)).To(Succeed())
 			Expect(string(testState.State())).To(Equal(models.HostStatusKnown))

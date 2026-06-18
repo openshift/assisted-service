@@ -74,10 +74,14 @@ var _ = Describe("Cluster with Platform", func() {
 
 	Context("vSphere", func() {
 		It("vSphere cluster on OCP 4.13 - Success", func() {
+			openShiftVersion, ok := common.TestVersion().GreaterThanOrEqual("4.13").TryVersion()
+			if !ok {
+				Skip("4.13 not available")
+			}
 			cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.13"),
+					OpenshiftVersion:  swag.String(openShiftVersion),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -87,11 +91,15 @@ var _ = Describe("Cluster with Platform", func() {
 			Expect(*cluster.GetPayload().Platform.Type).Should(Equal(models.PlatformTypeVsphere))
 		})
 
-		It("vSphere cluster on OCP 4.13 with dual stack - Succeess", func() {
+		It("vSphere cluster on OCP 4.13 with dual stack - Success", func() {
+			openShiftVersion, ok := common.TestVersion().GreaterThanOrEqual("4.13").TryVersion()
+			if !ok {
+				Skip("4.13 not available")
+			}
 			_, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String("4.13"),
+					OpenshiftVersion:  swag.String(openShiftVersion),
 					ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
 					PullSecret:        swag.String(pullSecret),
 					Platform:          &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeVsphere)},
@@ -603,13 +611,11 @@ var _ = Describe("V2ListClusters", func() {
 
 		registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:     "example.com",
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
-				PullSecret:        swag.String(pullSecret),
-				SSHPublicKey:      utils_test.SshPublicKey,
-				VipDhcpAllocation: swag.Bool(true),
-				NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
+				BaseDNSDomain:    "example.com",
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
+				SSHPublicKey:     utils_test.SshPublicKey,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -621,7 +627,7 @@ var _ = Describe("V2ListClusters", func() {
 
 		BeforeEach(func() {
 			infraEnvID := registerInfraEnv(cluster.ID, models.ImageTypeMinimalIso).ID
-			registerHostsAndSetRolesDHCP(*cluster.ID, *infraEnvID, 5, "test-cluster", "example.com")
+			registerHostsAndSetRoles(*cluster.ID, *infraEnvID, 5, "test-cluster", "example.com")
 			_ = installCluster(*cluster.ID)
 		})
 
@@ -731,6 +737,10 @@ var _ = Describe("cluster install - DHCP", func() {
 	}
 
 	BeforeEach(func() {
+		version, ok := common.TestVersion().LessThan("4.15").TryVersion()
+		if !ok {
+			Skip("VIP DHCP auto-allocation requires OpenShiftSDN (OCP < 4.15)")
+		}
 
 		registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -738,7 +748,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 				ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
+				OpenshiftVersion:  swag.String(version),
 				PullSecret:        swag.String(pullSecret),
 				SSHPublicKey:      utils_test.SshPublicKey,
 				VipDhcpAllocation: swag.Bool(true),
@@ -1244,7 +1254,7 @@ var _ = Describe("cluster install", func() {
 					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:              swag.String("sno-cluster"),
-					OpenshiftVersion:  swag.String(snoVersion),
+					OpenshiftVersion:  swag.String(openshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      utils_test.SshPublicKey,
 					VipDhcpAllocation: swag.Bool(false),
@@ -1364,7 +1374,7 @@ var _ = Describe("cluster install", func() {
 						{Cidr: models.Subnet(machineCIDR)},
 						{Cidr: models.Subnet(machineCIDRv6)}},
 					Name:              swag.String("sno-cluster"),
-					OpenshiftVersion:  swag.String(snoVersion),
+					OpenshiftVersion:  swag.String(openshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      utils_test.SshPublicKey,
 					VipDhcpAllocation: swag.Bool(false),
@@ -1404,7 +1414,7 @@ var _ = Describe("cluster install", func() {
 						{Cidr: models.Subnet(machineCIDR)},
 						{Cidr: models.Subnet(machineCIDRv6)}},
 					Name:              swag.String("sno-cluster"),
-					OpenshiftVersion:  swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion:  swag.String(openshiftVersion),
 					PullSecret:        swag.String(pullSecret),
 					SSHPublicKey:      utils_test.SshPublicKey,
 					VipDhcpAllocation: swag.Bool(false),
@@ -3613,7 +3623,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+		cID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 		Expect(err).ToNot(HaveOccurred())
 
 		clusterID = cID
@@ -3713,20 +3723,26 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 
 var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 	var (
-		ctx                   = context.Background()
+		ctx = context.Background()
+		// RAMMib is version-dependent (see internal/operators/lvm/config.go);
+		// update if a new threshold is added for future OCP versions.
 		masterLVMRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores: 1,
-			RAMMib:   400,
+			RAMMib:   100,
 		}
 	)
-	It("should be reported for 4.13 cluster", func() {
+	It("should be reported for cluster with LVMS support", func() {
+		// LVMS resource requirements changed at 4.16 (see lvm/config.go)
+		version, ok := common.TestVersion().GreaterThanOrEqual("4.16").TryVersion()
+		if !ok {
+			Skip("LVMS resource requirements require OCP >= 4.16")
+		}
 		var cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String("4.13.0"),
-				PullSecret:        swag.String(pullSecret),
-				BaseDNSDomain:     "example.com",
-				VipDhcpAllocation: swag.Bool(true),
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(version),
+				PullSecret:       swag.String(pullSecret),
+				BaseDNSDomain:    "example.com",
 			},
 		})
 		Expect(err).ToNot(HaveOccurred())
@@ -3747,11 +3763,16 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+	// SNO LVMS CPU requirement: 8 cores (<=4.21) -> 4 cores (>=4.22)
 	It("should report 4 CPU cores for SNO on OCP 4.22 and above", func() {
+		version, ok := common.TestVersion().GreaterThanOrEqual("4.22").TryVersion()
+		if !ok {
+			Skip("SNO LVMS 4-core requirement needs OCP >= 4.22")
+		}
 		cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("sno-422-cluster"),
-				OpenshiftVersion:  swag.String("4.22"),
+				OpenshiftVersion:  swag.String(version),
 				PullSecret:        swag.String(pullSecret),
 				BaseDNSDomain:     "example.com",
 				ControlPlaneCount: swag.Int64(1),
@@ -3769,10 +3790,14 @@ var _ = Describe("Preflight Cluster Requirements for lvms", func() {
 	})
 
 	It("should report 8 CPU cores for SNO on OCP 4.21 and below", func() {
+		version, ok := common.TestVersion().LessThanOrEqual("4.21").TryVersion()
+		if !ok {
+			Skip("SNO LVMS 8-core requirement needs OCP <= 4.21")
+		}
 		cluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("sno-421-cluster"),
-				OpenshiftVersion:  swag.String("4.21"),
+				OpenshiftVersion:  swag.String(version),
 				PullSecret:        swag.String(pullSecret),
 				BaseDNSDomain:     "example.com",
 				ControlPlaneCount: swag.Int64(1),
@@ -3831,7 +3856,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3851,7 +3876,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3869,7 +3894,12 @@ var _ = Describe("Multiple-VIPs Support", func() {
 			Expect(cluster.IngressVips).To(Equal(ingressVips))
 		})
 
-		It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative (OCP < 4.12)", func() {
+		It("Two APIVips and Two IngressVips - IPv6 first and IPv4 second - negative (pre-IPv6-primary dual-stack support)", func() {
+			// IPv6-primary dual-stack VIPs require OCP >= 4.12
+			version, ok := common.TestVersion().LessThan(common.MinimalVersionForIPV6PrimaryWithDualStack).TryVersion()
+			if !ok {
+				Skip("IPv6-primary dual-stack rejection requires OCP < " + common.MinimalVersionForIPV6PrimaryWithDualStack)
+			}
 			apiVips := []*models.APIVip{{IP: models.IP(apiVipv6)}, {IP: models.IP("8.8.8.7")}}
 			ingressVips := []*models.IngressVip{{IP: models.IP(ingressVipv6)}, {IP: models.IP("8.8.8.1")}}
 
@@ -3879,7 +3909,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String("4.11"),
+					OpenshiftVersion: swag.String(version),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3899,7 +3929,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3919,7 +3949,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3941,7 +3971,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3962,7 +3992,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -3982,7 +4012,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -4002,7 +4032,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -4022,7 +4052,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -4042,7 +4072,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					APIVips:          apiVips,
@@ -4062,7 +4092,7 @@ var _ = Describe("Multiple-VIPs Support", func() {
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(dualstackVipsOpenShiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 				},
@@ -4081,14 +4111,19 @@ var _ = Describe("Multiple-VIPs Support", func() {
 			utils_test.TestContext.ClearDB()
 		})
 
-		It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative (OCP < 4.12)", func() {
+		It("Two APIVips and Two ingressVips - IPv6 first and IPv4 second - negative (pre-IPv6-primary dual-stack support)", func() {
+			// IPv6-primary dual-stack VIPs require OCP >= 4.12
+			version, ok := common.TestVersion().LessThan(common.MinimalVersionForIPV6PrimaryWithDualStack).TryVersion()
+			if !ok {
+				Skip("IPv6-primary dual-stack rejection requires OCP < " + common.MinimalVersionForIPV6PrimaryWithDualStack)
+			}
 			reply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:    "example.com",
 					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String("4.11"),
+					OpenshiftVersion: swag.String(version),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 				},
@@ -4673,15 +4708,13 @@ var _ = Describe("Installation progress", func() {
 			// register cluster
 			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:     "example.com",
-					ClusterNetworks:   []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
-					ServiceNetworks:   []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
-					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
-					PullSecret:        swag.String(pullSecret),
-					SSHPublicKey:      utils_test.SshPublicKey,
-					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
-					VipDhcpAllocation: swag.Bool(true),
+					BaseDNSDomain:    "example.com",
+					ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
+					ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     utils_test.SshPublicKey,
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -4690,7 +4723,7 @@ var _ = Describe("Installation progress", func() {
 			// add hosts
 
 			infraEnvID = registerInfraEnv(c.ID, models.ImageTypeMinimalIso).ID
-			registerHostsAndSetRolesDHCP(*c.ID, *infraEnvID, 6, "test-cluster", "example.com")
+			registerHostsAndSetRoles(*c.ID, *infraEnvID, 6, "test-cluster", "example.com")
 
 			// add OLM operators
 
@@ -4768,7 +4801,7 @@ var _ = Describe("disk encryption", func() {
 			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(VipAutoAllocOpenshiftVersion),
+					OpenshiftVersion: swag.String(openshiftVersion),
 					PullSecret:       swag.String(pullSecret),
 					SSHPublicKey:     utils_test.SshPublicKey,
 					BaseDNSDomain:    "example.com",
@@ -4776,8 +4809,6 @@ var _ = Describe("disk encryption", func() {
 						EnableOn: swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:     swag.String(models.DiskEncryptionModeTpmv2),
 					},
-					VipDhcpAllocation: swag.Bool(true),
-					NetworkType:       swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
 				},
 			})
 			Expect(err).NotTo(HaveOccurred())
@@ -4794,7 +4825,7 @@ var _ = Describe("disk encryption", func() {
 		})
 
 		It("happy flow", func() {
-			registerHostsAndSetRolesDHCP(*c.ID, *infraEnvID, 3, "test-cluster", "example.com")
+			registerHostsAndSetRoles(*c.ID, *infraEnvID, 3, "test-cluster", "example.com")
 
 			reply, err := utils_test.TestContext.UserBMClient.Installer.V2InstallCluster(ctx, &installer.V2InstallClusterParams{ClusterID: *c.ID})
 			Expect(err).NotTo(HaveOccurred())
@@ -4838,12 +4869,11 @@ var _ = Describe("disk encryption", func() {
 			tangServers := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
 			registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:     "example.com",
-					Name:              swag.String("test-cluster"),
-					OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
-					PullSecret:        swag.String(pullSecret),
-					SSHPublicKey:      utils_test.SshPublicKey,
-					VipDhcpAllocation: swag.Bool(true),
+					BaseDNSDomain:    "example.com",
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					SSHPublicKey:     utils_test.SshPublicKey,
 					DiskEncryption: &models.DiskEncryption{
 						EnableOn:    swag.String(models.DiskEncryptionEnableOnAll),
 						Mode:        swag.String(models.DiskEncryptionModeTang),
@@ -5039,13 +5069,18 @@ var _ = Describe("Verify install-config manifest", func() {
 	}
 
 	installCluster := func(platformType models.PlatformType, overrideInstallConfig bool) {
+		// OpenShiftSDN was removed in 4.15
+		sdnVersion, ok := common.TestVersion().LessThan("4.15").TryVersion()
+		if !ok {
+			Skip("OpenShiftSDN requires OCP < 4.15")
+		}
 		registerClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:    "example.com",
 				ClusterNetworks:  []*models.ClusterNetwork{{Cidr: models.Subnet(clusterCIDR), HostPrefix: 23}},
 				ServiceNetworks:  []*models.ServiceNetwork{{Cidr: models.Subnet(serviceCIDR)}},
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(SDNNetworkTypeOpenshiftVersion),
+				OpenshiftVersion: swag.String(sdnVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     utils_test.SshPublicKey,
 				NetworkType:      swag.String(models.ClusterCreateParamsNetworkTypeOpenShiftSDN),
@@ -5104,11 +5139,15 @@ var _ = Describe("Verify role assignment for non-standard HA OCP Control Plane c
 	var ctx = context.TODO()
 
 	It("with 4 masters, 1 worker", func() {
+		version, ok := common.TestVersion().GreaterThanOrEqual(common.MinimumVersionForNonStandardHAOCPControlPlane).TryVersion()
+		if !ok {
+			Skip("no available version >= " + common.MinimumVersionForNonStandardHAOCPControlPlane)
+		}
 		reply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			Context: ctx,
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(common.MinimumVersionForNonStandardHAOCPControlPlane),
+				OpenshiftVersion:  swag.String(version),
 				PullSecret:        swag.String(pullSecret),
 				ControlPlaneCount: swag.Int64(4),
 			},

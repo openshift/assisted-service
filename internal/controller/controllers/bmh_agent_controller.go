@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common/ignition"
+	"github.com/openshift/assisted-service/internal/controller/patch"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/models"
@@ -204,52 +205,6 @@ func (r reconcileError) Stop(ctx context.Context) bool {
 	return true
 }
 
-// isEmptyPatch returns true if the patch data contains no meaningful changes.
-// With MergeFromWithOptimisticLock, a no-op patch still includes
-// {"metadata":{"resourceVersion":"..."}}, so we check for that case too.
-func isEmptyPatch(data []byte) bool {
-	var m map[string]json.RawMessage
-	if err := json.Unmarshal(data, &m); err != nil {
-		return false
-	}
-	if len(m) == 0 {
-		return true
-	}
-	if len(m) == 1 {
-		if md, ok := m["metadata"]; ok {
-			var mdm map[string]json.RawMessage
-			if err := json.Unmarshal(md, &mdm); err != nil {
-				return false
-			}
-			if len(mdm) == 1 {
-				_, hasRV := mdm["resourceVersion"]
-				return hasRV
-			}
-			return len(mdm) == 0
-		}
-	}
-	return false
-}
-
-func (r *BMACReconciler) patchIfNeeded(ctx context.Context, obj client.Object, patch client.Patch, log logrus.FieldLogger) error {
-	data, err := patch.Data(obj)
-	if err != nil {
-		return fmt.Errorf("failed to compute patch data: %w", err)
-	}
-	if isEmptyPatch(data) {
-		return nil
-	}
-	log.Debugf("Patching %s/%s", obj.GetNamespace(), obj.GetName())
-	if err := r.Client.Patch(ctx, obj, patch); err != nil {
-		if k8serrors.IsNotFound(err) {
-			log.Debugf("Object %s/%s not found during patch, skipping", obj.GetNamespace(), obj.GetName())
-			return nil
-		}
-		return fmt.Errorf("failed to patch object: %w", err)
-	}
-	return nil
-}
-
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
 
 func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrlResult ctrl.Result, retErr error) {
@@ -276,7 +231,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 
 	bmhPatch := client.MergeFromWithOptions(bmh.DeepCopy(), client.MergeFromWithOptimisticLock{})
 	defer func() {
-		if err := r.patchIfNeeded(ctx, bmh, bmhPatch, log); err != nil {
+		if err := patch.IfNeeded(ctx, r.Client, bmh, bmhPatch, log); err != nil {
 			log.WithError(err).Error("failed to patch BMH")
 			retErr = errors.Join(retErr, err)
 		}
@@ -295,7 +250,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		})
 		agentPatch := client.MergeFromWithOptions(agent.DeepCopy(), client.MergeFromWithOptimisticLock{})
 		defer func() {
-			if err := r.patchIfNeeded(ctx, agent, agentPatch, log); err != nil {
+			if err := patch.IfNeeded(ctx, r.Client, agent, agentPatch, log); err != nil {
 				log.WithError(err).Error("failed to patch Agent")
 				retErr = errors.Join(retErr, err)
 			}

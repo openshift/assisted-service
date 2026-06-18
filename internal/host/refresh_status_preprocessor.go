@@ -178,6 +178,14 @@ func newValidations(v *validator) []validation {
 			condition: v.hasInventory,
 		},
 		{
+			id:        InventoryNotPartiallyTruncated,
+			condition: v.inventoryNotPartiallyTruncated,
+		},
+		{
+			id:        InventoryNotFullyTruncated,
+			condition: v.inventoryNotFullyTruncated,
+		},
+		{
 			id:        HasMinCPUCores,
 			condition: v.hasMinCpuCores,
 		},

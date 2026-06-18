@@ -44,7 +44,7 @@ var _ = Describe("test AMS subscriptions", func() {
 
 		It("happy flow", func() {
 
-			clusterID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+			clusterID, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 			log.Infof("Register cluster %s", clusterID)
 			cc := utils_test.TestContext.GetCommonCluster(ctx, clusterID)
@@ -60,7 +60,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).To(HaveOccurred())
 			})
 
@@ -70,7 +70,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("register cluster", func() {
-				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				_, err := utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).To(HaveOccurred())
 			})
 		})
@@ -85,7 +85,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription (in 'reserved' status)", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -111,7 +111,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -144,7 +144,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -177,7 +177,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -212,7 +212,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -236,7 +236,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -277,7 +277,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})
@@ -311,7 +311,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			var err error
 
 			By("create subscription", func() {
-				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret)
+				clusterID, err = utils_test.TestContext.RegisterCluster(ctx, utils_test.TestContext.UserBMClient, "test-cluster", pullSecret, openshiftVersion)
 				Expect(err).ToNot(HaveOccurred())
 				log.Infof("Register cluster %s", clusterID)
 			})

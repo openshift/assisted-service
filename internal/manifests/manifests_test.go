@@ -949,6 +949,15 @@ invalid YAML content: {
 			Expect(err.StatusCode()).To(Equal(int32(http.StatusNotFound)))
 		})
 
+		It("rejects path traversal in file_name", func() {
+			clusterID := registerCluster().ID
+			response := manifestsAPI.V2DeleteClusterManifest(ctx, operations.V2DeleteClusterManifestParams{
+				ClusterID: *clusterID,
+				FileName:  "../../other-cluster/kubeconfig",
+			})
+			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusUnprocessableEntity, errors.New(""))))
+		})
+
 		It("deletes after installation has been started", func() {
 			clusterID := strfmt.UUID(uuid.New().String())
 			cluster := common.Cluster{
@@ -1003,6 +1012,15 @@ invalid YAML content: {
 			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.New(""))))
 			err := response.(*common.ApiErrorResponse)
 			Expect(err.StatusCode()).To(Equal(int32(http.StatusNotFound)))
+		})
+
+		It("rejects path traversal in file_name", func() {
+			clusterID := registerCluster().ID
+			response := manifestsAPI.V2DownloadClusterManifest(ctx, operations.V2DownloadClusterManifestParams{
+				ClusterID: *clusterID,
+				FileName:  "../../other-cluster/kubeconfig",
+			})
+			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusUnprocessableEntity, errors.New(""))))
 		})
 	})
 
