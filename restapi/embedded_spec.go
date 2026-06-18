@@ -6506,7 +6506,14 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "description": "List of operators associated with the bundle.",
+          "description": "List of operators always included in the bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional_operators": {
+          "description": "List of operators that can be optionally selected by the user for this bundle. All are selected by default.",
           "type": "array",
           "items": {
             "type": "string"
@@ -6515,6 +6522,25 @@ func init() {
         "title": {
           "description": "Short human friendly description for the bundle, usually only a few words, for example ` + "`" + `Virtualization` + "`" + ` or\n` + "`" + `OpenShift AI (NVIDIA)` + "`" + `.\n",
           "type": "string"
+        }
+      }
+    },
+    "bundle-create-params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "description": "Bundle identifier (e.g., \"openshift-ai\").",
+          "type": "string"
+        },
+        "optional_operators": {
+          "description": "List of optional operator names the user selected for this bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -6849,6 +6875,14 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
         },
+        "operator_bundles": {
+          "description": "Bundles that were selected for this cluster, with the optional operators chosen by the user. Derived from monitored operators' source_bundles. Not persisted directly.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
+          },
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "org_id": {
           "type": "string"
         },
@@ -7134,7 +7168,7 @@ func init() {
           "type": "string"
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
+          "description": "List of standalone OLM operators to be installed (not part of any bundle).\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
@@ -7143,6 +7177,13 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "operator_bundles": {
+          "description": "List of operator bundles selected by the user with their optional operator choices.\nThe backend expands bundles into their required operators, adds selected optional operators,\nresolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.\n",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
+          }
         },
         "platform": {
           "x-nullable": true,
@@ -10197,6 +10238,23 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "source_bundles": {
+          "description": "IDs of the bundles this operator was selected through. Empty for standalone selections. An operator can belong to multiple bundles.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
+          }
+        },
         "status": {
           "$ref": "#/definitions/operator-status"
         },
@@ -11323,10 +11381,17 @@ func init() {
           "x-nullable": true
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
+          "description": "List of standalone OLM operators to be installed (not part of any bundle).\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
+          }
+        },
+        "operator_bundles": {
+          "description": "List of operator bundles selected by the user with their optional operator choices.\nThe backend expands bundles into their required operators, adds selected optional operators,\nresolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.\n",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
           }
         },
         "platform": {
@@ -18234,7 +18299,14 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "description": "List of operators associated with the bundle.",
+          "description": "List of operators always included in the bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "optional_operators": {
+          "description": "List of operators that can be optionally selected by the user for this bundle. All are selected by default.",
           "type": "array",
           "items": {
             "type": "string"
@@ -18243,6 +18315,25 @@ func init() {
         "title": {
           "description": "Short human friendly description for the bundle, usually only a few words, for example ` + "`" + `Virtualization` + "`" + ` or\n` + "`" + `OpenShift AI (NVIDIA)` + "`" + `.\n",
           "type": "string"
+        }
+      }
+    },
+    "bundle-create-params": {
+      "type": "object",
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "description": "Bundle identifier (e.g., \"openshift-ai\").",
+          "type": "string"
+        },
+        "optional_operators": {
+          "description": "List of optional operator names the user selected for this bundle.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -18577,6 +18668,14 @@ func init() {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
         },
+        "operator_bundles": {
+          "description": "Bundles that were selected for this cluster, with the optional operators chosen by the user. Derived from monitored operators' source_bundles. Not persisted directly.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
+          },
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "org_id": {
           "type": "string"
         },
@@ -18862,7 +18961,7 @@ func init() {
           "type": "string"
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
+          "description": "List of standalone OLM operators to be installed (not part of any bundle).\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
@@ -18871,6 +18970,13 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
+        },
+        "operator_bundles": {
+          "description": "List of operator bundles selected by the user with their optional operator choices.\nThe backend expands bundles into their required operators, adds selected optional operators,\nresolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.\n",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
+          }
         },
         "platform": {
           "x-nullable": true,
@@ -21882,6 +21988,23 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "source_bundles": {
+          "description": "IDs of the bundles this operator was selected through. Empty for standalone selections. An operator can belong to multiple bundles.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "x-go-custom-tag": "gorm:\"type:text[]\"",
+          "x-go-type": {
+            "hints": {
+              "noValidation": true
+            },
+            "import": {
+              "package": "github.com/lib/pq"
+            },
+            "type": "StringArray"
+          }
+        },
         "status": {
           "$ref": "#/definitions/operator-status"
         },
@@ -22982,10 +23105,17 @@ func init() {
           "x-nullable": true
         },
         "olm_operators": {
-          "description": "List of OLM operators to be installed.\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
+          "description": "List of standalone OLM operators to be installed (not part of any bundle).\nFor the full list of supported operators, check the endpoint ` + "`" + `/v2/supported-operators` + "`" + `:\n",
           "type": "array",
           "items": {
             "$ref": "#/definitions/operator-create-params"
+          }
+        },
+        "operator_bundles": {
+          "description": "List of operator bundles selected by the user with their optional operator choices.\nThe backend expands bundles into their required operators, adds selected optional operators,\nresolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.\n",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/bundle-create-params"
           }
         },
         "platform": {

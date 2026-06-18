@@ -4280,6 +4280,18 @@ definitions:
       dependency_only:
         type: boolean
         description: Whether the operator can't be installed without being required by another operator.
+      source_bundles:
+        type: array
+        description: IDs of the bundles this operator was selected through. Empty for standalone selections. An operator can belong to multiple bundles.
+        items:
+          type: string
+        x-go-custom-tag: gorm:"type:text[]"
+        x-go-type:
+          type: StringArray
+          import:
+            package: github.com/lib/pq
+          hints:
+            noValidation: true
 
   operator-monitor-report:
     type: object
@@ -4316,6 +4328,20 @@ definitions:
         description: Blob of operator-dependent parameters that are required for installation.
         x-go-custom-tag: gorm:"type:text"
 
+  bundle-create-params:
+    type: object
+    required:
+      - id
+    properties:
+      id:
+        type: string
+        description: Bundle identifier (e.g., "openshift-ai").
+      optional_operators:
+        type: array
+        items:
+          type: string
+        description: List of optional operator names the user selected for this bundle.
+
   monitored-operators-list:
     type: array
     items:
@@ -4337,7 +4363,12 @@ definitions:
           Longer human friendly description for the bundle, usually one or more sentences.
         type: string
       operators:
-        description: List of operators associated with the bundle.
+        description: List of operators always included in the bundle.
+        type: array
+        items:
+          type: string
+      optional_operators:
+        description: List of operators that can be optionally selected by the user for this bundle. All are selected by default.
         type: array
         items:
           type: string
@@ -5243,10 +5274,18 @@ definitions:
       olm_operators:
         type: array
         description: |
-          List of OLM operators to be installed.
+          List of standalone OLM operators to be installed (not part of any bundle).
           For the full list of supported operators, check the endpoint `/v2/supported-operators`:
         items:
           $ref: '#/definitions/operator-create-params'
+      operator_bundles:
+        type: array
+        description: |
+          List of operator bundles selected by the user with their optional operator choices.
+          The backend expands bundles into their required operators, adds selected optional operators,
+          resolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.
+        items:
+          $ref: '#/definitions/bundle-create-params'
       hyperthreading:
         type: string
         description: Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
@@ -5470,10 +5509,18 @@ definitions:
       olm_operators:
         type: array
         description: |
-          List of OLM operators to be installed.
+          List of standalone OLM operators to be installed (not part of any bundle).
           For the full list of supported operators, check the endpoint `/v2/supported-operators`:
         items:
           $ref: '#/definitions/operator-create-params'
+      operator_bundles:
+        type: array
+        description: |
+          List of operator bundles selected by the user with their optional operator choices.
+          The backend expands bundles into their required operators, adds selected optional operators,
+          resolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.
+        items:
+          $ref: '#/definitions/bundle-create-params'
       hyperthreading:
         type: string
         description: Enable/disable hyperthreading on master nodes, arbiter nodes, worker nodes, or a combination of them.
@@ -5846,6 +5893,12 @@ definitions:
         description: Operators that are associated with this cluster.
         items:
           $ref: '#/definitions/monitored-operator'
+      operator_bundles:
+        type: array
+        description: Bundles that were selected for this cluster, with the optional operators chosen by the user. Derived from monitored operators' source_bundles. Not persisted directly.
+        items:
+          $ref: '#/definitions/bundle-create-params'
+        x-go-custom-tag: gorm:"-"
       ams_subscription_id:
         type: string
         format: uuid

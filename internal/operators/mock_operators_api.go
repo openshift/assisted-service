@@ -72,6 +72,21 @@ func (mr *MockAPIMockRecorder) EnsureOperatorPrerequisite(cluster, openshiftVers
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnsureOperatorPrerequisite", reflect.TypeOf((*MockAPI)(nil).EnsureOperatorPrerequisite), cluster, openshiftVersion, cpuArchitecture, operators)
 }
 
+// ExpandBundleOperators mocks base method.
+func (m *MockAPI) ExpandBundleOperators(bundleID string, optionalOperators []string, featureIDs []models.FeatureSupportLevelID) ([]*models.OperatorCreateParams, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ExpandBundleOperators", bundleID, optionalOperators, featureIDs)
+	ret0, _ := ret[0].([]*models.OperatorCreateParams)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ExpandBundleOperators indicates an expected call of ExpandBundleOperators.
+func (mr *MockAPIMockRecorder) ExpandBundleOperators(bundleID, optionalOperators, featureIDs any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExpandBundleOperators", reflect.TypeOf((*MockAPI)(nil).ExpandBundleOperators), bundleID, optionalOperators, featureIDs)
+}
+
 // GenerateManifests mocks base method.
 func (m *MockAPI) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
 	m.ctrl.T.Helper()
