@@ -24,6 +24,18 @@ import (
 // agent workflows.
 type AgentWorkflowType string
 
+type credentialKeyType string
+
+const (
+	credentialKeyHostname credentialKeyType = "hostname"
+	credentialKeyMAC      credentialKeyType = "mac"
+)
+
+type credentialKey struct {
+	keyType credentialKeyType
+	value   string
+}
+
 const (
 	// AgentWorkflowTypeInstall identifies the install workflow.
 	AgentWorkflowTypeInstall AgentWorkflowType = "install"
@@ -32,9 +44,9 @@ const (
 )
 
 // loadFencingCredentials reads the fencing-credentials.yaml file from the specified path
-// and returns a map of hostname→credentials for easy lookup during host application.
+// and returns a map of credentialKey→credentials for easy lookup during host application.
 // Returns nil map (not error) if file doesn't exist, since fencing is optional.
-func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingCredentialsParams, error) {
+func loadFencingCredentials(fencingFilePath string) (map[credentialKey]*models.FencingCredentialsParams, error) {
 	fileData, err := os.ReadFile(fencingFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -61,18 +73,19 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 		return nil, fmt.Errorf("failed to parse fencing credentials file at %s: %w", fencingFilePath, err)
 	}
 
-	credentialsMap := make(map[string]*models.FencingCredentialsParams)
+	credentialsMap := make(map[credentialKey]*models.FencingCredentialsParams)
 
 	for _, cred := range fcFile.Credentials {
 		if cred.Hostname == "" && cred.MACAddress == "" {
 			log.Warn("Skipping fencing credential with empty hostname and MAC address")
 			continue
 		}
-		var key string
+
+		var key credentialKey
 		if cred.Hostname != "" {
-			key = cred.Hostname
+			key = credentialKey{keyType: credentialKeyHostname, value: cred.Hostname}
 		} else {
-			key = cred.MACAddress
+			key = credentialKey{keyType: credentialKeyMAC, value: cred.MACAddress}
 		}
 
 		credentialsMap[key] = &models.FencingCredentialsParams{
@@ -81,7 +94,7 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 			Password:                cred.Password,
 			CertificateVerification: cred.CertificateVerification,
 		}
-		log.Infof("Loaded fencing credential for key: %s", key)
+		log.Infof("Loaded fencing credential for %s: %s", key.keyType, key.value)
 	}
 
 	log.Infof("Loaded %d fencing credentials from file", len(credentialsMap))
@@ -268,7 +281,12 @@ func applyFencingCredentials(log *log.Logger, host *models.Host, config *hostCon
 		return false, nil
 	}
 
-	log.Infof("Adding fencing credentials for hostname %s", config.hostname)
+	if config.hostname != "" {
+		log.Infof("Adding fencing credentials for hostname %s", config.hostname)
+	} else {
+		log.Info("Adding fencing credentials via MAC address match")
+	}
+
 	updateParams.FencingCredentials = creds
 	return true, nil
 }
@@ -328,8 +346,9 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 			}
 		}
 		configs = append(configs, &hostConfig{
-			configDir:    hostPath,
-			macAddresses: addresses,
+			configDir:        hostPath,
+			fencingConfigDir: hostConfigDir,
+			macAddresses:     addresses,
 		})
 	}
 
@@ -341,11 +360,15 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
 	}
 
-	// Create hostname-based hostConfig entries for each fencing credential
-	for hostname := range fencingCreds {
+	// Create hostname-based hostConfig entries only for hostname-keyed credentials.
+	// MAC-keyed credentials are handled by MAC-matched configs via FencingCredentials().
+	for key := range fencingCreds {
+		if key.keyType != credentialKeyHostname {
+			continue
+		}
 		configs = append(configs, &hostConfig{
-			configDir: hostConfigDir, // Store parent dir for lazy-loading fencing credentials
-			hostname:  hostname,
+			configDir: hostConfigDir,
+			hostname:  key.value,
 		})
 	}
 
@@ -364,6 +387,11 @@ type hostConfig struct {
 	// For hostname-based configs: parent directory (e.g., /hostconfig/)
 	// containing the shared "fencing-credentials.yaml" file.
 	configDir string
+
+	// fencingConfigDir is the parent directory containing fencing-credentials.yaml.
+	// Set on MAC-based configs so FencingCredentials() can find the file,
+	// since configDir points to the per-host subdirectory.
+	fencingConfigDir string
 
 	// macAddresses identifies the host for MAC-based configs (role, root device hints).
 	// Empty for hostname-based configs.
@@ -446,12 +474,16 @@ func (hc hostConfig) Role() (*string, error) {
 }
 
 func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, error) {
-	// Only hostname-based or MAC based configs have fencing credentials
 	if hc.hostname == "" && len(hc.macAddresses) == 0 {
 		return nil, nil
 	}
 
-	creds, err := loadFencingCredentials(filepath.Join(hc.configDir, "fencing-credentials.yaml"))
+	configDir := hc.configDir
+	if hc.fencingConfigDir != "" {
+		configDir = hc.fencingConfigDir
+	}
+
+	creds, err := loadFencingCredentials(filepath.Join(configDir, "fencing-credentials.yaml"))
 	if err != nil {
 		return nil, err
 	}
@@ -459,14 +491,13 @@ func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, err
 		return nil, nil
 	}
 
-	// lookup by hostname if present
 	if hc.hostname != "" {
-		return creds[hc.hostname], nil
+		return creds[credentialKey{keyType: credentialKeyHostname, value: hc.hostname}], nil
 	}
-	// otherwise by MAC address
 	for _, macAddress := range hc.macAddresses {
-		if _, ok := creds[macAddress]; ok {
-			return creds[macAddress], nil
+		key := credentialKey{keyType: credentialKeyMAC, value: macAddress}
+		if cred, ok := creds[key]; ok {
+			return cred, nil
 		}
 	}
 	return nil, nil

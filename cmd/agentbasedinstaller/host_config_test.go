@@ -92,19 +92,20 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(2))
 
-			// Check master-0
-			Expect(creds).To(HaveKey("master-0"))
-			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(*creds["master-0"].Username).To(Equal("admin"))
-			Expect(*creds["master-0"].Password).To(Equal("password123"))
-			Expect(*creds["master-0"].CertificateVerification).To(Equal("Disabled"))
+			master0Key := credentialKey{keyType: credentialKeyHostname, value: "master-0"}
+			master1Key := credentialKey{keyType: credentialKeyHostname, value: "master-1"}
 
-			// Check master-1
-			Expect(creds).To(HaveKey("master-1"))
-			Expect(*creds["master-1"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
-			Expect(*creds["master-1"].Username).To(Equal("admin2"))
-			Expect(*creds["master-1"].Password).To(Equal("password456"))
-			Expect(*creds["master-1"].CertificateVerification).To(Equal("Enabled"))
+			Expect(creds).To(HaveKey(master0Key))
+			Expect(*creds[master0Key].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*creds[master0Key].Username).To(Equal("admin"))
+			Expect(*creds[master0Key].Password).To(Equal("password123"))
+			Expect(*creds[master0Key].CertificateVerification).To(Equal("Disabled"))
+
+			Expect(creds).To(HaveKey(master1Key))
+			Expect(*creds[master1Key].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
+			Expect(*creds[master1Key].Username).To(Equal("admin2"))
+			Expect(*creds[master1Key].Password).To(Equal("password456"))
+			Expect(*creds[master1Key].CertificateVerification).To(Equal("Enabled"))
 		})
 
 		It("should parse credentials without optional certificateVerification", func() {
@@ -120,8 +121,9 @@ var _ = Describe("loadFencingCredentials", func() {
 			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
-			Expect(creds).To(HaveKey("master-0"))
-			Expect(creds["master-0"].CertificateVerification).To(BeNil())
+			key := credentialKey{keyType: credentialKeyHostname, value: "master-0"}
+			Expect(creds).To(HaveKey(key))
+			Expect(creds[key].CertificateVerification).To(BeNil())
 		})
 	})
 
@@ -144,7 +146,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			// Only the valid entry with hostname should be loaded
 			Expect(creds).To(HaveLen(1))
-			Expect(creds).To(HaveKey("master-0"))
+			Expect(creds).To(HaveKey(credentialKey{keyType: credentialKeyHostname, value: "master-0"}))
 		})
 
 		It("should return error for invalid YAML", func() {
@@ -194,9 +196,10 @@ var _ = Describe("loadFencingCredentials", func() {
 			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
-			Expect(creds).To(HaveKey("master-0"))
+			key := credentialKey{keyType: credentialKeyHostname, value: "master-0"}
+			Expect(creds).To(HaveKey(key))
 			// The last entry should be used
-			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.2:8000/redfish/v1/Systems/def"))
+			Expect(*creds[key].Address).To(Equal("redfish+https://192.168.111.2:8000/redfish/v1/Systems/def"))
 		})
 	})
 
@@ -221,17 +224,20 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(2))
 
-			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:01"))
-			Expect(*creds["aa:bb:cc:dd:ee:01"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(*creds["aa:bb:cc:dd:ee:01"].Username).To(Equal("admin"))
-			Expect(*creds["aa:bb:cc:dd:ee:01"].Password).To(Equal("password123"))
-			Expect(*creds["aa:bb:cc:dd:ee:01"].CertificateVerification).To(Equal("Disabled"))
+			mac1Key := credentialKey{keyType: credentialKeyMAC, value: "aa:bb:cc:dd:ee:01"}
+			mac2Key := credentialKey{keyType: credentialKeyMAC, value: "aa:bb:cc:dd:ee:02"}
 
-			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].Username).To(Equal("admin2"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].Password).To(Equal("password456"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].CertificateVerification).To(Equal("Enabled"))
+			Expect(creds).To(HaveKey(mac1Key))
+			Expect(*creds[mac1Key].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			Expect(*creds[mac1Key].Username).To(Equal("admin"))
+			Expect(*creds[mac1Key].Password).To(Equal("password123"))
+			Expect(*creds[mac1Key].CertificateVerification).To(Equal("Disabled"))
+
+			Expect(creds).To(HaveKey(mac2Key))
+			Expect(*creds[mac2Key].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
+			Expect(*creds[mac2Key].Username).To(Equal("admin2"))
+			Expect(*creds[mac2Key].Password).To(Equal("password456"))
+			Expect(*creds[mac2Key].CertificateVerification).To(Equal("Enabled"))
 		})
 	})
 
@@ -256,11 +262,14 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(2))
 
-			Expect(creds).To(HaveKey("master-0"))
-			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+			hostnameKey := credentialKey{keyType: credentialKeyHostname, value: "master-0"}
+			macKey := credentialKey{keyType: credentialKeyMAC, value: "aa:bb:cc:dd:ee:02"}
 
-			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
+			Expect(creds).To(HaveKey(hostnameKey))
+			Expect(*creds[hostnameKey].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+
+			Expect(creds).To(HaveKey(macKey))
+			Expect(*creds[macKey].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
 		})
 
 		It("should prefer hostname over MAC when both are present on same entry", func() {
@@ -278,8 +287,8 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
 
-			Expect(creds).To(HaveKey("master-0"))
-			Expect(creds).NotTo(HaveKey("aa:bb:cc:dd:ee:01"))
+			Expect(creds).To(HaveKey(credentialKey{keyType: credentialKeyHostname, value: "master-0"}))
+			Expect(creds).NotTo(HaveKey(credentialKey{keyType: credentialKeyMAC, value: "aa:bb:cc:dd:ee:01"}))
 		})
 	})
 
@@ -322,7 +331,7 @@ var _ = Describe("loadFencingCredentials", func() {
 			creds, err := loadFencingCredentials(filepath.Join(tempDir, "fencing-credentials.yaml"))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(creds).To(HaveLen(1))
-			Expect(creds).To(HaveKey("master-0"))
+			Expect(creds).To(HaveKey(credentialKey{keyType: credentialKeyHostname, value: "master-0"}))
 		})
 	})
 })
@@ -363,8 +372,9 @@ var _ = Describe("applyFencingCredentials", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				configDir:    tempDir,
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+				configDir:        tempDir,
+				fencingConfigDir: tempDir,
+				macAddresses:     []string{"aa:bb:cc:dd:ee:ff"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
@@ -410,8 +420,9 @@ var _ = Describe("applyFencingCredentials", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				configDir:    tempDir,
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+				configDir:        tempDir,
+				fencingConfigDir: tempDir,
+				macAddresses:     []string{"aa:bb:cc:dd:ee:ff"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
@@ -438,8 +449,9 @@ var _ = Describe("applyFencingCredentials", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				configDir:    tempDir,
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"},
+				configDir:        tempDir,
+				fencingConfigDir: tempDir,
+				macAddresses:     []string{"aa:bb:cc:dd:ee:ff", "11:22:33:44:55:66"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
@@ -462,8 +474,9 @@ var _ = Describe("applyFencingCredentials", func() {
 			testLogger, _ := test.NewNullLogger()
 			host := &models.Host{}
 			config := &hostConfig{
-				configDir:    tempDir,
-				macAddresses: []string{"aa:bb:cc:dd:ee:ff"},
+				configDir:        tempDir,
+				fencingConfigDir: tempDir,
+				macAddresses:     []string{"aa:bb:cc:dd:ee:ff"},
 			}
 			updateParams := &models.HostUpdateParams{}
 
@@ -763,6 +776,96 @@ var _ = Describe("applyHostConfig with combined MAC and hostname configs", func(
 				}
 			}
 		})
+	})
+})
+
+var _ = Describe("LoadHostConfigs with MAC-only fencing credentials", func() {
+	var tempDir string
+
+	BeforeEach(func() {
+		var err error
+		tempDir, err = os.MkdirTemp("", "mac-fencing-config-test-*")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		if tempDir != "" {
+			os.RemoveAll(tempDir)
+		}
+	})
+
+	It("should not create hostname-based configs for MAC-keyed credentials", func() {
+		hostDir := filepath.Join(tempDir, "host-0")
+		err := os.MkdirAll(hostDir, 0755)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = os.WriteFile(filepath.Join(hostDir, "mac_addresses"), []byte("aa:bb:cc:dd:ee:ff\n"), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		fencingContent := `credentials:
+- macaddress: aa:bb:cc:dd:ee:ff
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+  certificateVerification: Disabled
+`
+		err = os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(fencingContent), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		configs, err := LoadHostConfigs(tempDir, AgentWorkflowTypeInstall)
+		Expect(err).NotTo(HaveOccurred())
+		// Only MAC-based config, no hostname-based config created for MAC-keyed credential
+		Expect(configs).To(HaveLen(1))
+		Expect(configs[0].macAddresses).To(ContainElement("aa:bb:cc:dd:ee:ff"))
+		Expect(configs[0].hostname).To(BeEmpty())
+		Expect(configs[0].fencingConfigDir).To(Equal(tempDir))
+	})
+
+	It("should apply MAC-keyed fencing credentials via MAC-matched config", func() {
+		hostDir := filepath.Join(tempDir, "host-0")
+		err := os.MkdirAll(hostDir, 0755)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = os.WriteFile(filepath.Join(hostDir, "mac_addresses"), []byte("aa:bb:cc:dd:ee:ff\n"), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		fencingContent := `credentials:
+- macaddress: aa:bb:cc:dd:ee:ff
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+  certificateVerification: Disabled
+`
+		err = os.WriteFile(filepath.Join(tempDir, "fencing-credentials.yaml"), []byte(fencingContent), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		configs, err := LoadHostConfigs(tempDir, AgentWorkflowTypeInstall)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(configs).To(HaveLen(1))
+
+		testHostID := strfmt.UUID("test-host-id")
+		inventory := &models.Inventory{
+			Hostname: "master-0",
+			Interfaces: []*models.Interface{
+				{MacAddress: "aa:bb:cc:dd:ee:ff"},
+			},
+		}
+
+		matched := configs.findHostConfigs(testHostID, inventory)
+		Expect(matched).To(HaveLen(1))
+
+		testLogger, _ := test.NewNullLogger()
+		host := &models.Host{}
+		updateParams := &models.HostUpdateParams{}
+
+		applied, err := applyFencingCredentials(testLogger, host, matched[0], updateParams)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(applied).To(BeTrue())
+		Expect(updateParams.FencingCredentials).NotTo(BeNil())
+		Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+		Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
+		Expect(*updateParams.FencingCredentials.Password).To(Equal("password123"))
+		Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
 	})
 })
 
