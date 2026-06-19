@@ -4,7 +4,8 @@
 # Replace mode: use only the specified NTP sources, no default pool
 cat > /etc/chrony.conf <<.
 {{ range .DesiredNtpSources }}server {{ . }} iburst
-{{ end }}driftfile /var/lib/chrony/drift
+{{ end }}sourcedir /run/chrony-dhcp
+driftfile /var/lib/chrony/drift
 makestep 1.0 -1
 rtcsync
 logdir /var/log/chrony
