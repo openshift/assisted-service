@@ -80,16 +80,16 @@ func (m *MockopenShiftSupportLevelAPIClientInterface) EXPECT() *MockopenShiftSup
 }
 
 // getSupportLevels mocks base method.
-func (m *MockopenShiftSupportLevelAPIClientInterface) getSupportLevels(majorVersion string) (ocpVersionSupportLevels, error) {
+func (m *MockopenShiftSupportLevelAPIClientInterface) getSupportLevels() (ocpVersionSupportLevels, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "getSupportLevels", majorVersion)
+	ret := m.ctrl.Call(m, "getSupportLevels")
 	ret0, _ := ret[0].(ocpVersionSupportLevels)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // getSupportLevels indicates an expected call of getSupportLevels.
-func (mr *MockopenShiftSupportLevelAPIClientInterfaceMockRecorder) getSupportLevels(majorVersion any) *gomock.Call {
+func (mr *MockopenShiftSupportLevelAPIClientInterfaceMockRecorder) getSupportLevels() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getSupportLevels", reflect.TypeOf((*MockopenShiftSupportLevelAPIClientInterface)(nil).getSupportLevels), majorVersion)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "getSupportLevels", reflect.TypeOf((*MockopenShiftSupportLevelAPIClientInterface)(nil).getSupportLevels))
 }

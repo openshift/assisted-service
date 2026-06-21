@@ -273,7 +273,7 @@ func (h *releaseSourcesHandler) SyncReleaseImages() error {
 		return err
 	}
 	h.log.Debugf("Found %d dynamic release Images", len(enrichedDynamicReleaseImages))
-	supportLevels, err := h.getSupportLevels()
+	supportLevels, err := h.supportLevelClient.getSupportLevels()
 	if err != nil {
 		return err
 	}
@@ -316,55 +316,6 @@ func (h *releaseSourcesHandler) SyncReleaseImages() error {
 
 	h.log.Debug("Commiting changes")
 	return tx.Commit().Error
-}
-
-// getReleaseImagesMajorOCPVersions retrieves the major OCP versions for both static and dynamic release images discovered.
-func (h *releaseSourcesHandler) getReleaseImagesMajorOCPVersions() (ocpMajorVersionSet, error) {
-	majorVersions := ocpMajorVersionSet{}
-
-	// First from static release images
-	for _, releaseImage := range h.enrichedStaticReleaseImages {
-		majorVersion, err := common.GetMajorVersion(*releaseImage.OpenshiftVersion)
-		if err != nil {
-			return nil, errors.Errorf("error occurred while trying to get the major version of %s", *releaseImage.OpenshiftVersion)
-		}
-		majorVersions[*majorVersion] = true
-	}
-
-	// Then from dynamic release images
-	for _, releaseSource := range h.releaseSources {
-		majorVersion, err := common.GetMajorVersion(*releaseSource.OpenshiftVersion)
-		if err != nil {
-			return nil, errors.Errorf("error occurred while trying to get the major version of %s", *releaseSource.OpenshiftVersion)
-		}
-		majorVersions[*majorVersion] = true
-	}
-
-	return majorVersions, nil
-}
-
-// getSupportLevels retrieves a mapping from OCP major.minor versions
-// to their corresponding support levels for both static and dynamic release images.
-func (h *releaseSourcesHandler) getSupportLevels() (ocpVersionSupportLevels, error) {
-	ocpMajorVersionSet, err := h.getReleaseImagesMajorOCPVersions()
-	if err != nil {
-		return nil, err
-	}
-
-	supportLevels := ocpVersionSupportLevels{}
-
-	for majorVersion := range ocpMajorVersionSet {
-		supportLevelsForMajor, err := h.supportLevelClient.getSupportLevels(majorVersion)
-		if err != nil {
-			return nil, err
-		}
-
-		for majorMinorVersion, supportLevel := range supportLevelsForMajor {
-			supportLevels[majorMinorVersion] = supportLevel
-		}
-	}
-
-	return supportLevels, nil
 }
 
 // setSupportLevels sets support level for given release images as follows:

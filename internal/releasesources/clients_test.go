@@ -25,11 +25,11 @@ type QueryParameters struct {
 	Arch    string
 }
 
-var supportLevelsResponseVersion4 = `{
+var supportLevelsResponse = `{
 			"data": [
 			  {
 				"uuid": "0964595a-151e-4240-8a62-31e6c3730226",
-				"name": "OpenShift Container Platform 4",
+				"name": "Red Hat OpenShift Container Platform",
 				"former_names": [],
 				"show_last_minor_release": false,
 				"show_final_minor_release": false,
@@ -72,6 +72,291 @@ var supportLevelsResponseVersion4 = `{
 				  }
 				],
 				"versions": [
+                  {
+					"name": "5.7",
+					"type": "Full Support",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2023-10-31T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "4.15 GA + 3 months",
+						"date_format": "string",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2025-05-01T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "2025-10-31T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "",
+						"date_format": "string",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.6",
+					"type": "Full Support",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2023-05-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2024-01-31T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2024-11-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "N/A",
+						"date_format": "string"
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "N/A",
+						"date_format": "string"
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.5",
+					"type": "Maintenance Support",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2023-01-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2023-08-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2024-07-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "2025-01-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "",
+						"date_format": "string",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.4",
+					"type": "Maintenance Support",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2022-08-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2023-04-17T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2024-02-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.3",
+					"type": "End of life",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2022-03-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2022-11-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2023-09-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.2",
+					"type": "End of life",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2021-10-18T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2022-06-10T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2023-04-18T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
+				  {
+					"name": "5.1",
+					"type": "End of life",
+					"last_minor_release": null,
+					"final_minor_release": null,
+					"extra_header_value": null,
+					"additional_text": "",
+					"phases": [
+					  {
+						"name": "General availability",
+						"date": "2021-07-27T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Full support",
+						"date": "2022-01-27T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Maintenance support",
+						"date": "2023-01-27T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended update support",
+						"date": "N/A",
+						"date_format": "string",
+						"additional_text": ""
+					  },
+					  {
+						"name": "Extended life phase",
+						"date": "2023-04-27T00:00:00.000Z",
+						"date_format": "date",
+						"additional_text": ""
+					  }
+					],
+					"extra_dependences": []
+				  },
 				  {
 					"name": "4.14",
 					"type": "Full Support",
@@ -365,32 +650,23 @@ var supportLevelsResponseVersion4 = `{
 			]
 		  }`
 
-func getExpectedSupportLevels(openshiftMajorVersion string) (ocpVersionSupportLevels, error) {
-	if openshiftMajorVersion == "4" {
-		return ocpVersionSupportLevels{
-			"4.14": "production",
-			"4.13": "production",
-			"4.12": "maintenance",
-			"4.11": "maintenance",
-			"4.10": "end-of-life",
-			"4.9":  "end-of-life",
-			"4.8":  "end-of-life",
-		}, nil
+func getExpectedSupportLevels() ocpVersionSupportLevels {
+	return ocpVersionSupportLevels{
+		"5.7":  "production",
+		"5.6":  "production",
+		"5.5":  "maintenance",
+		"5.4":  "maintenance",
+		"5.3":  "end-of-life",
+		"5.2":  "end-of-life",
+		"5.1":  "end-of-life",
+		"4.14": "production",
+		"4.13": "production",
+		"4.12": "maintenance",
+		"4.11": "maintenance",
+		"4.10": "end-of-life",
+		"4.9":  "end-of-life",
+		"4.8":  "end-of-life",
 	}
-
-	if openshiftMajorVersion == "5" {
-		return ocpVersionSupportLevels{
-			"5.7": "production",
-			"5.6": "production",
-			"5.5": "maintenance",
-			"5.4": "maintenance",
-			"5.3": "end-of-life",
-			"5.2": "end-of-life",
-			"5.1": "end-of-life",
-		}, nil
-	}
-
-	return nil, errors.New("")
 }
 
 var requestResponseParams = []RequestResponseParameters{
@@ -915,9 +1191,9 @@ var _ = Describe("Test getSupportLevels", func() {
 		supportLevelServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			queryParameters := r.URL.Query()
 
-			if queryParameters["name"][0] == "Openshift Container Platform 4" {
+			if queryParameters["name"][0] == "Red Hat OpenShift Container Platform" {
 				w.WriteHeader(http.StatusOK)
-				_, _ = w.Write([]byte(supportLevelsResponseVersion4))
+				_, _ = w.Write([]byte(supportLevelsResponse))
 				return
 			}
 
@@ -929,12 +1205,9 @@ var _ = Describe("Test getSupportLevels", func() {
 		Expect(err).ToNot(HaveOccurred())
 		client := openShiftSupportLevelAPIClient{baseURL: *u}
 
-		supportLevels, err := client.getSupportLevels("4")
+		supportLevels, err := client.getSupportLevels()
 		Expect(err).ToNot(HaveOccurred())
-
-		expectedSupportLevels, err := getExpectedSupportLevels("4")
-		Expect(err).ToNot(HaveOccurred())
-		Expect(supportLevels).To(Equal(expectedSupportLevels))
+		Expect(supportLevels).To(Equal(getExpectedSupportLevels()))
 	})
 
 	It("Should cause an error with invalid response from server", func() {
@@ -947,7 +1220,7 @@ var _ = Describe("Test getSupportLevels", func() {
 		Expect(err).ToNot(HaveOccurred())
 		client := openShiftSupportLevelAPIClient{baseURL: *u}
 
-		supportLevels, err := client.getSupportLevels("4")
+		supportLevels, err := client.getSupportLevels()
 		Expect(err).To(HaveOccurred())
 		Expect(supportLevels).To(BeNil())
 	})
@@ -963,7 +1236,7 @@ var _ = Describe("Test getSupportLevels", func() {
 		Expect(err).ToNot(HaveOccurred())
 		client := openShiftSupportLevelAPIClient{baseURL: *u}
 
-		supportLevels, err := client.getSupportLevels("4")
+		supportLevels, err := client.getSupportLevels()
 		Expect(err).To(HaveOccurred())
 		Expect(supportLevels).To(BeNil())
 	})

@@ -36,13 +36,10 @@ func setGetReleasesMock(releasesMock *MockopenShiftReleasesAPIClientInterface, t
 	}
 }
 
-func setGetSupportLevelsMock(supportLevelMock *MockopenShiftSupportLevelAPIClientInterface, majorVersion string) {
-	supportLevels, err := getExpectedSupportLevels(majorVersion)
-	Expect(err).ToNot(HaveOccurred())
-
+func setGetSupportLevelsMock(supportLevelMock *MockopenShiftSupportLevelAPIClientInterface) {
 	supportLevelMock.EXPECT().
-		getSupportLevels(majorVersion).
-		Return(supportLevels, nil).
+		getSupportLevels().
+		Return(getExpectedSupportLevels(), nil).
 		AnyTimes()
 }
 
@@ -203,7 +200,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -337,7 +334,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -366,7 +363,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -502,7 +499,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -523,7 +520,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -553,7 +550,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -656,7 +653,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		err = handler.SyncReleaseImages()
 		Expect(err).ToNot(HaveOccurred())
@@ -711,7 +708,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.releasesClient = releasesClientMock
 		handler.supportLevelClient = supportLevelsClientMock
 
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelStable, "4.16", common.AMD64CPUArchitecture).
 			Return(&ReleaseGraph{}, nil).
@@ -777,7 +774,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(
@@ -875,7 +872,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(
@@ -973,7 +970,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.S390xCPUArchitecture).
 				Return(
@@ -1083,8 +1080,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
-			setGetSupportLevelsMock(supportLevelsClientMock, "5")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 
 			err = handler.SyncReleaseImages()
 			Expect(err).ToNot(HaveOccurred())
@@ -1200,8 +1196,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
-			setGetSupportLevelsMock(supportLevelsClientMock, "5")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "5.3", common.AMD64CPUArchitecture).
 				Return(
@@ -1330,7 +1325,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.releasesClient = releasesClientMock
 		handler.supportLevelClient = supportLevelsClientMock
 
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 		releasesClientMock.EXPECT().
 			getReleases(models.ReleaseChannelCandidate, "4.14", common.AMD64CPUArchitecture).
 			Return(
@@ -1482,7 +1477,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(&ReleaseGraph{
@@ -1561,7 +1556,7 @@ var _ = Describe("SyncReleaseImages", func() {
 			handler.releasesClient = releasesClientMock
 			handler.supportLevelClient = supportLevelsClientMock
 
-			setGetSupportLevelsMock(supportLevelsClientMock, "4")
+			setGetSupportLevelsMock(supportLevelsClientMock)
 			releasesClientMock.EXPECT().
 				getReleases(models.ReleaseChannelStable, "4.14", common.AMD64CPUArchitecture).
 				Return(&ReleaseGraph{
@@ -1597,7 +1592,7 @@ var _ = Describe("SyncReleaseImages", func() {
 		handler.supportLevelClient = supportLevelsClientMock
 
 		setGetReleasesMock(releasesClientMock, requestResponseParams)
-		setGetSupportLevelsMock(supportLevelsClientMock, "4")
+		setGetSupportLevelsMock(supportLevelsClientMock)
 
 		expectedResult := models.ReleaseImages{
 			{
