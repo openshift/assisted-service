@@ -122,8 +122,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.63-x86_64",
-        "version": "4.16.63"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.64-x86_64",
+        "version": "4.16.64"
     },
     {
         "openshift_version": "4.16",
@@ -131,8 +131,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.63-aarch64",
-        "version": "4.16.63"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.64-aarch64",
+        "version": "4.16.64"
     },
     {
         "openshift_version": "4.16-multi",
@@ -143,8 +143,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.16.63-multi",
-        "version": "4.16.63-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.16.64-multi",
+        "version": "4.16.64-multi"
     },
     {
         "openshift_version": "4.17",
@@ -182,8 +182,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.18.43-x86_64",
-        "version": "4.18.43"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.18.44-x86_64",
+        "version": "4.18.44"
     },
     {
         "openshift_version": "4.18",
@@ -191,8 +191,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.18.43-aarch64",
-        "version": "4.18.43"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.18.44-aarch64",
+        "version": "4.18.44"
     },
     {
         "openshift_version": "4.18-multi",
@@ -203,8 +203,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.18.43-multi",
-        "version": "4.18.43-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.18.44-multi",
+        "version": "4.18.44-multi"
     },
     {
         "openshift_version": "4.19",
@@ -212,8 +212,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.19.33-x86_64",
-        "version": "4.19.33"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.19.34-x86_64",
+        "version": "4.19.34"
     },
     {
         "openshift_version": "4.19",
@@ -221,8 +221,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.19.33-aarch64",
-        "version": "4.19.33"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.19.34-aarch64",
+        "version": "4.19.34"
     },
     {
         "openshift_version": "4.19-multi",
@@ -233,8 +233,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.19.33-multi",
-        "version": "4.19.33-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.19.34-multi",
+        "version": "4.19.34-multi"
     },
     {
         "openshift_version": "4.20",
@@ -242,8 +242,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.20.24-x86_64",
-        "version": "4.20.24"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.20.25-x86_64",
+        "version": "4.20.25"
     },
     {
         "openshift_version": "4.20",
@@ -251,8 +251,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.20.24-aarch64",
-        "version": "4.20.24"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.20.25-aarch64",
+        "version": "4.20.25"
     },
     {
         "openshift_version": "4.20-multi",
@@ -263,8 +263,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.20.24-multi",
-        "version": "4.20.24-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.20.25-multi",
+        "version": "4.20.25-multi"
     },
     {
         "openshift_version": "4.21",
@@ -272,8 +272,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-x86_64",
-        "version": "4.21.19"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.20-x86_64",
+        "version": "4.21.20"
     },
     {
         "openshift_version": "4.21",
@@ -281,8 +281,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-aarch64",
-        "version": "4.21.19"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.20-aarch64",
+        "version": "4.21.20"
     },
     {
         "openshift_version": "4.21-multi",
@@ -293,8 +293,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.21.19-multi",
-        "version": "4.21.19-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.21.20-multi",
+        "version": "4.21.20-multi"
     },
     {
         "openshift_version": "4.22",
@@ -302,8 +302,8 @@
         "cpu_architectures": [
             "x86_64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.22.0-x86_64",
-        "version": "4.22.0",
+        "url": "quay.io/openshift-release-dev/ocp-release:4.22.1-x86_64",
+        "version": "4.22.1",
         "default": true
     },
     {
@@ -312,8 +312,8 @@
         "cpu_architectures": [
             "arm64"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.22.0-aarch64",
-        "version": "4.22.0"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.22.1-aarch64",
+        "version": "4.22.1"
     },
     {
         "openshift_version": "4.22-multi",
@@ -324,8 +324,8 @@
             "ppc64le",
             "s390x"
         ],
-        "url": "quay.io/openshift-release-dev/ocp-release:4.22.0-multi",
-        "version": "4.22.0-multi"
+        "url": "quay.io/openshift-release-dev/ocp-release:4.22.1-multi",
+        "version": "4.22.1-multi"
     },
     {
         "openshift_version": "5.0",
