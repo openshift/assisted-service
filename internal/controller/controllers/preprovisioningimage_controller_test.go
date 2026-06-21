@@ -653,6 +653,112 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			Expect(ppi.Status.ExtraKernelParams).To(Equal(fmt.Sprintf("coreos.live.rootfs_url=%s rd.bootif=0 arg=thing other.arg", rootfsURL)))
 		})
 
+		It("doesn't reboot the host when initrd PreprovisioningImage ImageUrl is up to date", func() {
+			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+			Expect(c.Update(ctx, ppi)).To(BeNil())
+
+			infraEnv.Status.ISODownloadURL = downloadURL
+			infraEnv.Status.BootArtifacts.InitrdURL = initrdURL
+			infraEnv.Status.BootArtifacts.KernelURL = kernelURL
+			infraEnv.Status.BootArtifacts.RootfsURL = rootfsURL
+			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: createdAt}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			ppi.Status.ImageUrl = initrdURL
+			ppi.Status.Format = metal3_v1alpha1.ImageFormatInitRD
+			ppi.Status.KernelUrl = kernelURL
+			ppi.Status.Conditions = []metav1.Condition{
+				{Type: string(metal3_v1alpha1.ConditionImageReady),
+					Reason:  "some reason",
+					Message: "Some message",
+					Status:  metav1.ConditionTrue},
+				{Type: string(metal3_v1alpha1.ConditionImageError),
+					Reason:  "some reason",
+					Message: "Some message",
+					Status:  metav1.ConditionFalse},
+			}
+			Expect(c.Status().Update(ctx, ppi)).To(BeNil())
+
+			setInfraEnvIronicConfig()
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).NotTo(HaveKey("reboot.metal3.io"))
+		})
+
+		It("reboots the host when the initrd image is updated", func() {
+			ppi.Spec.AcceptFormats = []metal3_v1alpha1.ImageFormat{metal3_v1alpha1.ImageFormatInitRD}
+			Expect(c.Update(ctx, ppi)).To(BeNil())
+
+			oldInitrdURL := "https://old-initrd.example.com"
+			infraEnv.Status.ISODownloadURL = downloadURL
+			infraEnv.Status.BootArtifacts.InitrdURL = oldInitrdURL
+			infraEnv.Status.BootArtifacts.KernelURL = kernelURL
+			infraEnv.Status.BootArtifacts.RootfsURL = rootfsURL
+			infraEnv.Status.CreatedTime = &metav1.Time{Time: metav1.Now().Add(-InfraEnvImageCooldownPeriod)}
+			infraEnv.Status.Conditions = []conditionsv1.Condition{{Type: aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  "some reason",
+				Message: "Some message",
+			}}
+
+			ppi.Status.ImageUrl = oldInitrdURL
+			ppi.Status.Format = metal3_v1alpha1.ImageFormatInitRD
+			ppi.Status.KernelUrl = kernelURL
+			ppi.Status.Conditions = []metav1.Condition{
+				{Type: string(metal3_v1alpha1.ConditionImageReady),
+					Reason:  "some reason",
+					Message: "Some message",
+					Status:  metav1.ConditionTrue},
+				{Type: string(metal3_v1alpha1.ConditionImageError),
+					Reason:  "some reason",
+					Message: "Some message",
+					Status:  metav1.ConditionFalse},
+			}
+			Expect(c.Status().Update(ctx, ppi)).To(BeNil())
+
+			infraEnv.Status.BootArtifacts.InitrdURL = initrdURL
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			setInfraEnvIronicConfig()
+			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
+
+			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "testPPI",
+			}
+			Expect(c.Get(ctx, key, ppi)).To(BeNil())
+			validateStatus(initrdURL, conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition), ppi)
+			bmhKey := types.NamespacedName{
+				Namespace: bmh.Namespace,
+				Name:      bmh.Name,
+			}
+			Expect(c.Get(ctx, bmhKey, bmh)).To(BeNil())
+			Expect(bmh.Annotations).To(HaveKey("reboot.metal3.io"))
+		})
+
 		It("doesn't reboot the host when PreprovisioningImage ImageUrl is up to date", func() {
 			infraEnv.Status.ISODownloadURL = downloadURL
 			createdAt := metav1.Now().Add(-InfraEnvImageCooldownPeriod)
