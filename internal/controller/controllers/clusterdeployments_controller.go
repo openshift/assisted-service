@@ -270,6 +270,9 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 
 		if err = r.addCustomManifests(ctx, log, clusterInstall, cluster); err != nil {
 			log.WithError(err).Error("failed to sync custom manifests")
+			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
+			// this timeout allows us not to run reconcile too much time and
+			// still have a nice feedback when user will fix the error
 			_, _ = r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 			return ctrl.Result{RequeueAfter: longerRequeueAfterOnError}, nil
 		}
