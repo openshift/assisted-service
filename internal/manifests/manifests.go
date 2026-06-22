@@ -222,6 +222,8 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 		return err
 	}
 
+	// Unset feature usage if this was the last manifest. Don't fail on error
+	// because we successfully deleted the manifest as requested.
 	remaining, listErr := m.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: params.ClusterID})
 	if listErr != nil {
 		log.Errorf("Failed to check remaining manifests after deletion: %v", listErr)
