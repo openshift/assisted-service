@@ -66,7 +66,6 @@ const (
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 	doneStateInfo                        = "Done"
 	clusterInstallStateInfo              = "Cluster is installed"
-	clusterImageSetName                  = "openshift-v4.9.0"
 )
 
 const additionalTrustCertificate = `-----BEGIN CERTIFICATE-----
@@ -134,14 +133,15 @@ gmY=
 -----END CERTIFICATE-----`
 
 var (
+	clusterImageSetName = "openshift-v" + common.TestVersion().Version()
+
+	imageSetNameArm   = "openshift-v" + common.TestVersion().ForArch("arm64").Version() + "-arm"
+	imageSetNameMulti = "openshift-v" + common.TestVersion().ForArch("arm64").MultiVersion()
+
 	imageSetsData = map[string]string{
-		"openshift-v4.9.0":        "quay.io/openshift-release-dev/ocp-release:4.9.11-x86_64",
-		"openshift-v4.10.0":       "quay.io/openshift-release-dev/ocp-release:4.10.6-x86_64",
-		"openshift-v4.10.0-arm":   "quay.io/openshift-release-dev/ocp-release:4.10.6-aarch64",
-		"openshift-v4.11.0":       "quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64",
-		"openshift-v4.11.0-multi": "quay.io/openshift-release-dev/ocp-release:4.11.0-multi",
-		"openshift-v4.14.0":       "quay.io/openshift-release-dev/ocp-release:4.14.0-ec.4-x86_64",
-		"openshift-v4.18.0-ec.2":  "quay.io/openshift-release-dev/ocp-release:4.18.0-ec.2-x86_64",
+		clusterImageSetName: common.TestVersion().ReleaseImageURL(),
+		imageSetNameArm:     common.TestVersion().ForArch("arm64").ReleaseImageURL(),
+		imageSetNameMulti:   common.TestVersion().ForArch("arm64").MultiReleaseImageURL(),
 	}
 )
 
@@ -762,7 +762,7 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 				HostPrefix: 23,
 			}},
 			ServiceNetwork: []string{"172.30.0.0/16"},
-			NetworkType:    models.ClusterNetworkTypeOpenShiftSDN,
+			NetworkType:    models.ClusterNetworkTypeOVNKubernetes,
 		},
 		SSHPublicKey: utils_test.SshPublicKey,
 		ImageSetRef:  &hivev1.ClusterImageSetReference{Name: clusterImageSetName},
@@ -785,7 +785,7 @@ func getDefaultNonePlatformAgentClusterInstallSpec(clusterDeploymentName string)
 				HostPrefix: 23,
 			}},
 			ServiceNetwork:        []string{"172.30.0.0/16"},
-			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
+			NetworkType:           models.ClusterNetworkTypeOVNKubernetes,
 			UserManagedNetworking: swag.Bool(true),
 		},
 		SSHPublicKey: utils_test.SshPublicKey,
@@ -807,7 +807,7 @@ func getDefaultExternalPlatformAgentClusterInstallSpec(clusterDeploymentName str
 				HostPrefix: 23,
 			}},
 			ServiceNetwork:        []string{"172.30.0.0/16"},
-			NetworkType:           models.ClusterNetworkTypeOpenShiftSDN,
+			NetworkType:           models.ClusterNetworkTypeOVNKubernetes,
 			UserManagedNetworking: swag.Bool(true),
 		},
 		PlatformType: hiveext.ExternalPlatformType,
@@ -1454,21 +1454,67 @@ location = "%s"
 			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
 		}
 
-		By("verify validations are successfull")
+		By("verify validations pass with OVN and IPv6")
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsPassingReason)
+	})
+
+	It("Verify SDN with IPv6 fails cluster validation on pre-4.15 versions", func() {
+		sdnBuilder := common.TestVersion().LessThan("4.15")
+		sdnVersion, ok := sdnBuilder.TryVersion()
+		if !ok {
+			Skip("no version < 4.15 available")
+		}
+
+		sdnImageSetName := "openshift-v" + sdnVersion + "-sdn"
+		imageSetsData[sdnImageSetName] = sdnBuilder.ReleaseImageURL()
+		defer delete(imageSetsData, sdnImageSetName)
+		sdnImageSetRef := &hivev1.ClusterImageSetReference{Name: sdnImageSetName}
+		deployClusterImageSetCRD(ctx, kubeClient, sdnImageSetRef)
+
+		v6Spec := getDefaultAgentClusterIPv6InstallSpec(clusterDeploymentSpec.ClusterName)
+		v6Spec.ImageSetRef = sdnImageSetRef
+
+		By("Create IPv6 cluster with OVN")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, v6Spec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv6Addresses(3, utils_test.DefaultCIDRv6)
+		for i := range 3 {
+			hostname := fmt.Sprintf("h%d", i)
+			host := registerIPv6MasterNode(ctx, *infraEnv.ID, hostname, ips[i])
+			hosts = append(hosts, host)
+		}
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], hosts...)
+		utils_test.TestContext.GenerateVerifyVipsPostStepReply(ctx, hosts[0], []string{v6Spec.APIVIP}, []string{v6Spec.IngressVIP}, models.VipVerificationSucceeded)
+		for _, h := range hosts {
+			utils_test.TestContext.GenerateDomainResolution(ctx, h, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		}
+
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsPassingReason)
 
-		By("update network type to SDN")
+		By("Switch to SDN")
 		Eventually(func() error {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			aci.Spec.Networking.NetworkType = models.ClusterNetworkTypeOpenShiftSDN
 			return kubeClient.Update(ctx, aci)
 		}, "1m", "20s").Should(BeNil())
 
-		By("verify validations are failing")
+		By("verify cluster validation rejects SDN with IPv6")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsFailingReason)
 		aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 		Expect(aci.Status.ValidationsInfo).ToNot(BeNil())
@@ -1582,11 +1628,6 @@ location = "%s"
 
 	It("deploy nutanix platform", func() {
 		aciSpec.PlatformType = hiveext.NutanixPlatformType
-		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0",
-		}
-		aciSpec.ImageSetRef = imageSetRef4_11
-		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
@@ -1704,11 +1745,6 @@ location = "%s"
 			deleteSecret(ctx, kubeClient, name)
 		}()
 
-		imageSetRef4_14 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.14.0",
-		}
-		aciSpecExternalPlatform.ImageSetRef = imageSetRef4_14
-		deployClusterImageSetCRD(ctx, kubeClient, aciSpecExternalPlatform.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
@@ -2268,16 +2304,11 @@ location = "%s"
 	})
 
 	It("[kube-cpu-arch]mismatch cpu architecture between infra-env and bound cluster", func() {
-		By("deploy cluster with openshiftVersion 4.10 and x86_64")
-		imageSetRef4_10 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.10.0",
-		}
-		aciSpec.ImageSetRef = imageSetRef4_10
-		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
+		By("deploy cluster with x86_64")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 
-		By("deploy infraenv with a reference to openshiftVersion 4.10 cluster and arm64")
+		By("deploy infraenv with a reference to x86_64 cluster and arm64")
 		infraEnvSpec.CpuArchitecture = "arm64"
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
@@ -2290,11 +2321,11 @@ location = "%s"
 	})
 
 	It("[multiarch] Create multiarch cluster and bind infraenvs", func() {
-		By("deploy cluster with openshiftVersion 4.11 and multiarch")
-		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0-multi",
+		By("deploy cluster with multiarch")
+		multiImageSetRef := &hivev1.ClusterImageSetReference{
+			Name: imageSetNameMulti,
 		}
-		aciSpec.ImageSetRef = imageSetRef4_11
+		aciSpec.ImageSetRef = multiImageSetRef
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
@@ -2305,7 +2336,7 @@ location = "%s"
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.CPUArchitecture).Should(Equal("multi"))
-		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-multi"))
+		Expect(cluster.OcpReleaseImage).Should(Equal(common.TestVersion().ForArch("arm64").MultiReleaseImageURL()))
 
 		By("deploy infraenv with arm64 architecure")
 		infraEnvSpec.CpuArchitecture = "arm64"
@@ -2952,7 +2983,7 @@ location = "%s"
 
 	It("[kube-cpu-arch]deploy ClusterDeployment with arm64 architecture", func() {
 		//Note: arm is supported with user managed networking only
-		armImageSetRef := &hivev1.ClusterImageSetReference{Name: "openshift-v4.10.0-arm"}
+		armImageSetRef := &hivev1.ClusterImageSetReference{Name: imageSetNameArm}
 		aciSNOSpec.ImageSetRef = armImageSetRef
 		deployClusterImageSetCRD(ctx, kubeClient, armImageSetRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -3482,11 +3513,6 @@ location = "%s"
 
 		By("new deployment with NoProxy")
 		aciSpec.Proxy = &hiveext.Proxy{HTTPProxy: "", HTTPSProxy: "", NoProxy: "*"}
-		imageSetRef4_11 := &hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.11.0",
-		}
-		aciSpec.ImageSetRef = imageSetRef4_11
-		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 
@@ -3497,7 +3523,7 @@ location = "%s"
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.CPUArchitecture).Should(Equal(common.X86CPUArchitecture))
-		Expect(cluster.OcpReleaseImage).Should(Equal("quay.io/openshift-release-dev/ocp-release:4.11.0-x86_64"))
+		Expect(cluster.OcpReleaseImage).Should(Equal(common.TestVersion().ReleaseImageURL()))
 	})
 
 	It("deploy infraEnv with NoProxy wildcard", func() {
@@ -5560,8 +5586,14 @@ spec:
 	})
 
 	It("updating infraenv OSImageVersion updates the image URL", func() {
+		initialVersion := common.TestVersion().Oldest().Version()
+		updatedVersion := common.TestVersion().Version()
+		if initialVersion == updatedVersion {
+			Skip("requires at least two distinct OCP versions")
+		}
+
 		infraEnvSpec.ClusterRef = nil
-		infraEnvSpec.OSImageVersion = "4.14"
+		infraEnvSpec.OSImageVersion = initialVersion
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
 		var url string
@@ -5572,7 +5604,7 @@ spec:
 
 		Eventually(func() error {
 			infraEnv := getInfraEnvCRD(ctx, kubeClient, infraNsName)
-			infraEnv.Spec.OSImageVersion = "4.16"
+			infraEnv.Spec.OSImageVersion = updatedVersion
 			return kubeClient.Update(ctx, infraEnv)
 		}, "1m", "20s").Should(BeNil())
 
@@ -5583,13 +5615,21 @@ spec:
 		}, "15s", "1s").Should(Not(Equal(url)))
 
 		updatedInfraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraNsName, waitForReconcileTimeout)
-		Expect(updatedInfraEnv.OpenshiftVersion).To(Equal("4.16"))
+		Expect(updatedInfraEnv.OpenshiftVersion).To(Equal(updatedVersion))
 	})
 
-	It("deploying OCP 4.18 cluster with 4 masters and 1 worker", func() {
-		By("Deploy 4.18 cluster Image Set")
+	It("deploying cluster with 4 masters and 1 worker (non-standard HA)", func() {
+		builder := common.TestVersion().GreaterThanOrEqual(common.MinimumVersionForNonStandardHAOCPControlPlane)
+		nonStdHAVersion, ok := builder.TryVersion()
+		if !ok {
+			Skip("no version >= " + common.MinimumVersionForNonStandardHAOCPControlPlane + " available")
+		}
+		// Temporary imageSet entry; default map lacks a version-specific entry for this test
+		nonStdHAImageSetName := "openshift-v" + nonStdHAVersion + "-nonstdha"
+		imageSetsData[nonStdHAImageSetName] = builder.ReleaseImageURL()
+		defer delete(imageSetsData, nonStdHAImageSetName)
 		clusterImageSetReference := hivev1.ClusterImageSetReference{
-			Name: "openshift-v4.18.0-ec.2",
+			Name: nonStdHAImageSetName,
 		}
 		deployClusterImageSetCRD(ctx, kubeClient, &clusterImageSetReference)
 

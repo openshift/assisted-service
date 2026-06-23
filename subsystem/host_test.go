@@ -29,10 +29,9 @@ var _ = Describe("Host tests", func() {
 		var err error
 		cluster, err = utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
-				Name:              swag.String("test-cluster"),
-				OpenshiftVersion:  swag.String(VipAutoAllocOpenshiftVersion),
-				PullSecret:        swag.String(pullSecret),
-				VipDhcpAllocation: swag.Bool(true),
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(openshiftVersion),
+				PullSecret:       swag.String(pullSecret),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -252,6 +251,22 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("next step - DHCP", func() {
+		dhcpVersion, ok := common.TestVersion().LessThan("4.15").TryVersion()
+		if !ok {
+			Skip("DHCP allocation requires OCP < 4.15")
+		}
+		dhcpCluster, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(ctx, &installer.V2RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:              swag.String("test-cluster"),
+				OpenshiftVersion:  swag.String(dhcpVersion),
+				PullSecret:        swag.String(pullSecret),
+				VipDhcpAllocation: swag.Bool(true),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		clusterID = *dhcpCluster.GetPayload().ID
+		infraEnvID = registerInfraEnvSpecificVersion(&clusterID, models.ImageTypeMinimalIso, dhcpCluster.Payload.OpenshiftVersion).ID
+
 		By("Creating cluster")
 		Expect(db.Save(&models.MachineNetwork{ClusterID: clusterID, Cidr: "1.2.3.0/24"}).Error).ToNot(HaveOccurred())
 		By("Creating hosts")
