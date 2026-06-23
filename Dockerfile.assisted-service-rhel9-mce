@@ -25,7 +25,7 @@ RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGET
 RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:1bc3c5c15720506a0cf48adfdf8b623dfe704377e007d7bbae8d14876392ca6a
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:850143255ee0d1915f09aaa09f6ed31f24086ba605c323badfbefa95b8c52b0e
 ARG release=main
 ARG version=latest
 
