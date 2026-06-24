@@ -163,7 +163,7 @@ var _ = Describe("ValidateCluster", func() {
 		Expect(results[0].Status).To(Equal(api.Success))
 		Expect(results[1].Status).To(Equal(api.Success))
 		Expect(results[1].ValidationId).To(Equal(clusterGPUValidationID))
-		Expect(results[1].Reasons).To(ConsistOf("No GPU vendor selected - OpenShift AI will install without GPU support"))
+		Expect(results[1].Reasons).To(ConsistOf("No GPU vendor selected - OpenShift AI will be installed without GPU support"))
 	})
 
 	It("returns success without warning when nvidia-gpu is selected", func() {

@@ -143,7 +143,7 @@ func (o *operator) validateGPU(cluster *common.Cluster) (api.ValidationResult, e
 		operatorscommon.HasOperator(cluster.MonitoredOperators, amdgpu.Operator.Name)
 
 	if !hasGPUOperator {
-		result.Reasons = []string{"No GPU vendor selected - OpenShift AI will install without GPU support"}
+		result.Reasons = []string{"No GPU vendor selected - OpenShift AI will be installed without GPU support"}
 	}
 
 	return result, nil
