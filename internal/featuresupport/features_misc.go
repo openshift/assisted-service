@@ -170,12 +170,14 @@ func (feature *TnfFeature) getSupportLevel(filters SupportLevelFilters) (models.
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
 	}
 
-	if isMinVersion, _ := common.BaseVersionEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion); isMinVersion {
-		return models.SupportLevelDevPreview, ""
+	// TNF is GA from 4.22
+	if isGA, _ := common.BaseVersionGreaterOrEqual("4.22", filters.OpenshiftVersion); isGA {
+		return models.SupportLevelSupported, ""
 	}
 
+	// TNF is TechPreview in 4.20-4.21
 	if fencingClustersSupported, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion); fencingClustersSupported {
-		return models.SupportLevelSupported, ""
+		return models.SupportLevelTechPreview, ""
 	}
 
 	return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion

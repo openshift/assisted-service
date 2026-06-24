@@ -621,20 +621,29 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 				Expect(supportLevel).To(Equal(result))
 			},
 			Entry(
-				"dev-preview openshift version with platform filter",
+				"tech-preview openshift version with platform filter",
 				SupportLevelFilters{
 					OpenshiftVersion: common.MinimumVersionForTwoNodesWithFencing,
 					PlatformType:     models.PlatformTypeBaremetal.Pointer(),
 				},
-				models.SupportLevelDevPreview,
+				models.SupportLevelTechPreview,
 			),
 
 			Entry(
-				"dev-preview openshift version without platform filter",
+				"tech-preview openshift version without platform filter",
 				SupportLevelFilters{
 					OpenshiftVersion: common.MinimumVersionForTwoNodesWithFencing,
 				},
-				models.SupportLevelDevPreview,
+				models.SupportLevelTechPreview,
+			),
+
+			Entry(
+				"tech-preview openshift version 4.21",
+				SupportLevelFilters{
+					OpenshiftVersion: "4.21",
+					PlatformType:     models.PlatformTypeBaremetal.Pointer(),
+				},
+				models.SupportLevelTechPreview,
 			),
 
 			Entry(
