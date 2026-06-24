@@ -413,7 +413,11 @@ func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBare
 	cfg.ControlPlane.Fencing = &installcfg.Fencing{Credentials: fencingCredentials}
 
 	// TNF is TechPreview in 4.20-4.21, GA from 4.22
-	if isGA, _ := common.BaseVersionGreaterOrEqual("4.22", cluster.OpenshiftVersion); !isGA {
+	isGA, err := common.BaseVersionGreaterOrEqual("4.22", cluster.OpenshiftVersion)
+	if err != nil {
+		return err
+	}
+	if !isGA {
 		cfg.FeatureSet = configv1.TechPreviewNoUpgrade
 	}
 
