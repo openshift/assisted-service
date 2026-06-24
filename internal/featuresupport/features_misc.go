@@ -170,12 +170,17 @@ func (feature *TnfFeature) getSupportLevel(filters SupportLevelFilters) (models.
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
 	}
 
-	fencingClustersSupported, err := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion)
-	if !fencingClustersSupported || err != nil {
-		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+	// TNF is GA from 4.22
+	if isGA, _ := common.BaseVersionGreaterOrEqual("4.22", filters.OpenshiftVersion); isGA {
+		return models.SupportLevelSupported, ""
 	}
 
-	return models.SupportLevelTechPreview, ""
+	// TNF is TechPreview in 4.20-4.21
+	if fencingClustersSupported, _ := common.BaseVersionGreaterOrEqual(common.MinimumVersionForTwoNodesWithFencing, filters.OpenshiftVersion); fencingClustersSupported {
+		return models.SupportLevelTechPreview, ""
+	}
+
+	return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
 }
 
 func (feature *TnfFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
