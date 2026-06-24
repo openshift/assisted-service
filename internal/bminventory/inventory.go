@@ -441,11 +441,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context
 		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
 	}
 	if params.NewClusterParams.DiskEncryption == nil {
-		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{
-			EnableOn: swag.String(models.DiskEncryptionEnableOnNone),
-			Mode:     swag.String(models.DiskEncryptionModeTpmv2),
-		}
+		params.NewClusterParams.DiskEncryption = &models.DiskEncryption{}
 	}
+	common.ApplyDiskEncryptionDefaults(params.NewClusterParams.DiskEncryption)
 
 	params.NewClusterParams.NetworkType, err = getDefaultNetworkType(params)
 	if err != nil {
@@ -917,14 +915,7 @@ func setDiskEncryptionWithDefaultValues(c *models.Cluster, config *models.DiskEn
 	}
 
 	c.DiskEncryption = config
-
-	if c.DiskEncryption.EnableOn == nil {
-		c.DiskEncryption.EnableOn = swag.String(models.DiskEncryptionEnableOnNone)
-	}
-
-	if config.Mode == nil {
-		c.DiskEncryption.Mode = swag.String(models.DiskEncryptionModeTpmv2)
-	}
+	common.ApplyDiskEncryptionDefaults(c.DiskEncryption)
 }
 
 func updateSSHPublicKey(cluster *common.Cluster) error {
@@ -2628,7 +2619,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(db *gorm.DB, id *strfmt.UUI
 
 func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncryption *models.DiskEncryption, usages map[string]models.Usage) {
 
-	if c.DiskEncryption == nil || swag.StringValue(c.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if !common.IsConfigured(c.DiskEncryption) {
 		return
 	}
 
@@ -2640,7 +2631,7 @@ func (b *bareMetalInventory) setDiskEncryptionUsage(c *models.Cluster, diskEncry
 		props["mode"] = swag.StringValue(diskEncryption.Mode)
 		props["tang_servers"] = diskEncryption.TangServers
 	}
-	b.setUsage(swag.StringValue(c.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone, usage.DiskEncryption, &props, usages)
+	b.setUsage(common.IsConfigured(c.DiskEncryption), usage.DiskEncryption, &props, usages)
 }
 
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.V2UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, primaryIPStackUpdated bool, primaryIPStack *common.PrimaryIPStack) error {
@@ -2712,9 +2703,13 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.New(msg))
 		}
 		if params.ClusterUpdateParams.DiskEncryption.EnableOn != nil {
+			enableOn, _ := common.DiskEncryptionFieldDefaults(params.ClusterUpdateParams.DiskEncryption.EnableOn, nil)
+			params.ClusterUpdateParams.DiskEncryption.EnableOn = swag.String(enableOn)
 			updates["disk_encryption_enable_on"] = params.ClusterUpdateParams.DiskEncryption.EnableOn
 		}
 		if params.ClusterUpdateParams.DiskEncryption.Mode != nil {
+			_, mode := common.DiskEncryptionFieldDefaults(nil, params.ClusterUpdateParams.DiskEncryption.Mode)
+			params.ClusterUpdateParams.DiskEncryption.Mode = swag.String(mode)
 			updates["disk_encryption_mode"] = params.ClusterUpdateParams.DiskEncryption.Mode
 		}
 		if params.ClusterUpdateParams.DiskEncryption.TangServers != "" {
