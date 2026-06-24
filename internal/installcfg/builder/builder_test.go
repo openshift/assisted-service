@@ -243,7 +243,7 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		}))
 		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 		Expect(result.Arbiter).Should(BeNil())
-		Expect(result.FeatureSet).To(Equal(configv1.DevPreviewNoUpgrade))
+		Expect(result.FeatureSet).To(Equal(configv1.TechPreviewNoUpgrade))
 		Expect(result.FeatureGates).To(HaveLen(0))
 	})
 
