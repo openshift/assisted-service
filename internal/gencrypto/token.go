@@ -38,6 +38,8 @@ func LocalJWTForKey(id string, private_key_pem string, keyType LocalJWTKeyType) 
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
 		string(keyType): id,
+		"iat":           time.Now().Unix(),
+		"exp":           time.Now().Add(48 * time.Hour).Unix(),
 	})
 
 	tokenString, err := token.SignedString(priv)

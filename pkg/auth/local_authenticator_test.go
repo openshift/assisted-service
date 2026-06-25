@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -128,5 +129,17 @@ var _ = Describe("AuthAgentAuth", func() {
 		_, err := a.AuthAgentAuth(token)
 		Expect(err).To(HaveOccurred())
 		validateErrorResponse(err)
+	})
+
+	It("Returns JWT claims instead of AdminPayload", func() {
+		result, err := a.AuthAgentAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+
+		claims, ok := result.(jwt.MapClaims)
+		Expect(ok).To(BeTrue())
+
+		infraEnvClaim, ok := claims[string(gencrypto.InfraEnvKey)].(string)
+		Expect(ok).To(BeTrue())
+		Expect(infraEnvClaim).To(Equal(infraEnv.ID.String()))
 	})
 })
