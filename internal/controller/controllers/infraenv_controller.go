@@ -326,7 +326,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 	}
 
 	nmStateConfigs := &aiv1beta1.NMStateConfigList{}
-	if err = r.List(ctx, nmStateConfigs, &client.ListOptions{LabelSelector: selector}); err != nil {
+	if err = r.List(ctx, nmStateConfigs, client.InNamespace(infraEnv.Namespace), &client.ListOptions{LabelSelector: selector}); err != nil {
 		return staticNetworkConfig, errors.Wrapf(err, "failed to list nmstate configs for InfraEnv %v", infraEnv)
 	}
 
@@ -935,7 +935,7 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
 func (r *InfraEnvReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (*common.MirrorRegistryConfiguration, error) {
-	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef, infraEnv.Namespace)
 	if err != nil {
 		return nil, err
 	}

@@ -463,7 +463,7 @@ func getClusterDeploymentFromAgent(ctx context.Context, client client.Client, ag
 		return nil, errors.Errorf("No cluster deployment for agent %s/%s", agent.Namespace, agent.Name)
 	}
 	namespacedName := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: agent.GetNamespace(),
 		Name:      agent.Spec.ClusterDeploymentName.Name,
 	}
 	if err := client.Get(ctx, namespacedName, &cd); err != nil {

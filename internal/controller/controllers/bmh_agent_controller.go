@@ -1123,7 +1123,7 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 	}
 
 	key := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: agent.GetNamespace(),
 		Name:      getClusterDeploymentAdminKubeConfigSecretName(cd),
 	}
 	isNonePlatform, propagateError, err := isNonePlatformCluster(ctx, r.Client, cd)
@@ -1465,7 +1465,7 @@ func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogg
 	}
 
 	key := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: agent.GetNamespace(),
 		Name:      getClusterDeploymentAdminKubeConfigSecretName(cd),
 	}
 
@@ -1813,7 +1813,7 @@ func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Con
 	clusterDeployment := &hivev1.ClusterDeployment{}
 
 	cdKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: agent.GetNamespace(),
 		Name:      agent.Spec.ClusterDeploymentName.Name,
 	}
 	var err error
@@ -1949,18 +1949,22 @@ func nodeUnreachable(node *corev1.Node) bool {
 func (r *BMACReconciler) drainAgentNode(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (bool, error) {
 	log = log.WithFields(logrus.Fields{
 		"spoke_cluster_name":      agent.Spec.ClusterDeploymentName.Name,
-		"spoke_cluster_namespace": agent.Spec.ClusterDeploymentName.Namespace,
+		"spoke_cluster_namespace": agent.GetNamespace(),
 	})
 	log.Info("Draining agent node...")
 	// get spoke connection
-	spokeSecret, err := spokeKubeconfigSecret(ctx, log, r.Client, r.APIReader, agent.Spec.ClusterDeploymentName)
+	pinnedRef := &aiv1beta1.ClusterReference{
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+		Namespace: agent.GetNamespace(),
+	}
+	spokeSecret, err := spokeKubeconfigSecret(ctx, log, r.Client, r.APIReader, pinnedRef)
 	if err != nil {
 		log.WithError(err).Error("failed to get spoke kubeconfig secret")
 		return false, err
 	}
 
 	clusterDeploymentKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Namespace: agent.GetNamespace(),
 		Name:      agent.Spec.ClusterDeploymentName.Name,
 	}
 	clusterDeployment := &hivev1.ClusterDeployment{}
