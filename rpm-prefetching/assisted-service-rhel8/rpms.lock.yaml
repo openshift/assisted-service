@@ -326,20 +326,20 @@ arches:
     name: fuse3-libs
     evr: 3.3.0-19.el8
     sourcerpm: fuse-2.9.7-19.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.34.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.37.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 90740
-    checksum: sha256:9727cbc3c9778a0d289fb6980a2c617917d9b541ae4c5ed0c978e4364632d736
+    size: 91152
+    checksum: sha256:67b0630435ac83202db4bdefd2b07017c2a91594ff2f213dff917858d12d5b73
     name: glibc-devel
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.34.aarch64.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.37.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 497816
-    checksum: sha256:d6ce26f12b56260b4129e7bc8588f438b3706c711ea17b8b756a24d8c445d46e
+    size: 498168
+    checksum: sha256:4ec0ffd6e5ed5fd796169b68d257ac203efb70940c8088cc96bdfed9c3326675
     name: glibc-headers
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/g/groff-base-1.22.3-18.el8.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 1018336
@@ -368,13 +368,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8
     sourcerpm: kbd-2.0.4-11.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/kernel-headers-4.18.0-553.126.1.el8_10.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/kernel-headers-4.18.0-553.137.1.el8_10.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 12485116
-    checksum: sha256:f59454921bbfd70bce7089483ef1fe914a4257fe10790777335cb67752a74264
+    size: 12491892
+    checksum: sha256:ae51eb7233752093fc7f3110f2061121253a673d45d2d6e942773d5a94b82e98
     name: kernel-headers
-    evr: 4.18.0-553.126.1.el8_10
-    sourcerpm: kernel-4.18.0-553.126.1.el8_10.src.rpm
+    evr: 4.18.0-553.137.1.el8_10
+    sourcerpm: kernel-4.18.0-553.137.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 49180
@@ -550,20 +550,20 @@ arches:
     name: openssh-clients
     evr: 8.0p1-29.el8_10
     sourcerpm: openssh-8.0p1-29.el8_10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/o/openssl-1.1.1k-15.el8_6.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/o/openssl-1.1.1k-16.el8_6.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 707928
-    checksum: sha256:d038fe75618fed70b610219cf3caacfae9e4e8d9bf39e33a73d00c33bb9c5e9f
+    size: 708276
+    checksum: sha256:5c07c28d4f674b5e5ceaa146a05bf08ecea11341c4ee541e37b7d83c56b4410c
     name: openssl
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/o/openssl-devel-1.1.1k-15.el8_6.aarch64.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/o/openssl-devel-1.1.1k-16.el8_6.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 2438124
-    checksum: sha256:f1d24965d63c2764501e8e33ac4d492f666bd18a62307a8e3e64c36240169cb5
+    size: 2438344
+    checksum: sha256:b51f953de3ad4acd169674eaefb2c2aeb23e121fc8f501de4be5850d467a8493
     name: openssl-devel
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/p/pcre2-devel-10.32-3.el8_6.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 619344
@@ -886,13 +886,13 @@ arches:
     name: selinux-policy-targeted
     evr: 3.14.3-139.el8_10.2
     sourcerpm: selinux-policy-3.14.3-139.el8_10.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/s/systemd-udev-239-82.el8_10.16.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/s/systemd-udev-239-82.el8_10.17.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 1628344
-    checksum: sha256:b8dc8bab2f3945341c75bf7b45090e751cbe51a2a79102d3795a3f375ccbbd1c
+    size: 1628856
+    checksum: sha256:6676f16bffa1f4adbd05167193d66a5cca87632c503a22684d6ccc9418e5f0dc
     name: systemd-udev
-    evr: 239-82.el8_10.16
-    sourcerpm: systemd-239-82.el8_10.16.src.rpm
+    evr: 239-82.el8_10.17
+    sourcerpm: systemd-239-82.el8_10.17.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/z/zlib-devel-1.2.11-25.el8.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 59956
@@ -909,10 +909,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/appstream/os/repodata/3cc459dce48e83d3f1ae874be3873fb991c673f3e88c6032f5197c590e0b9318-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/appstream/os/repodata/f6ad381564e18eb5d0ac0cb20f671103c301a85d3872694586b467b21cdc1a30-modules.yaml.gz
     repoid: rhel-8-for-aarch64-appstream-rpms
-    size: 790241
-    checksum: sha256:3cc459dce48e83d3f1ae874be3873fb991c673f3e88c6032f5197c590e0b9318
+    size: 794000
+    checksum: sha256:f6ad381564e18eb5d0ac0cb20f671103c301a85d3872694586b467b21cdc1a30
 - arch: ppc64le
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/ppc64le/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el8.ppc64le.rpm
@@ -1237,20 +1237,20 @@ arches:
     name: fuse3-libs
     evr: 3.3.0-19.el8
     sourcerpm: fuse-2.9.7-19.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.34.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.37.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 109612
-    checksum: sha256:79543f831d823ea16d84eaf07ac465e25b685168eb10f2d3964c6c5b18414421
+    size: 109996
+    checksum: sha256:9847fea8e2ad0e0a6351b65f71a1ac569e70df10e0126ccc6dab6e886010cb53
     name: glibc-devel
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.34.ppc64le.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.37.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 505432
-    checksum: sha256:1d3a623f3cf1f1cd9efd893d18c43eb7b999edcbac375f60cc8124ce4601cf4a
+    size: 505708
+    checksum: sha256:7879d9221c458a24bc2d86c792b83c61846f770fc50cd3fba02a0d5384bc4884
     name: glibc-headers
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/g/groff-base-1.22.3-18.el8.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 1091964
@@ -1279,13 +1279,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8
     sourcerpm: kbd-2.0.4-11.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/kernel-headers-4.18.0-553.126.1.el8_10.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/kernel-headers-4.18.0-553.137.1.el8_10.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 12504448
-    checksum: sha256:7e4aade4812e615b3b853d7f2d227a388772d84b983f5638b818bc9b778f16b1
+    size: 12511340
+    checksum: sha256:a0780a3bd48207d9e8be30789ba8fdf1560b982bcd758cefeab398dae7645663
     name: kernel-headers
-    evr: 4.18.0-553.126.1.el8_10
-    sourcerpm: kernel-4.18.0-553.126.1.el8_10.src.rpm
+    evr: 4.18.0-553.137.1.el8_10
+    sourcerpm: kernel-4.18.0-553.137.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 49200
@@ -1461,20 +1461,20 @@ arches:
     name: openssh-clients
     evr: 8.0p1-29.el8_10
     sourcerpm: openssh-8.0p1-29.el8_10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/o/openssl-1.1.1k-15.el8_6.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/o/openssl-1.1.1k-16.el8_6.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 731108
-    checksum: sha256:d6c741668d38f56baf2d0f6fb0f20e85f47859efc87045b036813f0ee576f77e
+    size: 731424
+    checksum: sha256:9f2fdee560508a489e6e6286fe61c9514f9e020da8a9d3e83240b4e7413e8782
     name: openssl
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/o/openssl-devel-1.1.1k-15.el8_6.ppc64le.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/o/openssl-devel-1.1.1k-16.el8_6.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 2441928
-    checksum: sha256:16eab42fb94657743b71aca2d67c03c92e03834b207c8d44f081b8680130baf2
+    size: 2441968
+    checksum: sha256:65f0bb9e9500c7a5571c191c5ff66ab0c52a9b1c5b9a596a6dbf6d92a9e2a7da
     name: openssl-devel
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/p/pcre2-devel-10.32-3.el8_6.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 619360
@@ -1797,13 +1797,13 @@ arches:
     name: selinux-policy-targeted
     evr: 3.14.3-139.el8_10.2
     sourcerpm: selinux-policy-3.14.3-139.el8_10.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/s/systemd-udev-239-82.el8_10.16.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/s/systemd-udev-239-82.el8_10.17.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 1630344
-    checksum: sha256:2c2f1ebb64323328941f82e744ac53ddad6139f2980b261f2bfcd4124bdad9ac
+    size: 1630776
+    checksum: sha256:760c5de6086499ce8b9a56eb5a11e0ada41c6bea2d639acac0f76c37b5133324
     name: systemd-udev
-    evr: 239-82.el8_10.16
-    sourcerpm: systemd-239-82.el8_10.16.src.rpm
+    evr: 239-82.el8_10.17
+    sourcerpm: systemd-239-82.el8_10.17.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/z/zlib-devel-1.2.11-25.el8.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 59972
@@ -1820,10 +1820,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/appstream/os/repodata/08d82731d5de94e0ed722a49081cd14c976aeb55296e4814fe2e1a427f4407ab-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/appstream/os/repodata/54bf2c59655e48f8d30e8fc07d277906928671e8cb0f3ace77f9d649e5a5a552-modules.yaml.gz
     repoid: rhel-8-for-ppc64le-appstream-rpms
-    size: 785091
-    checksum: sha256:08d82731d5de94e0ed722a49081cd14c976aeb55296e4814fe2e1a427f4407ab
+    size: 789086
+    checksum: sha256:54bf2c59655e48f8d30e8fc07d277906928671e8cb0f3ace77f9d649e5a5a552
 - arch: s390x
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/s390x/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el8.s390x.rpm
@@ -2148,20 +2148,20 @@ arches:
     name: fuse3-libs
     evr: 3.3.0-19.el8
     sourcerpm: fuse-2.9.7-19.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.34.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.37.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 109876
-    checksum: sha256:0ce24433fd2c893b62e1b2e0ee8b6e0c381c7801550d4ef2ef397156d5a242e9
+    size: 110272
+    checksum: sha256:341083187fb884fd1022c654353508b01bc62a95b7d159fa034869fd813e537a
     name: glibc-devel
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.34.s390x.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.37.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 499064
-    checksum: sha256:5e81b3032a6c2b75c4282dc782c787b4a2a692ee686173be64c7a06ece0b77a2
+    size: 499360
+    checksum: sha256:5bb3c51adcee645bc2b1be107f726c195bd7e171f7342bdfcb3a20afb1895e11
     name: glibc-headers
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/g/groff-base-1.22.3-18.el8.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 1033924
@@ -2190,13 +2190,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8
     sourcerpm: kbd-2.0.4-11.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/kernel-headers-4.18.0-553.126.1.el8_10.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/kernel-headers-4.18.0-553.137.1.el8_10.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 12511684
-    checksum: sha256:ff1b3cd10118f581d313a465f340d29891e2070487faaf9a73a4ca36302e2ab8
+    size: 12518464
+    checksum: sha256:df5b86dac2e3e69488e1d873d7cfbf5eeab56d9a0fa97ca1aab6c7473d475104
     name: kernel-headers
-    evr: 4.18.0-553.126.1.el8_10
-    sourcerpm: kernel-4.18.0-553.126.1.el8_10.src.rpm
+    evr: 4.18.0-553.137.1.el8_10
+    sourcerpm: kernel-4.18.0-553.137.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 49208
@@ -2372,20 +2372,20 @@ arches:
     name: openssh-clients
     evr: 8.0p1-29.el8_10
     sourcerpm: openssh-8.0p1-29.el8_10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/o/openssl-1.1.1k-15.el8_6.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/o/openssl-1.1.1k-16.el8_6.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 714140
-    checksum: sha256:cbcf269f4a0d72dcfc83b23b1dcd7589ed96864d89f30244c7fcdacff782a00a
+    size: 714476
+    checksum: sha256:4b9c2f8b76f65bf600b8c5972d743a9345cfeab4f07c3271c0d416e73f819519
     name: openssl
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/o/openssl-devel-1.1.1k-15.el8_6.s390x.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/o/openssl-devel-1.1.1k-16.el8_6.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 2439136
-    checksum: sha256:b948be222ad2035c0e267a2fb50f3f06ee1805364a2e6a8fb0c66a1563c35e4b
+    size: 2439520
+    checksum: sha256:240997c9e9c8b0051988ba1a1b8b33e30e5e1006e9f392baaa8d7f9a69e193f9
     name: openssl-devel
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/p/pcre2-devel-10.32-3.el8_6.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 619356
@@ -2708,13 +2708,13 @@ arches:
     name: selinux-policy-targeted
     evr: 3.14.3-139.el8_10.2
     sourcerpm: selinux-policy-3.14.3-139.el8_10.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/s/systemd-udev-239-82.el8_10.16.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/s/systemd-udev-239-82.el8_10.17.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 1594820
-    checksum: sha256:30666689f14ea346baee6ee7c1323f6ac8c21b8d9e0d0a2adf440f4dc040ff15
+    size: 1595132
+    checksum: sha256:05bd387e26392f10a1fddfe4fade2020d444238bcd0f442a9720c54e9729aa58
     name: systemd-udev
-    evr: 239-82.el8_10.16
-    sourcerpm: systemd-239-82.el8_10.16.src.rpm
+    evr: 239-82.el8_10.17
+    sourcerpm: systemd-239-82.el8_10.17.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/z/zlib-devel-1.2.11-25.el8.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 59976
@@ -2731,10 +2731,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/appstream/os/repodata/fd511ef13f08995bdbffb9bdd63612375a2148b6433c5a5557bd19d70d318a72-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/appstream/os/repodata/cf74efa1c9c8f65c532281d886edab9d0676c60b4940f4feb421801acf69c857-modules.yaml.gz
     repoid: rhel-8-for-s390x-appstream-rpms
-    size: 785806
-    checksum: sha256:fd511ef13f08995bdbffb9bdd63612375a2148b6433c5a5557bd19d70d318a72
+    size: 791093
+    checksum: sha256:cf74efa1c9c8f65c532281d886edab9d0676c60b4940f4feb421801acf69c857
 - arch: x86_64
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/x86_64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el8.x86_64.rpm
@@ -3059,20 +3059,20 @@ arches:
     name: fuse3-libs
     evr: 3.3.0-19.el8
     sourcerpm: fuse-2.9.7-19.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.34.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/g/glibc-devel-2.28-251.el8_10.37.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 92384
-    checksum: sha256:ac08bbfef068dfc3b48fe0930fe23080a9c738d492849d56d06d4eb4927adb1d
+    size: 92780
+    checksum: sha256:048073a2f3a9a29e73d425a91d119044eed7016b4df88cc783335e09f821d7fd
     name: glibc-devel
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.34.x86_64.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/g/glibc-headers-2.28-251.el8_10.37.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 507104
-    checksum: sha256:cae586094a690f1f2966e5070f5fb78b6daa07de9dd856d7aea9074988870d53
+    size: 507432
+    checksum: sha256:7a779bd16f6944fd13af87efe5a42e188cd3d4e40d7e088edd219cd0cea24c2f
     name: glibc-headers
-    evr: 2.28-251.el8_10.34
-    sourcerpm: glibc-2.28-251.el8_10.34.src.rpm
+    evr: 2.28-251.el8_10.37
+    sourcerpm: glibc-2.28-251.el8_10.37.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/g/groff-base-1.22.3-18.el8.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 1069536
@@ -3101,13 +3101,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8
     sourcerpm: kbd-2.0.4-11.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/kernel-headers-4.18.0-553.126.1.el8_10.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/kernel-headers-4.18.0-553.137.1.el8_10.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 12516872
-    checksum: sha256:99d09dc7ceb551ddf01562b42e5abd8d5b2d5363f8d0e07016b3edc3e086d7a6
+    size: 12523644
+    checksum: sha256:0c88fba2963a9e890d6c531716f94ed67006acbac115e10c44add64809c7be98
     name: kernel-headers
-    evr: 4.18.0-553.126.1.el8_10
-    sourcerpm: kernel-4.18.0-553.126.1.el8_10.src.rpm
+    evr: 4.18.0-553.137.1.el8_10
+    sourcerpm: kernel-4.18.0-553.137.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 49216
@@ -3262,20 +3262,20 @@ arches:
     name: openssh-clients
     evr: 8.0p1-29.el8_10
     sourcerpm: openssh-8.0p1-29.el8_10.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/o/openssl-1.1.1k-15.el8_6.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/o/openssl-1.1.1k-16.el8_6.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 727444
-    checksum: sha256:494eba79b38e02a26c6da8e68f638ce36101374596bbcbbf5f616e13d3597791
+    size: 727764
+    checksum: sha256:0ecd4c7c37bfb2502c1c6ff9c04c0520e57e503d428edc45583850ec1d3f24d8
     name: openssl
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/o/openssl-devel-1.1.1k-15.el8_6.x86_64.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/o/openssl-devel-1.1.1k-16.el8_6.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 2439268
-    checksum: sha256:7a395fd08d3592d6737fea49aa2df5f1aa8aa95668a82e9d74f0110fbbf71ef3
+    size: 2439504
+    checksum: sha256:3057b92040380958334d054aa2d89544a8df27e1696a117f93e25189b4af26a9
     name: openssl-devel
-    evr: 1:1.1.1k-15.el8_6
-    sourcerpm: openssl-1.1.1k-15.el8_6.src.rpm
+    evr: 1:1.1.1k-16.el8_6
+    sourcerpm: openssl-1.1.1k-16.el8_6.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/p/pcre2-devel-10.32-3.el8_6.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 619372
@@ -3598,13 +3598,13 @@ arches:
     name: selinux-policy-targeted
     evr: 3.14.3-139.el8_10.2
     sourcerpm: selinux-policy-3.14.3-139.el8_10.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/s/systemd-udev-239-82.el8_10.16.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/s/systemd-udev-239-82.el8_10.17.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 1668724
-    checksum: sha256:77e72517523f5485a3997bc75e932162f522a0973fbe8e1da4087872a30d5bf2
+    size: 1669396
+    checksum: sha256:e34cd917dca38ec660cb85172ecebfe94df84d0bb4c9ca176585d27673deceef
     name: systemd-udev
-    evr: 239-82.el8_10.16
-    sourcerpm: systemd-239-82.el8_10.16.src.rpm
+    evr: 239-82.el8_10.17
+    sourcerpm: systemd-239-82.el8_10.17.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/z/zlib-devel-1.2.11-25.el8.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 59988
@@ -3621,7 +3621,7 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/appstream/os/repodata/0708164f3c9443b24e5fea247de33663ebed27eec8a68b4d56c709f99bcefea5-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/appstream/os/repodata/849b1fb7afcd1c672d5ddfbcc7d7ab8df782ac72193531487b377431974f39a4-modules.yaml.gz
     repoid: rhel-8-for-x86_64-appstream-rpms
-    size: 812499
-    checksum: sha256:0708164f3c9443b24e5fea247de33663ebed27eec8a68b4d56c709f99bcefea5
+    size: 817245
+    checksum: sha256:849b1fb7afcd1c672d5ddfbcc7d7ab8df782ac72193531487b377431974f39a4
