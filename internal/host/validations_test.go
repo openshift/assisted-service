@@ -1425,7 +1425,12 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("day2 host - disk encryption is available", func() {
-			createDay2Cluster()
+			c := generateDay2Cluster()
+			c.DiskEncryption = &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			}
+			Expect(db.Create(c).Error).ToNot(HaveOccurred())
 
 			h := getDay2Host() //explicit set the role to worker
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion("")
@@ -1442,7 +1447,12 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("day2 host - pending on APIVipConnectivity response", func() {
-			createDay2Cluster()
+			c := generateDay2Cluster()
+			c.DiskEncryption = &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			}
+			Expect(db.Create(c).Error).ToNot(HaveOccurred())
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)
@@ -1458,7 +1468,12 @@ var _ = Describe("Validations test", func() {
 		})
 
 		It("day2 host - LUKS in APIVipConnectivity response", func() {
-			createDay2Cluster()
+			c := generateDay2Cluster()
+			c.DiskEncryption = &models.DiskEncryption{
+				EnableOn: swag.String(models.DiskEncryptionEnableOnMasters),
+				Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+			}
+			Expect(db.Create(c).Error).ToNot(HaveOccurred())
 
 			h := getDay2Host()
 			h.Inventory = common.GenerateTestInventoryWithTpmVersion(models.InventoryTpmVersionNone)

@@ -3388,7 +3388,7 @@ location = "%s"
 		}
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterNotReadyReason)
-		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnNone), nil, "")
+		verifyDiskEncryptionConfig(swag.String(models.DiskEncryptionEnableOnNone), swag.String(models.DiskEncryptionModeTpmv2), "")
 
 		By("update deployment with disk encryption enabled with tpmv2 on master only")
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
@@ -4724,8 +4724,10 @@ location = "%s"
 		}, "30s", "10s").Should(Equal(firstAgentEventsURL))
 
 		By("Check host is removed from first backend cluster")
-		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		Expect(len(cluster.Hosts)).Should(Equal(0))
+		Eventually(func() int {
+			cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			return len(cluster.Hosts)
+		}, "30s", "10s").Should(Equal(0))
 
 		By("Delete Original Clusterdeployment")
 		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKey)
@@ -5337,6 +5339,64 @@ spec:
 		deployOrUpdateConfigMap(ctx, kubeClient, refs[0].Name, map[string]string{"test1.yaml": content})
 		deployOrUpdateConfigMap(ctx, kubeClient, refs[1].Name, map[string]string{"test2.yaml": content})
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterAlreadyInstallingReason)
+	})
+
+	It("ConfigMap delete and recreate triggers re-validation of custom manifests", func() {
+		By("Create SNO cluster with Cilium network type, ConfigMap ref, and hold installation")
+		configMapName := "cni-manifests"
+		aciSNOSpec.Networking.NetworkType = models.ClusterNetworkTypeCilium
+		aciSNOSpec.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{{Name: configMapName}}
+		aciSNOSpec.HoldInstallation = true
+
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		infraEnvKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+		infraEnv := getInfraEnvFromDBByKubeKey(ctx, db, infraEnvKey, waitForReconcileTimeout)
+		configureLocalAgentClient(infraEnv.ID.String())
+		host := utils_test.TestContext.RegisterNode(ctx, *infraEnv.ID, "hostname1", utils_test.DefaultCIDRv4)
+		ips := hostutil.GenerateIPv4Addresses(1, utils_test.DefaultCIDRv4)
+		utils_test.TestContext.GenerateFullMeshConnectivity(ctx, ips[0], host)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		utils_test.TestContext.GenerateDomainResolution(ctx, host, clusterDeploymentSpec.ClusterName, "hive.example.com")
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		By("Without ConfigMap, validation should fail for custom manifests")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsFailingReason)
+
+		By("Create ConfigMap with manifest data — cluster should become ready (held)")
+		content := `apiVersion: v1
+kind: Namespace
+metadata:
+  name: cilium`
+		cm := deployOrUpdateConfigMap(ctx, kubeClient, configMapName, map[string]string{"cilium-ns.yaml": content})
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
+
+		By("Delete ConfigMap — validation should fail again")
+		Expect(kubeClient.Delete(ctx, cm)).To(BeNil())
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterValidatedCondition, hiveext.ClusterValidationsFailingReason)
+
+		By("Recreate ConfigMap — cluster should become ready again")
+		cm = deployOrUpdateConfigMap(ctx, kubeClient, configMapName, map[string]string{"cilium-ns.yaml": content})
+		defer func() {
+			_ = kubeClient.Delete(ctx, cm)
+		}()
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterRequirementsMetCondition, hiveext.ClusterReadyReason)
 	})
 
 	It("delete agent and validate host deregistration", func() {

@@ -30,7 +30,7 @@ type openShiftReleasesAPIClientInterface interface {
 //
 //go:generate mockgen -source=clients.go -destination=mock_clients.go -package=releasesources
 type openShiftSupportLevelAPIClientInterface interface {
-	getSupportLevels(majorVersion string) (ocpVersionSupportLevels, error)
+	getSupportLevels() (ocpVersionSupportLevels, error)
 }
 
 type ReleaseGraph struct {
@@ -55,14 +55,14 @@ type version struct {
 }
 
 const (
-	OpenshiftUpdateServiceAPIURLPath                    string = "api/upgrades_info/v1/graph"
-	OpenshiftUpdateServiceAPIURLQueryChannel            string = "channel"
-	OpenshiftUpdateServiceAPIURLQueryArch               string = "arch"
-	redHatProductLifeCycleDataAPIQueryName              string = "name"
-	redHatProductLifeCycleDataAPIQueryNameValueTemplate string = "Openshift Container Platform %s"
-	redHatProductLifeCycleDataAPIEndOfLife              string = "End of life"
-	redHatProductLifeCycleDataAPIMaintenanceSupport     string = "Maintenance Support"
-	redHatProductLifeCycleDataAPIFullSupport            string = "Full Support"
+	OpenshiftUpdateServiceAPIURLPath                string = "api/upgrades_info/v1/graph"
+	OpenshiftUpdateServiceAPIURLQueryChannel        string = "channel"
+	OpenshiftUpdateServiceAPIURLQueryArch           string = "arch"
+	redHatProductLifeCycleDataAPIQueryName          string = "name"
+	redHatProductLifeCycleDataAPIQueryNameValue     string = "Red Hat OpenShift Container Platform"
+	redHatProductLifeCycleDataAPIEndOfLife          string = "End of life"
+	redHatProductLifeCycleDataAPIMaintenanceSupport string = "Maintenance Support"
+	redHatProductLifeCycleDataAPIFullSupport        string = "Full Support"
 )
 
 type openShiftReleasesAPIClient struct {
@@ -120,13 +120,11 @@ func (o openShiftReleasesAPIClient) getReleases(
 	return &releaseGraphInstance, nil
 }
 
-func (o openShiftSupportLevelAPIClient) getSupportLevels(openshiftMajorVersion string) (ocpVersionSupportLevels, error) {
+func (o openShiftSupportLevelAPIClient) getSupportLevels() (ocpVersionSupportLevels, error) {
 	url := appendURLQueryParams(
 		o.baseURL,
 		map[string]string{
-			redHatProductLifeCycleDataAPIQueryName: fmt.Sprintf(
-				redHatProductLifeCycleDataAPIQueryNameValueTemplate, openshiftMajorVersion,
-			),
+			redHatProductLifeCycleDataAPIQueryName: redHatProductLifeCycleDataAPIQueryNameValue,
 		},
 	)
 

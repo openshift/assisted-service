@@ -3,7 +3,6 @@ package cluster
 import (
 	"context"
 	"os"
-	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
@@ -96,33 +95,8 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		}
 	}
 
-	mockNoChangeInOperatorDependencies := func() {
-		mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-				return previousOperators, nil
-			},
-		).AnyTimes()
-	}
-
-	mockAddedOperatorDependencies := func(addedOperators ...*models.MonitoredOperator) {
-		mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ *common.Cluster, previousOperators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
-				currentOperators := append(previousOperators, addedOperators...)
-				return currentOperators, nil
-			},
-		).Times(1)
-		for _, addedOperator := range addedOperators {
-			mockUsageApi.EXPECT().Add(gomock.Any(), strings.ToUpper(addedOperator.Name), gomock.Any()).Times(1)
-		}
-		mockUsageApi.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-	}
-
 	mockOperatorValidationsSuccess := func() {
 		mockOperatorManager.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	}
-
-	mockOperatorEnsureOperatorPrerequisiteSuccess := func() {
-		mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
 
 	Context("Skipping Validations", func() {
@@ -160,7 +134,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should allow permitted ignorable validations to be ignored", func() {
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"network-type-valid\", \"ingress-vips-valid\", \"ingress-vips-defined\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
@@ -176,7 +150,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should allow all permitted ignorable validations to be ignored", func() {
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"all\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
@@ -190,7 +164,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 		})
 
 		It("Should never allow a specific mandatory validation to be ignored", func() {
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 			validationContext.cluster.IgnoredClusterValidations = "[\"all\"]"
 			conditions, _, _ := preprocessor.preprocess(ctx, validationContext)
@@ -214,33 +188,10 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 			deleteCluster()
 		})
 
-		It("Adds new dependency", func() {
-			// Prepare the operators API so that it will add a new operator dependency:
-			mockAddedOperatorDependencies(
-				&models.MonitoredOperator{
-					Name: "myoperator",
-				},
-			)
+		It("Validates operators without recalculating dependencies", func() {
 			mockOperatorValidationsSuccess()
-			mockOperatorEnsureOperatorPrerequisiteSuccess()
 
 			_, _, err := preprocessor.preprocess(ctx, validationContext)
-			Expect(err).ToNot(HaveOccurred())
-
-			// Check that the new dependency has been added to the cluster in memory:
-			var operator *models.MonitoredOperator
-			for _, current := range cluster.MonitoredOperators {
-				if current.Name == "myoperator" {
-					operator = current
-				}
-			}
-			Expect(operator).ToNot(BeNil())
-
-			// Check that the new dependency has been saved to the database:
-			err = db.Where(&models.MonitoredOperator{
-				ClusterID: clusterID,
-				Name:      "myoperator",
-			}).First(&models.MonitoredOperator{}).Error
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -270,7 +221,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				nil,
 				disabledValidations,
 			)
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 
 			conditions, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
@@ -304,7 +255,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				nil,
 				disabledValidations,
 			)
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 
 			_, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
@@ -328,7 +279,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				nil,
 				DisabledClusterValidations{},
 			)
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 
 			_, validationsOutput, err := preprocessor.preprocess(ctx, validationContext)
@@ -355,7 +306,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				nil,
 				disabledValidations,
 			)
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 
 			cluster.IgnoredClusterValidations = `["ntp-server-configured"]`
@@ -389,7 +340,7 @@ var _ = Describe("Cluster Refresh Status Preprocessor", func() {
 				nil,
 				disabledValidations,
 			)
-			mockNoChangeInOperatorDependencies()
+
 			mockOperatorValidationsSuccess()
 
 			cluster.IgnoredClusterValidations = `[]`

@@ -536,7 +536,10 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 	var status ValidationStatus
 	var message string
 
-	if c.infraEnv != nil || swag.StringValue(c.cluster.DiskEncryption.EnableOn) == models.DiskEncryptionEnableOnNone {
+	if c.infraEnv != nil {
+		return ValidationSuccessSuppressOutput, ""
+	}
+	if !hostutil.IsDay2Host(c.host) && !common.IsConfigured(c.cluster.DiskEncryption) {
 		return ValidationSuccessSuppressOutput, ""
 	}
 	if c.inventory == nil {
@@ -548,6 +551,9 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		//according to that information
 		luks, err := hostutil.GetDiskEncryptionForDay2(v.log, c.host)
 		if err != nil {
+			if !common.IsConfigured(c.cluster.DiskEncryption) {
+				return ValidationSuccessSuppressOutput, ""
+			}
 			return ValidationPending, "Missing ignition information"
 		}
 		if luks == nil || luks.Clevis == nil {
@@ -577,15 +583,15 @@ func (v *validator) diskEncryptionRequirementsSatisfied(c *validationContext) (V
 		if role == models.HostRoleAutoAssign {
 			return ValidationPending, "Missing role assignment"
 		}
-		if !hostutil.IsDiskEncryptionEnabledForRole(*c.cluster.DiskEncryption, role) {
+		if !common.EnabledForRole(*c.cluster.DiskEncryption, role) {
 			return ValidationSuccessSuppressOutput, ""
 		}
-		if swag.StringValue(c.cluster.DiskEncryption.Mode) == models.DiskEncryptionModeTang {
+		if common.IsSetWithTang(c.cluster.DiskEncryption) {
 			status, message = v.areTangServersReachable(c)
 			if status == ValidationFailure {
 				return status, message
 			}
-		} else { // Mode TPMv2
+		} else if common.IsSetWithTpm(c.cluster.DiskEncryption) {
 			status = boolValue(c.inventory.TpmVersion == models.InventoryTpmVersionNr20)
 		}
 
