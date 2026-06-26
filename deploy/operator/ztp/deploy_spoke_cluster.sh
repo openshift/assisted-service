@@ -88,6 +88,12 @@ ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
 oc get namespace "${SPOKE_NAMESPACE}" || oc create namespace "${SPOKE_NAMESPACE}"
 
+if [ "${DISCONNECTED}" = "true" ]; then
+    oc get configmap assisted-mirror-config -n "${ASSISTED_NAMESPACE}" -o json | \
+      jq --arg ns "${SPOKE_NAMESPACE}" '.metadata.namespace = $ns | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.managedFields)' | \
+      oc apply -f -
+fi
+
 oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
     oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
 oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
@@ -133,10 +139,21 @@ fi
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Completed" "1m" "${SPOKE_NAMESPACE}"
+COMPLETED_STATUS=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+COMPLETED_REASON=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}')
+STATE_INFO=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.debugInfo.stateInfo}')
+
+if [[ "${COMPLETED_STATUS}" != "True" ]] || [[ "${COMPLETED_REASON}" != "InstallationCompleted" ]]; then
+    echo "Cluster installation failed: Completed=${COMPLETED_STATUS}/${COMPLETED_REASON}, stateInfo=${STATE_INFO}"
+    oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o yaml
+    exit 1
+fi
 echo "Cluster has been installed successfully!"
 
-wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
+if ! wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"; then
+    echo "Hive ClusterDeployment spec.installed never became true"
+    exit 1
+fi
 echo "Hive acknowledged cluster installation!"
 
 # For SNO we derive API IP from .status.apiVIP of the agentclusterinstall as this is the address of the single node.
@@ -151,7 +168,7 @@ if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] || [ "${USER_MANAGED_NETWORKING}" == "
         echo "Fatal:"
         echo "No value found in the agentclusterinstall for .status.apiVIP"
         echo "Cannot determine the address of the API"
-        exit
+        exit 1
     fi
 fi
 

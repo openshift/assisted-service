@@ -282,6 +282,7 @@ data:
     $(registry_config "$(get_image_without_tag ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${ironic_agent_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE})")
+    $(registry_configs_for_os_image_stream_sources "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" "${AUTHFILE:-${PULL_SECRET_FILE}}" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(
       if kubectl get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
         for row in $(kubectl get imagedigestmirrorset -o json |
@@ -315,6 +316,7 @@ function from_index_image() {
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+    configure_disconnected_database_image
     mirror_rhcos
   else
     catalog_source_name=${ASSISTED_SERVICE_OPERATOR_CATALOG}
@@ -329,6 +331,7 @@ function from_community_operators() {
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+    configure_disconnected_database_image
     mirror_rhcos
   else
     catalog_source_name="community-operators"
