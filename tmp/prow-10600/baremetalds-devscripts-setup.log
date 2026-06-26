@@ -1,0 +1,2613 @@
+************ baremetalds devscripts setup command ************
+ofcir-82.cipool-ibmcloud.ofcir
+Will include manifests:
++ test -f /usr/config
++ true
++ dnf config-manager --set-enabled extras-common
++ PKGS='git sysstat sos make podman python39 jq net-tools gcc'
++ MAX_RETRIES=5
++ DELAY=15
++ attempt=1
++ ((  attempt <= MAX_RETRIES  ))
++ dnf install --nobest -y git sysstat sos make podman python39 jq net-tools gcc
+CentOS Stream 9 - Extras packages                27 kB/s |  21 kB     00:00    
+Last metadata expiration check: 0:00:01 ago on Tue 07 Jul 2026 04:22:20 AM CDT.
+Package sos-4.11.0-1.el9.noarch is already installed.
+Package podman-6:5.8.3-1.el9.x86_64 is already installed.
+Package python3-3.9.25-7.el9.x86_64 is already installed.
+Package jq-1.6-21.el9.x86_64 is already installed.
+Package net-tools-2.0-0.64.20160912git.el9.x86_64 is already installed.
+Dependencies resolved.
+================================================================================
+ Package               Arch        Version                 Repository      Size
+================================================================================
+Installing:
+ gcc                   x86_64      11.5.0-14.el9           appstream       32 M
+ git                   x86_64      2.52.0-1.el9            appstream       39 k
+ make                  x86_64      1:4.3-8.el9             baseos         536 k
+ sysstat               x86_64      12.5.4-11.el9           appstream      480 k
+Installing dependencies:
+ cpp                   x86_64      11.5.0-14.el9           appstream       11 M
+ git-core              x86_64      2.52.0-1.el9            appstream      5.0 M
+ git-core-doc          noarch      2.52.0-1.el9            appstream      3.1 M
+ glibc-devel           x86_64      2.34-273.el9            appstream       39 k
+ glibc-headers         x86_64      2.34-273.el9            appstream      547 k
+ kernel-headers        x86_64      5.14.0-721.el9          appstream      2.2 M
+ libmpc                x86_64      1.2.1-4.el9             appstream       62 k
+ libxcrypt-devel       x86_64      4.4.18-3.el9            appstream       29 k
+ lm_sensors-libs       x86_64      3.6.0-10.el9            appstream       42 k
+ pcp-conf              x86_64      6.3.7-9.el9             appstream       31 k
+ pcp-libs              x86_64      6.3.7-9.el9             appstream      645 k
+ perl-DynaLoader       x86_64      1.47-483.el9            appstream       25 k
+ perl-Error            noarch      1:0.17029-7.el9         appstream       42 k
+ perl-Git              noarch      2.52.0-1.el9            appstream       37 k
+ perl-TermReadKey      x86_64      2.38-11.el9             appstream       37 k
+ perl-lib              x86_64      0.65-483.el9            appstream       15 k
+
+Transaction Summary
+================================================================================
+Install  20 Packages
+
+Total download size: 56 M
+Installed size: 171 M
+Downloading Packages:
+(1/20): make-4.3-8.el9.x86_64.rpm               1.7 MB/s | 536 kB     00:00    
+(2/20): cpp-11.5.0-14.el9.x86_64.rpm             26 MB/s |  11 MB     00:00    
+(3/20): git-2.52.0-1.el9.x86_64.rpm             348 kB/s |  39 kB     00:00    
+(4/20): git-core-2.52.0-1.el9.x86_64.rpm         29 MB/s | 5.0 MB     00:00    
+(5/20): git-core-doc-2.52.0-1.el9.noarch.rpm     16 MB/s | 3.1 MB     00:00    
+(6/20): glibc-headers-2.34-273.el9.x86_64.rpm    11 MB/s | 547 kB     00:00    
+(7/20): glibc-devel-2.34-273.el9.x86_64.rpm     532 kB/s |  39 kB     00:00    
+(8/20): libmpc-1.2.1-4.el9.x86_64.rpm           1.8 MB/s |  62 kB     00:00    
+(9/20): kernel-headers-5.14.0-721.el9.x86_64.rp  27 MB/s | 2.2 MB     00:00    
+(10/20): gcc-11.5.0-14.el9.x86_64.rpm            38 MB/s |  32 MB     00:00    
+(11/20): libxcrypt-devel-4.4.18-3.el9.x86_64.rp 194 kB/s |  29 kB     00:00    
+(12/20): lm_sensors-libs-3.6.0-10.el9.x86_64.rp 405 kB/s |  42 kB     00:00    
+(13/20): perl-DynaLoader-1.47-483.el9.x86_64.rp 839 kB/s |  25 kB     00:00    
+(14/20): pcp-conf-6.3.7-9.el9.x86_64.rpm        778 kB/s |  31 kB     00:00    
+(15/20): pcp-libs-6.3.7-9.el9.x86_64.rpm         12 MB/s | 645 kB     00:00    
+(16/20): perl-Error-0.17029-7.el9.noarch.rpm    1.4 MB/s |  42 kB     00:00    
+(17/20): perl-Git-2.52.0-1.el9.noarch.rpm       851 kB/s |  37 kB     00:00    
+(18/20): perl-TermReadKey-2.38-11.el9.x86_64.rp 1.2 MB/s |  37 kB     00:00    
+(19/20): perl-lib-0.65-483.el9.x86_64.rpm       532 kB/s |  15 kB     00:00    
+(20/20): sysstat-12.5.4-11.el9.x86_64.rpm        10 MB/s | 480 kB     00:00    
+--------------------------------------------------------------------------------
+Total                                            41 MB/s |  56 MB     00:01     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : libmpc-1.2.1-4.el9.x86_64                             1/20 
+  Installing       : git-core-2.52.0-1.el9.x86_64                          2/20 
+  Installing       : git-core-doc-2.52.0-1.el9.noarch                      3/20 
+  Installing       : cpp-11.5.0-14.el9.x86_64                              4/20 
+  Installing       : perl-lib-0.65-483.el9.x86_64                          5/20 
+  Installing       : perl-Error-1:0.17029-7.el9.noarch                     6/20 
+  Installing       : perl-DynaLoader-1.47-483.el9.x86_64                   7/20 
+  Installing       : perl-TermReadKey-2.38-11.el9.x86_64                   8/20 
+  Installing       : perl-Git-2.52.0-1.el9.noarch                          9/20 
+  Installing       : git-2.52.0-1.el9.x86_64                              10/20 
+  Installing       : pcp-conf-6.3.7-9.el9.x86_64                          11/20 
+  Installing       : pcp-libs-6.3.7-9.el9.x86_64                          12/20 
+  Installing       : lm_sensors-libs-3.6.0-10.el9.x86_64                  13/20 
+  Installing       : kernel-headers-5.14.0-721.el9.x86_64                 14/20 
+  Installing       : glibc-headers-2.34-273.el9.x86_64                    15/20 
+  Installing       : libxcrypt-devel-4.4.18-3.el9.x86_64                  16/20 
+  Installing       : glibc-devel-2.34-273.el9.x86_64                      17/20 
+  Installing       : make-1:4.3-8.el9.x86_64                              18/20 
+  Installing       : gcc-11.5.0-14.el9.x86_64                             19/20 
+  Installing       : sysstat-12.5.4-11.el9.x86_64                         20/20 
+  Running scriptlet: sysstat-12.5.4-11.el9.x86_64                         20/20 
+Created symlink /etc/systemd/system/multi-user.target.wants/sysstat.service → /usr/lib/systemd/system/sysstat.service.
+Created symlink /etc/systemd/system/sysstat.service.wants/sysstat-collect.timer → /usr/lib/systemd/system/sysstat-collect.timer.
+Created symlink /etc/systemd/system/sysstat.service.wants/sysstat-summary.timer → /usr/lib/systemd/system/sysstat-summary.timer.
+
+  Verifying        : make-1:4.3-8.el9.x86_64                               1/20 
+  Verifying        : cpp-11.5.0-14.el9.x86_64                              2/20 
+  Verifying        : gcc-11.5.0-14.el9.x86_64                              3/20 
+  Verifying        : git-2.52.0-1.el9.x86_64                               4/20 
+  Verifying        : git-core-2.52.0-1.el9.x86_64                          5/20 
+  Verifying        : git-core-doc-2.52.0-1.el9.noarch                      6/20 
+  Verifying        : glibc-devel-2.34-273.el9.x86_64                       7/20 
+  Verifying        : glibc-headers-2.34-273.el9.x86_64                     8/20 
+  Verifying        : kernel-headers-5.14.0-721.el9.x86_64                  9/20 
+  Verifying        : libmpc-1.2.1-4.el9.x86_64                            10/20 
+  Verifying        : libxcrypt-devel-4.4.18-3.el9.x86_64                  11/20 
+  Verifying        : lm_sensors-libs-3.6.0-10.el9.x86_64                  12/20 
+  Verifying        : pcp-conf-6.3.7-9.el9.x86_64                          13/20 
+  Verifying        : pcp-libs-6.3.7-9.el9.x86_64                          14/20 
+  Verifying        : perl-DynaLoader-1.47-483.el9.x86_64                  15/20 
+  Verifying        : perl-Error-1:0.17029-7.el9.noarch                    16/20 
+  Verifying        : perl-Git-2.52.0-1.el9.noarch                         17/20 
+  Verifying        : perl-TermReadKey-2.38-11.el9.x86_64                  18/20 
+  Verifying        : perl-lib-0.65-483.el9.x86_64                         19/20 
+  Verifying        : sysstat-12.5.4-11.el9.x86_64                         20/20 
+
+Installed:
+  cpp-11.5.0-14.el9.x86_64               gcc-11.5.0-14.el9.x86_64               
+  git-2.52.0-1.el9.x86_64                git-core-2.52.0-1.el9.x86_64           
+  git-core-doc-2.52.0-1.el9.noarch       glibc-devel-2.34-273.el9.x86_64        
+  glibc-headers-2.34-273.el9.x86_64      kernel-headers-5.14.0-721.el9.x86_64   
+  libmpc-1.2.1-4.el9.x86_64              libxcrypt-devel-4.4.18-3.el9.x86_64    
+  lm_sensors-libs-3.6.0-10.el9.x86_64    make-1:4.3-8.el9.x86_64                
+  pcp-conf-6.3.7-9.el9.x86_64            pcp-libs-6.3.7-9.el9.x86_64            
+  perl-DynaLoader-1.47-483.el9.x86_64    perl-Error-1:0.17029-7.el9.noarch      
+  perl-Git-2.52.0-1.el9.noarch           perl-TermReadKey-2.38-11.el9.x86_64    
+  perl-lib-0.65-483.el9.x86_64           sysstat-12.5.4-11.el9.x86_64           
+
+Complete!
+Packages installed successfully.
++ echo 'Packages installed successfully.'
++ break
++ ((  attempt > MAX_RETRIES  ))
++ systemctl start sysstat
++ mkdir -p /tmp/artifacts
++ mkdir dev-scripts
++ tar -xzvf dev-scripts.tar.gz -C /root/dev-scripts
+./
+./.claude/
+./.claude/commands/
+./.claude/commands/update-metal3-dev-env-hash.md
+./.git/
+./.git/FETCH_HEAD
+./.git/HEAD
+./.git/config
+./.git/description
+./.git/hooks/
+./.git/hooks/applypatch-msg.sample
+./.git/hooks/commit-msg.sample
+./.git/hooks/fsmonitor-watchman.sample
+./.git/hooks/post-update.sample
+./.git/hooks/pre-applypatch.sample
+./.git/hooks/pre-commit.sample
+./.git/hooks/pre-merge-commit.sample
+./.git/hooks/pre-push.sample
+./.git/hooks/pre-rebase.sample
+./.git/hooks/pre-receive.sample
+./.git/hooks/prepare-commit-msg.sample
+./.git/hooks/push-to-checkout.sample
+./.git/hooks/sendemail-validate.sample
+./.git/hooks/update.sample
+./.git/index
+./.git/info/
+./.git/info/exclude
+./.git/logs/
+./.git/logs/HEAD
+./.git/logs/refs/
+./.git/logs/refs/heads/
+./.git/logs/refs/heads/master
+./.git/objects/
+./.git/objects/info/
+./.git/objects/pack/
+./.git/objects/pack/pack-902eeb7675fa98a1d93f14ef47f2c42bf5e489a1.idx
+./.git/objects/pack/pack-902eeb7675fa98a1d93f14ef47f2c42bf5e489a1.pack
+./.git/objects/pack/pack-902eeb7675fa98a1d93f14ef47f2c42bf5e489a1.rev
+./.git/refs/
+./.git/refs/heads/
+./.git/refs/heads/master
+./.git/refs/tags/
+./.github/
+./.github/ISSUE_TEMPLATE/
+./.github/ISSUE_TEMPLATE/bug_report.md
+./.gitignore
+./.mailmap
+./01_install_requirements.sh
+./02_configure_host.sh
+./03_build_installer.sh
+./04_setup_ironic.sh
+./05_create_install_config.sh
+./06_create_cluster.sh
+./AGENTS.md
+./CLAUDE.md
+./CONTRIBUTING.md
+./DCO
+./LICENSE
+./Makefile
+./OWNERS
+./README.md
+./agent/
+./agent/01_agent_requirements.sh
+./agent/03_agent_build_installer.sh
+./agent/04_agent_prepare_release.sh
+./agent/05_agent_configure.sh
+./agent/06_agent_create_cluster.sh
+./agent/07_agent_add_extraworker_nodes.sh
+./agent/08_agent_post_install_validation.sh
+./agent/OWNERS
+./agent/README.md
+./agent/agent_remove_all_extraworker_nodes.sh
+./agent/agent_test_commands.sh
+./agent/agent_tests.sh
+./agent/cleanup.sh
+./agent/common.sh
+./agent/create-manifests-playbook.yaml
+./agent/docs/
+./agent/docs/add-nodes.md
+./agent/docs/config-presets-and-options.md
+./agent/docs/custom-release.md
+./agent/docs/none-and-external-platform.md
+./agent/e2e/
+./agent/e2e/agent-tui/
+./agent/e2e/agent-tui/automate-no-registry-agent-tui.sh
+./agent/e2e/agent-tui/test-fix-wrong-dns.sh
+./agent/e2e/agent-tui/utils.sh
+./agent/gather.sh
+./agent/iscsi_utils.sh
+./agent/iso_no_registry.sh
+./agent/isobuilder/
+./agent/isobuilder/ui_driven_cluster_installation/
+./agent/isobuilder/ui_driven_cluster_installation/go.mod
+./agent/isobuilder/ui_driven_cluster_installation/go.sum
+./agent/isobuilder/ui_driven_cluster_installation/main.go
+./agent/mce/
+./agent/mce/agent_mce_0_01_lso_namespace.yaml
+./agent/mce/agent_mce_0_02_lso_operatorgroup.yaml
+./agent/mce/agent_mce_0_03_lso_subscription.yaml
+./agent/mce/agent_mce_0_03_mce_namespace.yaml
+./agent/mce/agent_mce_0_04_mce_operatorgroup.yaml
+./agent/mce/agent_mce_0_05_mce_subscription.yaml
+./agent/mce/agent_mce_1_01_localvolumes.yaml
+./agent/mce/agent_mce_1_02_mce.yaml
+./agent/mce/agent_mce_1_03_agentserviceconfig.yaml
+./agent/mce/agent_mce_1_04_clusterimageset.yaml
+./agent/mce/agent_mce_1_05_autoimport.yaml
+./agent/plugins/
+./agent/plugins/modules/
+./agent/plugins/modules/preset_config.py
+./agent/release/
+./agent/release/billi-release.sh
+./agent/roles/
+./agent/roles/manifests/
+./agent/roles/manifests/tasks/
+./agent/roles/manifests/tasks/add-nodes.yml
+./agent/roles/manifests/tasks/appliance.yml
+./agent/roles/manifests/tasks/install-config.yml
+./agent/roles/manifests/tasks/main.yml
+./agent/roles/manifests/tasks/ztp.yml
+./agent/roles/manifests/templates/
+./agent/roles/manifests/templates/agent-cluster-install_yaml.j2
+./agent/roles/manifests/templates/agent-config_bond_yaml.j2
+./agent/roles/manifests/templates/agent-config_yaml.j2
+./agent/roles/manifests/templates/appliance-config_yaml.j2
+./agent/roles/manifests/templates/cluster-deployment_yaml.j2
+./agent/roles/manifests/templates/cluster-image-set_yaml.j2
+./agent/roles/manifests/templates/infraenv_yaml.j2
+./agent/roles/manifests/templates/install-config_baremetal_yaml.j2
+./agent/roles/manifests/templates/install-config_vsphere_yaml.j2
+./agent/roles/manifests/templates/install-config_yaml.j2
+./agent/roles/manifests/templates/net_macros.yaml
+./agent/roles/manifests/templates/nmstateconfig_bond_yaml.j2
+./agent/roles/manifests/templates/nmstateconfig_yaml.j2
+./agent/roles/manifests/templates/nodes-config_yaml.j2
+./agent/roles/manifests/templates/pull-secret_yaml.j2
+./agent/roles/manifests/templates/registries_conf.j2
+./agent/roles/manifests/vars/
+./agent/roles/manifests/vars/main.yml
+./agent/tests/
+./agent/tests/Dockerfile.agent-test
+./agent/tests/pytest.ini
+./agent/tests/unit/
+./agent/tests/unit/conftest.py
+./agent/tests/unit/plugins/
+./agent/tests/unit/plugins/modules/
+./agent/tests/unit/plugins/modules/data/
+./agent/tests/unit/plugins/modules/data/test_id_rsa.pub
+./agent/tests/unit/plugins/modules/data/test_ironic_nodes.json
+./agent/tests/unit/plugins/modules/data/test_pull_secret.json
+./agent/tests/unit/plugins/modules/test_preset_config.py
+./assets/
+./assets/files/
+./assets/files/etc/
+./assets/files/etc/chrony.conf
+./assets/files/etc/sysconfig/
+./assets/files/etc/sysconfig/crio-storage
+./assets/ipv6-dual-stack-no-upgrade.yaml
+./assets/metal3-cbo-deployment.yaml
+./assets/templates/
+./assets/templates/98_master-chronyd-custom.yaml.optional
+./assets/templates/98_worker-chronyd-custom.yaml.optional
+./assets/templates/cluster-network-00-gateway-mode.yaml.optional
+./assets/yaml_patch.py
+./assisted_deployment.sh
+./base-image/
+./base-image/Dockerfile
+./base-image/custom.repo
+./base-image/prepare-image.sh
+./bootkube_log.sh
+./bootstrap_bootkube_log.sh
+./bootstrap_ironic_log.sh
+./bootstrap_openshift_log.sh
+./build-base-image.sh
+./build-qemu-aarch64.sh
+./cache_cleanup.sh
+./ci_logs.sh
+./clouds.yaml.template
+./common.sh
+./config_example.sh
+./demo/
+./demo/launch_demo_bmo.sh
+./dev-setup.md
+./docs/
+./docs/assisted-deployment.md
+./docs/clusterbot.md
+./docs/custom-mao-and-capbm.md
+./docs/developing-installer.md
+./docs/release-payload.md
+./external_loadbalancer.sh
+./generate_clouds_yaml.sh
+./go.mod
+./go.sum
+./hive_install.sh
+./host_cleanup.sh
+./ignition/
+./ignition/file_example.ign
+./images/
+./images/Dockerfile.ci
+./ironic_cleanup.sh
+./ironic_hosts.json.example
+./logging.sh
+./mao-images.sh
+./metal3-config.yaml.template
+./metal3-dev/
+./metal3-dev/README.md
+./metal3-dev/local-bmo.sh
+./metal3-dev/local-capbm.sh
+./metal3-dev/local-cbo.sh
+./metal3-dev/mao-bmo.sh
+./metal3-dev/mao-capbm.sh
+./metal3-dev/pause-control-plane.sh
+./metal3-templater.go
+./metallb/
+./metallb/Makefile
+./metallb/OWNERS
+./metallb/README.md
+./metallb/configure_metallb.sh
+./metallb/deploy_operator.sh
+./metallb/metallb-operator-deploy/
+./metallb/metallb-operator-deploy/controller_manager_patch.yaml
+./metallb/metallb-operator-deploy/kustomization.yaml
+./metallb/metallb.yaml
+./metallb/metallb_common.sh
+./metallb/run_e2e.sh
+./must_gather.sh
+./network-configs/
+./network-configs/bond/
+./network-configs/bond/ostest-master-0.yaml
+./network-configs/bond/ostest-master-1.yaml
+./network-configs/bond/ostest-master-2.yaml
+./network-configs/bond/ostest-worker-0.yaml
+./network-configs/bond/ostest-worker-1.yaml
+./network-configs/nmstate-brex-bond/
+./network-configs/nmstate-brex-bond/00-nmstate-brex-bond-master.yml
+./network-configs/nmstate-brex-bond/00-nmstate-brex-bond-worker.yml
+./network-configs/static/
+./network-configs/static/hosts.yaml
+./network-configs/static/ostest-master-0.yaml
+./network-configs/static/ostest-master-1.yaml
+./network-configs/static/ostest-master-2.yaml
+./network-configs/static/ostest-worker-0.yaml
+./network-configs/static/ostest-worker-1.yaml
+./network.sh
+./oc_mirror.sh
+./oc_mirror_cleanup.sh
+./ocp_cleanup.sh
+./ocp_install_env.sh
+./openshift_xinetd_example.conf
+./podman_cleanup.sh
+./provisioning-network.sh
+./proxy_cleanup.sh
+./pyxpath
+./registry_cleanup.sh
+./release_info.sh
+./remote_nodes.sh
+./rhcos.sh
+./run-custom-mao.sh
+./run_capi_e2e.sh
+./sanitychecks.sh
+./scripts/
+./scripts/periodics_pass_rates.sh
+./setup_capi_e2e.sh
+./show_bootstrap_log.sh
+./start-mao.sh
+./stop-cbo.sh
+./stop-mao.sh
+./utils.sh
+./validation.sh
+./vm_setup_vars.yml
+./workingdir_cleanup.sh
+net.ipv6.conf.bond1.accept_ra = 2
++ chown -R root:root dev-scripts
++ '[' auto = auto ']'
+++ lsblk -o pkname --noheadings --path
+++ grep -E '^\S+'
+++ sort
+++ uniq
++ ROOT_DISK=/dev/sda
+++ lsblk -o name --noheadings --sort size --path
+++ grep -v /dev/sda
+++ tail -n1
++ DATA_DISK=
++ true
++ '[' -n '' ']'
+++ ip -o route get 1.1.1.1
+++ cut -f 5 -d ' '
++ sysctl -w net.ipv6.conf.bond1.accept_ra=2
++ cd dev-scripts
++ cp /root/pull-secret /root/dev-scripts/pull_secret.json
+++ awk '/nameserver/ { print $2;exit; }' /etc/resolv.conf
++ echo 'export ADDN_DNS=10.0.80.11'
++ echo 'export OPENSHIFT_CI=true'
++ echo 'export NUM_WORKERS=3'
++ echo 'export WORKER_MEMORY=16384'
++ echo 'export ENABLE_LOCAL_REGISTRY=true'
++ '[' '' == DISKIMAGE ']'
++ '[' '' == ISO_NO_REGISTRY ']'
++ '[' false == true ']'
++ [[ '' == \a\r\m\6\4 ]]
++ echo 'export OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43'
++ [[ -e /root/dev-scripts/dev-scripts-additional-config ]]
++ [[ -e /root/dev-scripts-additional-config ]]
++ cat /root/dev-scripts-additional-config
++ '[' -e /root/bm.json ']'
++ echo 'export KUBECONFIG=$(ls /root/dev-scripts/ocp/*/auth/kubeconfig)'
++ set +e
++ timeout -s 9 130m make agent_plus_add_node
+./agent/01_agent_requirements.sh
+Logging to /root/dev-scripts/logs/01_agent_requirements-2026-07-07-042229.log
+Using CONFIG /root/dev-scripts/config_root.sh
+cat: /root/.ssh/id_rsa.pub: No such file or directory
+++(/root/dev-scripts/common.sh:338): export CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+++(/root/dev-scripts/common.sh:338): CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+++(/root/dev-scripts/common.sh:339): export PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
+++(/root/dev-scripts/common.sh:339): PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
++++(/root/dev-scripts/common.sh:343): realpath /opt/dev-scripts
++++(/root/dev-scripts/common.sh:343): realpath /root/dev-scripts
+++(/root/dev-scripts/common.sh:343): '[' /opt/dev-scripts == /root/dev-scripts ']'
+++(/root/dev-scripts/common.sh:350): '[' '!' -d /opt/dev-scripts ']'
+++(/root/dev-scripts/common.sh:351): error 'Creating Working Dir'
+++(/root/dev-scripts/common.sh:33): error(): echo Creating Working Dir
+Creating Working Dir
+++(/root/dev-scripts/common.sh:352): sudo mkdir -p /opt/dev-scripts
+++(/root/dev-scripts/common.sh:353): sudo chown root:root /opt/dev-scripts
+++(/root/dev-scripts/common.sh:354): chmod 755 /opt/dev-scripts
+++(/root/dev-scripts/common.sh:357): mkdir -p /opt/dev-scripts/ostest
+++(/root/dev-scripts/common.sh:359): '[' '!' -d /opt/dev-scripts/ironic/html/images ']'
+++(/root/dev-scripts/common.sh:360): error 'Creating Ironic Images Dir'
+++(/root/dev-scripts/common.sh:33): error(): echo Creating Ironic Images Dir
+Creating Ironic Images Dir
+++(/root/dev-scripts/common.sh:361): sudo mkdir -p /opt/dev-scripts/ironic/html/images
+++(/root/dev-scripts/common.sh:364): [[ 0 -gt 1 ]]
+++(/root/dev-scripts/common.sh:369): [[ 0 -eq 1 ]]
+++(/root/dev-scripts/common.sh:376): '[' '!' -f /opt/dev-scripts/ironic/html/images/.permissions ']'
+++(/root/dev-scripts/common.sh:377): error 'Resetting permissions on Ironic Images Dir...'
+++(/root/dev-scripts/common.sh:33): error(): echo Resetting permissions on Ironic Images Dir...
+Resetting permissions on Ironic Images Dir...
+++(/root/dev-scripts/common.sh:378): sudo chown -R root:root /opt/dev-scripts/ironic
+++(/root/dev-scripts/common.sh:379): sudo find /opt/dev-scripts/ironic -type d -print0
+++(/root/dev-scripts/common.sh:379): xargs -0 chmod 755
+++(/root/dev-scripts/common.sh:380): sudo chmod -R +r /opt/dev-scripts/ironic
+++(/root/dev-scripts/common.sh:381): touch /opt/dev-scripts/ironic/html/images/.permissions
+++(/root/dev-scripts/common.sh:385): export TEST_CUSTOM_MAO=false
+++(/root/dev-scripts/common.sh:385): TEST_CUSTOM_MAO=false
+++(/root/dev-scripts/common.sh:389): export ENABLE_BOOTSTRAP_STATIC_IP=
+++(/root/dev-scripts/common.sh:389): ENABLE_BOOTSTRAP_STATIC_IP=
+++(/root/dev-scripts/common.sh:391): export EXTERNAL_LOADBALANCER=
+++(/root/dev-scripts/common.sh:391): EXTERNAL_LOADBALANCER=
+++(/root/dev-scripts/common.sh:393): '[' -n '' ']'
+++(/root/dev-scripts/common.sh:399): source /etc/os-release
++++(/etc/os-release:1): NAME='CentOS Stream'
++++(/etc/os-release:2): VERSION=9
++++(/etc/os-release:3): ID=centos
++++(/etc/os-release:4): ID_LIKE='rhel fedora'
++++(/etc/os-release:5): VERSION_ID=9
++++(/etc/os-release:6): PLATFORM_ID=platform:el9
++++(/etc/os-release:7): PRETTY_NAME='CentOS Stream 9'
++++(/etc/os-release:8): ANSI_COLOR='0;31'
++++(/etc/os-release:9): LOGO=fedora-logo-icon
++++(/etc/os-release:10): CPE_NAME=cpe:/o:centos:centos:9
++++(/etc/os-release:11): HOME_URL=https://centos.org/
++++(/etc/os-release:12): BUG_REPORT_URL=https://issues.redhat.com/
++++(/etc/os-release:13): REDHAT_SUPPORT_PRODUCT='Red Hat Enterprise Linux 9'
++++(/etc/os-release:14): REDHAT_SUPPORT_PRODUCT_VERSION='CentOS Stream'
+++(/root/dev-scripts/common.sh:400): export DISTRO=centos9
+++(/root/dev-scripts/common.sh:400): DISTRO=centos9
+++(/root/dev-scripts/common.sh:402): export ENABLE_LOCAL_REGISTRY=true
+++(/root/dev-scripts/common.sh:402): ENABLE_LOCAL_REGISTRY=true
+++(/root/dev-scripts/common.sh:409): export ENABLE_TWO_NODE_FENCING=false
+++(/root/dev-scripts/common.sh:409): ENABLE_TWO_NODE_FENCING=false
+++(/root/dev-scripts/common.sh:410): [[ -z COMPACT_IPV4 ]]
+++(/root/dev-scripts/common.sh:415): [[ mixed != \r\e\d\f\i\s\h ]]
+++(/root/dev-scripts/common.sh:415): [[ false == \t\r\u\e ]]
+++(/root/dev-scripts/common.sh:421): export BOOTSTRAP_IN_PLACE=false
+++(/root/dev-scripts/common.sh:421): BOOTSTRAP_IN_PLACE=false
+++(/root/dev-scripts/common.sh:422): export SNO_INSTALLATION_DISK=/dev/sda
+++(/root/dev-scripts/common.sh:422): SNO_INSTALLATION_DISK=/dev/sda
+++(/root/dev-scripts/common.sh:424): [[ false == \t\r\u\e ]]
+++(/root/dev-scripts/common.sh:436): export DISABLE_MULTICAST=false
+++(/root/dev-scripts/common.sh:436): DISABLE_MULTICAST=false
+++(/root/dev-scripts/common.sh:439): export AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+++(/root/dev-scripts/common.sh:439): AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+++(/root/dev-scripts/common.sh:449): export AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
+++(/root/dev-scripts/common.sh:449): AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
+++(/root/dev-scripts/common.sh:450): export NETWORKING_MODE=
+++(/root/dev-scripts/common.sh:450): NETWORKING_MODE=
+++(/root/dev-scripts/common.sh:451): export AGENT_E2E_TEST_BOOT_MODE=ISO
+++(/root/dev-scripts/common.sh:451): AGENT_E2E_TEST_BOOT_MODE=ISO
+++(/root/dev-scripts/common.sh:452): export AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+++(/root/dev-scripts/common.sh:452): AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+++(/root/dev-scripts/common.sh:453): export AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+++(/root/dev-scripts/common.sh:453): AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+++(/root/dev-scripts/common.sh:454): export AGENT_OVE_ISO_SIZE=70
+++(/root/dev-scripts/common.sh:454): AGENT_OVE_ISO_SIZE=70
+++(/root/dev-scripts/common.sh:459): export AGENT_BOOT_SERVER_PORT=8089
+++(/root/dev-scripts/common.sh:459): AGENT_BOOT_SERVER_PORT=8089
+++(/root/dev-scripts/common.sh:462): export AGENT_DEPLOY_MCE=
+++(/root/dev-scripts/common.sh:462): AGENT_DEPLOY_MCE=
+++(/root/dev-scripts/common.sh:465): export AGENT_OPERATORS=
+++(/root/dev-scripts/common.sh:465): AGENT_OPERATORS=
+++(/root/dev-scripts/common.sh:467): SCENARIO=
+++(/root/dev-scripts/common.sh:468): [[ ! -z COMPACT_IPV4 ]]
+++(/root/dev-scripts/common.sh:469): IFS=_
+++(/root/dev-scripts/common.sh:470): read -r -a arr
++++(/root/dev-scripts/common.sh:471): echo COMPACT_IPV4
++++(/root/dev-scripts/common.sh:471): tr -cd _
++++(/root/dev-scripts/common.sh:471): wc -c
+++(/root/dev-scripts/common.sh:471): delimiterCount=1
+++(/root/dev-scripts/common.sh:472): unset IFS
+++(/root/dev-scripts/common.sh:474): SCENARIO=COMPACT
++++(/root/dev-scripts/common.sh:475): echo V4
++++(/root/dev-scripts/common.sh:475): tr V v
+++(/root/dev-scripts/common.sh:475): IP_STACK=v4
+++(/root/dev-scripts/common.sh:476): export IP_STACK
+++(/root/dev-scripts/common.sh:478): [[ 1 == \2 ]]
+++(/root/dev-scripts/common.sh:485): case "$SCENARIO" in
+++(/root/dev-scripts/common.sh:501): export NUM_MASTERS=3
+++(/root/dev-scripts/common.sh:501): NUM_MASTERS=3
+++(/root/dev-scripts/common.sh:502): export MASTER_VCPU=4
+++(/root/dev-scripts/common.sh:502): MASTER_VCPU=4
+++(/root/dev-scripts/common.sh:503): export MASTER_DISK=100
+++(/root/dev-scripts/common.sh:503): MASTER_DISK=100
+++(/root/dev-scripts/common.sh:504): export MASTER_MEMORY=32768
+++(/root/dev-scripts/common.sh:504): MASTER_MEMORY=32768
+++(/root/dev-scripts/common.sh:505): export NUM_WORKERS=0
+++(/root/dev-scripts/common.sh:505): NUM_WORKERS=0
+++(/root/dev-scripts/common.sh:574): '[' ISO == ISO_NO_REGISTRY ']'
+++(/root/dev-scripts/common.sh:602): [[ '' =~ mtv ]]
+++(/root/dev-scripts/common.sh:608): '[' '!' -z '' ']'
+++(/root/dev-scripts/common.sh:622): [[ v4 != \v\4 ]]
+++(/root/dev-scripts/common.sh:629): [[ ISO == \P\X\E ]]
+++(/root/dev-scripts/common.sh:629): [[ ISO == \I\S\C\S\I ]]
+++(/root/dev-scripts/common.sh:634): [[ ! -z ISO ]]
+++(/root/dev-scripts/common.sh:635): case "$AGENT_E2E_TEST_BOOT_MODE" in
+++(/root/dev-scripts/common.sh:646): [[ ! ostest_master_0 =~ ^ostest_master_[0-9]+$ ]]
+++(/root/dev-scripts/common.sh:651): [[ COMPACT == \S\N\O ]]
+++(/root/dev-scripts/common.sh:659): [[ '' != \f\a\l\s\e ]]
+++(/root/dev-scripts/common.sh:659): [[ '' == \t\r\u\e ]]
+++(/root/dev-scripts/common.sh:659): [[ -z v4 ]]
+++(/root/dev-scripts/common.sh:659): [[ v4 = \v\6 ]]
+++(/root/dev-scripts/common.sh:682): export AGENT_TEST_CASES=
+++(/root/dev-scripts/common.sh:682): AGENT_TEST_CASES=
+++(/root/dev-scripts/common.sh:684): export MASTER_MEMORY=32768
+++(/root/dev-scripts/common.sh:684): MASTER_MEMORY=32768
+++(/root/dev-scripts/common.sh:685): export MASTER_DISK=100
+++(/root/dev-scripts/common.sh:685): MASTER_DISK=100
+++(/root/dev-scripts/common.sh:686): export MASTER_VCPU=4
+++(/root/dev-scripts/common.sh:686): MASTER_VCPU=4
+++(/root/dev-scripts/common.sh:688): export ARBITER_MEMORY=8192
+++(/root/dev-scripts/common.sh:688): ARBITER_MEMORY=8192
+++(/root/dev-scripts/common.sh:689): export ARBITER_DISK=50
+++(/root/dev-scripts/common.sh:689): ARBITER_DISK=50
+++(/root/dev-scripts/common.sh:690): export ARBITER_VCPU=4
+++(/root/dev-scripts/common.sh:690): ARBITER_VCPU=4
+++(/root/dev-scripts/common.sh:692): export WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:692): WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:693): export WORKER_DISK=60
+++(/root/dev-scripts/common.sh:693): WORKER_DISK=60
+++(/root/dev-scripts/common.sh:694): export WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:694): WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:696): export EXTRA_WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:696): EXTRA_WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:697): export EXTRA_WORKER_DISK=100
+++(/root/dev-scripts/common.sh:697): EXTRA_WORKER_DISK=100
+++(/root/dev-scripts/common.sh:698): export EXTRA_WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:698): EXTRA_WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:700): export ARM_WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:700): ARM_WORKER_MEMORY=16384
+++(/root/dev-scripts/common.sh:701): export ARM_WORKER_DISK=60
+++(/root/dev-scripts/common.sh:701): ARM_WORKER_DISK=60
+++(/root/dev-scripts/common.sh:702): export ARM_WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:702): ARM_WORKER_VCPU=4
+++(/root/dev-scripts/common.sh:704): export PERSISTENT_IMAGEREG=false
+++(/root/dev-scripts/common.sh:704): PERSISTENT_IMAGEREG=false
+++(/root/dev-scripts/common.sh:705): '[' true == true ']'
+++(/root/dev-scripts/common.sh:707): export PERSISTENT_IMAGEREG=true
+++(/root/dev-scripts/common.sh:707): PERSISTENT_IMAGEREG=true
+++(/root/dev-scripts/common.sh:710): export ENABLE_CAPI_E2E=
+++(/root/dev-scripts/common.sh:710): ENABLE_CAPI_E2E=
++(./agent/01_agent_requirements.sh:10): source /root/dev-scripts/agent/common.sh
+++(/root/dev-scripts/agent/common.sh:2): set -euxo pipefail
+++(/root/dev-scripts/agent/common.sh:4): export AGENT_STATIC_IP_NODE0_ONLY=false
+++(/root/dev-scripts/agent/common.sh:4): AGENT_STATIC_IP_NODE0_ONLY=false
+++(/root/dev-scripts/agent/common.sh:5): export AGENT_NMSTATE_DHCP=false
+++(/root/dev-scripts/agent/common.sh:5): AGENT_NMSTATE_DHCP=false
+++(/root/dev-scripts/agent/common.sh:7): export AGENT_USE_ZTP_MANIFESTS=false
+++(/root/dev-scripts/agent/common.sh:7): AGENT_USE_ZTP_MANIFESTS=false
+++(/root/dev-scripts/agent/common.sh:9): export AGENT_USE_APPLIANCE_MODEL=false
+++(/root/dev-scripts/agent/common.sh:9): AGENT_USE_APPLIANCE_MODEL=false
+++(/root/dev-scripts/agent/common.sh:10): export AGENT_APPLIANCE_HOTPLUG=false
+++(/root/dev-scripts/agent/common.sh:10): AGENT_APPLIANCE_HOTPLUG=false
+++(/root/dev-scripts/agent/common.sh:11): export AGENT_PLATFORM_TYPE=baremetal
+++(/root/dev-scripts/agent/common.sh:11): AGENT_PLATFORM_TYPE=baremetal
+++(/root/dev-scripts/agent/common.sh:12): export AGENT_PLATFORM_NAME=oci
+++(/root/dev-scripts/agent/common.sh:12): AGENT_PLATFORM_NAME=oci
+++(/root/dev-scripts/agent/common.sh:13): export AGENT_ROOT_DEVICE_HINTS=
+++(/root/dev-scripts/agent/common.sh:13): AGENT_ROOT_DEVICE_HINTS=
+++(/root/dev-scripts/agent/common.sh:15): export AGENT_BM_HOSTS_IN_INSTALL_CONFIG=false
+++(/root/dev-scripts/agent/common.sh:15): AGENT_BM_HOSTS_IN_INSTALL_CONFIG=false
+++(/root/dev-scripts/agent/common.sh:17): export AGENT_MINIMAL_ISO=false
+++(/root/dev-scripts/agent/common.sh:17): AGENT_MINIMAL_ISO=false
+++(/root/dev-scripts/agent/common.sh:19): export AGENT_ISO_NO_REGISTRY_BUILD_METHOD=script
+++(/root/dev-scripts/agent/common.sh:19): AGENT_ISO_NO_REGISTRY_BUILD_METHOD=script
+++(/root/dev-scripts/agent/common.sh:21): export BOND_CONFIG=none
+++(/root/dev-scripts/agent/common.sh:21): BOND_CONFIG=none
+++(/root/dev-scripts/agent/common.sh:23): export ISCSI_NETWORK=iscsi
+++(/root/dev-scripts/agent/common.sh:23): ISCSI_NETWORK=iscsi
+++(/root/dev-scripts/agent/common.sh:24): export ISCSI_NETWORK_SUBNET=192.168.145
+++(/root/dev-scripts/agent/common.sh:24): ISCSI_NETWORK_SUBNET=192.168.145
+++(/root/dev-scripts/agent/common.sh:25): export ISCSI_DEVICE_NAME=/dev/sdb
+++(/root/dev-scripts/agent/common.sh:25): ISCSI_DEVICE_NAME=/dev/sdb
+++(/root/dev-scripts/agent/common.sh:30): '[' ISO == ISO_NO_REGISTRY ']'
+++(/root/dev-scripts/agent/common.sh:35): export APPLIANCE_IMAGE=quay.io/edge-infrastructure/openshift-appliance:latest
+++(/root/dev-scripts/agent/common.sh:35): APPLIANCE_IMAGE=quay.io/edge-infrastructure/openshift-appliance:latest
+++(/root/dev-scripts/agent/common.sh:39): export OPENSHIFT_INSTALLER_CMD=openshift-install
+++(/root/dev-scripts/agent/common.sh:39): OPENSHIFT_INSTALLER_CMD=openshift-install
+++(/root/dev-scripts/agent/common.sh:42): export EXTRA_MANIFESTS_PATH=ocp/ostest/openshift
+++(/root/dev-scripts/agent/common.sh:42): EXTRA_MANIFESTS_PATH=ocp/ostest/openshift
+++(/root/dev-scripts/agent/common.sh:50): export BOOT_SERVER_DIR=/opt/dev-scripts/boot-artifacts
+++(/root/dev-scripts/agent/common.sh:50): BOOT_SERVER_DIR=/opt/dev-scripts/boot-artifacts
++++(/root/dev-scripts/agent/common.sh:51): uname -m
+++(/root/dev-scripts/agent/common.sh:51): export PXE_BOOT_FILE=agent.x86_64.ipxe
+++(/root/dev-scripts/agent/common.sh:51): PXE_BOOT_FILE=agent.x86_64.ipxe
++++(/root/dev-scripts/agent/common.sh:56): wrap_if_ipv6
+/root/dev-scripts/agent/common.sh: line 56: wrap_if_ipv6: command not found
+++(/root/dev-scripts/agent/common.sh:56): export BOOT_SERVER_URL=http://:8089
+++(/root/dev-scripts/agent/common.sh:56): BOOT_SERVER_URL=http://:8089
+++(/root/dev-scripts/agent/common.sh:83): export MACHINE_CONFIG_SERVER_PORT=22623
+++(/root/dev-scripts/agent/common.sh:83): MACHINE_CONFIG_SERVER_PORT=22623
+++(/root/dev-scripts/agent/common.sh:84): export KUBE_API_PORT=6443
+++(/root/dev-scripts/agent/common.sh:84): KUBE_API_PORT=6443
+++(/root/dev-scripts/agent/common.sh:85): export INGRESS_ROUTER_PORT=443
+++(/root/dev-scripts/agent/common.sh:85): INGRESS_ROUTER_PORT=443
+++(/root/dev-scripts/agent/common.sh:86): export AGENT_NODE0_IPSV6=
+++(/root/dev-scripts/agent/common.sh:86): AGENT_NODE0_IPSV6=
+++(/root/dev-scripts/agent/common.sh:89): export AGENT_ISOLATED_NETWORK=false
+++(/root/dev-scripts/agent/common.sh:89): AGENT_ISOLATED_NETWORK=false
+++(/root/dev-scripts/agent/common.sh:91): '[' ISO == ISO_NO_REGISTRY ']'
++(./agent/01_agent_requirements.sh:11): source /root/dev-scripts/utils.sh
+++(/root/dev-scripts/utils.sh:3): set -o pipefail
+++(/root/dev-scripts/utils.sh:5): source release_info.sh
+++(/root/dev-scripts/utils.sh:1109): _tmpfiles=
+++(/root/dev-scripts/utils.sh:1161): trap removetmp EXIT
++(./agent/01_agent_requirements.sh:12): source /root/dev-scripts/ocp_install_env.sh
+++(/root/dev-scripts/ocp_install_env.sh:1): source release_info.sh
++++(/root/dev-scripts/ocp_install_env.sh:3): go env
+/root/dev-scripts/ocp_install_env.sh: line 3: go: command not found
+++(/root/dev-scripts/ocp_install_env.sh:3): eval ''
++(./agent/01_agent_requirements.sh:13): source /root/dev-scripts/validation.sh
+++(/root/dev-scripts/validation.sh:3): set -o pipefail
++(./agent/01_agent_requirements.sh:15): early_deploy_validation
++(/root/dev-scripts/validation.sh:54): early_deploy_validation(): CHECK_OC_TOOL_PRESENCE=false
++(/root/dev-scripts/validation.sh:56): early_deploy_validation(): early_either_validation
++(/root/dev-scripts/validation.sh:7): early_either_validation(): '[' root '!=' root ']'
++(/root/dev-scripts/validation.sh:13): early_either_validation(): sudo -n uptime
+++(/root/dev-scripts/validation.sh:19): early_either_validation(): awk -F= '/^ID=/ { print $2 }' /etc/os-release
+++(/root/dev-scripts/validation.sh:19): early_either_validation(): tr -d '"'
++(/root/dev-scripts/validation.sh:19): early_either_validation(): [[ ! centos =~ ^(centos|rhel|almalinux|rocky)$ ]]
+++(/root/dev-scripts/validation.sh:25): early_either_validation(): awk -F= '/^VERSION_ID=/ { print $2 }' /etc/os-release
+++(/root/dev-scripts/validation.sh:25): early_either_validation(): tr -d '"'
+++(/root/dev-scripts/validation.sh:25): early_either_validation(): cut -f1 -d.
++(/root/dev-scripts/validation.sh:25): early_either_validation(): VER=9
++(/root/dev-scripts/validation.sh:26): early_either_validation(): [[ 9 -lt 9 ]]
+++(/root/dev-scripts/validation.sh:32): early_either_validation(): df / --output=fstype
+++(/root/dev-scripts/validation.sh:32): early_either_validation(): tail -n 1
++(/root/dev-scripts/validation.sh:32): early_either_validation(): FSTYPE=xfs
++(/root/dev-scripts/validation.sh:34): early_either_validation(): case ${FSTYPE} in
++(/root/dev-scripts/validation.sh:38): early_either_validation(): xfs_info /
++(/root/dev-scripts/validation.sh:38): early_either_validation(): grep -q ftype=1
++(/root/dev-scripts/validation.sh:58): early_deploy_validation(): '[' '!' -s /root/dev-scripts/pull_secret.json ']'
++(/root/dev-scripts/validation.sh:70): early_deploy_validation(): '[' true '!=' true ']'
++(/root/dev-scripts/validation.sh:80): early_deploy_validation(): LOGIN_CHECK=true
++(/root/dev-scripts/validation.sh:81): early_deploy_validation(): '[' false == true ']'
++(/root/dev-scripts/validation.sh:85): early_deploy_validation(): '[' 0 '!=' 0 ']'
++(./agent/01_agent_requirements.sh:17): [[ -z COMPACT_IPV4 ]]
++(./agent/01_agent_requirements.sh:22): [[ podman = \q\u\a\y ]]
++(./agent/01_agent_requirements.sh:39): [[ oc-adm == oc-mirror ]]
++(./agent/01_agent_requirements.sh:52): [[ ISO == \I\S\C\S\I ]]
++(./agent/01_agent_requirements.sh:57): [[ ISO == \I\S\O\_\N\O\_\R\E\G\I\S\T\R\Y ]]
++(./agent/01_agent_requirements.sh:1): removetmp
++(/root/dev-scripts/utils.sh:1111): removetmp(): '[' -n '' ']'
++(/root/dev-scripts/utils.sh:1111): removetmp(): true
+./01_install_requirements.sh
++ source logging.sh
++++ dirname ./01_install_requirements.sh
+++ DEFAULT_LOGDIR=./logs
+++ LOGDIR=./logs
+++ [[ -z '' ]]
++++ basename ./01_install_requirements.sh .sh
++++ date +%F-%H%M%S
+++ LOGFILE=./logs/01_install_requirements-2026-07-07-042229.log
++++ dirname ./logs/01_install_requirements-2026-07-07-042229.log
+++ '[' '!' -d ./logs ']'
+Logging to ./logs/01_install_requirements-2026-07-07-042229.log
+++ echo 'Logging to ./logs/01_install_requirements-2026-07-07-042229.log'
+++ exec
++++ tee /dev/fd/63
+++++ awk '{ print strftime("%Y-%m-%d %H:%M:%S"), $0; fflush() }'
++ source common.sh
+++ shopt -s nocasematch
+++ export PATH=/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+++ PATH=/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+++ export 'PS4=+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+++ PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+++(common.sh:9): command -v go
+++(common.sh:19): export GOTRACEBACK=crash
+++(common.sh:19): GOTRACEBACK=crash
+++(common.sh:25): export MOBY_DISABLE_PIGZ=true
+++(common.sh:25): MOBY_DISABLE_PIGZ=true
+++++(common.sh:27): dirname common.sh
++++(common.sh:27): cd .
++++(common.sh:27): pwd
+++(common.sh:27): SCRIPTDIR=/root/dev-scripts
++++(common.sh:28): whoami
+++(common.sh:28): USER=root
++++(common.sh:29): id -gn
+++(common.sh:29): GROUP=root
++++(common.sh:44): systemd-path user-configuration
+++(common.sh:44): XDG_CONFIG_HOME=/root/.config
+++(common.sh:47): '[' -z '' ']'
+++(common.sh:49): '[' -f /root/dev-scripts/config_root.sh ']'
+++(common.sh:50): echo 'Using CONFIG /root/dev-scripts/config_root.sh'
+Using CONFIG /root/dev-scripts/config_root.sh
+++(common.sh:51): CONFIG=/root/dev-scripts/config_root.sh
+++(common.sh:62): source /root/dev-scripts/config_root.sh
++++(/root/dev-scripts/config_root.sh:1): export ADDN_DNS=10.0.80.11
++++(/root/dev-scripts/config_root.sh:1): ADDN_DNS=10.0.80.11
++++(/root/dev-scripts/config_root.sh:2): export OPENSHIFT_CI=true
++++(/root/dev-scripts/config_root.sh:2): OPENSHIFT_CI=true
++++(/root/dev-scripts/config_root.sh:3): export NUM_WORKERS=3
++++(/root/dev-scripts/config_root.sh:3): NUM_WORKERS=3
++++(/root/dev-scripts/config_root.sh:4): export WORKER_MEMORY=16384
++++(/root/dev-scripts/config_root.sh:4): WORKER_MEMORY=16384
++++(/root/dev-scripts/config_root.sh:5): export ENABLE_LOCAL_REGISTRY=true
++++(/root/dev-scripts/config_root.sh:5): ENABLE_LOCAL_REGISTRY=true
++++(/root/dev-scripts/config_root.sh:6): export OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
++++(/root/dev-scripts/config_root.sh:6): OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
++++(/root/dev-scripts/config_root.sh:7): export AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
++++(/root/dev-scripts/config_root.sh:7): AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
++++(/root/dev-scripts/config_root.sh:8): export FIPS_MODE=true
++++(/root/dev-scripts/config_root.sh:8): FIPS_MODE=true
++++(/root/dev-scripts/config_root.sh:9): export NETWORK_TYPE=OVNKubernetes
++++(/root/dev-scripts/config_root.sh:9): NETWORK_TYPE=OVNKubernetes
++++(/root/dev-scripts/config_root.sh:10): export NUM_EXTRA_WORKERS=2
++++(/root/dev-scripts/config_root.sh:10): NUM_EXTRA_WORKERS=2
++++(/root/dev-scripts/config_root.sh:11): export EXTRA_WORKER_DISK=100
++++(/root/dev-scripts/config_root.sh:11): EXTRA_WORKER_DISK=100
++++(/root/dev-scripts/config_root.sh:12): export OPENSHIFT_INSTALL_GATHER_BOOTSTRAP=true
++++(/root/dev-scripts/config_root.sh:12): OPENSHIFT_INSTALL_GATHER_BOOTSTRAP=true
++++(/root/dev-scripts/config_root.sh:13): export OPENSHIFT_INSTALL_EXPERIMENTAL_DISABLE_IMAGE_POLICY=true
++++(/root/dev-scripts/config_root.sh:13): OPENSHIFT_INSTALL_EXPERIMENTAL_DISABLE_IMAGE_POLICY=true
+++(common.sh:64): export CLUSTER_NAME=ostest
+++(common.sh:64): CLUSTER_NAME=ostest
+++(common.sh:66): export PROVISIONING_NETWORK_PROFILE=Managed
+++(common.sh:66): PROVISIONING_NETWORK_PROFILE=Managed
+++(common.sh:71): export PROVISIONING_NETWORK_NAME=ostestpr
+++(common.sh:71): PROVISIONING_NETWORK_NAME=ostestpr
+++(common.sh:72): export BAREMETAL_NETWORK_NAME=ostestbm
+++(common.sh:72): BAREMETAL_NETWORK_NAME=ostestbm
+++(common.sh:74): export BASE_DOMAIN=test.metalkube.org
+++(common.sh:74): BASE_DOMAIN=test.metalkube.org
+++(common.sh:75): export CLUSTER_DOMAIN=ostest.test.metalkube.org
+++(common.sh:75): CLUSTER_DOMAIN=ostest.test.metalkube.org
++++(common.sh:76): cat /root/.ssh/id_rsa.pub
+cat: /root/.ssh/id_rsa.pub: No such file or directory
+++(common.sh:76): export SSH_PUB_KEY=
+++(common.sh:76): SSH_PUB_KEY=
+++(common.sh:77): export SSH_KEY_FILE=/root/.ssh/id_rsa.pub
+++(common.sh:77): SSH_KEY_FILE=/root/.ssh/id_rsa.pub
+++(common.sh:80): export MIRROR_IMAGES=
+++(common.sh:80): MIRROR_IMAGES=
+++(common.sh:90): export MIRROR_COMMAND=oc-adm
+++(common.sh:90): MIRROR_COMMAND=oc-adm
+++(common.sh:93): export OC_MIRROR_TO_FILE=
+++(common.sh:93): OC_MIRROR_TO_FILE=
+++(common.sh:96): export DOCKER_CONFIG_FILE=/root/.docker/config.json
+++(common.sh:96): DOCKER_CONFIG_FILE=/root/.docker/config.json
+++(common.sh:99): export INSTALLER_PROXY=
+++(common.sh:99): INSTALLER_PROXY=
+++(common.sh:100): export INSTALLER_PROXY_PORT=8215
+++(common.sh:100): INSTALLER_PROXY_PORT=8215
+++(common.sh:103): export REMOTE_LIBVIRT=0
+++(common.sh:103): REMOTE_LIBVIRT=0
+++(common.sh:104): export PROVISIONING_HOST_USER=root
+++(common.sh:104): PROVISIONING_HOST_USER=root
+++(common.sh:107): export WORKING_DIR=/opt/dev-scripts
+++(common.sh:107): WORKING_DIR=/opt/dev-scripts
+++(common.sh:108): OCP_DIR=ocp/ostest
+++(common.sh:111): export LOCAL_REGISTRY_DNS_NAME=virthost.ostest.test.metalkube.org
+++(common.sh:111): LOCAL_REGISTRY_DNS_NAME=virthost.ostest.test.metalkube.org
+++(common.sh:113): export ALL_REGISTRY_DNS_NAMES=virthost.ostest.test.metalkube.org
+++(common.sh:113): ALL_REGISTRY_DNS_NAMES=virthost.ostest.test.metalkube.org
+++(common.sh:116): export LOCAL_REGISTRY_PORT=5000
+++(common.sh:116): LOCAL_REGISTRY_PORT=5000
+++(common.sh:117): export REGISTRY_USER=ocp-user
+++(common.sh:117): REGISTRY_USER=ocp-user
+++(common.sh:118): export REGISTRY_PASS=ocp-pass
+++(common.sh:118): REGISTRY_PASS=ocp-pass
+++(common.sh:119): export REGISTRY_DIR=/opt/dev-scripts/registry
+++(common.sh:119): REGISTRY_DIR=/opt/dev-scripts/registry
+++(common.sh:120): export REGISTRY_CREDS=/root/private-mirror-ostest.json
+++(common.sh:120): REGISTRY_CREDS=/root/private-mirror-ostest.json
+++(common.sh:121): export REGISTRY_CRT=registry.2.crt
+++(common.sh:121): REGISTRY_CRT=registry.2.crt
+++(common.sh:122): export REGISTRY_BACKEND=podman
+++(common.sh:122): REGISTRY_BACKEND=podman
+++(common.sh:125): export KNI_INSTALL_FROM_GIT=
+++(common.sh:125): KNI_INSTALL_FROM_GIT=
++++(common.sh:127): uname -m
+++(common.sh:127): OPENSHIFT_CLIENT_TOOLS_URL=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz
+++(common.sh:128): export OPENSHIFT_CLIENT_TOOLS_URL
+++(common.sh:132): export OPENSHIFT_RELEASE_TYPE=nightly
+++(common.sh:132): OPENSHIFT_RELEASE_TYPE=nightly
+++(common.sh:133): export OPENSHIFT_RELEASE_STREAM=5.0
+++(common.sh:133): OPENSHIFT_RELEASE_STREAM=5.0
+++(common.sh:134): [[ nightly == \g\a ]]
+++(common.sh:142): '[' true = true ']'
+++(common.sh:143): '[' false = true ']'
+++(common.sh:144): export OPENSHIFT_INSTALL_SKIP_HOSTCRYPT_VALIDATION=true
+++(common.sh:144): OPENSHIFT_INSTALL_SKIP_HOSTCRYPT_VALIDATION=true
+++(common.sh:165): '[' -z registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43 ']'
+++(common.sh:176): export OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
+++(common.sh:176): OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
+++(common.sh:177): [[ -n '' ]]
+++(common.sh:182): export HIVE_DEPLOY_IMAGE=registry.ci.openshift.org/openshift/hive-v4.0:hive
+++(common.sh:182): HIVE_DEPLOY_IMAGE=registry.ci.openshift.org/openshift/hive-v4.0:hive
+++(common.sh:185): export OPENSHIFT_CI=true
+++(common.sh:185): OPENSHIFT_CI=true
+++(common.sh:186): export OPENSHIFT_VERSION=
+++(common.sh:186): OPENSHIFT_VERSION=
+++(common.sh:187): [[ -z true ]]
++++(common.sh:192): echo registry.build05.ci.openshift.org/ci-op-r7wcrlv2/release@sha256:2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
++++(common.sh:192): sed -E 's/[[:alnum:]\/.-]*(release|okd).*://'
+++(common.sh:192): OPENSHIFT_RELEASE_TAG=2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43
+++(common.sh:193): export OPENSHIFT_RELEASE_TAG
+++(common.sh:197): [[ '' == \4\.\3 ]]
+++(common.sh:199): [[ -z true ]]
+++(common.sh:202): export BMC_DRIVER=mixed
+++(common.sh:202): BMC_DRIVER=mixed
+++(common.sh:205): [[ Managed == \D\i\s\a\b\l\e\d ]]
+++(common.sh:211): export MIRROR_LOG_FILE=/opt/dev-scripts/registry/ostest-image_mirror-2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43.log
+++(common.sh:211): MIRROR_LOG_FILE=/opt/dev-scripts/registry/ostest-image_mirror-2a3105d0116b60fd000824d3a6d154e844b463443f28a7d5ac4fb17363e2ab43.log
+++(common.sh:214): '[' false '!=' false ']'
+++(common.sh:225): '[' -z '' ']'
+++(common.sh:226): export OPENSHIFT_INSTALLER=ocp/ostest/openshift-install
+++(common.sh:226): OPENSHIFT_INSTALLER=ocp/ostest/openshift-install
+++(common.sh:237): grep -q '_LOCAL_IMAGE=\|_LOCAL_REPO='
+++(common.sh:237): env
+++(common.sh:241): export LOCAL_IMAGE_URL_SUFFIX=localimages/local-release-image
+++(common.sh:241): LOCAL_IMAGE_URL_SUFFIX=localimages/local-release-image
+++(common.sh:245): ADDN_DNS=10.0.80.11
+++(common.sh:247): EXT_IF=
+++(common.sh:249): PRO_IF=
+++(common.sh:251): MANAGE_BR_BRIDGE=y
+++(common.sh:253): MANAGE_PRO_BRIDGE=y
+++(common.sh:254): MANAGE_INT_BRIDGE=y
+++(common.sh:256): INT_IF=
+++(common.sh:258): ROOT_DISK_NAME=/dev/sda
+++(common.sh:260): export DHCP_LEASE_EXPIRY=60
+++(common.sh:260): DHCP_LEASE_EXPIRY=60
+++(common.sh:261): export LIBVIRT_FIRMWARE=uefi
+++(common.sh:261): LIBVIRT_FIRMWARE=uefi
+++(common.sh:262): export LIBVIRT_VOLUME_POOL=oooq_pool
+++(common.sh:262): LIBVIRT_VOLUME_POOL=oooq_pool
+++(common.sh:264): FILESYSTEM=/
+++(common.sh:266): export NODES_FILE=/opt/dev-scripts/ostest/ironic_nodes.json
+++(common.sh:266): NODES_FILE=/opt/dev-scripts/ostest/ironic_nodes.json
+++(common.sh:267): export EXTRA_NODES_FILE=/opt/dev-scripts/ostest/extra_ironic_nodes.json
+++(common.sh:267): EXTRA_NODES_FILE=/opt/dev-scripts/ostest/extra_ironic_nodes.json
+++(common.sh:268): export ARM_NODES_FILE=/opt/dev-scripts/ostest/arm_ironic_nodes.json
+++(common.sh:268): ARM_NODES_FILE=/opt/dev-scripts/ostest/arm_ironic_nodes.json
+++(common.sh:269): NODES_PLATFORM=libvirt
+++(common.sh:270): BAREMETALHOSTS_FILE=ocp/ostest/baremetalhosts.json
+++(common.sh:271): EXTRA_BAREMETALHOSTS_FILE=ocp/ostest/extra_baremetalhosts.json
+++(common.sh:272): EXTRA_ARM_BAREMETALHOSTS_FILE=ocp/ostest/extra_arm_baremetalhosts.json
+++(common.sh:273): export BMO_WATCH_ALL_NAMESPACES=false
+++(common.sh:273): BMO_WATCH_ALL_NAMESPACES=false
+++(common.sh:277): export METAL3_DEV_ENV=
+++(common.sh:277): METAL3_DEV_ENV=
+++(common.sh:278): '[' -z '' ']'
+++(common.sh:279): export METAL3_DEV_ENV_PATH=/opt/dev-scripts/metal3-dev-env
+++(common.sh:279): METAL3_DEV_ENV_PATH=/opt/dev-scripts/metal3-dev-env
+++(common.sh:283): export VM_SETUP_PATH=/opt/dev-scripts/metal3-dev-env/vm-setup
+++(common.sh:283): VM_SETUP_PATH=/opt/dev-scripts/metal3-dev-env/vm-setup
+++(common.sh:284): export CONTAINER_RUNTIME=podman
+++(common.sh:284): CONTAINER_RUNTIME=podman
+++(common.sh:286): export NUM_MASTERS=3
+++(common.sh:286): NUM_MASTERS=3
+++(common.sh:287): export NUM_WORKERS=3
+++(common.sh:287): NUM_WORKERS=3
+++(common.sh:288): export NUM_ARBITERS=0
+++(common.sh:288): NUM_ARBITERS=0
+++(common.sh:289): export NUM_EXTRA_WORKERS=2
+++(common.sh:289): NUM_EXTRA_WORKERS=2
+++(common.sh:290): export NUM_ARM_WORKERS=0
+++(common.sh:290): NUM_ARM_WORKERS=0
+++(common.sh:291): export NUM_LANDINGZONE=0
+++(common.sh:291): NUM_LANDINGZONE=0
+++(common.sh:292): export EXTRA_WORKERS_ONLINE_STATUS=true
+++(common.sh:292): EXTRA_WORKERS_ONLINE_STATUS=true
+++(common.sh:293): export EXTRA_WORKERS_NAMESPACE=openshift-machine-api
+++(common.sh:293): EXTRA_WORKERS_NAMESPACE=openshift-machine-api
+++(common.sh:294): export VM_EXTRADISKS=false
+++(common.sh:294): VM_EXTRADISKS=false
+++(common.sh:295): export VM_EXTRADISKS_LIST=vdb
+++(common.sh:295): VM_EXTRADISKS_LIST=vdb
+++(common.sh:296): export VM_EXTRADISKS_SIZE=8G
+++(common.sh:296): VM_EXTRADISKS_SIZE=8G
+++(common.sh:297): export MASTER_HOSTNAME_FORMAT=master-%d
+++(common.sh:297): MASTER_HOSTNAME_FORMAT=master-%d
+++(common.sh:298): export ARBITER_HOSTNAME_FORMAT=arbiter-%d
+++(common.sh:298): ARBITER_HOSTNAME_FORMAT=arbiter-%d
+++(common.sh:299): export WORKER_HOSTNAME_FORMAT=worker-%d
+++(common.sh:299): WORKER_HOSTNAME_FORMAT=worker-%d
+++(common.sh:300): export EXTRA_WORKER_HOSTNAME_FORMAT=extraworker-%d
+++(common.sh:300): EXTRA_WORKER_HOSTNAME_FORMAT=extraworker-%d
+++(common.sh:301): export LANDINGZONE_HOSTNAME_FORMAT=landingzone-%d
+++(common.sh:301): LANDINGZONE_HOSTNAME_FORMAT=landingzone-%d
+++(common.sh:303): export LANDINGZONE_MEMORY=8192
+++(common.sh:303): LANDINGZONE_MEMORY=8192
+++(common.sh:304): export LANDINGZONE_DISK=60
+++(common.sh:304): LANDINGZONE_DISK=60
+++(common.sh:305): export LANDINGZONE_VCPU=4
+++(common.sh:305): LANDINGZONE_VCPU=4
+++(common.sh:308): export IRONIC_IMAGE=quay.io/metal3-io/ironic:main
+++(common.sh:308): IRONIC_IMAGE=quay.io/metal3-io/ironic:main
+++(common.sh:309): export IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++(common.sh:309): IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+++(common.sh:310): export IRONIC_IMAGES_DIR=/opt/dev-scripts/ironic/html/images
+++(common.sh:310): IRONIC_IMAGES_DIR=/opt/dev-scripts/ironic/html/images
+++(common.sh:313): export VBMC_IMAGE=quay.io/metal3-io/vbmc
+++(common.sh:313): VBMC_IMAGE=quay.io/metal3-io/vbmc
+++(common.sh:314): export SUSHY_TOOLS_IMAGE=quay.io/metal3-io/sushy-tools
+++(common.sh:314): SUSHY_TOOLS_IMAGE=quay.io/metal3-io/sushy-tools
+++(common.sh:315): export VBMC_BASE_PORT=6230
+++(common.sh:315): VBMC_BASE_PORT=6230
+++(common.sh:316): export VBMC_MAX_PORT=6237
+++(common.sh:316): VBMC_MAX_PORT=6237
+++(common.sh:317): export REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=False
+++(common.sh:317): REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=False
+++(common.sh:320): export DOCKER_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
+++(common.sh:320): DOCKER_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
+++(common.sh:322): export KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig
+++(common.sh:322): KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig
+++(common.sh:325): export 'SSH=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++(common.sh:325): SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+++(common.sh:329): export LIBVIRT_DEFAULT_URI=qemu:///system
+++(common.sh:329): LIBVIRT_DEFAULT_URI=qemu:///system
+++(common.sh:331): export PULL_SECRET_FILE=/opt/dev-scripts/pull_secret.json
+++(common.sh:331): PULL_SECRET_FILE=/opt/dev-scripts/pull_secret.json
+++(common.sh:335): set +x
+++(common.sh:338): export CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+++(common.sh:338): CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+++(common.sh:339): export PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
+++(common.sh:339): PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
++++(common.sh:343): realpath /opt/dev-scripts
++++(common.sh:343): realpath /root/dev-scripts
+++(common.sh:343): '[' /opt/dev-scripts == /root/dev-scripts ']'
+++(common.sh:350): '[' '!' -d /opt/dev-scripts ']'
+++(common.sh:357): mkdir -p /opt/dev-scripts/ostest
+++(common.sh:359): '[' '!' -d /opt/dev-scripts/ironic/html/images ']'
+++(common.sh:364): [[ 0 -gt 1 ]]
+++(common.sh:369): [[ 0 -eq 1 ]]
+++(common.sh:376): '[' '!' -f /opt/dev-scripts/ironic/html/images/.permissions ']'
+++(common.sh:385): export TEST_CUSTOM_MAO=false
+++(common.sh:385): TEST_CUSTOM_MAO=false
+++(common.sh:389): export ENABLE_BOOTSTRAP_STATIC_IP=
+++(common.sh:389): ENABLE_BOOTSTRAP_STATIC_IP=
+++(common.sh:391): export EXTERNAL_LOADBALANCER=
+++(common.sh:391): EXTERNAL_LOADBALANCER=
+++(common.sh:393): '[' -n '' ']'
+++(common.sh:399): source /etc/os-release
++++(/etc/os-release:1): NAME='CentOS Stream'
++++(/etc/os-release:2): VERSION=9
++++(/etc/os-release:3): ID=centos
++++(/etc/os-release:4): ID_LIKE='rhel fedora'
++++(/etc/os-release:5): VERSION_ID=9
++++(/etc/os-release:6): PLATFORM_ID=platform:el9
++++(/etc/os-release:7): PRETTY_NAME='CentOS Stream 9'
++++(/etc/os-release:8): ANSI_COLOR='0;31'
++++(/etc/os-release:9): LOGO=fedora-logo-icon
++++(/etc/os-release:10): CPE_NAME=cpe:/o:centos:centos:9
++++(/etc/os-release:11): HOME_URL=https://centos.org/
++++(/etc/os-release:12): BUG_REPORT_URL=https://issues.redhat.com/
++++(/etc/os-release:13): REDHAT_SUPPORT_PRODUCT='Red Hat Enterprise Linux 9'
++++(/etc/os-release:14): REDHAT_SUPPORT_PRODUCT_VERSION='CentOS Stream'
+++(common.sh:400): export DISTRO=centos9
+++(common.sh:400): DISTRO=centos9
+++(common.sh:402): export ENABLE_LOCAL_REGISTRY=true
+++(common.sh:402): ENABLE_LOCAL_REGISTRY=true
+++(common.sh:409): export ENABLE_TWO_NODE_FENCING=false
+++(common.sh:409): ENABLE_TWO_NODE_FENCING=false
+++(common.sh:410): [[ -z COMPACT_IPV4 ]]
+++(common.sh:415): [[ mixed != \r\e\d\f\i\s\h ]]
+++(common.sh:415): [[ false == \t\r\u\e ]]
+++(common.sh:421): export BOOTSTRAP_IN_PLACE=false
+++(common.sh:421): BOOTSTRAP_IN_PLACE=false
+++(common.sh:422): export SNO_INSTALLATION_DISK=/dev/sda
+++(common.sh:422): SNO_INSTALLATION_DISK=/dev/sda
+++(common.sh:424): [[ false == \t\r\u\e ]]
+++(common.sh:436): export DISABLE_MULTICAST=false
+++(common.sh:436): DISABLE_MULTICAST=false
+++(common.sh:439): export AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+++(common.sh:439): AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+++(common.sh:449): export AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
+++(common.sh:449): AGENT_E2E_TEST_SCENARIO=COMPACT_IPV4
+++(common.sh:450): export NETWORKING_MODE=
+++(common.sh:450): NETWORKING_MODE=
+++(common.sh:451): export AGENT_E2E_TEST_BOOT_MODE=ISO
+++(common.sh:451): AGENT_E2E_TEST_BOOT_MODE=ISO
+++(common.sh:452): export AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+++(common.sh:452): AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+++(common.sh:453): export AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+++(common.sh:453): AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+++(common.sh:454): export AGENT_OVE_ISO_SIZE=70
+++(common.sh:454): AGENT_OVE_ISO_SIZE=70
+++(common.sh:459): export AGENT_BOOT_SERVER_PORT=8089
+++(common.sh:459): AGENT_BOOT_SERVER_PORT=8089
+++(common.sh:462): export AGENT_DEPLOY_MCE=
+++(common.sh:462): AGENT_DEPLOY_MCE=
+++(common.sh:465): export AGENT_OPERATORS=
+++(common.sh:465): AGENT_OPERATORS=
+++(common.sh:467): SCENARIO=
+++(common.sh:468): [[ ! -z COMPACT_IPV4 ]]
+++(common.sh:469): IFS=_
+++(common.sh:470): read -r -a arr
++++(common.sh:471): echo COMPACT_IPV4
++++(common.sh:471): tr -cd _
++++(common.sh:471): wc -c
+++(common.sh:471): delimiterCount=1
+++(common.sh:472): unset IFS
+++(common.sh:474): SCENARIO=COMPACT
++++(common.sh:475): echo V4
++++(common.sh:475): tr V v
+++(common.sh:475): IP_STACK=v4
+++(common.sh:476): export IP_STACK
+++(common.sh:478): [[ 1 == \2 ]]
+++(common.sh:485): case "$SCENARIO" in
+++(common.sh:501): export NUM_MASTERS=3
+++(common.sh:501): NUM_MASTERS=3
+++(common.sh:502): export MASTER_VCPU=4
+++(common.sh:502): MASTER_VCPU=4
+++(common.sh:503): export MASTER_DISK=100
+++(common.sh:503): MASTER_DISK=100
+++(common.sh:504): export MASTER_MEMORY=32768
+++(common.sh:504): MASTER_MEMORY=32768
+++(common.sh:505): export NUM_WORKERS=0
+++(common.sh:505): NUM_WORKERS=0
+++(common.sh:574): '[' ISO == ISO_NO_REGISTRY ']'
+++(common.sh:602): [[ '' =~ mtv ]]
+++(common.sh:608): '[' '!' -z '' ']'
+++(common.sh:622): [[ v4 != \v\4 ]]
+++(common.sh:629): [[ ISO == \P\X\E ]]
+++(common.sh:629): [[ ISO == \I\S\C\S\I ]]
+++(common.sh:634): [[ ! -z ISO ]]
+++(common.sh:635): case "$AGENT_E2E_TEST_BOOT_MODE" in
+++(common.sh:646): [[ ! ostest_master_0 =~ ^ostest_master_[0-9]+$ ]]
+++(common.sh:651): [[ COMPACT == \S\N\O ]]
+++(common.sh:659): [[ '' != \f\a\l\s\e ]]
+++(common.sh:659): [[ '' == \t\r\u\e ]]
+++(common.sh:659): [[ -z v4 ]]
+++(common.sh:659): [[ v4 = \v\6 ]]
+++(common.sh:682): export AGENT_TEST_CASES=
+++(common.sh:682): AGENT_TEST_CASES=
+++(common.sh:684): export MASTER_MEMORY=32768
+++(common.sh:684): MASTER_MEMORY=32768
+++(common.sh:685): export MASTER_DISK=100
+++(common.sh:685): MASTER_DISK=100
+++(common.sh:686): export MASTER_VCPU=4
+++(common.sh:686): MASTER_VCPU=4
+++(common.sh:688): export ARBITER_MEMORY=8192
+++(common.sh:688): ARBITER_MEMORY=8192
+++(common.sh:689): export ARBITER_DISK=50
+++(common.sh:689): ARBITER_DISK=50
+++(common.sh:690): export ARBITER_VCPU=4
+++(common.sh:690): ARBITER_VCPU=4
+++(common.sh:692): export WORKER_MEMORY=16384
+++(common.sh:692): WORKER_MEMORY=16384
+++(common.sh:693): export WORKER_DISK=60
+++(common.sh:693): WORKER_DISK=60
+++(common.sh:694): export WORKER_VCPU=4
+++(common.sh:694): WORKER_VCPU=4
+++(common.sh:696): export EXTRA_WORKER_MEMORY=16384
+++(common.sh:696): EXTRA_WORKER_MEMORY=16384
+++(common.sh:697): export EXTRA_WORKER_DISK=100
+++(common.sh:697): EXTRA_WORKER_DISK=100
+++(common.sh:698): export EXTRA_WORKER_VCPU=4
+++(common.sh:698): EXTRA_WORKER_VCPU=4
+++(common.sh:700): export ARM_WORKER_MEMORY=16384
+++(common.sh:700): ARM_WORKER_MEMORY=16384
+++(common.sh:701): export ARM_WORKER_DISK=60
+++(common.sh:701): ARM_WORKER_DISK=60
+++(common.sh:702): export ARM_WORKER_VCPU=4
+++(common.sh:702): ARM_WORKER_VCPU=4
+++(common.sh:704): export PERSISTENT_IMAGEREG=false
+++(common.sh:704): PERSISTENT_IMAGEREG=false
+++(common.sh:705): '[' true == true ']'
+++(common.sh:707): export PERSISTENT_IMAGEREG=true
+++(common.sh:707): PERSISTENT_IMAGEREG=true
+++(common.sh:710): export ENABLE_CAPI_E2E=
+++(common.sh:710): ENABLE_CAPI_E2E=
++(./01_install_requirements.sh:7): source sanitychecks.sh
+++(sanitychecks.sh:3): set -euxo pipefail
+++(sanitychecks.sh:6): MIN_SPACE_REQUIRED=80
+++(sanitychecks.sh:41): verifyClean
+++(sanitychecks.sh:9): verifyClean(): '[' -d ocp/ostest ']'
+++(sanitychecks.sh:42): verifyWorkingDir
+++(sanitychecks.sh:16): verifyWorkingDir(): '[' '!' -d /opt/dev-scripts ']'
+++(sanitychecks.sh:21): verifyWorkingDir(): '[' '!' -r /opt/dev-scripts ']'
+++(sanitychecks.sh:21): verifyWorkingDir(): '[' '!' -w /opt/dev-scripts ']'
+++(sanitychecks.sh:26): verifyWorkingDir(): sudo -u nobody test -r /opt/dev-scripts
+++(sanitychecks.sh:43): verifyFreeSpace
++++(sanitychecks.sh:33): verifyFreeSpace(): df -h --output=avail -B 1G /opt/dev-scripts
++++(sanitychecks.sh:33): verifyFreeSpace(): tail -n 1
+++(sanitychecks.sh:33): verifyFreeSpace(): AVAIL='  882'
+++(sanitychecks.sh:35): verifyFreeSpace(): ((  AVAIL < MIN_SPACE_REQUIRED  ))
+++(sanitychecks.sh:45): echo 'Sanity checks passed'
+Sanity checks passed
++(./01_install_requirements.sh:8): source utils.sh
+++(utils.sh:3): set -o pipefail
+++(utils.sh:5): source release_info.sh
+++(utils.sh:1109): _tmpfiles=
+++(utils.sh:1161): trap removetmp EXIT
++(./01_install_requirements.sh:9): source validation.sh
+++(validation.sh:3): set -o pipefail
++(./01_install_requirements.sh:11): early_deploy_validation true
++(validation.sh:54): early_deploy_validation(): CHECK_OC_TOOL_PRESENCE=true
++(validation.sh:56): early_deploy_validation(): early_either_validation
++(validation.sh:7): early_either_validation(): '[' root '!=' root ']'
++(validation.sh:13): early_either_validation(): sudo -n uptime
+++(validation.sh:19): early_either_validation(): awk -F= '/^ID=/ { print $2 }' /etc/os-release
+++(validation.sh:19): early_either_validation(): tr -d '"'
++(validation.sh:19): early_either_validation(): [[ ! centos =~ ^(centos|rhel|almalinux|rocky)$ ]]
+++(validation.sh:25): early_either_validation(): awk -F= '/^VERSION_ID=/ { print $2 }' /etc/os-release
+++(validation.sh:25): early_either_validation(): tr -d '"'
+++(validation.sh:25): early_either_validation(): cut -f1 -d.
++(validation.sh:25): early_either_validation(): VER=9
++(validation.sh:26): early_either_validation(): [[ 9 -lt 9 ]]
+++(validation.sh:32): early_either_validation(): df / --output=fstype
+++(validation.sh:32): early_either_validation(): tail -n 1
++(validation.sh:32): early_either_validation(): FSTYPE=xfs
++(validation.sh:34): early_either_validation(): case ${FSTYPE} in
++(validation.sh:38): early_either_validation(): xfs_info /
++(validation.sh:38): early_either_validation(): grep -q ftype=1
++(validation.sh:58): early_deploy_validation(): '[' '!' -s /root/dev-scripts/pull_secret.json ']'
++(validation.sh:70): early_deploy_validation(): '[' true '!=' true ']'
++(validation.sh:80): early_deploy_validation(): LOGIN_CHECK=true
++(validation.sh:81): early_deploy_validation(): '[' true == true ']'
+++(validation.sh:81): early_deploy_validation(): command -v oc
++(validation.sh:81): early_deploy_validation(): '[' '!' -x '' ']'
++(validation.sh:82): early_deploy_validation(): LOGIN_CHECK=false
++(validation.sh:85): early_deploy_validation(): '[' 0 '!=' 0 ']'
++(./01_install_requirements.sh:13): '[' -z '' ']'
++(./01_install_requirements.sh:14): export REPO_PATH=/opt/dev-scripts
++(./01_install_requirements.sh:14): REPO_PATH=/opt/dev-scripts
++(./01_install_requirements.sh:15): sync_repo_and_patch metal3-dev-env https://github.com/metal3-io/metal3-dev-env.git
++(utils.sh:503): sync_repo_and_patch(): REPO_PATH=/opt/dev-scripts
++(utils.sh:504): sync_repo_and_patch(): DEST=/opt/dev-scripts/metal3-dev-env
++(utils.sh:505): sync_repo_and_patch(): echo 'Syncing metal3-dev-env'
+Syncing metal3-dev-env
++(utils.sh:507): sync_repo_and_patch(): '[' '!' -d /opt/dev-scripts/metal3-dev-env ']'
++(utils.sh:508): sync_repo_and_patch(): mkdir -p /opt/dev-scripts/metal3-dev-env
++(utils.sh:509): sync_repo_and_patch(): git clone https://github.com/metal3-io/metal3-dev-env.git /opt/dev-scripts/metal3-dev-env
+Cloning into '/opt/dev-scripts/metal3-dev-env'...
++(utils.sh:512): sync_repo_and_patch(): pushd /opt/dev-scripts/metal3-dev-env
+/opt/dev-scripts/metal3-dev-env ~/dev-scripts
+++(utils.sh:514): sync_repo_and_patch(): basename metal3-dev-env .git
+++(utils.sh:514): sync_repo_and_patch(): tr '[:lower:]' '[:upper:]'
+++(utils.sh:514): sync_repo_and_patch(): tr - _
++(utils.sh:514): sync_repo_and_patch(): REPO_NAME=METAL3_DEV_ENV
++(utils.sh:515): sync_repo_and_patch(): REPO_BRANCH_VAR=METAL3_DEV_ENV_REPO_BRANCH
+++(utils.sh:516): sync_repo_and_patch(): git remote show origin
+++(utils.sh:516): sync_repo_and_patch(): sed -n '/HEAD branch/s/.*: //p'
++(utils.sh:516): sync_repo_and_patch(): REPO_BRANCH=main
++(utils.sh:518): sync_repo_and_patch(): git am --abort
+fatal: Resolve operation not in progress, we are not resuming.
++(utils.sh:518): sync_repo_and_patch(): true
++(utils.sh:519): sync_repo_and_patch(): git checkout main
+Already on 'main'
+Your branch is up to date with 'origin/main'.
++(utils.sh:520): sync_repo_and_patch(): git fetch origin
++(utils.sh:521): sync_repo_and_patch(): git restore .
++(utils.sh:522): sync_repo_and_patch(): git rebase origin/main
+Current branch main is up to date.
++(utils.sh:525): sync_repo_and_patch(): REPO_PR_VAR=METAL3_DEV_ENV_REPO_PR
++(utils.sh:526): sync_repo_and_patch(): REPO_PR=
++(utils.sh:527): sync_repo_and_patch(): [[ ! -z '' ]]
++(utils.sh:533): sync_repo_and_patch(): popd
+~/dev-scripts
++(./01_install_requirements.sh:16): pushd /opt/dev-scripts/metal3-dev-env
+/opt/dev-scripts/metal3-dev-env ~/dev-scripts
++(./01_install_requirements.sh:22): git reset dba726c297571cc24a5205e873ad9e66ad1c719c --hard
+HEAD is now at dba726c Merge pull request #1704 from metal3-io/renovate/actions-checkout-7.x
++(./01_install_requirements.sh:26): sed -i '/ANSIBLE_VERSION/{ s/10\.7\.0/8.7.0/; }' lib/common.sh
++(./01_install_requirements.sh:28): popd
+~/dev-scripts
++(./01_install_requirements.sh:33): export ANSIBLE_VERSION=8.7.0
++(./01_install_requirements.sh:33): ANSIBLE_VERSION=8.7.0
++(./01_install_requirements.sh:36): sudo sh -c 'echo '\''fastestmirror=1'\'' >> /etc/dnf/dnf.conf'
++(./01_install_requirements.sh:37): sudo sh -c 'echo '\''max_parallel_downloads=8'\'' >> /etc/dnf/dnf.conf'
++(./01_install_requirements.sh:42): sudo dnf -y clean all
+30 files removed
+++(./01_install_requirements.sh:44): sudo dnf info NetworkManager
+++(./01_install_requirements.sh:44): grep Version
+++(./01_install_requirements.sh:44): cut -d : -f 2
++(./01_install_requirements.sh:44): old_version=' 1.54.4'
++(./01_install_requirements.sh:48): MAX_RETRIES=5
++(./01_install_requirements.sh:50): _YUM_RETRY_BACKOFF=15
++(./01_install_requirements.sh:52): attempt=1
++(./01_install_requirements.sh:53): ((  attempt <= MAX_RETRIES  ))
++(./01_install_requirements.sh:54): sudo dnf -y upgrade --nobest
+Last metadata expiration check: 0:00:02 ago on Tue 07 Jul 2026 04:22:40 AM CDT.
+Dependencies resolved.
+Nothing to do.
+Complete!
++(./01_install_requirements.sh:55): echo 'System upgraded successfully.'
+System upgraded successfully.
++(./01_install_requirements.sh:56): break
++(./01_install_requirements.sh:67): ((  attempt > MAX_RETRIES  ))
+++(./01_install_requirements.sh:72): sudo dnf info NetworkManager
+++(./01_install_requirements.sh:72): grep Version
+++(./01_install_requirements.sh:72): cut -d : -f 2
++(./01_install_requirements.sh:72): new_version=' 1.54.4'
++(./01_install_requirements.sh:74): '[' ' 1.54.4' '!=' ' 1.54.4' ']'
++(./01_install_requirements.sh:80): source /etc/os-release
+++(/etc/os-release:1): NAME='CentOS Stream'
+++(/etc/os-release:2): VERSION=9
+++(/etc/os-release:3): ID=centos
+++(/etc/os-release:4): ID_LIKE='rhel fedora'
+++(/etc/os-release:5): VERSION_ID=9
+++(/etc/os-release:6): PLATFORM_ID=platform:el9
+++(/etc/os-release:7): PRETTY_NAME='CentOS Stream 9'
+++(/etc/os-release:8): ANSI_COLOR='0;31'
+++(/etc/os-release:9): LOGO=fedora-logo-icon
+++(/etc/os-release:10): CPE_NAME=cpe:/o:centos:centos:9
+++(/etc/os-release:11): HOME_URL=https://centos.org/
+++(/etc/os-release:12): BUG_REPORT_URL=https://issues.redhat.com/
+++(/etc/os-release:13): REDHAT_SUPPORT_PRODUCT='Red Hat Enterprise Linux 9'
+++(/etc/os-release:14): REDHAT_SUPPORT_PRODUCT_VERSION='CentOS Stream'
++(./01_install_requirements.sh:86): [[ -x /usr/libexec/platform-python ]]
++(./01_install_requirements.sh:87): sudo /usr/libexec/platform-python -m pip install passlib
+/usr/libexec/platform-python: No module named pip
++(./01_install_requirements.sh:87): sudo dnf -y install python3-pip
+Last metadata expiration check: 0:00:03 ago on Tue 07 Jul 2026 04:22:40 AM CDT.
+Dependencies resolved.
+================================================================================
+ Package            Architecture  Version                Repository        Size
+================================================================================
+Installing:
+ python3-pip        noarch        21.3.1-2.el9           appstream        2.0 M
+
+Transaction Summary
+================================================================================
+Install  1 Package
+
+Total download size: 2.0 M
+Installed size: 8.8 M
+Downloading Packages:
+python3-pip-21.3.1-2.el9.noarch.rpm              26 MB/s | 2.0 MB     00:00    
+--------------------------------------------------------------------------------
+Total                                           4.3 MB/s | 2.0 MB     00:00     
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : python3-pip-21.3.1-2.el9.noarch                        1/1 
+  Running scriptlet: python3-pip-21.3.1-2.el9.noarch                        1/1 
+  Verifying        : python3-pip-21.3.1-2.el9.noarch                        1/1 
+
+Installed:
+  python3-pip-21.3.1-2.el9.noarch                                               
+
+Complete!
++(./01_install_requirements.sh:87): sudo /usr/libexec/platform-python -m pip install passlib
+Collecting passlib
+  Downloading passlib-1.7.4-py2.py3-none-any.whl (525 kB)
+Installing collected packages: passlib
+Successfully installed passlib-1.7.4
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++(./01_install_requirements.sh:92): case $DISTRO in
++(./01_install_requirements.sh:94): sudo dnf -y install python3-pip
+Last metadata expiration check: 0:00:06 ago on Tue 07 Jul 2026 04:22:40 AM CDT.
+Package python3-pip-21.3.1-2.el9.noarch is already installed.
+Dependencies resolved.
+Nothing to do.
+Complete!
++(./01_install_requirements.sh:95): [[ centos9 == \c\e\n\t\o\s\9 ]]
++(./01_install_requirements.sh:96): sudo dnf config-manager --set-enabled crb
++(./01_install_requirements.sh:97): sudo dnf -y install epel-release
+CentOS Stream 9 - BaseOS                         16 kB/s | 6.4 kB     00:00    
+CentOS Stream 9 - AppStream                      23 kB/s | 6.5 kB     00:00    
+CentOS Stream 9 - CRB                            20 MB/s | 8.3 MB     00:00    
+Dependencies resolved.
+================================================================================
+ Package                 Architecture Version         Repository           Size
+================================================================================
+Installing:
+ epel-release            noarch       9-7.el9         extras-common        19 k
+Installing weak dependencies:
+ epel-next-release       noarch       9-7.el9         extras-common       8.1 k
+
+Transaction Summary
+================================================================================
+Install  2 Packages
+
+Total download size: 27 k
+Installed size: 29 k
+Downloading Packages:
+(1/2): epel-release-9-7.el9.noarch.rpm          402 kB/s |  19 kB     00:00    
+(2/2): epel-next-release-9-7.el9.noarch.rpm     145 kB/s | 8.1 kB     00:00    
+--------------------------------------------------------------------------------
+Total                                            59 kB/s |  27 kB     00:00     
+CentOS Stream 9 - Extras packages               2.1 MB/s | 2.1 kB     00:00    
+Importing GPG key 0x1D997668:
+ Userid     : "CentOS Extras SIG (https://wiki.centos.org/SpecialInterestGroup) <security@centos.org>"
+ Fingerprint: 363F C097 2F64 B699 AED3 968E 1FF6 A217 1D99 7668
+ From       : /etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-SIG-Extras-SHA512
+Key imported successfully
+Running transaction check
+Transaction check succeeded.
+Running transaction test
+Transaction test succeeded.
+Running transaction
+  Preparing        :                                                        1/1 
+  Installing       : epel-release-9-7.el9.noarch                            1/2 
+  Running scriptlet: epel-release-9-7.el9.noarch                            1/2 
+Many EPEL packages require the CodeReady Builder (CRB) repository.
+It is recommended that you run /usr/bin/crb enable to enable the CRB repository.
+
+  Installing       : epel-next-release-9-7.el9.noarch                       2/2 
+  Running scriptlet: epel-next-release-9-7.el9.noarch                       2/2 
+  Verifying        : epel-next-release-9-7.el9.noarch                       1/2 
+  Verifying        : epel-release-9-7.el9.noarch                            2/2 
+
+Installed:
+  epel-next-release-9-7.el9.noarch          epel-release-9-7.el9.noarch         
+
+Complete!
++(./01_install_requirements.sh:108): sudo ln -s /usr/bin/python3 /usr/bin/python
+ln: failed to create symbolic link '/usr/bin/python': File exists
++(./01_install_requirements.sh:108): true
++(./01_install_requirements.sh:109): PYTHON_DEVEL=python3-devel
++(./01_install_requirements.sh:121): which yq
++(./01_install_requirements.sh:122): sudo python -m pip install 'yq>=3,<4'
+Collecting yq<4,>=3
+  Downloading yq-3.4.3-py3-none-any.whl (18 kB)
+Collecting argcomplete>=1.8.1
+  Downloading argcomplete-3.7.0-py3-none-any.whl (42 kB)
+Collecting xmltodict>=0.11.0
+  Downloading xmltodict-1.0.4-py3-none-any.whl (13 kB)
+Requirement already satisfied: PyYAML>=5.3.1 in /usr/lib64/python3.9/site-packages (from yq<4,>=3) (5.4.1)
+Collecting tomlkit>=0.11.6
+  Downloading tomlkit-0.15.0-py3-none-any.whl (41 kB)
+Installing collected packages: xmltodict, tomlkit, argcomplete, yq
+  WARNING: The scripts activate-global-python-argcomplete and register-python-argcomplete are installed in '/usr/local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The scripts tomlq, xq and yq are installed in '/usr/local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+Successfully installed argcomplete-3.7.0 tomlkit-0.15.0 xmltodict-1.0.4 yq-3.4.3
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++(./01_install_requirements.sh:127): GO_VERSION=1.24.10
++(./01_install_requirements.sh:128): GO_CUSTOM_MIRROR=https://go.dev/dl
+++(./01_install_requirements.sh:130): uname -m
++(./01_install_requirements.sh:130): GOARCH=x86_64
++(./01_install_requirements.sh:131): [[ x86_64 == \a\a\r\c\h\6\4 ]]
++(./01_install_requirements.sh:134): [[ x86_64 == \x\8\6\_\6\4 ]]
++(./01_install_requirements.sh:135): GOARCH=amd64
++(./01_install_requirements.sh:138): VERSION=go1.24.10
++(./01_install_requirements.sh:139): OS=linux
+++(./01_install_requirements.sh:154): curl -s 'https://go.dev/dl/?mode=json&include=all'
+++(./01_install_requirements.sh:154): jq -r --arg version go1.24.10 --arg os linux --arg arch amd64 '
+      .[]
+      | select(.version == $version)
+      | .files[]
+      | select(.os == $os and .arch == $arch)
+      | .sha256
+    '
++(./01_install_requirements.sh:153): GO_CHECKSUM=dd52b974e3d9c5a7bbfb222c685806def6be5d6f7efd10f9caa9ca1fa2f47955
++(./01_install_requirements.sh:155): '[' -z dd52b974e3d9c5a7bbfb222c685806def6be5d6f7efd10f9caa9ca1fa2f47955 ']'
++(./01_install_requirements.sh:158): echo 'Checksum: dd52b974e3d9c5a7bbfb222c685806def6be5d6f7efd10f9caa9ca1fa2f47955'
+Checksum: dd52b974e3d9c5a7bbfb222c685806def6be5d6f7efd10f9caa9ca1fa2f47955
++(./01_install_requirements.sh:163): sudo python -m pip install netaddr lxml
+Collecting netaddr
+  Downloading netaddr-1.3.0-py3-none-any.whl (2.3 MB)
+Requirement already satisfied: lxml in /usr/lib64/python3.9/site-packages (4.6.5)
+Installing collected packages: netaddr
+  WARNING: The script netaddr is installed in '/usr/local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+Successfully installed netaddr-1.3.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++(./01_install_requirements.sh:165): sudo python -m pip install ansible==8.7.0
+Collecting ansible==8.7.0
+  Downloading ansible-8.7.0-py3-none-any.whl (48.4 MB)
+Collecting ansible-core~=2.15.7
+  Downloading ansible_core-2.15.13-py3-none-any.whl (2.3 MB)
+Requirement already satisfied: PyYAML>=5.1 in /usr/lib64/python3.9/site-packages (from ansible-core~=2.15.7->ansible==8.7.0) (5.4.1)
+Collecting packaging
+  Downloading packaging-26.2-py3-none-any.whl (100 kB)
+Collecting resolvelib<1.1.0,>=0.5.3
+  Downloading resolvelib-1.0.1-py2.py3-none-any.whl (17 kB)
+Collecting jinja2>=3.0.0
+  Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+Collecting importlib-resources<5.1,>=5.0
+  Downloading importlib_resources-5.0.7-py3-none-any.whl (24 kB)
+Collecting cryptography
+  Downloading cryptography-49.0.0-cp39-abi3-manylinux_2_34_x86_64.whl (4.7 MB)
+Collecting MarkupSafe>=2.0
+  Downloading markupsafe-3.0.3-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (20 kB)
+Collecting cffi>=2.0.0
+  Downloading cffi-2.0.0-cp39-cp39-manylinux2014_x86_64.manylinux_2_17_x86_64.whl (216 kB)
+Collecting typing-extensions>=4.13.2
+  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)
+Collecting pycparser
+  Downloading pycparser-2.23-py3-none-any.whl (118 kB)
+Installing collected packages: pycparser, typing-extensions, MarkupSafe, cffi, resolvelib, packaging, jinja2, importlib-resources, cryptography, ansible-core, ansible
+  WARNING: The scripts ansible, ansible-config, ansible-connection, ansible-console, ansible-doc, ansible-galaxy, ansible-inventory, ansible-playbook, ansible-pull and ansible-vault are installed in '/usr/local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+  WARNING: The script ansible-community is installed in '/usr/local/bin' which is not on PATH.
+  Consider adding this directory to PATH or, if you prefer to suppress this warning, use --no-warn-script-location.
+Successfully installed MarkupSafe-3.0.3 ansible-8.7.0 ansible-core-2.15.13 cffi-2.0.0 cryptography-49.0.0 importlib-resources-5.0.7 jinja2-3.1.6 packaging-26.2 pycparser-2.23 resolvelib-1.0.1 typing-extensions-4.16.0
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
++(./01_install_requirements.sh:167): pushd /opt/dev-scripts/metal3-dev-env
+/opt/dev-scripts/metal3-dev-env ~/dev-scripts
++(./01_install_requirements.sh:168): ansible-galaxy install -r vm-setup/requirements.yml
+Cloning into '/root/.ansible/tmp/ansible-local-7226m12e3muo/tmphr7zhmv2/kubernetes.coreo7ofvgjp'...
+Note: switching to '6.2.0'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at 6dadd06 Add missing changelog fragments from 5.4.0 and 5.4.1 releases (#1015)
+Cloning into '/root/.ansible/tmp/ansible-local-7226m12e3muo/tmphr7zhmv2/ansible.netcommona21d7pfw'...
+Note: switching to 'v7.2.0'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at 73e81a5 Release Prep 7.2.0 (#694)
+Cloning into '/root/.ansible/tmp/ansible-local-7226m12e3muo/tmphr7zhmv2/ansible.utilsywrb6rtr'...
+Note: switching to 'v5.1.2'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at e213ad9 Release 5.1.2 (#378)
+Starting galaxy collection install process
+Process install dependency map
+Starting collection install process
+Installing 'kubernetes.core:6.2.0' to '/root/.ansible/collections/ansible_collections/kubernetes/core'
+Created collection for kubernetes.core:6.2.0 at /root/.ansible/collections/ansible_collections/kubernetes/core
+kubernetes.core:6.2.0 was installed successfully
+Installing 'ansible.netcommon:7.2.0' to '/root/.ansible/collections/ansible_collections/ansible/netcommon'
+Created collection for ansible.netcommon:7.2.0 at /root/.ansible/collections/ansible_collections/ansible/netcommon
+ansible.netcommon:7.2.0 was installed successfully
+Installing 'ansible.utils:5.1.2' to '/root/.ansible/collections/ansible_collections/ansible/utils'
+Created collection for ansible.utils:5.1.2 at /root/.ansible/collections/ansible_collections/ansible/utils
+ansible.utils:5.1.2 was installed successfully
++(./01_install_requirements.sh:171): ansible-galaxy collection install 'ansible.netcommon<8.0.0' ansible.posix 'ansible.utils<6.0.0' community.general
+[WARNING]: Collection kubernetes.core does not support Ansible version 2.15.13
+Starting galaxy collection install process
+Nothing to do. All requested collections are already installed. If you want to reinstall them, consider using `--force`.
++(./01_install_requirements.sh:172): ANSIBLE_FORCE_COLOR=true
++(./01_install_requirements.sh:172): ansible-playbook -e working_dir=/opt/dev-scripts -e virthost=ofcir-82.cipool-ibmcloud.ofcir -e go_version=1.24.10 -e go_custom_mirror=https://go.dev/dl -e go_checksum=dd52b974e3d9c5a7bbfb222c685806def6be5d6f7efd10f9caa9ca1fa2f47955 -e GOARCH=amd64 -i vm-setup/inventory.ini -b -vvv vm-setup/install-package-playbook.yml
+[0;34mansible-playbook [core 2.15.13][0m
+[0;34m  config file = /opt/dev-scripts/metal3-dev-env/ansible.cfg[0m
+[0;34m  configured module search path = ['/root/.ansible/plugins/modules', '/usr/share/ansible/plugins/modules'][0m
+[0;34m  ansible python module location = /usr/local/lib/python3.9/site-packages/ansible[0m
+[0;34m  ansible collection location = /root/.ansible/collections:/usr/share/ansible/collections[0m
+[0;34m  executable location = /usr/local/bin/ansible-playbook[0m
+[0;34m  python version = 3.9.25 (main, Apr 17 2026, 00:00:00) [GCC 11.5.0 20240719 (Red Hat 11.5.0-14)] (/bin/python)[0m
+[0;34m  jinja version = 3.1.6[0m
+[0;34m  libyaml = True[0m
+[0;34mUsing /opt/dev-scripts/metal3-dev-env/ansible.cfg as config file[0m
+[0;34mhost_list declined parsing /opt/dev-scripts/metal3-dev-env/vm-setup/inventory.ini as it did not pass its verify_file() method[0m
+[0;34mscript declined parsing /opt/dev-scripts/metal3-dev-env/vm-setup/inventory.ini as it did not pass its verify_file() method[0m
+[0;34mauto declined parsing /opt/dev-scripts/metal3-dev-env/vm-setup/inventory.ini as it did not pass its verify_file() method[0m
+[0;34myaml declined parsing /opt/dev-scripts/metal3-dev-env/vm-setup/inventory.ini as it did not pass its verify_file() method[0m
+[0;34mParsed /opt/dev-scripts/metal3-dev-env/vm-setup/inventory.ini inventory source with ini plugin[0m
+[0;34mSkipping callback 'default', as we already have a stdout callback.[0m
+[0;34mSkipping callback 'minimal', as we already have a stdout callback.[0m
+[0;34mSkipping callback 'oneline', as we already have a stdout callback.[0m
+
+PLAYBOOK: install-package-playbook.yml *****************************************
+[0;34m1 plays in vm-setup/install-package-playbook.yml[0m
+
+PLAY [Install packages needed for the Dev-env] *********************************
+
+TASK [Gathering Facts] *********************************************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/install-package-playbook.yml:1[0m
+Tuesday 07 July 2026  04:23:25 -0500 (0:00:00.011)       0:00:00.011 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945 `" && echo ansible-tmp-1783416205.6647773-7318-217590025296945="` echo /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945 `" ) && sleep 0'[0m
+[0;34m<localhost> Attempting python interpreter discovery[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo PLATFORM; uname; echo FOUND; command -v '"'"'python3.11'"'"'; command -v '"'"'python3.10'"'"'; command -v '"'"'python3.9'"'"'; command -v '"'"'python3.8'"'"'; command -v '"'"'python3.7'"'"'; command -v '"'"'python3.6'"'"'; command -v '"'"'python3.5'"'"'; command -v '"'"'/usr/bin/python3'"'"'; command -v '"'"'/usr/libexec/platform-python'"'"'; command -v '"'"'python2.7'"'"'; command -v '"'"'/usr/bin/python'"'"'; command -v '"'"'python'"'"'; echo ENDFOUND && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3.9 && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/setup.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpjd90sb7c TO /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945/AnsiballZ_setup.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945/ /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945/AnsiballZ_setup.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945/AnsiballZ_setup.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416205.6647773-7318-217590025296945/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost][0m
+
+TASK [packages_installation : Install required packages for Ubuntu] ************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:3[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:01.186)       0:00:01.197 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install common packages using standard package manager for Ubuntu] ***
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:5[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:00.033)       0:00:01.231 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages using standard package manager for Ubuntu 22.04] ***
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:9[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:00.032)       0:00:01.264 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages using standard package manager for Ubuntu 24.04] ***
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:15[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:00.032)       0:00:01.296 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages specific to Podman] *************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:21[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:00.032)       0:00:01.329 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages using pip3] *********************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:27[0m
+Tuesday 07 July 2026  04:23:26 -0500 (0:00:00.032)       0:00:01.361 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages using pip3 on Ubuntu Noble] *****
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:33[0m
+Tuesday 07 July 2026  04:23:27 -0500 (0:00:00.032)       0:00:01.394 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Add TPM emulator PPA] ****************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:42[0m
+Tuesday 07 July 2026  04:23:27 -0500 (0:00:00.032)       0:00:01.426 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install TPM emulator packages] *******************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:47[0m
+Tuesday 07 July 2026  04:23:27 -0500 (0:00:00.033)       0:00:01.459 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_facts['distribution'] == \"Ubuntu\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Clean DNF cache to avoid stale metadata] *********
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:60[0m
+Tuesday 07 July 2026  04:23:27 -0500 (0:00:00.033)       0:00:01.492 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060 `" && echo ansible-tmp-1783416207.1538146-7442-119522900575060="` echo /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/command.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpzgr1raaj TO /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060/AnsiballZ_command.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060/ /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060/AnsiballZ_command.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060/AnsiballZ_command.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416207.1538146-7442-119522900575060/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "changed": false,[0m
+[0;32m    "cmd": [[0m
+[0;32m        "dnf",[0m
+[0;32m        "clean",[0m
+[0;32m        "all"[0m
+[0;32m    ],[0m
+[0;32m    "delta": "0:00:00.215854",[0m
+[0;32m    "end": "2026-07-07 04:23:27.632991",[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "_raw_params": "dnf clean all",[0m
+[0;32m            "_uses_shell": false,[0m
+[0;32m            "argv": null,[0m
+[0;32m            "chdir": null,[0m
+[0;32m            "creates": null,[0m
+[0;32m            "executable": null,[0m
+[0;32m            "removes": null,[0m
+[0;32m            "stdin": null,[0m
+[0;32m            "stdin_add_newline": true,[0m
+[0;32m            "strip_empty_ends": true[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "msg": "",[0m
+[0;32m    "rc": 0,[0m
+[0;32m    "start": "2026-07-07 04:23:27.417137",[0m
+[0;32m    "stderr": "",[0m
+[0;32m    "stderr_lines": [],[0m
+[0;32m    "stdout": "29 files removed",[0m
+[0;32m    "stdout_lines": [[0m
+[0;32m        "29 files removed"[0m
+[0;32m    ][0m
+[0;32m}[0m
+
+TASK [packages_installation : Refresh DNF cache] *******************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:64[0m
+Tuesday 07 July 2026  04:23:27 -0500 (0:00:00.543)       0:00:02.036 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127 `" && echo ansible-tmp-1783416207.7009332-7459-211268404877127="` echo /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/dnf.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmp1k1k5uka TO /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127/AnsiballZ_dnf.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127/ /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416207.7009332-7459-211268404877127/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "attempts": 1,[0m
+[0;32m    "changed": false,[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "allow_downgrade": false,[0m
+[0;32m            "allowerasing": false,[0m
+[0;32m            "autoremove": false,[0m
+[0;32m            "bugfix": false,[0m
+[0;32m            "cacheonly": false,[0m
+[0;32m            "conf_file": null,[0m
+[0;32m            "disable_excludes": null,[0m
+[0;32m            "disable_gpg_check": false,[0m
+[0;32m            "disable_plugin": [],[0m
+[0;32m            "disablerepo": [],[0m
+[0;32m            "download_dir": null,[0m
+[0;32m            "download_only": false,[0m
+[0;32m            "enable_plugin": [],[0m
+[0;32m            "enablerepo": [],[0m
+[0;32m            "exclude": [],[0m
+[0;32m            "install_repoquery": true,[0m
+[0;32m            "install_weak_deps": true,[0m
+[0;32m            "installroot": "/",[0m
+[0;32m            "list": null,[0m
+[0;32m            "lock_timeout": 30,[0m
+[0;32m            "name": [],[0m
+[0;32m            "nobest": false,[0m
+[0;32m            "releasever": null,[0m
+[0;32m            "security": false,[0m
+[0;32m            "skip_broken": false,[0m
+[0;32m            "sslverify": true,[0m
+[0;32m            "state": null,[0m
+[0;32m            "update_cache": true,[0m
+[0;32m            "update_only": false,[0m
+[0;32m            "use_backend": "auto",[0m
+[0;32m            "validate_certs": true[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "msg": "Cache updated",[0m
+[0;32m    "rc": 0,[0m
+[0;32m    "results": [][0m
+[0;32m}[0m
+
+TASK [packages_installation : Install packages on CentOS/RHEL] *****************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:72[0m
+Tuesday 07 July 2026  04:23:54 -0500 (0:00:26.994)       0:00:29.031 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528 `" && echo ansible-tmp-1783416234.6974416-7625-158476546475528="` echo /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/dnf.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmp_ir52whq TO /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528/AnsiballZ_dnf.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528/ /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416234.6974416-7625-158476546475528/ > /dev/null 2>&1 && sleep 0'[0m
+[0;33mchanged: [localhost] => {[0m
+[0;33m    "attempts": 1,[0m
+[0;33m    "changed": true,[0m
+[0;33m    "invocation": {[0m
+[0;33m        "module_args": {[0m
+[0;33m            "allow_downgrade": false,[0m
+[0;33m            "allowerasing": false,[0m
+[0;33m            "autoremove": false,[0m
+[0;33m            "bugfix": false,[0m
+[0;33m            "cacheonly": false,[0m
+[0;33m            "conf_file": null,[0m
+[0;33m            "disable_excludes": null,[0m
+[0;33m            "disable_gpg_check": false,[0m
+[0;33m            "disable_plugin": [],[0m
+[0;33m            "disablerepo": [],[0m
+[0;33m            "download_dir": null,[0m
+[0;33m            "download_only": false,[0m
+[0;33m            "enable_plugin": [],[0m
+[0;33m            "enablerepo": [],[0m
+[0;33m            "exclude": [],[0m
+[0;33m            "install_repoquery": true,[0m
+[0;33m            "install_weak_deps": true,[0m
+[0;33m            "installroot": "/",[0m
+[0;33m            "list": null,[0m
+[0;33m            "lock_timeout": 30,[0m
+[0;33m            "name": [[0m
+[0;33m                "bind-utils",[0m
+[0;33m                "curl",[0m
+[0;33m                "dnsmasq",[0m
+[0;33m                "edk2-ovmf",[0m
+[0;33m                "firewalld",[0m
+[0;33m                "genisoimage",[0m
+[0;33m                "httpd-tools",[0m
+[0;33m                "jq",[0m
+[0;33m                "libguestfs-tools",[0m
+[0;33m                "libguestfs-tools",[0m
+[0;33m                "libvirt",[0m
+[0;33m                "libvirt-daemon-kvm",[0m
+[0;33m                "libvirt-devel",[0m
+[0;33m                "NetworkManager",[0m
+[0;33m                "nmap",[0m
+[0;33m                "patch",[0m
+[0;33m                "podman",[0m
+[0;33m                "polkit-pkla-compat",[0m
+[0;33m                "psmisc",[0m
+[0;33m                "python3-bcrypt",[0m
+[0;33m                "python3-libvirt",[0m
+[0;33m                "python3-lxml",[0m
+[0;33m                "python3-netaddr",[0m
+[0;33m                "python3-requests-oauthlib",[0m
+[0;33m                "python3-six",[0m
+[0;33m                "qemu-img",[0m
+[0;33m                "qemu-kvm",[0m
+[0;33m                "unzip",[0m
+[0;33m                "vim-enhanced",[0m
+[0;33m                "virt-install",[0m
+[0;33m                "wget"[0m
+[0;33m            ],[0m
+[0;33m            "nobest": true,[0m
+[0;33m            "releasever": null,[0m
+[0;33m            "security": false,[0m
+[0;33m            "skip_broken": false,[0m
+[0;33m            "sslverify": true,[0m
+[0;33m            "state": "present",[0m
+[0;33m            "update_cache": false,[0m
+[0;33m            "update_only": false,[0m
+[0;33m            "use_backend": "auto",[0m
+[0;33m            "validate_certs": true[0m
+[0;33m        }[0m
+[0;33m    },[0m
+[0;33m    "msg": "",[0m
+[0;33m    "rc": 0,[0m
+[0;33m    "results": [[0m
+[0;33m        "Installed: nbdkit-selinux-1.38.5-12.el9.noarch",[0m
+[0;33m        "Installed: nbdkit-server-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: nbdkit-ssh-plugin-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: libtpms-0.9.6-11.el9.x86_64",[0m
+[0;33m        "Installed: mesa-dri-drivers-25.2.7-4.el9.x86_64",[0m
+[0;33m        "Installed: librados2-2:16.2.4-5.el9.x86_64",[0m
+[0;33m        "Installed: librbd1-2:16.2.4-5.el9.x86_64",[0m
+[0;33m        "Installed: boost-filesystem-1.75.0-14.el9.x86_64",[0m
+[0;33m        "Installed: mesa-filesystem-25.2.7-4.el9.x86_64",[0m
+[0;33m        "Installed: mtools-4.0.26-5.el9.x86_64",[0m
+[0;33m        "Installed: gsm-1.0.19-6.el9.x86_64",[0m
+[0;33m        "Installed: mesa-libEGL-25.2.7-4.el9.x86_64",[0m
+[0;33m        "Installed: python3-argcomplete-1.12.0-5.el9.noarch",[0m
+[0;33m        "Installed: boost-iostreams-1.75.0-14.el9.x86_64",[0m
+[0;33m        "Installed: dnsmasq-2.85-20.el9.x86_64",[0m
+[0;33m        "Installed: sssd-nfs-idmap-2.9.9-2.el9.x86_64",[0m
+[0;33m        "Installed: flac-libs-1.3.3-12.el9.x86_64",[0m
+[0;33m        "Installed: augeas-libs-1.14.1-3.el9.x86_64",[0m
+[0;33m        "Installed: liburing-2.12-1.el9.x86_64",[0m
+[0;33m        "Installed: mesa-libGL-25.2.7-4.el9.x86_64",[0m
+[0;33m        "Installed: librdmacm-61.0-2.el9.x86_64",[0m
+[0;33m        "Installed: perl-Params-Util-1.102-5.el9.x86_64",[0m
+[0;33m        "Installed: ndctl-libs-82-1.el9.x86_64",[0m
+[0;33m        "Installed: python3-ply-3.11-14.el9.noarch",[0m
+[0;33m        "Installed: python3-pycparser-2.20-6.el9.noarch",[0m
+[0;33m        "Installed: flex-2.6.4-9.el9.x86_64",[0m
+[0;33m        "Installed: mesa-libgbm-25.2.7-4.el9.x86_64",[0m
+[0;33m        "Installed: gssproxy-0.8.4-7.el9.x86_64",[0m
+[0;33m        "Installed: patch-2.7.6-16.el9.x86_64",[0m
+[0;33m        "Installed: libisoburn-1.5.4-5.el9.x86_64",[0m
+[0;33m        "Installed: nfs-utils-1:2.5.4-44.el9.x86_64",[0m
+[0;33m        "Installed: libisofs-1.5.4-4.el9.x86_64",[0m
+[0;33m        "Installed: perl-Sys-Guestfs-1:1.54.0-11.el9.x86_64",[0m
+[0;33m        "Installed: syslinux-6.04-0.24.el9.x86_64",[0m
+[0;33m        "Installed: syslinux-extlinux-6.04-0.24.el9.x86_64",[0m
+[0;33m        "Installed: xkeyboard-config-2.33-2.el9.noarch",[0m
+[0;33m        "Installed: syslinux-extlinux-nonlinux-6.04-0.24.el9.noarch",[0m
+[0;33m        "Installed: libvirt-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: syslinux-nonlinux-6.04-0.24.el9.noarch",[0m
+[0;33m        "Installed: libvirt-client-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-client-qemu-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: numad-0.5-50.20251104git.el9.x86_64",[0m
+[0;33m        "Installed: spirv-tools-libs-2026.1-1.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: geolite2-city-20191217-6.el9.noarch",[0m
+[0;33m        "Installed: geolite2-country-20191217-6.el9.noarch",[0m
+[0;33m        "Installed: libburn-1.5.4-5.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-common-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: systemd-container-252-71.el9.x86_64",[0m
+[0;33m        "Installed: daxctl-libs-82-1.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-config-network-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-config-nwfilter-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-interface-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: gnutls-dane-3.8.10-6.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-network-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: ipcalc-1.0.0-5.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-nodedev-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-nwfilter-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: gnutls-utils-3.8.10-6.el9.x86_64",[0m
+[0;33m        "Installed: boost-system-1.75.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-qemu-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-secret-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-core-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: boost-thread-1.75.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-disk-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-iscsi-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-logical-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: usbredir-0.13.0-2.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-mpath-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-rbd-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: libev-4.33-6.el9.x86_64",[0m
+[0;33m        "Installed: m4-1.4.19-1.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-driver-storage-scsi-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: rpcbind-1.2.6-7.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-kvm-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: perl-Class-Inspector-1.36-7.el9.noarch",[0m
+[0;33m        "Installed: libvirt-daemon-lock-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: dhcp-client-12:4.4.2-21.b1.el9.x86_64",[0m
+[0;33m        "Installed: xorriso-1.5.4-5.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-log-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: dhcp-common-12:4.4.2-21.b1.el9.noarch",[0m
+[0;33m        "Installed: libvirt-daemon-plugin-lockd-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: supermin-5.3.5-1.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-daemon-proxy-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: swtpm-0.8.0-2.el9.x86_64",[0m
+[0;33m        "Installed: libnbd-1.20.3-4.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-libs-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: swtpm-libs-0.8.0-2.el9.x86_64",[0m
+[0;33m        "Installed: swtpm-tools-0.8.0-2.el9.x86_64",[0m
+[0;33m        "Installed: xz-devel-5.2.5-8.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-ssh-proxy-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: unbound-libs-1.24.2-2.el9.x86_64",[0m
+[0;33m        "Installed: perl-hivex-1.3.24-1.el9.x86_64",[0m
+[0;33m        "Installed: nmap-3:7.92-5.el9.x86_64",[0m
+[0;33m        "Installed: libvorbis-1:1.3.7-5.el9.x86_64",[0m
+[0;33m        "Installed: libepoxy-1.5.5-4.el9.x86_64",[0m
+[0;33m        "Installed: perl-libintl-perl-1.32-4.el9.x86_64",[0m
+[0;33m        "Installed: zlib-devel-1.2.11-41.el9.x86_64",[0m
+[0;33m        "Installed: libX11-xcb-1.8.12-1.el9.x86_64",[0m
+[0;33m        "Installed: python3-libvirt-11.10.0-2.el9.x86_64",[0m
+[0;33m        "Installed: perl-locale-1.09-483.el9.noarch",[0m
+[0;33m        "Installed: libogg-2:1.3.4-6.el9.x86_64",[0m
+[0;33m        "Installed: qemu-img-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: libwayland-client-1.21.0-1.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-audio-pa-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: systemtap-client-5.5-2.el9.x86_64",[0m
+[0;33m        "Installed: perl-Exporter-Tiny-1.002002-6.el9.noarch",[0m
+[0;33m        "Installed: qemu-kvm-block-blkio-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: systemtap-devel-5.5-2.el9.x86_64",[0m
+[0;33m        "Installed: dyninst-13.0.0-1.el9.x86_64",[0m
+[0;33m        "Installed: hexedit-1.6-1.el9.x86_64",[0m
+[0;33m        "Installed: openssl-devel-1:3.5.7-1.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-block-rbd-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: virt-install-5.1.0-1.el9.noarch",[0m
+[0;33m        "Installed: genisoimage-1.1.11-48.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-common-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: libosinfo-1.10.0-1.el9.x86_64",[0m
+[0;33m        "Installed: hivex-libs-1.3.24-1.el9.x86_64",[0m
+[0;33m        "Installed: kernel-devel-5.14.0-721.el9.x86_64",[0m
+[0;33m        "Installed: libfdt-1.6.0-7.el9.x86_64",[0m
+[0;33m        "Installed: python3-netaddr-0.10.1-3.el9.noarch",[0m
+[0;33m        "Installed: qemu-kvm-core-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: systemtap-runtime-5.5-2.el9.x86_64",[0m
+[0;33m        "Installed: capstone-4.0.2-12.el9.x86_64",[0m
+[0;33m        "Installed: virt-manager-common-5.1.0-1.el9.noarch",[0m
+[0;33m        "Installed: qemu-kvm-device-display-virtio-gpu-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: edk2-ovmf-20241117-8.el9.noarch",[0m
+[0;33m        "Installed: libsndfile-1.0.31-10.el9.x86_64",[0m
+[0;33m        "Installed: opus-1.3.1-10.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-device-display-virtio-gpu-pci-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: python3-oauthlib-3.1.1-5.el9.noarch",[0m
+[0;33m        "Installed: qemu-kvm-device-display-virtio-vga-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: virt-win-reg-1.52.2-6.el9.noarch",[0m
+[0;33m        "Installed: perl-File-ShareDir-1.118-4.el9.noarch",[0m
+[0;33m        "Installed: virtiofsd-1.13.3-1.el9.x86_64",[0m
+[0;33m        "Installed: libverto-libev-0.3.2-3.el9.x86_64",[0m
+[0;33m        "Installed: libusal-1.1.11-48.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-device-usb-host-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-device-usb-redirect-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: libpmem-1.12.1-1.el9.x86_64",[0m
+[0;33m        "Installed: libvirt-devel-11.10.0-14.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-docs-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: bison-3.7.4-5.el9.x86_64",[0m
+[0;33m        "Installed: libxkbcommon-1.0.3-4.el9.x86_64",[0m
+[0;33m        "Installed: httpd-tools-2.4.62-14.el9.x86_64",[0m
+[0;33m        "Installed: elfutils-devel-0.195-1.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-tools-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: libXxf86vm-1.1.4-18.el9.x86_64",[0m
+[0;33m        "Installed: libglvnd-1:1.3.4-1.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-ui-egl-headless-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: tbb-2020.3-9.el9.x86_64",[0m
+[0;33m        "Installed: elfutils-libelf-devel-0.195-1.el9.x86_64",[0m
+[0;33m        "Installed: qemu-kvm-ui-opengl-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: scrub-2.6.1-4.el9.x86_64",[0m
+[0;33m        "Installed: qemu-pr-helper-17:10.1.0-22.el9.x86_64",[0m
+[0;33m        "Installed: libglvnd-egl-1:1.3.4-1.el9.x86_64",[0m
+[0;33m        "Installed: libxshmfence-1.3-10.el9.x86_64",[0m
+[0;33m        "Installed: apr-1.7.0-12.el9.x86_64",[0m
+[0;33m        "Installed: libglvnd-glx-1:1.3.4-1.el9.x86_64",[0m
+[0;33m        "Installed: apr-util-1.6.1-23.el9.x86_64",[0m
+[0;33m        "Installed: seabios-bin-1.16.3-5.el9.noarch",[0m
+[0;33m        "Installed: apr-util-bdb-1.6.1-23.el9.x86_64",[0m
+[0;33m        "Installed: seavgabios-bin-1.16.3-5.el9.noarch",[0m
+[0;33m        "Installed: apr-util-openssl-1.6.1-23.el9.x86_64",[0m
+[0;33m        "Installed: python3-cffi-1.14.5-5.el9.x86_64",[0m
+[0;33m        "Installed: perl-I18N-Langinfo-0.19-483.el9.x86_64",[0m
+[0;33m        "Installed: libnfsidmap-1:2.5.4-44.el9.x86_64",[0m
+[0;33m        "Installed: osinfo-db-20250606-2.el9.noarch",[0m
+[0;33m        "Installed: fuse-2.9.9-17.el9.x86_64",[0m
+[0;33m        "Installed: osinfo-db-tools-1.10.0-1.el9.x86_64",[0m
+[0;33m        "Installed: python3-cryptography-36.0.1-5.el9.x86_64",[0m
+[0;33m        "Installed: libasyncns-0.8-22.el9.x86_64",[0m
+[0;33m        "Installed: libzstd-devel-1.5.5-1.el9.x86_64",[0m
+[0;33m        "Installed: libguestfs-1:1.54.0-11.el9.x86_64",[0m
+[0;33m        "Installed: nbdkit-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: ipxe-roms-qemu-20200823-9.git4bd064de.el9.noarch",[0m
+[0;33m        "Installed: libguestfs-appliance-1:1.54.0-11.el9.x86_64",[0m
+[0;33m        "Installed: perl-List-MoreUtils-0.430-4.el9.noarch",[0m
+[0;33m        "Installed: perl-List-MoreUtils-XS-0.430-5.el9.x86_64",[0m
+[0;33m        "Installed: nbdkit-basic-filters-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: libblkio-1.5.0-1.el9.x86_64",[0m
+[0;33m        "Installed: nbdkit-basic-plugins-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: python3-requests-oauthlib-1.3.0-12.el9.noarch",[0m
+[0;33m        "Installed: mdevctl-1.3.0-1.el9.x86_64",[0m
+[0;33m        "Installed: nbdkit-curl-plugin-1.38.5-12.el9.x86_64",[0m
+[0;33m        "Installed: lzop-1.04-8.el9.x86_64",[0m
+[0;33m        "Installed: python3-bcrypt-3.2.2-1.el9.x86_64",[0m
+[0;33m        "Installed: pulseaudio-libs-15.0-3.el9.x86_64"[0m
+[0;33m    ][0m
+[0;33m}[0m
+
+TASK [packages_installation : Install packages using pip3] *********************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:81[0m
+Tuesday 07 July 2026  04:25:09 -0500 (0:01:15.195)       0:01:44.227 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021 `" && echo ansible-tmp-1783416309.9163864-27350-195778358628021="` echo /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/pip.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpqqhgttlk TO /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021/AnsiballZ_pip.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021/ /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021/AnsiballZ_pip.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021/AnsiballZ_pip.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416309.9163864-27350-195778358628021/ > /dev/null 2>&1 && sleep 0'[0m
+[0;33mchanged: [localhost] => {[0m
+[0;33m    "changed": true,[0m
+[0;33m    "cmd": [[0m
+[0;33m        "/usr/bin/pip",[0m
+[0;33m        "install",[0m
+[0;33m        "flask_oauthlib==0.9.6",[0m
+[0;33m        "jmespath",[0m
+[0;33m        "kubernetes==25.3.0",[0m
+[0;33m        "passlib"[0m
+[0;33m    ],[0m
+[0;33m    "invocation": {[0m
+[0;33m        "module_args": {[0m
+[0;33m            "chdir": null,[0m
+[0;33m            "editable": false,[0m
+[0;33m            "executable": "/usr/bin/pip",[0m
+[0;33m            "extra_args": null,[0m
+[0;33m            "name": [[0m
+[0;33m                "flask_oauthlib==0.9.6",[0m
+[0;33m                "jmespath",[0m
+[0;33m                "kubernetes==25.3.0",[0m
+[0;33m                "passlib"[0m
+[0;33m            ],[0m
+[0;33m            "requirements": null,[0m
+[0;33m            "state": "present",[0m
+[0;33m            "umask": null,[0m
+[0;33m            "version": null,[0m
+[0;33m            "virtualenv": null,[0m
+[0;33m            "virtualenv_command": "virtualenv",[0m
+[0;33m            "virtualenv_python": null,[0m
+[0;33m            "virtualenv_site_packages": false[0m
+[0;33m        }[0m
+[0;33m    },[0m
+[0;33m    "name": [[0m
+[0;33m        "flask_oauthlib==0.9.6",[0m
+[0;33m        "jmespath",[0m
+[0;33m        "kubernetes==25.3.0",[0m
+[0;33m        "passlib"[0m
+[0;33m    ],[0m
+[0;33m    "requirements": null,[0m
+[0;33m    "state": "present",[0m
+[0;33m    "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n",[0m
+[0;33m    "stderr_lines": [[0m
+[0;33m        "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv"[0m
+[0;33m    ],[0m
+[0;33m    "stdout": "Collecting flask_oauthlib==0.9.6\n  Downloading Flask_OAuthlib-0.9.6-py3-none-any.whl (40 kB)\nCollecting jmespath\n  Downloading jmespath-1.1.0-py3-none-any.whl (20 kB)\nCollecting kubernetes==25.3.0\n  Downloading kubernetes-25.3.0-py2.py3-none-any.whl (1.4 MB)\nRequirement already satisfied: passlib in /usr/local/lib/python3.9/site-packages (1.7.4)\nCollecting Flask\n  Downloading flask-3.1.3-py3-none-any.whl (103 kB)\nCollecting requests-oauthlib<1.2.0,>=0.6.2\n  Downloading requests_oauthlib-1.1.0-py2.py3-none-any.whl (21 kB)\nCollecting cachelib\n  Downloading cachelib-0.14.0-py3-none-any.whl (22 kB)\nCollecting oauthlib!=2.0.3,!=2.0.4,!=2.0.5,<3.0.0,>=1.1.2\n  Downloading oauthlib-2.1.0-py2.py3-none-any.whl (121 kB)\nRequirement already satisfied: python-dateutil>=2.5.3 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (2.9.0.post0)\nRequirement already satisfied: requests in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (2.25.1)\nRequirement already satisfied: six>=1.9.0 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (1.15.0)\nRequirement already satisfied: pyyaml>=5.4.1 in /usr/lib64/python3.9/site-packages (from kubernetes==25.3.0) (5.4.1)\nCollecting google-auth>=1.0.1\n  Downloading google_auth-2.50.0-py3-none-any.whl (246 kB)\nCollecting certifi>=14.05.14\n  Downloading certifi-2026.6.17-py3-none-any.whl (133 kB)\nRequirement already satisfied: urllib3>=1.24.2 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (1.26.5)\nRequirement already satisfied: setuptools>=21.0.0 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (53.0.0)\nCollecting websocket-client!=0.40.0,!=0.41.*,!=0.42.*,>=0.32.0\n  Downloading websocket_client-1.9.0-py3-none-any.whl (82 kB)\nCollecting pyasn1-modules>=0.2.1\n  Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)\nRequirement already satisfied: cryptography>=38.0.3 in /usr/local/lib64/python3.9/site-packages (from google-auth>=1.0.1->kubernetes==25.3.0) (49.0.0)\nRequirement already satisfied: idna<3,>=2.5 in /usr/lib/python3.9/site-packages (from requests->kubernetes==25.3.0) (2.10)\nRequirement already satisfied: chardet<5,>=3.0.2 in /usr/lib/python3.9/site-packages (from requests->kubernetes==25.3.0) (4.0.0)\nRequirement already satisfied: markupsafe>=2.1.1 in /usr/local/lib64/python3.9/site-packages (from Flask->flask_oauthlib==0.9.6) (3.0.3)\nCollecting werkzeug>=3.1.0\n  Downloading werkzeug-3.1.8-py3-none-any.whl (226 kB)\nCollecting itsdangerous>=2.2.0\n  Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)\nRequirement already satisfied: jinja2>=3.1.2 in /usr/local/lib/python3.9/site-packages (from Flask->flask_oauthlib==0.9.6) (3.1.6)\nCollecting blinker>=1.9.0\n  Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)\nCollecting click>=8.1.3\n  Downloading click-8.1.8-py3-none-any.whl (98 kB)\nCollecting importlib-metadata>=3.6.0\n  Downloading importlib_metadata-8.7.1-py3-none-any.whl (27 kB)\nRequirement already satisfied: typing-extensions>=4.13.2 in /usr/local/lib/python3.9/site-packages (from cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (4.16.0)\nRequirement already satisfied: cffi>=2.0.0 in /usr/local/lib64/python3.9/site-packages (from cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (2.0.0)\nCollecting zipp>=3.20\n  Downloading zipp-3.23.1-py3-none-any.whl (10 kB)\nCollecting pyasn1<0.7.0,>=0.6.1\n  Downloading pyasn1-0.6.3-py3-none-any.whl (83 kB)\nRequirement already satisfied: pycparser in /usr/local/lib/python3.9/site-packages (from cffi>=2.0.0->cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (2.23)\nInstalling collected packages: zipp, pyasn1, werkzeug, pyasn1-modules, oauthlib, itsdangerous, importlib-metadata, click, blinker, websocket-client, requests-oauthlib, google-auth, Flask, certifi, cachelib, kubernetes, jmespath, flask-oauthlib\nSuccessfully installed Flask-3.1.3 blinker-1.9.0 cachelib-0.14.0 certifi-2026.6.17 click-8.1.8 flask-oauthlib-0.9.6 google-auth-2.50.0 importlib-metadata-8.7.1 itsdangerous-2.2.0 jmespath-1.1.0 kubernetes-25.3.0 oauthlib-2.1.0 pyasn1-0.6.3 pyasn1-modules-0.4.2 requests-oauthlib-1.1.0 websocket-client-1.9.0 werkzeug-3.1.8 zipp-3.23.1\n",[0m
+[0;33m    "stdout_lines": [[0m
+[0;33m        "Collecting flask_oauthlib==0.9.6",[0m
+[0;33m        "  Downloading Flask_OAuthlib-0.9.6-py3-none-any.whl (40 kB)",[0m
+[0;33m        "Collecting jmespath",[0m
+[0;33m        "  Downloading jmespath-1.1.0-py3-none-any.whl (20 kB)",[0m
+[0;33m        "Collecting kubernetes==25.3.0",[0m
+[0;33m        "  Downloading kubernetes-25.3.0-py2.py3-none-any.whl (1.4 MB)",[0m
+[0;33m        "Requirement already satisfied: passlib in /usr/local/lib/python3.9/site-packages (1.7.4)",[0m
+[0;33m        "Collecting Flask",[0m
+[0;33m        "  Downloading flask-3.1.3-py3-none-any.whl (103 kB)",[0m
+[0;33m        "Collecting requests-oauthlib<1.2.0,>=0.6.2",[0m
+[0;33m        "  Downloading requests_oauthlib-1.1.0-py2.py3-none-any.whl (21 kB)",[0m
+[0;33m        "Collecting cachelib",[0m
+[0;33m        "  Downloading cachelib-0.14.0-py3-none-any.whl (22 kB)",[0m
+[0;33m        "Collecting oauthlib!=2.0.3,!=2.0.4,!=2.0.5,<3.0.0,>=1.1.2",[0m
+[0;33m        "  Downloading oauthlib-2.1.0-py2.py3-none-any.whl (121 kB)",[0m
+[0;33m        "Requirement already satisfied: python-dateutil>=2.5.3 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (2.9.0.post0)",[0m
+[0;33m        "Requirement already satisfied: requests in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (2.25.1)",[0m
+[0;33m        "Requirement already satisfied: six>=1.9.0 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (1.15.0)",[0m
+[0;33m        "Requirement already satisfied: pyyaml>=5.4.1 in /usr/lib64/python3.9/site-packages (from kubernetes==25.3.0) (5.4.1)",[0m
+[0;33m        "Collecting google-auth>=1.0.1",[0m
+[0;33m        "  Downloading google_auth-2.50.0-py3-none-any.whl (246 kB)",[0m
+[0;33m        "Collecting certifi>=14.05.14",[0m
+[0;33m        "  Downloading certifi-2026.6.17-py3-none-any.whl (133 kB)",[0m
+[0;33m        "Requirement already satisfied: urllib3>=1.24.2 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (1.26.5)",[0m
+[0;33m        "Requirement already satisfied: setuptools>=21.0.0 in /usr/lib/python3.9/site-packages (from kubernetes==25.3.0) (53.0.0)",[0m
+[0;33m        "Collecting websocket-client!=0.40.0,!=0.41.*,!=0.42.*,>=0.32.0",[0m
+[0;33m        "  Downloading websocket_client-1.9.0-py3-none-any.whl (82 kB)",[0m
+[0;33m        "Collecting pyasn1-modules>=0.2.1",[0m
+[0;33m        "  Downloading pyasn1_modules-0.4.2-py3-none-any.whl (181 kB)",[0m
+[0;33m        "Requirement already satisfied: cryptography>=38.0.3 in /usr/local/lib64/python3.9/site-packages (from google-auth>=1.0.1->kubernetes==25.3.0) (49.0.0)",[0m
+[0;33m        "Requirement already satisfied: idna<3,>=2.5 in /usr/lib/python3.9/site-packages (from requests->kubernetes==25.3.0) (2.10)",[0m
+[0;33m        "Requirement already satisfied: chardet<5,>=3.0.2 in /usr/lib/python3.9/site-packages (from requests->kubernetes==25.3.0) (4.0.0)",[0m
+[0;33m        "Requirement already satisfied: markupsafe>=2.1.1 in /usr/local/lib64/python3.9/site-packages (from Flask->flask_oauthlib==0.9.6) (3.0.3)",[0m
+[0;33m        "Collecting werkzeug>=3.1.0",[0m
+[0;33m        "  Downloading werkzeug-3.1.8-py3-none-any.whl (226 kB)",[0m
+[0;33m        "Collecting itsdangerous>=2.2.0",[0m
+[0;33m        "  Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)",[0m
+[0;33m        "Requirement already satisfied: jinja2>=3.1.2 in /usr/local/lib/python3.9/site-packages (from Flask->flask_oauthlib==0.9.6) (3.1.6)",[0m
+[0;33m        "Collecting blinker>=1.9.0",[0m
+[0;33m        "  Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)",[0m
+[0;33m        "Collecting click>=8.1.3",[0m
+[0;33m        "  Downloading click-8.1.8-py3-none-any.whl (98 kB)",[0m
+[0;33m        "Collecting importlib-metadata>=3.6.0",[0m
+[0;33m        "  Downloading importlib_metadata-8.7.1-py3-none-any.whl (27 kB)",[0m
+[0;33m        "Requirement already satisfied: typing-extensions>=4.13.2 in /usr/local/lib/python3.9/site-packages (from cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (4.16.0)",[0m
+[0;33m        "Requirement already satisfied: cffi>=2.0.0 in /usr/local/lib64/python3.9/site-packages (from cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (2.0.0)",[0m
+[0;33m        "Collecting zipp>=3.20",[0m
+[0;33m        "  Downloading zipp-3.23.1-py3-none-any.whl (10 kB)",[0m
+[0;33m        "Collecting pyasn1<0.7.0,>=0.6.1",[0m
+[0;33m        "  Downloading pyasn1-0.6.3-py3-none-any.whl (83 kB)",[0m
+[0;33m        "Requirement already satisfied: pycparser in /usr/local/lib/python3.9/site-packages (from cffi>=2.0.0->cryptography>=38.0.3->google-auth>=1.0.1->kubernetes==25.3.0) (2.23)",[0m
+[0;33m        "Installing collected packages: zipp, pyasn1, werkzeug, pyasn1-modules, oauthlib, itsdangerous, importlib-metadata, click, blinker, websocket-client, requests-oauthlib, google-auth, Flask, certifi, cachelib, kubernetes, jmespath, flask-oauthlib",[0m
+[0;33m        "Successfully installed Flask-3.1.3 blinker-1.9.0 cachelib-0.14.0 certifi-2026.6.17 click-8.1.8 flask-oauthlib-0.9.6 google-auth-2.50.0 importlib-metadata-8.7.1 itsdangerous-2.2.0 jmespath-1.1.0 kubernetes-25.3.0 oauthlib-2.1.0 pyasn1-0.6.3 pyasn1-modules-0.4.2 requests-oauthlib-1.1.0 websocket-client-1.9.0 werkzeug-3.1.8 zipp-3.23.1"[0m
+[0;33m    ],[0m
+[0;33m    "version": null,[0m
+[0;33m    "virtualenv": null[0m
+[0;33m}[0m
+
+TASK [packages_installation : Perform CentOS/RHEL required configurations] *****
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:86[0m
+Tuesday 07 July 2026  04:25:14 -0500 (0:00:04.326)       0:01:48.554 ********** 
+[0;36mincluded: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml for localhost[0m
+
+TASK [packages_installation : Fail if CONTAINER_RUNTIME is not set to podman] ***
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:2[0m
+Tuesday 07 July 2026  04:25:14 -0500 (0:00:00.049)       0:01:48.603 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "CONTAINER_RUNTIME != \"podman\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Enable SELinux] **********************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:7[0m
+Tuesday 07 July 2026  04:25:14 -0500 (0:00:00.039)       0:01:48.643 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327 `" && echo ansible-tmp-1783416314.3106012-33801-256762652247327="` echo /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible_collections/ansible/posix/plugins/modules/selinux.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpdsssikgs TO /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327/AnsiballZ_selinux.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327/ /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327/AnsiballZ_selinux.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327/AnsiballZ_selinux.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416314.3106012-33801-256762652247327/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "changed": false,[0m
+[0;32m    "configfile": "/etc/selinux/config",[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "configfile": "/etc/selinux/config",[0m
+[0;32m            "policy": "targeted",[0m
+[0;32m            "state": "permissive",[0m
+[0;32m            "update_kernel_param": false[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "msg": "",[0m
+[0;32m    "policy": "targeted",[0m
+[0;32m    "reboot_required": false,[0m
+[0;32m    "state": "permissive"[0m
+[0;32m}[0m
+
+TASK [packages_installation : Remove any previous tripleo-repos to avoid version conflicts] ***
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:16[0m
+Tuesday 07 July 2026  04:25:14 -0500 (0:00:00.577)       0:01:49.220 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757 `" && echo ansible-tmp-1783416314.8871121-33905-91880581957757="` echo /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/dnf.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmp75ib5bwc TO /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757/AnsiballZ_dnf.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757/ /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416314.8871121-33905-91880581957757/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "changed": false,[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "allow_downgrade": false,[0m
+[0;32m            "allowerasing": false,[0m
+[0;32m            "autoremove": false,[0m
+[0;32m            "bugfix": false,[0m
+[0;32m            "cacheonly": false,[0m
+[0;32m            "conf_file": null,[0m
+[0;32m            "disable_excludes": null,[0m
+[0;32m            "disable_gpg_check": false,[0m
+[0;32m            "disable_plugin": [],[0m
+[0;32m            "disablerepo": [],[0m
+[0;32m            "download_dir": null,[0m
+[0;32m            "download_only": false,[0m
+[0;32m            "enable_plugin": [],[0m
+[0;32m            "enablerepo": [],[0m
+[0;32m            "exclude": [],[0m
+[0;32m            "install_repoquery": true,[0m
+[0;32m            "install_weak_deps": true,[0m
+[0;32m            "installroot": "/",[0m
+[0;32m            "list": null,[0m
+[0;32m            "lock_timeout": 30,[0m
+[0;32m            "name": [[0m
+[0;32m                "python*-tripleo-repos"[0m
+[0;32m            ],[0m
+[0;32m            "nobest": false,[0m
+[0;32m            "releasever": null,[0m
+[0;32m            "security": false,[0m
+[0;32m            "skip_broken": false,[0m
+[0;32m            "sslverify": true,[0m
+[0;32m            "state": "absent",[0m
+[0;32m            "update_cache": false,[0m
+[0;32m            "update_only": false,[0m
+[0;32m            "use_backend": "auto",[0m
+[0;32m            "validate_certs": true[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "msg": "Nothing to do",[0m
+[0;32m    "rc": 0,[0m
+[0;32m    "results": [[0m
+[0;32m        "python*-tripleo-repos is not installed"[0m
+[0;32m    ][0m
+[0;32m}[0m
+
+TASK [packages_installation : Upgrade all packages] ****************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:22[0m
+Tuesday 07 July 2026  04:25:23 -0500 (0:00:08.191)       0:01:57.412 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664 `" && echo ansible-tmp-1783416323.0786102-35490-64181153774664="` echo /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/dnf.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmp8legylc6 TO /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664/AnsiballZ_dnf.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664/ /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416323.0786102-35490-64181153774664/ > /dev/null 2>&1 && sleep 0'[0m
+[0;33mchanged: [localhost] => {[0m
+[0;33m    "attempts": 1,[0m
+[0;33m    "changed": true,[0m
+[0;33m    "invocation": {[0m
+[0;33m        "module_args": {[0m
+[0;33m            "allow_downgrade": false,[0m
+[0;33m            "allowerasing": false,[0m
+[0;33m            "autoremove": false,[0m
+[0;33m            "bugfix": false,[0m
+[0;33m            "cacheonly": false,[0m
+[0;33m            "conf_file": null,[0m
+[0;33m            "disable_excludes": null,[0m
+[0;33m            "disable_gpg_check": false,[0m
+[0;33m            "disable_plugin": [],[0m
+[0;33m            "disablerepo": [],[0m
+[0;33m            "download_dir": null,[0m
+[0;33m            "download_only": false,[0m
+[0;33m            "enable_plugin": [],[0m
+[0;33m            "enablerepo": [],[0m
+[0;33m            "exclude": [],[0m
+[0;33m            "install_repoquery": true,[0m
+[0;33m            "install_weak_deps": true,[0m
+[0;33m            "installroot": "/",[0m
+[0;33m            "list": null,[0m
+[0;33m            "lock_timeout": 30,[0m
+[0;33m            "name": [[0m
+[0;33m                "*"[0m
+[0;33m            ],[0m
+[0;33m            "nobest": true,[0m
+[0;33m            "releasever": null,[0m
+[0;33m            "security": false,[0m
+[0;33m            "skip_broken": false,[0m
+[0;33m            "sslverify": true,[0m
+[0;33m            "state": "latest",[0m
+[0;33m            "update_cache": false,[0m
+[0;33m            "update_only": false,[0m
+[0;33m            "use_backend": "auto",[0m
+[0;33m            "validate_certs": true[0m
+[0;33m        }[0m
+[0;33m    },[0m
+[0;33m    "msg": "",[0m
+[0;33m    "rc": 0,[0m
+[0;33m    "results": [[0m
+[0;33m        "Installed: epel-next-release-9-11.el9.noarch",[0m
+[0;33m        "Installed: epel-release-9-11.el9.noarch",[0m
+[0;33m        "Removed: epel-next-release-9-7.el9.noarch",[0m
+[0;33m        "Removed: epel-release-9-7.el9.noarch"[0m
+[0;33m    ][0m
+[0;33m}[0m
+
+TASK [packages_installation : Install podman] **********************************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:33[0m
+Tuesday 07 July 2026  04:25:25 -0500 (0:00:02.639)       0:02:00.052 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181 `" && echo ansible-tmp-1783416325.747182-35554-141673851979181="` echo /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/dnf.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmp3r06c42r TO /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181/AnsiballZ_dnf.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181/ /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181/AnsiballZ_dnf.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416325.747182-35554-141673851979181/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "attempts": 1,[0m
+[0;32m    "changed": false,[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "allow_downgrade": false,[0m
+[0;32m            "allowerasing": false,[0m
+[0;32m            "autoremove": false,[0m
+[0;32m            "bugfix": false,[0m
+[0;32m            "cacheonly": false,[0m
+[0;32m            "conf_file": null,[0m
+[0;32m            "disable_excludes": null,[0m
+[0;32m            "disable_gpg_check": false,[0m
+[0;32m            "disable_plugin": [],[0m
+[0;32m            "disablerepo": [],[0m
+[0;32m            "download_dir": null,[0m
+[0;32m            "download_only": false,[0m
+[0;32m            "enable_plugin": [],[0m
+[0;32m            "enablerepo": [],[0m
+[0;32m            "exclude": [],[0m
+[0;32m            "install_repoquery": true,[0m
+[0;32m            "install_weak_deps": true,[0m
+[0;32m            "installroot": "/",[0m
+[0;32m            "list": null,[0m
+[0;32m            "lock_timeout": 30,[0m
+[0;32m            "name": [[0m
+[0;32m                "podman"[0m
+[0;32m            ],[0m
+[0;32m            "nobest": false,[0m
+[0;32m            "releasever": null,[0m
+[0;32m            "security": false,[0m
+[0;32m            "skip_broken": false,[0m
+[0;32m            "sslverify": true,[0m
+[0;32m            "state": "present",[0m
+[0;32m            "update_cache": false,[0m
+[0;32m            "update_only": false,[0m
+[0;32m            "use_backend": "auto",[0m
+[0;32m            "validate_certs": true[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "msg": "Nothing to do",[0m
+[0;32m    "rc": 0,[0m
+[0;32m    "results": [][0m
+[0;32m}[0m
+
+TASK [packages_installation : Install TPM emulator packages] *******************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:88[0m
+Tuesday 07 July 2026  04:25:26 -0500 (0:00:01.225)       0:02:01.277 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "tpm_emulator|default(false)|bool",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages on openSUSE Leap 15] ************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:101[0m
+Tuesday 07 July 2026  04:25:26 -0500 (0:00:00.052)       0:02:01.330 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_os_family == \"Suse\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Install packages using pip3] *********************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:106[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.035)       0:02:01.366 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_os_family == \"Suse\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Perform Suse required configurations] ************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:112[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.034)       0:02:01.400 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "ansible_os_family == \"Suse\"",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Check if Go is already installed] ****************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:119[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.032)       0:02:01.433 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694 `" && echo ansible-tmp-1783416327.0915422-35579-129920333292694="` echo /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/command.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpi305zr1d TO /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694/AnsiballZ_command.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694/ /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694/AnsiballZ_command.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694/AnsiballZ_command.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416327.0915422-35579-129920333292694/ > /dev/null 2>&1 && sleep 0'[0m
+[0;31mThe full traceback is:[0m
+[0;31m  File "/tmp/ansible_ansible.legacy.command_payload_kqlot4u9/ansible_ansible.legacy.command_payload.zip/ansible/module_utils/basic.py", line 2050, in run_command[0m
+[0;31m    cmd = subprocess.Popen(args, **kwargs)[0m
+[0;31m  File "/usr/lib64/python3.9/subprocess.py", line 951, in __init__[0m
+[0;31m    self._execute_child(args, executable, preexec_fn, close_fds,[0m
+[0;31m  File "/usr/lib64/python3.9/subprocess.py", line 1837, in _execute_child[0m
+[0;31m    raise child_exception_type(errno_num, err_msg, err_filename)[0m
+[0;31mfatal: [localhost]: FAILED! => {[0m
+[0;31m    "changed": false,[0m
+[0;31m    "cmd": "/usr/local/go/bin/go version",[0m
+[0;31m    "invocation": {[0m
+[0;31m        "module_args": {[0m
+[0;31m            "_raw_params": "/usr/local/go/bin/go version",[0m
+[0;31m            "_uses_shell": false,[0m
+[0;31m            "argv": null,[0m
+[0;31m            "chdir": null,[0m
+[0;31m            "creates": null,[0m
+[0;31m            "executable": null,[0m
+[0;31m            "removes": null,[0m
+[0;31m            "stdin": null,[0m
+[0;31m            "stdin_add_newline": true,[0m
+[0;31m            "strip_empty_ends": true[0m
+[0;31m        }[0m
+[0;31m    },[0m
+[0;31m    "msg": "[Errno 2] No such file or directory: b'/usr/local/go/bin/go'",[0m
+[0;31m    "rc": 2,[0m
+[0;31m    "stderr": "",[0m
+[0;31m    "stderr_lines": [],[0m
+[0;31m    "stdout": "",[0m
+[0;31m    "stdout_lines": [][0m
+[0;31m}[0m
+[0;36m...ignoring[0m
+
+TASK [packages_installation : Remove current installation] *********************
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:125[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.221)       0:02:01.654 ********** 
+[0;36mskipping: [localhost] => {[0m
+[0;36m    "changed": false,[0m
+[0;36m    "false_condition": "go_version_result is succeeded",[0m
+[0;36m    "skip_reason": "Conditional result was False"[0m
+[0;36m}[0m
+
+TASK [packages_installation : Ensure /usr/local/src directory exists] **********
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:133[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.037)       0:02:01.691 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599 `" && echo ansible-tmp-1783416327.35133-35598-133422905640599="` echo /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/file.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmph03t6azg TO /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599/AnsiballZ_file.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599/ /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599/AnsiballZ_file.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599/AnsiballZ_file.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416327.35133-35598-133422905640599/ > /dev/null 2>&1 && sleep 0'[0m
+[0;32mok: [localhost] => {[0m
+[0;32m    "changed": false,[0m
+[0;32m    "diff": {[0m
+[0;32m        "after": {[0m
+[0;32m            "path": "/usr/local/src"[0m
+[0;32m        },[0m
+[0;32m        "before": {[0m
+[0;32m            "path": "/usr/local/src"[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "gid": 0,[0m
+[0;32m    "group": "root",[0m
+[0;32m    "invocation": {[0m
+[0;32m        "module_args": {[0m
+[0;32m            "_diff_peek": null,[0m
+[0;32m            "_original_basename": null,[0m
+[0;32m            "access_time": null,[0m
+[0;32m            "access_time_format": "%Y%m%d%H%M.%S",[0m
+[0;32m            "attributes": null,[0m
+[0;32m            "follow": true,[0m
+[0;32m            "force": false,[0m
+[0;32m            "group": null,[0m
+[0;32m            "mode": "0755",[0m
+[0;32m            "modification_time": null,[0m
+[0;32m            "modification_time_format": "%Y%m%d%H%M.%S",[0m
+[0;32m            "owner": null,[0m
+[0;32m            "path": "/usr/local/src",[0m
+[0;32m            "recurse": false,[0m
+[0;32m            "selevel": null,[0m
+[0;32m            "serole": null,[0m
+[0;32m            "setype": null,[0m
+[0;32m            "seuser": null,[0m
+[0;32m            "src": null,[0m
+[0;32m            "state": "directory",[0m
+[0;32m            "unsafe_writes": false[0m
+[0;32m        }[0m
+[0;32m    },[0m
+[0;32m    "mode": "0755",[0m
+[0;32m    "owner": "root",[0m
+[0;32m    "path": "/usr/local/src",[0m
+[0;32m    "secontext": "system_u:object_r:usr_t:s0",[0m
+[0;32m    "size": 6,[0m
+[0;32m    "state": "directory",[0m
+[0;32m    "uid": 0[0m
+[0;32m}[0m
+
+TASK [packages_installation : Download Go tarball from official source] ********
+[1;30mtask path: /opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:139[0m
+Tuesday 07 July 2026  04:25:27 -0500 (0:00:00.364)       0:02:02.056 ********** 
+[0;34m<localhost> ESTABLISH LOCAL CONNECTION FOR USER: root[0m
+[0;34m<localhost> EXEC /bin/sh -c 'echo ~root && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '( umask 77 && mkdir -p "` echo /root/.ansible/tmp `"&& mkdir "` echo /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311 `" && echo ansible-tmp-1783416327.727927-35614-116029965337311="` echo /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311 `" ) && sleep 0'[0m
+[0;34mUsing module file /usr/local/lib/python3.9/site-packages/ansible/modules/get_url.py[0m
+[0;34m<localhost> PUT /root/.ansible/tmp/ansible-local-7314zewl51wk/tmpc2m6if8t TO /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311/AnsiballZ_get_url.py[0m
+[0;34m<localhost> EXEC /bin/sh -c 'chmod u+x /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311/ /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311/AnsiballZ_get_url.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c '/usr/bin/python3 /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311/AnsiballZ_get_url.py && sleep 0'[0m
+[0;34m<localhost> EXEC /bin/sh -c 'rm -f -r /root/.ansible/tmp/ansible-tmp-1783416327.727927-35614-116029965337311/ > /dev/null 2>&1 && sleep 0'[0m
+[0;31mfatal: [localhost]: FAILED! => {[0m
+[0;31m    "changed": false,[0m
+[0;31m    "dest": "/usr/local/src/go1.24.10.linux-amd64.tar.gz",[0m
+[0;31m    "elapsed": 0,[0m
+[0;31m    "invocation": {[0m
+[0;31m        "module_args": {[0m
+[0;31m            "attributes": null,[0m
+[0;31m            "backup": false,[0m
+[0;31m            "checksum": "",[0m
+[0;31m            "ciphers": null,[0m
+[0;31m            "client_cert": null,[0m
+[0;31m            "client_key": null,[0m
+[0;31m            "decompress": true,[0m
+[0;31m            "dest": "/usr/local/src/go1.24.10.linux-amd64.tar.gz",[0m
+[0;31m            "force": false,[0m
+[0;31m            "force_basic_auth": false,[0m
+[0;31m            "group": null,[0m
+[0;31m            "headers": null,[0m
+[0;31m            "http_agent": "ansible-httpget",[0m
+[0;31m            "mode": null,[0m
+[0;31m            "owner": null,[0m
+[0;31m            "selevel": null,[0m
+[0;31m            "serole": null,[0m
+[0;31m            "setype": null,[0m
+[0;31m            "seuser": null,[0m
+[0;31m            "timeout": 10,[0m
+[0;31m            "tmp_dest": null,[0m
+[0;31m            "unredirected_headers": [],[0m
+[0;31m            "unsafe_writes": false,[0m
+[0;31m            "url": "https://go.dev/dl/go1.24.10.linux-amd64.tar.gz",[0m
+[0;31m            "url_password": null,[0m
+[0;31m            "url_username": null,[0m
+[0;31m            "use_gssapi": false,[0m
+[0;31m            "use_netrc": true,[0m
+[0;31m            "use_proxy": true,[0m
+[0;31m            "validate_certs": true[0m
+[0;31m        }[0m
+[0;31m    },[0m
+[0;31m    "msg": "Connection failure: [ASN1: NOT_ENOUGH_DATA] not enough data (_ssl.c:4192)",[0m
+[0;31m    "url": "https://go.dev/dl/go1.24.10.linux-amd64.tar.gz"[0m
+[0;31m}[0m
+
+PLAY RECAP *********************************************************************
+[0;31mlocalhost[0m                  : [0;32mok=12  [0m [0;33mchanged=3   [0m unreachable=0    [0;31mfailed=1   [0m [0;36mskipped=15  [0m rescued=0    [1;35mignored=1   [0m
+
+Tuesday 07 July 2026  04:25:28 -0500 (0:00:00.520)       0:02:02.576 ********** 
+=============================================================================== 
+packages_installation : Install packages on CentOS/RHEL ---------------- 75.20s
+/opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:72 
+packages_installation : Refresh DNF cache ------------------------------ 26.99s
+/opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/main.yml:64 
+packages_installation : Remove any previous tripleo-repos to avoid version conflicts --- 8.19s
+/opt/dev-scripts/metal3-dev-env/vm-setup/roles/packages_installation/tasks/centos_required_packages.yml:16 
++(./01_install_requirements.sh:1): removetmp
++(utils.sh:1111): removetmp(): '[' -n '' ']'
++(utils.sh:1111): removetmp(): true
+make: *** [Makefile:68: requirements] Error 2
++ rv=2
++ podman restart --time 1 external-squid
+time="2026-07-07T04:25:29-05:00" level=warning msg="StopSignal SIGTERM failed to stop container external-squid in 1 seconds, resorting to SIGKILL"
+external-squid
++ sudo firewall-cmd --add-port=8213/tcp --zone=libvirt
+success
++ '[' -e /root/bm.json ']'
++ exit 2
+Fetching kubeconfig, other credentials...
+remote readdir("/root/dev-scripts/ocp/"): No such file or directory
+File "/root/dev-scripts/ocp/*/auth/kubeconfig" not found.
+Failed to download '/root/dev-scripts/ocp/*/auth/kubeconfig'
+remote readdir("/root/dev-scripts/ocp/"): No such file or directory
+File "/root/dev-scripts/ocp/*/auth/kubeadmin-password" not found.
+Failed to download '/root/dev-scripts/ocp/*/auth/kubeadmin-password'
+Adding proxy-url in kubeconfig
+sed: can't read /tmp/secret/kubeconfig: No such file or directory
+dev-scripts setup completed, fetching logs
+ls: cannot access '/root/dev-scripts/ocp/*/auth/kubeconfig': No such file or directory
+tar: Removing leading `/' from member names
+Removing REDACTED info from log...

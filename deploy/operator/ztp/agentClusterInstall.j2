@@ -45,6 +45,11 @@ spec:
     workerAgents: {{ spoke_worker_agents }}
 {% endif %}
   sshPublicKey: '{{ ssh_public_key }}'
+{% if disconnected == 'true' %}
+  mirrorRegistryRef:
+    name: assisted-mirror-config
+    namespace: '{{ spoke_namespace }}'
+{% endif %}
 {% if manifests is defined and manifests %}
   manifestsConfigMapRefs:
     - name: '{{ agent_cluster_install_name }}'

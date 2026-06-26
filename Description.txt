@@ -1,0 +1,56 @@
+Description
+
+Description of problem:
+
+When trying to install a cluster via RHACM / MCE and the assisted installer method, one host stays stuck in "Discovering". The assisted installer log shows the following error:
+time="2026-05-27T14:10:04Z" level=error msg="failed to refresh host state" func="github.com/openshift/assisted-service/internal/host.(*Manager).clusterHostMonitoring" file="/app/internal/host/monitor.go:233" cluster=af1a0cd8-11cf-4d12-837d-a63b7efc358e error="disk-encryption is enabled on non-valid role: " host=4adaa41a-76d3-833e-59c4-92fbdd16b3cb pkg=host-state request_id=f591a29c-89c2-411d-8427-5f2a09538208
+
+This seems to be related to the "spec.diskEncryption" field in the AgentClusterInstall. However in this case, this field is not set (it is not present). The error message shows an empty string after "role:", indicating the system thinks disk encryption is enabled with an invalid/empty role value, even though disk encryption was never configured.
+
+We also observed in the database that the "disk_encryption_enable_on" column does not have anything set for any host (other hosts worked without any issues):
+installer=> SELECT id, name, disk_encryption_enable_on, disk_encryption_mode, disk_encryption_tang_servers FROM clusters;
+                  id                  |         name          | disk_encryption_enable_on | disk_encryption_mode | disk_encryption_tang_servers 
+--------------------------------------+-----------------------+---------------------------+----------------------+------------------------------
+ 3a711928-efd8-4eb2-bd4b-728904dfe358 | p-szb-ros-virt-npr-01 |                           |                      | 
+ 0b6fe928-ee3c-43ac-a900-ad1bf1fb4155 | p-szb-ros-virt-npr-01 |                           |                      | 
+ cf1caf13-a819-4ef1-b1c2-9e0b7979aae8 | p-szb-ros-shrd-npr-02 |                           |                      | 
+ af1a0cd8-11cf-4d12-837d-a63b7efc358e | p-szb-ros-virt-npr-01 |                           |                      | 
+(4 rows)
+
+We worked around the issue by manually setting "none" in the database (and then removing it again):
+installer=> UPDATE clusters
+  SET disk_encryption_enable_on = 'none'
+  WHERE id = 'af1a0cd8-11cf-4d12-837d-a63b7efc358e';
+UPDATE 1
+(failed reverse-i-search)`sele': ^Clect id, cluster_id, kind, requested_hostname from  hosts;
+installer=> SELECT id, name, disk_encryption_enable_on, disk_encryption_mode, disk_encryption_tang_servers FROM clusters;
+                  id                  |         name          | disk_encryption_enable_on | disk_encryption_mode | disk_encryption_tang_servers 
+--------------------------------------+-----------------------+---------------------------+----------------------+------------------------------
+ 3a711928-efd8-4eb2-bd4b-728904dfe358 | p-szb-ros-virt-npr-01 |                           |                      | 
+ 0b6fe928-ee3c-43ac-a900-ad1bf1fb4155 | p-szb-ros-virt-npr-01 |                           |                      | 
+ cf1caf13-a819-4ef1-b1c2-9e0b7979aae8 | p-szb-ros-shrd-npr-02 |                           |                      | 
+ af1a0cd8-11cf-4d12-837d-a63b7efc358e | p-szb-ros-virt-npr-01 | none                      |                      | 
+(4 rows)
+
+This allowed the installer to proceed as expected.
+Version-Release number of selected component:
+    Red Hat Advanced Cluster Management for Kubernetes (RHACM) 2.16, MCE 2.11.1
+    Red Hat OpenShift Container Platform 4.20
+How reproducible:
+Reproducible on customer cluster
+Steps to Reproduce:
+    Set up a cluster so that an AgentClusterInstall CR without "spec.diskEncryption" is generated
+    Start cluster installation with multiple nodes
+    Observe host monitoring logs and MCE logs
+Actual results:
+    The clusters table has "disk_encryption_enable_on" not set
+    Host monitoring fails with error: "disk-encryption is enabled on non-valid role: "
+Expected results:
+    The controller should not fail as no "spec.diskEncryption" is set
+    No errors should occur related to disk encryption
+    
+    
+    
+    The bug: empty or NULL enable_on is treated as “encryption enabled” because "" != "none". If mode is tpmv2 (from registration defaults or partial sync), the code enters the TPM branch, finds no valid role in the empty string, and fails with exactly the message you saw.
+
+

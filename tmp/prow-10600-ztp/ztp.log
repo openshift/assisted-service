@@ -1,0 +1,959 @@
+************ baremetalds assisted operator ztp command ************
+assisted-medium-02.redhat.com
+[2026-07-07 09:51:26] + cd /root/dev-scripts
+[2026-07-07 09:51:26] + source common.sh
+[2026-07-07 09:51:26] ++ shopt -s nocasematch
+[2026-07-07 09:51:26] ++ export PATH=/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/go/bin
+[2026-07-07 09:51:26] ++ PATH=/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/go/bin
+[2026-07-07 09:51:26] ++ export 'PS4=+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+[2026-07-07 09:51:26] ++ PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+[2026-07-07 09:51:26] ++(common.sh:9): command -v go
+[2026-07-07 09:51:26] +++(common.sh:10): go env
+[2026-07-07 09:51:26] ++(common.sh:10): eval 'AR='\''ar'\''
+[2026-07-07 09:51:26] CC='\''gcc'\''
+[2026-07-07 09:51:26] CGO_CFLAGS='\''-O2 -g'\''
+[2026-07-07 09:51:26] CGO_CPPFLAGS='\'''\''
+[2026-07-07 09:51:26] CGO_CXXFLAGS='\''-O2 -g'\''
+[2026-07-07 09:51:26] CGO_ENABLED='\''1'\''
+[2026-07-07 09:51:26] CGO_FFLAGS='\''-O2 -g'\''
+[2026-07-07 09:51:26] CGO_LDFLAGS='\''-O2 -g'\''
+[2026-07-07 09:51:26] CXX='\''g++'\''
+[2026-07-07 09:51:26] GCCGO='\''gccgo'\''
+[2026-07-07 09:51:26] GO111MODULE='\'''\''
+[2026-07-07 09:51:26] GOAMD64='\''v1'\''
+[2026-07-07 09:51:26] GOARCH='\''amd64'\''
+[2026-07-07 09:51:26] GOAUTH='\''netrc'\''
+[2026-07-07 09:51:26] GOBIN='\'''\''
+[2026-07-07 09:51:26] GOCACHE='\''/root/.cache/go-build'\''
+[2026-07-07 09:51:26] GOCACHEPROG='\'''\''
+[2026-07-07 09:51:26] GODEBUG='\'''\''
+[2026-07-07 09:51:26] GOENV='\''/root/.config/go/env'\''
+[2026-07-07 09:51:26] GOEXE='\'''\''
+[2026-07-07 09:51:26] GOEXPERIMENT='\'''\''
+[2026-07-07 09:51:26] GOFIPS140='\''off'\''
+[2026-07-07 09:51:26] GOFLAGS='\'''\''
+[2026-07-07 09:51:26] GOGCCFLAGS='\''-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build1473830739=/tmp/go-build -gno-record-gcc-switches'\''
+[2026-07-07 09:51:26] GOHOSTARCH='\''amd64'\''
+[2026-07-07 09:51:26] GOHOSTOS='\''linux'\''
+[2026-07-07 09:51:26] GOINSECURE='\'''\''
+[2026-07-07 09:51:26] GOMOD='\''/root/dev-scripts/go.mod'\''
+[2026-07-07 09:51:26] GOMODCACHE='\''/root/go/pkg/mod'\''
+[2026-07-07 09:51:26] GONOPROXY='\'''\''
+[2026-07-07 09:51:26] GONOSUMDB='\'''\''
+[2026-07-07 09:51:26] GOOS='\''linux'\''
+[2026-07-07 09:51:26] GOPATH='\''/root/go'\''
+[2026-07-07 09:51:26] GOPRIVATE='\'''\''
+[2026-07-07 09:51:26] GOPROXY='\''https://proxy.golang.org,direct'\''
+[2026-07-07 09:51:26] GOROOT='\''/usr/local/go'\''
+[2026-07-07 09:51:26] GOSUMDB='\''sum.golang.org'\''
+[2026-07-07 09:51:26] GOTELEMETRY='\''local'\''
+[2026-07-07 09:51:26] GOTELEMETRYDIR='\''/root/.config/go/telemetry'\''
+[2026-07-07 09:51:26] GOTMPDIR='\'''\''
+[2026-07-07 09:51:26] GOTOOLCHAIN='\''auto'\''
+[2026-07-07 09:51:26] GOTOOLDIR='\''/usr/local/go/pkg/tool/linux_amd64'\''
+[2026-07-07 09:51:26] GOVCS='\'''\''
+[2026-07-07 09:51:26] GOVERSION='\''go1.24.10'\''
+[2026-07-07 09:51:26] GOWORK='\'''\''
+[2026-07-07 09:51:26] PKG_CONFIG='\''pkg-config'\'''
+[2026-07-07 09:51:26] +++(common.sh:10): AR=ar
+[2026-07-07 09:51:26] +++(common.sh:11): CC=gcc
+[2026-07-07 09:51:26] +++(common.sh:12): CGO_CFLAGS='-O2 -g'
+[2026-07-07 09:51:26] +++(common.sh:13): CGO_CPPFLAGS=
+[2026-07-07 09:51:26] +++(common.sh:14): CGO_CXXFLAGS='-O2 -g'
+[2026-07-07 09:51:26] +++(common.sh:15): CGO_ENABLED=1
+[2026-07-07 09:51:26] +++(common.sh:16): CGO_FFLAGS='-O2 -g'
+[2026-07-07 09:51:26] +++(common.sh:17): CGO_LDFLAGS='-O2 -g'
+[2026-07-07 09:51:26] +++(common.sh:18): CXX=g++
+[2026-07-07 09:51:26] +++(common.sh:19): GCCGO=gccgo
+[2026-07-07 09:51:26] +++(common.sh:20): GO111MODULE=
+[2026-07-07 09:51:26] +++(common.sh:21): GOAMD64=v1
+[2026-07-07 09:51:26] +++(common.sh:22): GOARCH=amd64
+[2026-07-07 09:51:26] +++(common.sh:23): GOAUTH=netrc
+[2026-07-07 09:51:26] +++(common.sh:24): GOBIN=
+[2026-07-07 09:51:26] +++(common.sh:25): GOCACHE=/root/.cache/go-build
+[2026-07-07 09:51:26] +++(common.sh:26): GOCACHEPROG=
+[2026-07-07 09:51:26] +++(common.sh:27): GODEBUG=
+[2026-07-07 09:51:26] +++(common.sh:28): GOENV=/root/.config/go/env
+[2026-07-07 09:51:26] +++(common.sh:29): GOEXE=
+[2026-07-07 09:51:26] +++(common.sh:30): GOEXPERIMENT=
+[2026-07-07 09:51:26] +++(common.sh:31): GOFIPS140=off
+[2026-07-07 09:51:26] +++(common.sh:32): GOFLAGS=
+[2026-07-07 09:51:26] +++(common.sh:33): GOGCCFLAGS='-fPIC -m64 -pthread -Wl,--no-gc-sections -fmessage-length=0 -ffile-prefix-map=/tmp/go-build1473830739=/tmp/go-build -gno-record-gcc-switches'
+[2026-07-07 09:51:26] +++(common.sh:34): GOHOSTARCH=amd64
+[2026-07-07 09:51:26] +++(common.sh:35): GOHOSTOS=linux
+[2026-07-07 09:51:26] +++(common.sh:36): GOINSECURE=
+[2026-07-07 09:51:26] +++(common.sh:37): GOMOD=/root/dev-scripts/go.mod
+[2026-07-07 09:51:26] +++(common.sh:38): GOMODCACHE=/root/go/pkg/mod
+[2026-07-07 09:51:26] +++(common.sh:39): GONOPROXY=
+[2026-07-07 09:51:26] +++(common.sh:40): GONOSUMDB=
+[2026-07-07 09:51:26] +++(common.sh:41): GOOS=linux
+[2026-07-07 09:51:26] +++(common.sh:42): GOPATH=/root/go
+[2026-07-07 09:51:26] +++(common.sh:43): GOPRIVATE=
+[2026-07-07 09:51:26] +++(common.sh:44): GOPROXY=https://proxy.golang.org,direct
+[2026-07-07 09:51:26] +++(common.sh:45): GOROOT=/usr/local/go
+[2026-07-07 09:51:26] +++(common.sh:46): GOSUMDB=sum.golang.org
+[2026-07-07 09:51:26] +++(common.sh:47): GOTELEMETRY=local
+[2026-07-07 09:51:26] +++(common.sh:48): GOTELEMETRYDIR=/root/.config/go/telemetry
+[2026-07-07 09:51:26] +++(common.sh:49): GOTMPDIR=
+[2026-07-07 09:51:26] +++(common.sh:50): GOTOOLCHAIN=auto
+[2026-07-07 09:51:26] +++(common.sh:51): GOTOOLDIR=/usr/local/go/pkg/tool/linux_amd64
+[2026-07-07 09:51:26] +++(common.sh:52): GOVCS=
+[2026-07-07 09:51:26] +++(common.sh:53): GOVERSION=go1.24.10
+[2026-07-07 09:51:26] +++(common.sh:54): GOWORK=
+[2026-07-07 09:51:26] +++(common.sh:55): PKG_CONFIG=pkg-config
+[2026-07-07 09:51:26] ++(common.sh:11): export PATH=/root/go/bin:/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/go/bin
+[2026-07-07 09:51:26] ++(common.sh:11): PATH=/root/go/bin:/usr/local/go/bin:/root/.local/bin:/root/.local/bin:/root/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/usr/local/go/bin
+[2026-07-07 09:51:26] ++(common.sh:19): export GOTRACEBACK=crash
+[2026-07-07 09:51:26] ++(common.sh:19): GOTRACEBACK=crash
+[2026-07-07 09:51:26] ++(common.sh:25): export MOBY_DISABLE_PIGZ=true
+[2026-07-07 09:51:26] ++(common.sh:25): MOBY_DISABLE_PIGZ=true
+[2026-07-07 09:51:26] ++++(common.sh:27): dirname common.sh
+[2026-07-07 09:51:26] +++(common.sh:27): cd .
+[2026-07-07 09:51:26] +++(common.sh:27): pwd
+[2026-07-07 09:51:26] ++(common.sh:27): SCRIPTDIR=/root/dev-scripts
+[2026-07-07 09:51:26] +++(common.sh:28): whoami
+[2026-07-07 09:51:26] ++(common.sh:28): USER=root
+[2026-07-07 09:51:26] +++(common.sh:29): id -gn
+[2026-07-07 09:51:26] ++(common.sh:29): GROUP=root
+[2026-07-07 09:51:26] +++(common.sh:44): systemd-path user-configuration
+[2026-07-07 09:51:26] ++(common.sh:44): XDG_CONFIG_HOME=/root/.config
+[2026-07-07 09:51:26] ++(common.sh:47): '[' -z '' ']'
+[2026-07-07 09:51:26] ++(common.sh:49): '[' -f /root/dev-scripts/config_root.sh ']'
+[2026-07-07 09:51:26] ++(common.sh:50): echo 'Using CONFIG /root/dev-scripts/config_root.sh'
+[2026-07-07 09:51:26] Using CONFIG /root/dev-scripts/config_root.sh
+[2026-07-07 09:51:26] ++(common.sh:51): CONFIG=/root/dev-scripts/config_root.sh
+[2026-07-07 09:51:26] ++(common.sh:62): source /root/dev-scripts/config_root.sh
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:1): export ADDN_DNS=10.0.80.11
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:1): ADDN_DNS=10.0.80.11
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:2): export OPENSHIFT_CI=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:2): OPENSHIFT_CI=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:3): export NUM_WORKERS=3
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:3): NUM_WORKERS=3
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:4): export WORKER_MEMORY=16384
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:4): WORKER_MEMORY=16384
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:5): export ENABLE_LOCAL_REGISTRY=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:5): ENABLE_LOCAL_REGISTRY=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:6): export OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:6): OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:7): export EXTRA_WORKER_VCPU=8
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:7): EXTRA_WORKER_VCPU=8
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:8): export EXTRA_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:8): EXTRA_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:9): export EXTRA_WORKER_DISK=100
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:9): EXTRA_WORKER_DISK=100
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:10): export PROVISIONING_NETWORK_PROFILE=Disabled
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:10): PROVISIONING_NETWORK_PROFILE=Disabled
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:11): export REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:11): REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:12): export IP_STACK=v4
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:12): IP_STACK=v4
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:13): export NUM_EXTRA_WORKERS=1
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:13): NUM_EXTRA_WORKERS=1
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:14): export OPENSHIFT_INSTALL_GATHER_BOOTSTRAP=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:14): OPENSHIFT_INSTALL_GATHER_BOOTSTRAP=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:15): export OPENSHIFT_INSTALL_EXPERIMENTAL_DISABLE_IMAGE_POLICY=true
+[2026-07-07 09:51:26] +++(/root/dev-scripts/config_root.sh:15): OPENSHIFT_INSTALL_EXPERIMENTAL_DISABLE_IMAGE_POLICY=true
+[2026-07-07 09:51:26] ++(common.sh:64): export CLUSTER_NAME=ostest
+[2026-07-07 09:51:26] ++(common.sh:64): CLUSTER_NAME=ostest
+[2026-07-07 09:51:26] ++(common.sh:66): export PROVISIONING_NETWORK_PROFILE=Disabled
+[2026-07-07 09:51:26] ++(common.sh:66): PROVISIONING_NETWORK_PROFILE=Disabled
+[2026-07-07 09:51:26] ++(common.sh:71): export PROVISIONING_NETWORK_NAME=ostestpr
+[2026-07-07 09:51:26] ++(common.sh:71): PROVISIONING_NETWORK_NAME=ostestpr
+[2026-07-07 09:51:26] ++(common.sh:72): export BAREMETAL_NETWORK_NAME=ostestbm
+[2026-07-07 09:51:26] ++(common.sh:72): BAREMETAL_NETWORK_NAME=ostestbm
+[2026-07-07 09:51:26] ++(common.sh:74): export BASE_DOMAIN=test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:74): BASE_DOMAIN=test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:75): export CLUSTER_DOMAIN=ostest.test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:75): CLUSTER_DOMAIN=ostest.test.metalkube.org
+[2026-07-07 09:51:26] +++(common.sh:76): cat /root/.ssh/id_rsa.pub
+[2026-07-07 09:51:26] ++(common.sh:76): export 'SSH_PUB_KEY=ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com'
+[2026-07-07 09:51:26] ++(common.sh:76): SSH_PUB_KEY='ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com'
+[2026-07-07 09:51:26] ++(common.sh:77): export SSH_KEY_FILE=/root/.ssh/id_rsa.pub
+[2026-07-07 09:51:26] ++(common.sh:77): SSH_KEY_FILE=/root/.ssh/id_rsa.pub
+[2026-07-07 09:51:26] ++(common.sh:80): export MIRROR_IMAGES=
+[2026-07-07 09:51:26] ++(common.sh:80): MIRROR_IMAGES=
+[2026-07-07 09:51:26] ++(common.sh:90): export MIRROR_COMMAND=oc-adm
+[2026-07-07 09:51:26] ++(common.sh:90): MIRROR_COMMAND=oc-adm
+[2026-07-07 09:51:26] ++(common.sh:93): export OC_MIRROR_TO_FILE=
+[2026-07-07 09:51:26] ++(common.sh:93): OC_MIRROR_TO_FILE=
+[2026-07-07 09:51:26] ++(common.sh:96): export DOCKER_CONFIG_FILE=/root/.docker/config.json
+[2026-07-07 09:51:26] ++(common.sh:96): DOCKER_CONFIG_FILE=/root/.docker/config.json
+[2026-07-07 09:51:26] ++(common.sh:99): export INSTALLER_PROXY=
+[2026-07-07 09:51:26] ++(common.sh:99): INSTALLER_PROXY=
+[2026-07-07 09:51:26] ++(common.sh:100): export INSTALLER_PROXY_PORT=8215
+[2026-07-07 09:51:26] ++(common.sh:100): INSTALLER_PROXY_PORT=8215
+[2026-07-07 09:51:26] ++(common.sh:103): export REMOTE_LIBVIRT=0
+[2026-07-07 09:51:26] ++(common.sh:103): REMOTE_LIBVIRT=0
+[2026-07-07 09:51:26] ++(common.sh:104): export PROVISIONING_HOST_USER=root
+[2026-07-07 09:51:26] ++(common.sh:104): PROVISIONING_HOST_USER=root
+[2026-07-07 09:51:26] ++(common.sh:107): export WORKING_DIR=/opt/dev-scripts
+[2026-07-07 09:51:26] ++(common.sh:107): WORKING_DIR=/opt/dev-scripts
+[2026-07-07 09:51:26] ++(common.sh:108): OCP_DIR=ocp/ostest
+[2026-07-07 09:51:26] ++(common.sh:111): export LOCAL_REGISTRY_DNS_NAME=virthost.ostest.test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:111): LOCAL_REGISTRY_DNS_NAME=virthost.ostest.test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:113): export ALL_REGISTRY_DNS_NAMES=virthost.ostest.test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:113): ALL_REGISTRY_DNS_NAMES=virthost.ostest.test.metalkube.org
+[2026-07-07 09:51:26] ++(common.sh:116): export LOCAL_REGISTRY_PORT=5000
+[2026-07-07 09:51:26] ++(common.sh:116): LOCAL_REGISTRY_PORT=5000
+[2026-07-07 09:51:26] ++(common.sh:117): export REGISTRY_USER=ocp-user
+[2026-07-07 09:51:26] ++(common.sh:117): REGISTRY_USER=ocp-user
+[2026-07-07 09:51:26] ++(common.sh:118): export REGISTRY_PASS=ocp-pass
+[2026-07-07 09:51:26] ++(common.sh:118): REGISTRY_PASS=ocp-pass
+[2026-07-07 09:51:26] ++(common.sh:119): export REGISTRY_DIR=/opt/dev-scripts/registry
+[2026-07-07 09:51:26] ++(common.sh:119): REGISTRY_DIR=/opt/dev-scripts/registry
+[2026-07-07 09:51:26] ++(common.sh:120): export REGISTRY_CREDS=/root/private-mirror-ostest.json
+[2026-07-07 09:51:26] ++(common.sh:120): REGISTRY_CREDS=/root/private-mirror-ostest.json
+[2026-07-07 09:51:26] ++(common.sh:121): export REGISTRY_CRT=registry.2.crt
+[2026-07-07 09:51:26] ++(common.sh:121): REGISTRY_CRT=registry.2.crt
+[2026-07-07 09:51:26] ++(common.sh:122): export REGISTRY_BACKEND=podman
+[2026-07-07 09:51:26] ++(common.sh:122): REGISTRY_BACKEND=podman
+[2026-07-07 09:51:26] ++(common.sh:125): export KNI_INSTALL_FROM_GIT=
+[2026-07-07 09:51:26] ++(common.sh:125): KNI_INSTALL_FROM_GIT=
+[2026-07-07 09:51:26] +++(common.sh:127): uname -m
+[2026-07-07 09:51:26] ++(common.sh:127): OPENSHIFT_CLIENT_TOOLS_URL=https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable/openshift-client-linux.tar.gz
+[2026-07-07 09:51:26] ++(common.sh:128): export OPENSHIFT_CLIENT_TOOLS_URL
+[2026-07-07 09:51:26] ++(common.sh:132): export OPENSHIFT_RELEASE_TYPE=nightly
+[2026-07-07 09:51:26] ++(common.sh:132): OPENSHIFT_RELEASE_TYPE=nightly
+[2026-07-07 09:51:26] ++(common.sh:133): export OPENSHIFT_RELEASE_STREAM=5.0
+[2026-07-07 09:51:26] ++(common.sh:133): OPENSHIFT_RELEASE_STREAM=5.0
+[2026-07-07 09:51:26] ++(common.sh:134): [[ nightly == \g\a ]]
+[2026-07-07 09:51:26] ++(common.sh:142): '[' false = true ']'
+[2026-07-07 09:51:26] ++(common.sh:165): '[' -z registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f ']'
+[2026-07-07 09:51:26] ++(common.sh:176): export OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] ++(common.sh:176): OPENSHIFT_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] ++(common.sh:177): [[ -n /root/go ]]
+[2026-07-07 09:51:26] ++(common.sh:178): export OPENSHIFT_INSTALL_PATH=/root/go/src/github.com/openshift/installer
+[2026-07-07 09:51:26] ++(common.sh:178): OPENSHIFT_INSTALL_PATH=/root/go/src/github.com/openshift/installer
+[2026-07-07 09:51:26] ++(common.sh:182): export HIVE_DEPLOY_IMAGE=registry.ci.openshift.org/openshift/hive-v4.0:hive
+[2026-07-07 09:51:26] ++(common.sh:182): HIVE_DEPLOY_IMAGE=registry.ci.openshift.org/openshift/hive-v4.0:hive
+[2026-07-07 09:51:26] ++(common.sh:185): export OPENSHIFT_CI=true
+[2026-07-07 09:51:26] ++(common.sh:185): OPENSHIFT_CI=true
+[2026-07-07 09:51:26] ++(common.sh:186): export OPENSHIFT_VERSION=
+[2026-07-07 09:51:26] ++(common.sh:186): OPENSHIFT_VERSION=
+[2026-07-07 09:51:26] ++(common.sh:187): [[ -z true ]]
+[2026-07-07 09:51:26] +++(common.sh:192): echo registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] +++(common.sh:192): sed -E 's/[[:alnum:]\/.-]*(release|okd).*://'
+[2026-07-07 09:51:26] ++(common.sh:192): OPENSHIFT_RELEASE_TAG=69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:26] ++(common.sh:193): export OPENSHIFT_RELEASE_TAG
+[2026-07-07 09:51:26] ++(common.sh:197): [[ '' == \4\.\3 ]]
+[2026-07-07 09:51:26] ++(common.sh:199): [[ -z true ]]
+[2026-07-07 09:51:26] ++(common.sh:202): export BMC_DRIVER=mixed
+[2026-07-07 09:51:26] ++(common.sh:202): BMC_DRIVER=mixed
+[2026-07-07 09:51:26] ++(common.sh:205): [[ Disabled == \D\i\s\a\b\l\e\d ]]
+[2026-07-07 09:51:26] ++(common.sh:206): export BMC_DRIVER=redfish-virtualmedia
+[2026-07-07 09:51:26] ++(common.sh:206): BMC_DRIVER=redfish-virtualmedia
+[2026-07-07 09:51:26] ++(common.sh:211): export MIRROR_LOG_FILE=/opt/dev-scripts/registry/ostest-image_mirror-69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f.log
+[2026-07-07 09:51:26] ++(common.sh:211): MIRROR_LOG_FILE=/opt/dev-scripts/registry/ostest-image_mirror-69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f.log
+[2026-07-07 09:51:26] ++(common.sh:214): '[' false '!=' false ']'
+[2026-07-07 09:51:26] ++(common.sh:225): '[' -z '' ']'
+[2026-07-07 09:51:26] ++(common.sh:226): export OPENSHIFT_INSTALLER=ocp/ostest/openshift-install
+[2026-07-07 09:51:26] ++(common.sh:226): OPENSHIFT_INSTALLER=ocp/ostest/openshift-install
+[2026-07-07 09:51:26] ++(common.sh:237): env
+[2026-07-07 09:51:26] ++(common.sh:237): grep -q '_LOCAL_IMAGE=\|_LOCAL_REPO='
+[2026-07-07 09:51:26] ++(common.sh:241): export LOCAL_IMAGE_URL_SUFFIX=localimages/local-release-image
+[2026-07-07 09:51:26] ++(common.sh:241): LOCAL_IMAGE_URL_SUFFIX=localimages/local-release-image
+[2026-07-07 09:51:26] ++(common.sh:245): ADDN_DNS=10.0.80.11
+[2026-07-07 09:51:26] ++(common.sh:247): EXT_IF=
+[2026-07-07 09:51:26] ++(common.sh:249): PRO_IF=
+[2026-07-07 09:51:26] ++(common.sh:251): MANAGE_BR_BRIDGE=y
+[2026-07-07 09:51:26] ++(common.sh:253): MANAGE_PRO_BRIDGE=y
+[2026-07-07 09:51:26] ++(common.sh:254): MANAGE_INT_BRIDGE=y
+[2026-07-07 09:51:26] ++(common.sh:256): INT_IF=
+[2026-07-07 09:51:26] ++(common.sh:258): ROOT_DISK_NAME=/dev/sda
+[2026-07-07 09:51:26] ++(common.sh:260): export DHCP_LEASE_EXPIRY=60
+[2026-07-07 09:51:26] ++(common.sh:260): DHCP_LEASE_EXPIRY=60
+[2026-07-07 09:51:26] ++(common.sh:261): export LIBVIRT_FIRMWARE=uefi
+[2026-07-07 09:51:26] ++(common.sh:261): LIBVIRT_FIRMWARE=uefi
+[2026-07-07 09:51:26] ++(common.sh:262): export LIBVIRT_VOLUME_POOL=oooq_pool
+[2026-07-07 09:51:26] ++(common.sh:262): LIBVIRT_VOLUME_POOL=oooq_pool
+[2026-07-07 09:51:26] ++(common.sh:264): FILESYSTEM=/
+[2026-07-07 09:51:26] ++(common.sh:266): export NODES_FILE=/opt/dev-scripts/ostest/ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:266): NODES_FILE=/opt/dev-scripts/ostest/ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:267): export EXTRA_NODES_FILE=/opt/dev-scripts/ostest/extra_ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:267): EXTRA_NODES_FILE=/opt/dev-scripts/ostest/extra_ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:268): export ARM_NODES_FILE=/opt/dev-scripts/ostest/arm_ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:268): ARM_NODES_FILE=/opt/dev-scripts/ostest/arm_ironic_nodes.json
+[2026-07-07 09:51:26] ++(common.sh:269): NODES_PLATFORM=libvirt
+[2026-07-07 09:51:26] ++(common.sh:270): BAREMETALHOSTS_FILE=ocp/ostest/baremetalhosts.json
+[2026-07-07 09:51:26] ++(common.sh:271): EXTRA_BAREMETALHOSTS_FILE=ocp/ostest/extra_baremetalhosts.json
+[2026-07-07 09:51:26] ++(common.sh:272): EXTRA_ARM_BAREMETALHOSTS_FILE=ocp/ostest/extra_arm_baremetalhosts.json
+[2026-07-07 09:51:26] ++(common.sh:273): export BMO_WATCH_ALL_NAMESPACES=false
+[2026-07-07 09:51:26] ++(common.sh:273): BMO_WATCH_ALL_NAMESPACES=false
+[2026-07-07 09:51:26] ++(common.sh:277): export METAL3_DEV_ENV=
+[2026-07-07 09:51:26] ++(common.sh:277): METAL3_DEV_ENV=
+[2026-07-07 09:51:26] ++(common.sh:278): '[' -z '' ']'
+[2026-07-07 09:51:26] ++(common.sh:279): export METAL3_DEV_ENV_PATH=/opt/dev-scripts/metal3-dev-env
+[2026-07-07 09:51:26] ++(common.sh:279): METAL3_DEV_ENV_PATH=/opt/dev-scripts/metal3-dev-env
+[2026-07-07 09:51:26] ++(common.sh:283): export VM_SETUP_PATH=/opt/dev-scripts/metal3-dev-env/vm-setup
+[2026-07-07 09:51:26] ++(common.sh:283): VM_SETUP_PATH=/opt/dev-scripts/metal3-dev-env/vm-setup
+[2026-07-07 09:51:26] ++(common.sh:284): export CONTAINER_RUNTIME=podman
+[2026-07-07 09:51:26] ++(common.sh:284): CONTAINER_RUNTIME=podman
+[2026-07-07 09:51:26] ++(common.sh:286): export NUM_MASTERS=3
+[2026-07-07 09:51:26] ++(common.sh:286): NUM_MASTERS=3
+[2026-07-07 09:51:26] ++(common.sh:287): export NUM_WORKERS=3
+[2026-07-07 09:51:26] ++(common.sh:287): NUM_WORKERS=3
+[2026-07-07 09:51:26] ++(common.sh:288): export NUM_ARBITERS=0
+[2026-07-07 09:51:26] ++(common.sh:288): NUM_ARBITERS=0
+[2026-07-07 09:51:26] ++(common.sh:289): export NUM_EXTRA_WORKERS=1
+[2026-07-07 09:51:26] ++(common.sh:289): NUM_EXTRA_WORKERS=1
+[2026-07-07 09:51:26] ++(common.sh:290): export NUM_ARM_WORKERS=0
+[2026-07-07 09:51:26] ++(common.sh:290): NUM_ARM_WORKERS=0
+[2026-07-07 09:51:26] ++(common.sh:291): export NUM_LANDINGZONE=0
+[2026-07-07 09:51:26] ++(common.sh:291): NUM_LANDINGZONE=0
+[2026-07-07 09:51:26] ++(common.sh:292): export EXTRA_WORKERS_ONLINE_STATUS=true
+[2026-07-07 09:51:26] ++(common.sh:292): EXTRA_WORKERS_ONLINE_STATUS=true
+[2026-07-07 09:51:26] ++(common.sh:293): export EXTRA_WORKERS_NAMESPACE=openshift-machine-api
+[2026-07-07 09:51:26] ++(common.sh:293): EXTRA_WORKERS_NAMESPACE=openshift-machine-api
+[2026-07-07 09:51:26] ++(common.sh:294): export VM_EXTRADISKS=false
+[2026-07-07 09:51:26] ++(common.sh:294): VM_EXTRADISKS=false
+[2026-07-07 09:51:26] ++(common.sh:295): export VM_EXTRADISKS_LIST=vdb
+[2026-07-07 09:51:26] ++(common.sh:295): VM_EXTRADISKS_LIST=vdb
+[2026-07-07 09:51:26] ++(common.sh:296): export VM_EXTRADISKS_SIZE=8G
+[2026-07-07 09:51:26] ++(common.sh:296): VM_EXTRADISKS_SIZE=8G
+[2026-07-07 09:51:26] ++(common.sh:297): export MASTER_HOSTNAME_FORMAT=master-%d
+[2026-07-07 09:51:26] ++(common.sh:297): MASTER_HOSTNAME_FORMAT=master-%d
+[2026-07-07 09:51:26] ++(common.sh:298): export ARBITER_HOSTNAME_FORMAT=arbiter-%d
+[2026-07-07 09:51:26] ++(common.sh:298): ARBITER_HOSTNAME_FORMAT=arbiter-%d
+[2026-07-07 09:51:26] ++(common.sh:299): export WORKER_HOSTNAME_FORMAT=worker-%d
+[2026-07-07 09:51:26] ++(common.sh:299): WORKER_HOSTNAME_FORMAT=worker-%d
+[2026-07-07 09:51:26] ++(common.sh:300): export EXTRA_WORKER_HOSTNAME_FORMAT=extraworker-%d
+[2026-07-07 09:51:26] ++(common.sh:300): EXTRA_WORKER_HOSTNAME_FORMAT=extraworker-%d
+[2026-07-07 09:51:26] ++(common.sh:301): export LANDINGZONE_HOSTNAME_FORMAT=landingzone-%d
+[2026-07-07 09:51:26] ++(common.sh:301): LANDINGZONE_HOSTNAME_FORMAT=landingzone-%d
+[2026-07-07 09:51:26] ++(common.sh:303): export LANDINGZONE_MEMORY=8192
+[2026-07-07 09:51:26] ++(common.sh:303): LANDINGZONE_MEMORY=8192
+[2026-07-07 09:51:26] ++(common.sh:304): export LANDINGZONE_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:304): LANDINGZONE_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:305): export LANDINGZONE_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:305): LANDINGZONE_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:308): export IRONIC_IMAGE=quay.io/metal3-io/ironic:main
+[2026-07-07 09:51:26] ++(common.sh:308): IRONIC_IMAGE=quay.io/metal3-io/ironic:main
+[2026-07-07 09:51:26] ++(common.sh:309): export IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+[2026-07-07 09:51:26] ++(common.sh:309): IRONIC_DATA_DIR=/opt/dev-scripts/ironic
+[2026-07-07 09:51:26] ++(common.sh:310): export IRONIC_IMAGES_DIR=/opt/dev-scripts/ironic/html/images
+[2026-07-07 09:51:26] ++(common.sh:310): IRONIC_IMAGES_DIR=/opt/dev-scripts/ironic/html/images
+[2026-07-07 09:51:26] ++(common.sh:313): export VBMC_IMAGE=quay.io/metal3-io/vbmc
+[2026-07-07 09:51:26] ++(common.sh:313): VBMC_IMAGE=quay.io/metal3-io/vbmc
+[2026-07-07 09:51:26] ++(common.sh:314): export SUSHY_TOOLS_IMAGE=quay.io/metal3-io/sushy-tools
+[2026-07-07 09:51:26] ++(common.sh:314): SUSHY_TOOLS_IMAGE=quay.io/metal3-io/sushy-tools
+[2026-07-07 09:51:26] ++(common.sh:315): export VBMC_BASE_PORT=6230
+[2026-07-07 09:51:26] ++(common.sh:315): VBMC_BASE_PORT=6230
+[2026-07-07 09:51:26] ++(common.sh:316): export VBMC_MAX_PORT=6236
+[2026-07-07 09:51:26] ++(common.sh:316): VBMC_MAX_PORT=6236
+[2026-07-07 09:51:26] ++(common.sh:317): export REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
+[2026-07-07 09:51:26] ++(common.sh:317): REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
+[2026-07-07 09:51:26] ++(common.sh:320): export DOCKER_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
+[2026-07-07 09:51:26] ++(common.sh:320): DOCKER_REGISTRY_IMAGE=quay.io/libpod/registry:2.8
+[2026-07-07 09:51:26] ++(common.sh:322): export KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig
+[2026-07-07 09:51:26] ++(common.sh:322): KUBECONFIG=/root/dev-scripts/ocp/ostest/auth/kubeconfig
+[2026-07-07 09:51:26] ++(common.sh:325): export 'SSH=ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+[2026-07-07 09:51:26] ++(common.sh:325): SSH='ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5'
+[2026-07-07 09:51:26] ++(common.sh:329): export LIBVIRT_DEFAULT_URI=qemu:///system
+[2026-07-07 09:51:26] ++(common.sh:329): LIBVIRT_DEFAULT_URI=qemu:///system
+[2026-07-07 09:51:26] ++(common.sh:331): export PULL_SECRET_FILE=/opt/dev-scripts/pull_secret.json
+[2026-07-07 09:51:26] ++(common.sh:331): PULL_SECRET_FILE=/opt/dev-scripts/pull_secret.json
+[2026-07-07 09:51:26] ++(common.sh:335): set +x
+[2026-07-07 09:51:26] ++(common.sh:338): export CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+[2026-07-07 09:51:26] ++(common.sh:338): CI_SERVER=api.ci.l2s4.p1.openshiftapps.com
+[2026-07-07 09:51:26] ++(common.sh:339): export PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
+[2026-07-07 09:51:26] ++(common.sh:339): PERSONAL_PULL_SECRET=/root/dev-scripts/pull_secret.json
+[2026-07-07 09:51:26] +++(common.sh:343): realpath /opt/dev-scripts
+[2026-07-07 09:51:26] +++(common.sh:343): realpath /root/dev-scripts
+[2026-07-07 09:51:26] ++(common.sh:343): '[' /opt/dev-scripts == /root/dev-scripts ']'
+[2026-07-07 09:51:26] ++(common.sh:350): '[' '!' -d /opt/dev-scripts ']'
+[2026-07-07 09:51:26] ++(common.sh:357): mkdir -p /opt/dev-scripts/ostest
+[2026-07-07 09:51:26] ++(common.sh:359): '[' '!' -d /opt/dev-scripts/ironic/html/images ']'
+[2026-07-07 09:51:26] ++(common.sh:364): [[ 0 -gt 1 ]]
+[2026-07-07 09:51:26] ++(common.sh:369): [[ 0 -eq 1 ]]
+[2026-07-07 09:51:26] ++(common.sh:376): '[' '!' -f /opt/dev-scripts/ironic/html/images/.permissions ']'
+[2026-07-07 09:51:26] ++(common.sh:385): export TEST_CUSTOM_MAO=false
+[2026-07-07 09:51:26] ++(common.sh:385): TEST_CUSTOM_MAO=false
+[2026-07-07 09:51:26] ++(common.sh:389): export ENABLE_BOOTSTRAP_STATIC_IP=
+[2026-07-07 09:51:26] ++(common.sh:389): ENABLE_BOOTSTRAP_STATIC_IP=
+[2026-07-07 09:51:26] ++(common.sh:391): export EXTERNAL_LOADBALANCER=
+[2026-07-07 09:51:26] ++(common.sh:391): EXTERNAL_LOADBALANCER=
+[2026-07-07 09:51:26] ++(common.sh:393): '[' -n '' ']'
+[2026-07-07 09:51:26] ++(common.sh:399): source /etc/os-release
+[2026-07-07 09:51:26] +++(/etc/os-release:1): NAME='Rocky Linux'
+[2026-07-07 09:51:26] +++(/etc/os-release:2): VERSION='9.8 (Blue Onyx)'
+[2026-07-07 09:51:26] +++(/etc/os-release:3): RELEASE_TYPE=stable
+[2026-07-07 09:51:26] +++(/etc/os-release:4): ID=rocky
+[2026-07-07 09:51:26] +++(/etc/os-release:5): ID_LIKE='rhel centos fedora'
+[2026-07-07 09:51:26] +++(/etc/os-release:6): VERSION_ID=9.8
+[2026-07-07 09:51:26] +++(/etc/os-release:7): PLATFORM_ID=platform:el9
+[2026-07-07 09:51:26] +++(/etc/os-release:8): PRETTY_NAME='Rocky Linux 9.8 (Blue Onyx)'
+[2026-07-07 09:51:26] +++(/etc/os-release:9): ANSI_COLOR='0;32'
+[2026-07-07 09:51:26] +++(/etc/os-release:10): LOGO=fedora-logo-icon
+[2026-07-07 09:51:26] +++(/etc/os-release:11): CPE_NAME=cpe:/o:rocky:rocky:9::baseos
+[2026-07-07 09:51:26] +++(/etc/os-release:12): HOME_URL=https://rockylinux.org/
+[2026-07-07 09:51:26] +++(/etc/os-release:13): VENDOR_NAME=RESF
+[2026-07-07 09:51:26] +++(/etc/os-release:14): VENDOR_URL=https://resf.org/
+[2026-07-07 09:51:26] +++(/etc/os-release:15): BUG_REPORT_URL=https://bugs.rockylinux.org/
+[2026-07-07 09:51:26] +++(/etc/os-release:16): SUPPORT_END=2032-05-31
+[2026-07-07 09:51:26] +++(/etc/os-release:17): ROCKY_SUPPORT_PRODUCT=Rocky-Linux-9
+[2026-07-07 09:51:26] +++(/etc/os-release:18): ROCKY_SUPPORT_PRODUCT_VERSION=9.8
+[2026-07-07 09:51:26] +++(/etc/os-release:19): REDHAT_SUPPORT_PRODUCT='Rocky Linux'
+[2026-07-07 09:51:26] +++(/etc/os-release:20): REDHAT_SUPPORT_PRODUCT_VERSION=9.8
+[2026-07-07 09:51:26] ++(common.sh:400): export DISTRO=rocky9
+[2026-07-07 09:51:26] ++(common.sh:400): DISTRO=rocky9
+[2026-07-07 09:51:26] ++(common.sh:402): export ENABLE_LOCAL_REGISTRY=true
+[2026-07-07 09:51:26] ++(common.sh:402): ENABLE_LOCAL_REGISTRY=true
+[2026-07-07 09:51:26] ++(common.sh:409): export ENABLE_TWO_NODE_FENCING=false
+[2026-07-07 09:51:26] ++(common.sh:409): ENABLE_TWO_NODE_FENCING=false
+[2026-07-07 09:51:26] ++(common.sh:410): [[ -z '' ]]
+[2026-07-07 09:51:26] ++(common.sh:410): [[ 0 -eq 0 ]]
+[2026-07-07 09:51:26] ++(common.sh:410): [[ 3 -eq 2 ]]
+[2026-07-07 09:51:26] ++(common.sh:415): [[ redfish-virtualmedia != \r\e\d\f\i\s\h ]]
+[2026-07-07 09:51:26] ++(common.sh:415): [[ false == \t\r\u\e ]]
+[2026-07-07 09:51:26] ++(common.sh:421): export BOOTSTRAP_IN_PLACE=false
+[2026-07-07 09:51:26] ++(common.sh:421): BOOTSTRAP_IN_PLACE=false
+[2026-07-07 09:51:26] ++(common.sh:422): export SNO_INSTALLATION_DISK=/dev/sda
+[2026-07-07 09:51:26] ++(common.sh:422): SNO_INSTALLATION_DISK=/dev/sda
+[2026-07-07 09:51:26] ++(common.sh:424): [[ false == \t\r\u\e ]]
+[2026-07-07 09:51:26] ++(common.sh:436): export DISABLE_MULTICAST=false
+[2026-07-07 09:51:26] ++(common.sh:436): DISABLE_MULTICAST=false
+[2026-07-07 09:51:26] ++(common.sh:439): export AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+[2026-07-07 09:51:26] ++(common.sh:439): AGENT_WAIT_FOR_INSTALL_COMPLETE=true
+[2026-07-07 09:51:26] ++(common.sh:449): export AGENT_E2E_TEST_SCENARIO=
+[2026-07-07 09:51:26] ++(common.sh:449): AGENT_E2E_TEST_SCENARIO=
+[2026-07-07 09:51:26] ++(common.sh:450): export NETWORKING_MODE=
+[2026-07-07 09:51:26] ++(common.sh:450): NETWORKING_MODE=
+[2026-07-07 09:51:26] ++(common.sh:451): export AGENT_E2E_TEST_BOOT_MODE=ISO
+[2026-07-07 09:51:26] ++(common.sh:451): AGENT_E2E_TEST_BOOT_MODE=ISO
+[2026-07-07 09:51:26] ++(common.sh:452): export AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+[2026-07-07 09:51:26] ++(common.sh:452): AGENT_CLEANUP_ISO_BUILDER_CACHE_LOCAL_DEV=false
+[2026-07-07 09:51:26] ++(common.sh:453): export AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+[2026-07-07 09:51:26] ++(common.sh:453): AGENT_RENDEZVOUS_NODE_HOSTNAME=ostest_master_0
+[2026-07-07 09:51:26] ++(common.sh:454): export AGENT_OVE_ISO_SIZE=70
+[2026-07-07 09:51:26] ++(common.sh:454): AGENT_OVE_ISO_SIZE=70
+[2026-07-07 09:51:26] ++(common.sh:459): export AGENT_BOOT_SERVER_PORT=8089
+[2026-07-07 09:51:26] ++(common.sh:459): AGENT_BOOT_SERVER_PORT=8089
+[2026-07-07 09:51:26] ++(common.sh:462): export AGENT_DEPLOY_MCE=
+[2026-07-07 09:51:26] ++(common.sh:462): AGENT_DEPLOY_MCE=
+[2026-07-07 09:51:26] ++(common.sh:465): export AGENT_OPERATORS=
+[2026-07-07 09:51:26] ++(common.sh:465): AGENT_OPERATORS=
+[2026-07-07 09:51:26] ++(common.sh:467): SCENARIO=
+[2026-07-07 09:51:26] ++(common.sh:468): [[ ! -z '' ]]
+[2026-07-07 09:51:26] ++(common.sh:634): [[ ! -z ISO ]]
+[2026-07-07 09:51:26] ++(common.sh:635): case "$AGENT_E2E_TEST_BOOT_MODE" in
+[2026-07-07 09:51:26] ++(common.sh:646): [[ ! ostest_master_0 =~ ^ostest_master_[0-9]+$ ]]
+[2026-07-07 09:51:26] ++(common.sh:651): [[ '' == \S\N\O ]]
+[2026-07-07 09:51:26] ++(common.sh:659): [[ '' != \f\a\l\s\e ]]
+[2026-07-07 09:51:26] ++(common.sh:659): [[ '' == \t\r\u\e ]]
+[2026-07-07 09:51:26] ++(common.sh:659): [[ -z v4 ]]
+[2026-07-07 09:51:26] ++(common.sh:659): [[ v4 = \v\6 ]]
+[2026-07-07 09:51:26] ++(common.sh:682): export AGENT_TEST_CASES=
+[2026-07-07 09:51:26] ++(common.sh:682): AGENT_TEST_CASES=
+[2026-07-07 09:51:26] ++(common.sh:684): export MASTER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:684): MASTER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:685): export MASTER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:685): MASTER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:686): export MASTER_VCPU=8
+[2026-07-07 09:51:26] ++(common.sh:686): MASTER_VCPU=8
+[2026-07-07 09:51:26] ++(common.sh:688): export ARBITER_MEMORY=8192
+[2026-07-07 09:51:26] ++(common.sh:688): ARBITER_MEMORY=8192
+[2026-07-07 09:51:26] ++(common.sh:689): export ARBITER_DISK=50
+[2026-07-07 09:51:26] ++(common.sh:689): ARBITER_DISK=50
+[2026-07-07 09:51:26] ++(common.sh:690): export ARBITER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:690): ARBITER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:692): export WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:692): WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:693): export WORKER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:693): WORKER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:694): export WORKER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:694): WORKER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:696): export EXTRA_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:696): EXTRA_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:697): export EXTRA_WORKER_DISK=100
+[2026-07-07 09:51:26] ++(common.sh:697): EXTRA_WORKER_DISK=100
+[2026-07-07 09:51:26] ++(common.sh:698): export EXTRA_WORKER_VCPU=8
+[2026-07-07 09:51:26] ++(common.sh:698): EXTRA_WORKER_VCPU=8
+[2026-07-07 09:51:26] ++(common.sh:700): export ARM_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:700): ARM_WORKER_MEMORY=16384
+[2026-07-07 09:51:26] ++(common.sh:701): export ARM_WORKER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:701): ARM_WORKER_DISK=60
+[2026-07-07 09:51:26] ++(common.sh:702): export ARM_WORKER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:702): ARM_WORKER_VCPU=4
+[2026-07-07 09:51:26] ++(common.sh:704): export PERSISTENT_IMAGEREG=false
+[2026-07-07 09:51:26] ++(common.sh:704): PERSISTENT_IMAGEREG=false
+[2026-07-07 09:51:26] ++(common.sh:705): '[' true == true ']'
+[2026-07-07 09:51:26] ++(common.sh:707): export PERSISTENT_IMAGEREG=true
+[2026-07-07 09:51:26] ++(common.sh:707): PERSISTENT_IMAGEREG=true
+[2026-07-07 09:51:26] ++(common.sh:710): export ENABLE_CAPI_E2E=
+[2026-07-07 09:51:26] ++(common.sh:710): ENABLE_CAPI_E2E=
+[2026-07-07 09:51:26] +(:9): source utils.sh
+[2026-07-07 09:51:26] ++(utils.sh:3): set -o pipefail
+[2026-07-07 09:51:26] ++(utils.sh:5): source release_info.sh
+[2026-07-07 09:51:26] ++(utils.sh:1109): _tmpfiles=
+[2026-07-07 09:51:26] ++(utils.sh:1161): trap removetmp EXIT
+[2026-07-07 09:51:26] +(:10): source network.sh
+[2026-07-07 09:51:26] ++(network.sh:4): source release_info.sh
+[2026-07-07 09:51:26] ++(network.sh:29): export VIPS_SEPARATOR=,
+[2026-07-07 09:51:26] ++(network.sh:29): VIPS_SEPARATOR=,
+[2026-07-07 09:51:26] ++(network.sh:30): export PATH_CONF_DNSMASQ=/etc/NetworkManager/dnsmasq.d/openshift-ostest.conf
+[2026-07-07 09:51:26] ++(network.sh:30): PATH_CONF_DNSMASQ=/etc/NetworkManager/dnsmasq.d/openshift-ostest.conf
+[2026-07-07 09:51:26] ++(network.sh:32): export IP_STACK=v4
+[2026-07-07 09:51:26] ++(network.sh:32): IP_STACK=v4
+[2026-07-07 09:51:26] ++(network.sh:33): export HOST_IP_STACK=v4
+[2026-07-07 09:51:26] ++(network.sh:33): HOST_IP_STACK=v4
+[2026-07-07 09:51:26] ++(network.sh:36): export ORIG_NETWORK_TYPE=
+[2026-07-07 09:51:26] ++(network.sh:36): ORIG_NETWORK_TYPE=
+[2026-07-07 09:51:26] ++(network.sh:38): EXTERNAL_SUBNET=
+[2026-07-07 09:51:26] ++(network.sh:39): EXTERNAL_SUBNET_V4=
+[2026-07-07 09:51:26] ++(network.sh:40): EXTERNAL_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:41): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:49): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:55): SERVICE_SUBNET=
+[2026-07-07 09:51:26] ++(network.sh:56): SERVICE_SUBNET_V4=
+[2026-07-07 09:51:26] ++(network.sh:57): SERVICE_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:58): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:66): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:72): CLUSTER_SUBNET=
+[2026-07-07 09:51:26] ++(network.sh:73): CLUSTER_SUBNET_V4=
+[2026-07-07 09:51:26] ++(network.sh:74): CLUSTER_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:75): CLUSTER_HOST_PREFIX=
+[2026-07-07 09:51:26] ++(network.sh:76): CLUSTER_HOST_PREFIX_V4=
+[2026-07-07 09:51:26] ++(network.sh:77): CLUSTER_HOST_PREFIX_V6=
+[2026-07-07 09:51:26] ++(network.sh:78): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:88): [[ -n '' ]]
+[2026-07-07 09:51:26] ++(network.sh:95): [[ v4 = \v\4 ]]
+[2026-07-07 09:51:26] ++(network.sh:97): export PROVISIONING_NETWORK=172.22.0.0/24
+[2026-07-07 09:51:26] ++(network.sh:97): PROVISIONING_NETWORK=172.22.0.0/24
+[2026-07-07 09:51:26] ++(network.sh:98): export EXTERNAL_SUBNET_V4=192.168.111.0/24
+[2026-07-07 09:51:26] ++(network.sh:98): EXTERNAL_SUBNET_V4=192.168.111.0/24
+[2026-07-07 09:51:26] ++(network.sh:99): export EXTERNAL_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:99): EXTERNAL_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:122): [[ v4 = \v\4 ]]
+[2026-07-07 09:51:26] ++(network.sh:124): export CLUSTER_SUBNET_V4=10.128.0.0/14
+[2026-07-07 09:51:26] ++(network.sh:124): CLUSTER_SUBNET_V4=10.128.0.0/14
+[2026-07-07 09:51:26] ++(network.sh:125): export CLUSTER_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:125): CLUSTER_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:126): export CLUSTER_HOST_PREFIX_V4=23
+[2026-07-07 09:51:26] ++(network.sh:126): CLUSTER_HOST_PREFIX_V4=23
+[2026-07-07 09:51:26] ++(network.sh:127): export CLUSTER_HOST_PREFIX_V6=
+[2026-07-07 09:51:26] ++(network.sh:127): CLUSTER_HOST_PREFIX_V6=
+[2026-07-07 09:51:26] ++(network.sh:128): export SERVICE_SUBNET_V4=172.30.0.0/16
+[2026-07-07 09:51:26] ++(network.sh:128): SERVICE_SUBNET_V4=172.30.0.0/16
+[2026-07-07 09:51:26] ++(network.sh:129): export SERVICE_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:129): SERVICE_SUBNET_V6=
+[2026-07-07 09:51:26] ++(network.sh:130): openshift_sdn_deprecated
+[2026-07-07 09:51:26] ++(network.sh:119): openshift_sdn_deprecated(): sort -V -C
+[2026-07-07 09:51:26] +++(network.sh:119): openshift_sdn_deprecated(): openshift_version
+[2026-07-07 09:51:26] +++(release_info.sh:15): openshift_version(): jq -r .metadata.version ocp/ostest/release_info.json
+[2026-07-07 09:51:26] +++(release_info.sh:15): openshift_version(): grep -oP '\d\.\d+'
+[2026-07-07 09:51:26] ++(network.sh:119): openshift_sdn_deprecated(): printf '4.15\n%s\n' 5.0
+[2026-07-07 09:51:26] ++(network.sh:131): export NETWORK_TYPE=OVNKubernetes
+[2026-07-07 09:51:26] ++(network.sh:131): NETWORK_TYPE=OVNKubernetes
+[2026-07-07 09:51:26] ++(network.sh:159): [[ v4 = \v\6 ]]
+[2026-07-07 09:51:26] +++(network.sh:162): nth_ip 192.168.111.0/24 2
+[2026-07-07 09:51:26] +++(network.sh:7): nth_ip(): network=192.168.111.0/24
+[2026-07-07 09:51:26] +++(network.sh:8): nth_ip(): idx=2
+[2026-07-07 09:51:26] +++(network.sh:10): nth_ip(): python -c 'from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('\''192.168.111.0/24'\'', 2))'
+[2026-07-07 09:51:27] ++(network.sh:162): export DNS_VIP=192.168.111.2
+[2026-07-07 09:51:27] ++(network.sh:162): DNS_VIP=192.168.111.2
+[2026-07-07 09:51:27] ++(network.sh:166): export CLUSTER_PRO_IF=enp1s0
+[2026-07-07 09:51:27] ++(network.sh:166): CLUSTER_PRO_IF=enp1s0
+[2026-07-07 09:51:27] +++(network.sh:167): ipcalc --netmask 172.22.0.0/24
+[2026-07-07 09:51:27] +++(network.sh:167): cut -d= -f2
+[2026-07-07 09:51:27] ++(network.sh:167): export PROVISIONING_NETMASK=255.255.255.0
+[2026-07-07 09:51:27] ++(network.sh:167): PROVISIONING_NETMASK=255.255.255.0
+[2026-07-07 09:51:27] +++(network.sh:169): nth_ip 172.22.0.0/24 1
+[2026-07-07 09:51:27] +++(network.sh:7): nth_ip(): network=172.22.0.0/24
+[2026-07-07 09:51:27] +++(network.sh:8): nth_ip(): idx=1
+[2026-07-07 09:51:27] +++(network.sh:10): nth_ip(): python -c 'from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('\''172.22.0.0/24'\'', 1))'
+[2026-07-07 09:51:27] ++(network.sh:169): export PROVISIONING_HOST_IP=172.22.0.1
+[2026-07-07 09:51:27] ++(network.sh:169): PROVISIONING_HOST_IP=172.22.0.1
+[2026-07-07 09:51:27] ++(network.sh:171): [[ v4 = \v\6 ]]
+[2026-07-07 09:51:27] ++(network.sh:171): [[ v4 = \v\6\v\4 ]]
+[2026-07-07 09:51:27] +++(network.sh:174): nth_ip 192.168.111.0/24 1
+[2026-07-07 09:51:27] +++(network.sh:7): nth_ip(): network=192.168.111.0/24
+[2026-07-07 09:51:27] +++(network.sh:8): nth_ip(): idx=1
+[2026-07-07 09:51:27] +++(network.sh:10): nth_ip(): python -c 'from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('\''192.168.111.0/24'\'', 1))'
+[2026-07-07 09:51:27] ++(network.sh:174): export PROVISIONING_HOST_EXTERNAL_IP=192.168.111.1
+[2026-07-07 09:51:27] ++(network.sh:174): PROVISIONING_HOST_EXTERNAL_IP=192.168.111.1
+[2026-07-07 09:51:27] ++(network.sh:176): export MIRROR_IP=192.168.111.1
+[2026-07-07 09:51:27] ++(network.sh:176): MIRROR_IP=192.168.111.1
+[2026-07-07 09:51:27] ++(network.sh:178): [[ Disabled == \D\i\s\a\b\l\e\d ]]
+[2026-07-07 09:51:27] ++(network.sh:179): [[ v4 = \v\6 ]]
+[2026-07-07 09:51:27] ++(network.sh:182): export PROVISIONING_IP_SUBNET=192.168.111.0/24
+[2026-07-07 09:51:27] ++(network.sh:182): PROVISIONING_IP_SUBNET=192.168.111.0/24
+[2026-07-07 09:51:27] +++(network.sh:186): nth_ip 192.168.111.0/24 7
+[2026-07-07 09:51:27] +++(network.sh:7): nth_ip(): network=192.168.111.0/24
+[2026-07-07 09:51:27] +++(network.sh:8): nth_ip(): idx=7
+[2026-07-07 09:51:27] +++(network.sh:10): nth_ip(): python -c 'from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('\''192.168.111.0/24'\'', 7))'
+[2026-07-07 09:51:27] ++(network.sh:186): export BOOTSTRAP_PROVISIONING_IP=192.168.111.7
+[2026-07-07 09:51:27] ++(network.sh:186): BOOTSTRAP_PROVISIONING_IP=192.168.111.7
+[2026-07-07 09:51:27] +++(network.sh:187): nth_ip 192.168.111.0/24 8
+[2026-07-07 09:51:27] +++(network.sh:7): nth_ip(): network=192.168.111.0/24
+[2026-07-07 09:51:27] +++(network.sh:8): nth_ip(): idx=8
+[2026-07-07 09:51:27] +++(network.sh:10): nth_ip(): python -c 'from ansible_collections.ansible.utils.plugins.filter import nthhost; print(nthhost.nthhost('\''192.168.111.0/24'\'', 8))'
+[2026-07-07 09:51:27] ++(network.sh:187): export CLUSTER_PROVISIONING_IP=192.168.111.8
+[2026-07-07 09:51:27] ++(network.sh:187): CLUSTER_PROVISIONING_IP=192.168.111.8
+[2026-07-07 09:51:27] ++(network.sh:194): [[ ! -z '' ]]
+[2026-07-07 09:51:27] ++(network.sh:217): '[' -n '' ']'
+[2026-07-07 09:51:27] ++(network.sh:222): [[ ! -z '' ]]
+[2026-07-07 09:51:27] +(:12): REPO_DIR=/home/assisted-service
+[2026-07-07 09:51:27] +(:13): '[' '!' -d /home/assisted-service ']'
+[2026-07-07 09:51:27] +(:20): cd /home/assisted-service/deploy/operator/ztp/
+[2026-07-07 09:51:27] +(:22): echo '### Deploying spoke cluster...'
+[2026-07-07 09:51:27] ### Deploying spoke cluster...
+[2026-07-07 09:51:27] +(:24): export EXTRA_BAREMETALHOSTS_FILE=/root/dev-scripts/ocp/ostest/extra_baremetalhosts.json
+[2026-07-07 09:51:27] +(:24): EXTRA_BAREMETALHOSTS_FILE=/root/dev-scripts/ocp/ostest/extra_baremetalhosts.json
+[2026-07-07 09:51:27] +(:26): source /root/config
+[2026-07-07 09:51:27] ++(/root/config:1): export DISCONNECTED=false
+[2026-07-07 09:51:27] ++(/root/config:1): DISCONNECTED=false
+[2026-07-07 09:51:27] ++(/root/config:2): export ALLOW_CONVERGED_FLOW=True
+[2026-07-07 09:51:27] ++(/root/config:2): ALLOW_CONVERGED_FLOW=True
+[2026-07-07 09:51:27] ++(/root/config:3): export DATABASE_SSLMODE=disable
+[2026-07-07 09:51:27] ++(/root/config:3): DATABASE_SSLMODE=disable
+[2026-07-07 09:51:27] ++(/root/config:5): export INDEX_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:99b6a9086c2cb37f8655654aeafc1c1a241591f2be9a84c418f773c38bd2cb52
+[2026-07-07 09:51:27] ++(/root/config:5): INDEX_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:99b6a9086c2cb37f8655654aeafc1c1a241591f2be9a84c418f773c38bd2cb52
+[2026-07-07 09:51:27] ++(/root/config:8): export AGENT_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:8242fa27319832e84fe2246c025291c98223920940e4326901d5d50dab8ad050
+[2026-07-07 09:51:27] ++(/root/config:8): AGENT_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:8242fa27319832e84fe2246c025291c98223920940e4326901d5d50dab8ad050
+[2026-07-07 09:51:27] ++(/root/config:9): export CONTROLLER_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:b6f06fb91f08359674123d4e192ab379bbe67c57bc6db48f78437652f7bfd187
+[2026-07-07 09:51:27] ++(/root/config:9): CONTROLLER_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:b6f06fb91f08359674123d4e192ab379bbe67c57bc6db48f78437652f7bfd187
+[2026-07-07 09:51:27] ++(/root/config:10): export INSTALLER_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:a45bbd197ad39637155062104c4eb2f942048f5066b4fedc9410c6a4be447088
+[2026-07-07 09:51:27] ++(/root/config:10): INSTALLER_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:a45bbd197ad39637155062104c4eb2f942048f5066b4fedc9410c6a4be447088
+[2026-07-07 09:51:27] ++(/root/config:11): export IMAGE_SERVICE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:cc4edefad5dd8fe831ebefce04f205545a5a5f53918adf1208b5eabc47a01fe6
+[2026-07-07 09:51:27] ++(/root/config:11): IMAGE_SERVICE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:cc4edefad5dd8fe831ebefce04f205545a5a5f53918adf1208b5eabc47a01fe6
+[2026-07-07 09:51:27] ++(/root/config:12): export SERVICE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:eec970e2cd1eae0f3dbf4812efcebd04953ae71e4035141a499f05cfd5a3b3bc
+[2026-07-07 09:51:27] ++(/root/config:12): SERVICE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/pipeline@sha256:eec970e2cd1eae0f3dbf4812efcebd04953ae71e4035141a499f05cfd5a3b3bc
+[2026-07-07 09:51:27] ++(/root/config:14): export PUBLIC_CONTAINER_REGISTRIES=registry.build05.ci.openshift.org
+[2026-07-07 09:51:27] ++(/root/config:14): PUBLIC_CONTAINER_REGISTRIES=registry.build05.ci.openshift.org
+[2026-07-07 09:51:27] ++(/root/config:15): export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:27] ++(/root/config:15): ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE=registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f
+[2026-07-07 09:51:27] ++(/root/config:18): export GO_REQUIRED_MIN_VERSION=1.14.4
+[2026-07-07 09:51:27] ++(/root/config:18): GO_REQUIRED_MIN_VERSION=1.14.4
+[2026-07-07 09:51:27] +(:29): [[ -e /root/assisted-ztp-config ]]
+[2026-07-07 09:51:27] +(:37): '[' -z '' ']'
+[2026-07-07 09:51:27] +(:39): cat /root/dev-scripts/ocp/ostest/extra_baremetalhosts.json
+[2026-07-07 09:51:27] +(:45): cat
+[2026-07-07 09:51:27] +(:61): cat
+[2026-07-07 09:51:27] +(:82): cat /root/dev-scripts/cluster_bmh.json
+[2026-07-07 09:51:27] [
+[2026-07-07 09:51:27]   {
+[2026-07-07 09:51:27]     "name": "ostest-extraworker-0",
+[2026-07-07 09:51:27]     "driver": "redfish-virtualmedia",
+[2026-07-07 09:51:27]     "resource_class": "baremetal",
+[2026-07-07 09:51:27]     "driver_info": {
+[2026-07-07 09:51:27]       "username": "admin",
+[2026-07-07 09:51:27]       "password": "password",
+[2026-07-07 09:51:27]       "port": "8000",
+[2026-07-07 09:51:27]       "address": "redfish-virtualmedia+https://192.168.111.1:8000/redfish/v1/Systems/5e3e2f84-77c4-472f-b4bc-1b0d8e708c5e",
+[2026-07-07 09:51:27]       "redfish_verify_ca": "False",
+[2026-07-07 09:51:27]       "deploy_kernel": "http:///images/ironic-python-agent.kernel",
+[2026-07-07 09:51:27]       "deploy_ramdisk": "http:///images/ironic-python-agent.initramfs"
+[2026-07-07 09:51:27]     },
+[2026-07-07 09:51:27]     "ports": [
+[2026-07-07 09:51:27]       {
+[2026-07-07 09:51:27]         "address": "00:4c:3c:cf:0b:c6",
+[2026-07-07 09:51:27]         "pxe_enabled": true
+[2026-07-07 09:51:27]       }
+[2026-07-07 09:51:27]     ],
+[2026-07-07 09:51:27]     "properties": {
+[2026-07-07 09:51:27]       "local_gb": "100",
+[2026-07-07 09:51:27]       "cpu_arch": "x86_64"
+[2026-07-07 09:51:27]     }
+[2026-07-07 09:51:27]   }
+[2026-07-07 09:51:27] ]
+[2026-07-07 09:51:27] +(:84): EXTRA_BAREMETALHOSTS_FILE=/root/dev-scripts/cluster_bmh.json
+[2026-07-07 09:51:27] +(:84): ./deploy_spoke_cluster.sh
+[2026-07-07 09:51:29] + export ASSISTED_CLUSTER_NAME=assisted-test-cluster
+[2026-07-07 09:51:29] + ASSISTED_CLUSTER_NAME=assisted-test-cluster
+[2026-07-07 09:51:29] + export ASSISTED_AGENT_CLUSTER_INSTALL_NAME=assisted-agent-cluster-install
+[2026-07-07 09:51:29] + ASSISTED_AGENT_CLUSTER_INSTALL_NAME=assisted-agent-cluster-install
+[2026-07-07 09:51:29] + export ASSISTED_PULLSECRET_JSON=/opt/dev-scripts/pull_secret.json
+[2026-07-07 09:51:29] + ASSISTED_PULLSECRET_JSON=/opt/dev-scripts/pull_secret.json
+[2026-07-07 09:51:29] + export ASSISTED_PRIVATEKEY_NAME=assisted-ssh-private-key
+[2026-07-07 09:51:29] + ASSISTED_PRIVATEKEY_NAME=assisted-ssh-private-key
+[2026-07-07 09:51:29] + export EXTRA_BAREMETALHOSTS_FILE=/root/dev-scripts/cluster_bmh.json
+[2026-07-07 09:51:29] + EXTRA_BAREMETALHOSTS_FILE=/root/dev-scripts/cluster_bmh.json
+[2026-07-07 09:51:29] + export SPOKE_CONTROLPLANE_AGENTS=1
+[2026-07-07 09:51:29] + SPOKE_CONTROLPLANE_AGENTS=1
+[2026-07-07 09:51:29] + export SPOKE_API_VIP=
+[2026-07-07 09:51:29] + SPOKE_API_VIP=
+[2026-07-07 09:51:29] + export SPOKE_INGRESS_VIP=
+[2026-07-07 09:51:29] + SPOKE_INGRESS_VIP=
+[2026-07-07 09:51:29] + export ASSISTED_STOP_AFTER_AGENT_DISCOVERY=false
+[2026-07-07 09:51:29] + ASSISTED_STOP_AFTER_AGENT_DISCOVERY=false
+[2026-07-07 09:51:29] + export ASSISTED_UPGRADE_OPERATOR=false
+[2026-07-07 09:51:29] + ASSISTED_UPGRADE_OPERATOR=false
+[2026-07-07 09:51:29] + export SPAWN_NONE_PLATFORM_LOAD_BALANCER=false
+[2026-07-07 09:51:29] + SPAWN_NONE_PLATFORM_LOAD_BALANCER=false
+[2026-07-07 09:51:29] + export ADD_NONE_PLATFORM_LIBVIRT_DNS=false
+[2026-07-07 09:51:29] + ADD_NONE_PLATFORM_LIBVIRT_DNS=false
+[2026-07-07 09:51:29] + export LIBVIRT_NONE_PLATFORM_NETWORK=ostestbm
+[2026-07-07 09:51:29] + LIBVIRT_NONE_PLATFORM_NETWORK=ostestbm
+[2026-07-07 09:51:29] + export LOAD_BALANCER_IP=192.168.111.1
+[2026-07-07 09:51:29] + LOAD_BALANCER_IP=192.168.111.1
+[2026-07-07 09:51:29] + export API_IP=192.168.111.1
+[2026-07-07 09:51:29] + API_IP=192.168.111.1
+[2026-07-07 09:51:29] + [[ 1 -eq 1 ]]
+[2026-07-07 09:51:29] + export USER_MANAGED_NETWORKING=true
+[2026-07-07 09:51:29] + USER_MANAGED_NETWORKING=true
+[2026-07-07 09:51:29] + [[ v4 == \v\4 ]]
+[2026-07-07 09:51:29] + export CLUSTER_SUBNET=10.128.0.0/14
+[2026-07-07 09:51:29] + CLUSTER_SUBNET=10.128.0.0/14
+[2026-07-07 09:51:29] + export CLUSTER_HOST_PREFIX=23
+[2026-07-07 09:51:29] + CLUSTER_HOST_PREFIX=23
+[2026-07-07 09:51:29] + '[' true '!=' true ']'
+[2026-07-07 09:51:29] + '[' 1 -eq 1 ']'
+[2026-07-07 09:51:29] + export EXTERNAL_SUBNET=192.168.111.0/24
+[2026-07-07 09:51:29] + EXTERNAL_SUBNET=192.168.111.0/24
+[2026-07-07 09:51:29] + export SERVICE_SUBNET=172.30.0.0/16
+[2026-07-07 09:51:29] + SERVICE_SUBNET=172.30.0.0/16
+[2026-07-07 09:51:29] + '[' 1 -ne 1 ']'
+[2026-07-07 09:51:29] + '[' false = true ']'
+[2026-07-07 09:51:29] + '[' -n '' ']'
+[2026-07-07 09:51:29] + set -o nounset
+[2026-07-07 09:51:29] + set -o pipefail
+[2026-07-07 09:51:29] + set -o errexit
+[2026-07-07 09:51:29] + set -o xtrace
+[2026-07-07 09:51:29] + echo 'Running Ansible playbook to create kubernetes objects'
+[2026-07-07 09:51:29] Running Ansible playbook to create kubernetes objects
+[2026-07-07 09:51:29] + ansible-playbook /home/assisted-service/deploy/operator/ztp/assisted-installer-crds-playbook.yaml
+[2026-07-07 09:51:30] [WARNING]: No inventory was parsed, only implicit localhost is available
+[2026-07-07 09:51:30] [WARNING]: provided hosts list is empty, only localhost is available. Note that
+[2026-07-07 09:51:30] the implicit localhost does not match 'all'
+[2026-07-07 09:51:30] [DEPRECATION WARNING]: Specifying a list of dictionaries for vars is deprecated
+[2026-07-07 09:51:30]  in favor of specifying a dictionary. This feature will be removed in version 
+[2026-07-07 09:51:30] 2.18. Deprecation warnings can be disabled by setting 
+[2026-07-07 09:51:30] deprecation_warnings=False in ansible.cfg.
+[2026-07-07 09:51:30] 
+[2026-07-07 09:51:30] PLAY [Create CRDs for Assisted Installer] **************************************
+[2026-07-07 09:51:30] 
+[2026-07-07 09:51:30] TASK [create directory for generated CRDs] *************************************
+[2026-07-07 09:51:30] changed: [localhost]
+[2026-07-07 09:51:30] 
+[2026-07-07 09:51:30] TASK [write the cluster image set crd] *****************************************
+[2026-07-07 09:51:31] changed: [localhost]
+[2026-07-07 09:51:31] 
+[2026-07-07 09:51:31] TASK [write the infraEnv crd] **************************************************
+[2026-07-07 09:51:32] changed: [localhost]
+[2026-07-07 09:51:32] 
+[2026-07-07 09:51:32] TASK [write the clusterDeployment crd] *****************************************
+[2026-07-07 09:51:32] changed: [localhost]
+[2026-07-07 09:51:32] 
+[2026-07-07 09:51:32] TASK [write the agentClusterInstall crd] ***************************************
+[2026-07-07 09:51:33] changed: [localhost]
+[2026-07-07 09:51:33] 
+[2026-07-07 09:51:33] TASK [write the baremetalHost crd] *********************************************
+[2026-07-07 09:51:33] changed: [localhost]
+[2026-07-07 09:51:33] 
+[2026-07-07 09:51:33] PLAY RECAP *********************************************************************
+[2026-07-07 09:51:33] localhost                  : ok=6    changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+[2026-07-07 09:51:33] 
+[2026-07-07 09:51:33] + oc get namespace assisted-spoke-cluster
+[2026-07-07 09:51:33] Error from server (NotFound): namespaces "assisted-spoke-cluster" not found
+[2026-07-07 09:51:33] + oc create namespace assisted-spoke-cluster
+[2026-07-07 09:51:33] namespace/assisted-spoke-cluster created
+[2026-07-07 09:51:33] + oc get secret assisted-pull-secret -n assisted-spoke-cluster
+[2026-07-07 09:51:34] Error from server (NotFound): secrets "assisted-pull-secret" not found
+[2026-07-07 09:51:34] + oc create secret generic assisted-pull-secret --from-file=.dockerconfigjson=/opt/dev-scripts/pull_secret.json --type=kubernetes.io/dockerconfigjson -n assisted-spoke-cluster
+[2026-07-07 09:51:34] secret/assisted-pull-secret created
+[2026-07-07 09:51:34] + oc get secret assisted-ssh-private-key -n assisted-spoke-cluster
+[2026-07-07 09:51:34] Error from server (NotFound): secrets "assisted-ssh-private-key" not found
+[2026-07-07 09:51:34] + oc create secret generic assisted-ssh-private-key --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n assisted-spoke-cluster
+[2026-07-07 09:51:34] secret/assisted-ssh-private-key created
+[2026-07-07 09:51:34] ++ find /home/assisted-service/deploy/operator/ztp/generated -type f
+[2026-07-07 09:51:34] + for manifest in $(find ${__dir}/generated -type f)
+[2026-07-07 09:51:34] + echo 'Applying /home/assisted-service/deploy/operator/ztp/generated/clusterImageSet.yaml'
+[2026-07-07 09:51:34] Applying /home/assisted-service/deploy/operator/ztp/generated/clusterImageSet.yaml
+[2026-07-07 09:51:34] + cat /home/assisted-service/deploy/operator/ztp/generated/clusterImageSet.yaml
+[2026-07-07 09:51:34] apiVersion: hive.openshift.io/v1
+[2026-07-07 09:51:34] kind: ClusterImageSet
+[2026-07-07 09:51:34] metadata:
+[2026-07-07 09:51:34]   name: 'openshift-v5.0'
+[2026-07-07 09:51:34] spec:
+[2026-07-07 09:51:34]   releaseImage: 'registry.build05.ci.openshift.org/ci-op-4qqb721q/release@sha256:69a284e1d4a0e2d9009d0ed07adc3f54493b6c93126a27376be128ee6d58a25f'
+[2026-07-07 09:51:34] + oc apply -f /home/assisted-service/deploy/operator/ztp/generated/clusterImageSet.yaml
+[2026-07-07 09:51:34] clusterimageset.hive.openshift.io/openshift-v5.0 created
+[2026-07-07 09:51:34] + for manifest in $(find ${__dir}/generated -type f)
+[2026-07-07 09:51:34] + echo 'Applying /home/assisted-service/deploy/operator/ztp/generated/infraEnv.yaml'
+[2026-07-07 09:51:34] Applying /home/assisted-service/deploy/operator/ztp/generated/infraEnv.yaml
+[2026-07-07 09:51:34] + cat /home/assisted-service/deploy/operator/ztp/generated/infraEnv.yaml
+[2026-07-07 09:51:34] # infraEnv-latebinding.j2 and this file should generally be kept in sync
+[2026-07-07 09:51:34] # infraEnv-latebinding.j2 to present an infraenv that is used in a late binding scenario.
+[2026-07-07 09:51:34] apiVersion: agent-install.openshift.io/v1beta1
+[2026-07-07 09:51:34] kind: InfraEnv
+[2026-07-07 09:51:34] metadata:
+[2026-07-07 09:51:34]   name: 'assisted-infra-env'
+[2026-07-07 09:51:34]   namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:34] spec:
+[2026-07-07 09:51:34]   clusterRef:
+[2026-07-07 09:51:34]     name: 'assisted-test-cluster'
+[2026-07-07 09:51:34]     namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:34]   pullSecretRef:
+[2026-07-07 09:51:34]     name: 'assisted-pull-secret'
+[2026-07-07 09:51:34]   sshAuthorizedKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com'
+[2026-07-07 09:51:34]   # enable serial console when booting on the disccovery ISO
+[2026-07-07 09:51:34]   # the console output will be logged by libvirt in order to ease debugging
+[2026-07-07 09:51:34]   kernelArguments:
+[2026-07-07 09:51:34]     - operation: append
+[2026-07-07 09:51:34]       value: console=ttyS0
+[2026-07-07 09:51:34]   
+[2026-07-07 09:51:34] + oc apply -f /home/assisted-service/deploy/operator/ztp/generated/infraEnv.yaml
+[2026-07-07 09:51:34] infraenv.agent-install.openshift.io/assisted-infra-env created
+[2026-07-07 09:51:34] + for manifest in $(find ${__dir}/generated -type f)
+[2026-07-07 09:51:34] + echo 'Applying /home/assisted-service/deploy/operator/ztp/generated/clusterDeployment.yaml'
+[2026-07-07 09:51:34] Applying /home/assisted-service/deploy/operator/ztp/generated/clusterDeployment.yaml
+[2026-07-07 09:51:34] + cat /home/assisted-service/deploy/operator/ztp/generated/clusterDeployment.yaml
+[2026-07-07 09:51:34] apiVersion: hive.openshift.io/v1
+[2026-07-07 09:51:34] kind: ClusterDeployment
+[2026-07-07 09:51:34] metadata:
+[2026-07-07 09:51:34]   name: 'assisted-test-cluster'
+[2026-07-07 09:51:34]   namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:34] spec:
+[2026-07-07 09:51:34]   baseDomain: redhat.com
+[2026-07-07 09:51:34]   clusterName: 'assisted-test-cluster'
+[2026-07-07 09:51:34]   clusterInstallRef:
+[2026-07-07 09:51:34]     group: extensions.hive.openshift.io
+[2026-07-07 09:51:34]     kind: AgentClusterInstall
+[2026-07-07 09:51:34]     name: 'assisted-agent-cluster-install'
+[2026-07-07 09:51:34]     version: v1beta1
+[2026-07-07 09:51:34]   platform:
+[2026-07-07 09:51:34]     agentBareMetal:
+[2026-07-07 09:51:34]       agentSelector: {}
+[2026-07-07 09:51:34]   pullSecretRef:
+[2026-07-07 09:51:34]     name: 'assisted-pull-secret'
+[2026-07-07 09:51:34]     namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:34] + oc apply -f /home/assisted-service/deploy/operator/ztp/generated/clusterDeployment.yaml
+[2026-07-07 09:51:34] clusterdeployment.hive.openshift.io/assisted-test-cluster created
+[2026-07-07 09:51:34] + for manifest in $(find ${__dir}/generated -type f)
+[2026-07-07 09:51:34] + echo 'Applying /home/assisted-service/deploy/operator/ztp/generated/agentClusterInstall.yaml'
+[2026-07-07 09:51:34] Applying /home/assisted-service/deploy/operator/ztp/generated/agentClusterInstall.yaml
+[2026-07-07 09:51:34] + cat /home/assisted-service/deploy/operator/ztp/generated/agentClusterInstall.yaml
+[2026-07-07 09:51:34] apiVersion: extensions.hive.openshift.io/v1beta1
+[2026-07-07 09:51:34] kind: AgentClusterInstall
+[2026-07-07 09:51:34] metadata:
+[2026-07-07 09:51:34]   name: 'assisted-agent-cluster-install'
+[2026-07-07 09:51:34]   namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:34] spec:
+[2026-07-07 09:51:34]   clusterDeploymentRef:
+[2026-07-07 09:51:34]     name: 'assisted-test-cluster'
+[2026-07-07 09:51:34]   imageSetRef:
+[2026-07-07 09:51:34]     name: 'openshift-v5.0'
+[2026-07-07 09:51:34]   networking:
+[2026-07-07 09:51:34]     clusterNetwork:
+[2026-07-07 09:51:34]     - cidr: 10.128.0.0/14
+[2026-07-07 09:51:34]       hostPrefix: 23
+[2026-07-07 09:51:34]     machineNetwork:
+[2026-07-07 09:51:34]     - cidr: 192.168.111.0/24
+[2026-07-07 09:51:34]     serviceNetwork:
+[2026-07-07 09:51:34]     - 172.30.0.0/16
+[2026-07-07 09:51:34]     userManagedNetworking: true
+[2026-07-07 09:51:34]   provisionRequirements:
+[2026-07-07 09:51:34]     controlPlaneAgents: 1
+[2026-07-07 09:51:34]   sshPublicKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com'
+[2026-07-07 09:51:34] 
+[2026-07-07 09:51:34] + oc apply -f /home/assisted-service/deploy/operator/ztp/generated/agentClusterInstall.yaml
+[2026-07-07 09:51:35] agentclusterinstall.extensions.hive.openshift.io/assisted-agent-cluster-install created
+[2026-07-07 09:51:35] + for manifest in $(find ${__dir}/generated -type f)
+[2026-07-07 09:51:35] + echo 'Applying /home/assisted-service/deploy/operator/ztp/generated/baremetalHost.yaml'
+[2026-07-07 09:51:35] Applying /home/assisted-service/deploy/operator/ztp/generated/baremetalHost.yaml
+[2026-07-07 09:51:35] + cat /home/assisted-service/deploy/operator/ztp/generated/baremetalHost.yaml
+[2026-07-07 09:51:35]       
+[2026-07-07 09:51:35] ---
+[2026-07-07 09:51:35] apiVersion: v1
+[2026-07-07 09:51:35] kind: Secret
+[2026-07-07 09:51:35] metadata:
+[2026-07-07 09:51:35]   name: 'ostest-extraworker-0-bmc-secret'
+[2026-07-07 09:51:35]   namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:35] type: Opaque
+[2026-07-07 09:51:35] data:
+[2026-07-07 09:51:35]   username: 'YWRtaW4='
+[2026-07-07 09:51:35]   password: 'cGFzc3dvcmQ='
+[2026-07-07 09:51:35] 
+[2026-07-07 09:51:35] ---
+[2026-07-07 09:51:35] apiVersion: metal3.io/v1alpha1
+[2026-07-07 09:51:35] kind: BareMetalHost
+[2026-07-07 09:51:35] metadata:
+[2026-07-07 09:51:35]   name: 'ostest-extraworker-0'
+[2026-07-07 09:51:35]   namespace: 'assisted-spoke-cluster'
+[2026-07-07 09:51:35]   labels:
+[2026-07-07 09:51:35]     infraenvs.agent-install.openshift.io: 'assisted-infra-env'
+[2026-07-07 09:51:35]   annotations:
+[2026-07-07 09:51:35]     bmac.agent-install.openshift.io/hostname: 'ostest-extraworker-0'
+[2026-07-07 09:51:35]     # enable serial console when installing core os
+[2026-07-07 09:51:35]     # the console output will be logged by libvirt in order to ease debugging
+[2026-07-07 09:51:35]     bmac.agent-install.openshift.io/installer-args: '["--append-karg", "console=ttyS0"]'
+[2026-07-07 09:51:35]     bmac.agent-install.openshift.io/role: master
+[2026-07-07 09:51:35] spec:
+[2026-07-07 09:51:35]   online: true
+[2026-07-07 09:51:35]   bootMACAddress: '00:4c:3c:cf:0b:c6'
+[2026-07-07 09:51:35]   bmc:
+[2026-07-07 09:51:35]     address: 'redfish-virtualmedia+https://192.168.111.1:8000/redfish/v1/Systems/5e3e2f84-77c4-472f-b4bc-1b0d8e708c5e'
+[2026-07-07 09:51:35]     credentialsName: 'ostest-extraworker-0-bmc-secret'
+[2026-07-07 09:51:35]     disableCertificateVerification: true
+[2026-07-07 09:51:35] + oc apply -f /home/assisted-service/deploy/operator/ztp/generated/baremetalHost.yaml
+[2026-07-07 09:51:35] secret/ostest-extraworker-0-bmc-secret created
+[2026-07-07 09:51:35] baremetalhost.metal3.io/ostest-extraworker-0 created
+[2026-07-07 09:51:35] + wait_for_condition infraenv/assisted-infra-env condition=ImageCreated 5m assisted-spoke-cluster
+[2026-07-07 09:51:35] + object=infraenv/assisted-infra-env
+[2026-07-07 09:51:35] + condition=condition=ImageCreated
+[2026-07-07 09:51:35] + timeout=5m
+[2026-07-07 09:51:35] + namespace=assisted-spoke-cluster
+[2026-07-07 09:51:35] + selector=
+[2026-07-07 09:51:35] + wait_for_resource infraenv/assisted-infra-env assisted-spoke-cluster
+[2026-07-07 09:51:35] + object=infraenv/assisted-infra-env
+[2026-07-07 09:51:35] + namespace=assisted-spoke-cluster
+[2026-07-07 09:51:35] + selector=
+[2026-07-07 09:51:35] + set +e
+[2026-07-07 09:51:35] + counter=1
+[2026-07-07 09:51:35] ++ date --rfc-3339=seconds
+[2026-07-07 09:51:35] + echo '2026-07-07 09:51:35-05:00 Waiting for resource infraenv/assisted-infra-env to be create in namespace assisted-spoke-cluster'
+[2026-07-07 09:51:35] 2026-07-07 09:51:35-05:00 Waiting for resource infraenv/assisted-infra-env to be create in namespace assisted-spoke-cluster
+[2026-07-07 09:51:35] ++ oc get infraenv/assisted-infra-env --namespace=assisted-spoke-cluster --selector ''
+[2026-07-07 09:51:35] + [[ -n NAME                 ISO CREATED AT
+[2026-07-07 09:51:35] assisted-infra-env    ]]
+[2026-07-07 09:51:35] + echo 'Waiting for (infraenv/assisted-infra-env) on namespace (assisted-spoke-cluster) with labels () to become (condition=ImageCreated)...'
+[2026-07-07 09:51:35] Waiting for (infraenv/assisted-infra-env) on namespace (assisted-spoke-cluster) with labels () to become (condition=ImageCreated)...
+[2026-07-07 09:51:35] + oc wait -n assisted-spoke-cluster --for=condition=ImageCreated infraenv/assisted-infra-env --timeout=5m --selector '' -o json
+[2026-07-07 09:51:38] {
+[2026-07-07 09:51:38]     "apiVersion": "agent-install.openshift.io/v1beta1",
+[2026-07-07 09:51:38]     "kind": "InfraEnv",
+[2026-07-07 09:51:38]     "metadata": {
+[2026-07-07 09:51:38]         "annotations": {
+[2026-07-07 09:51:38]             "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"agent-install.openshift.io/v1beta1\",\"kind\":\"InfraEnv\",\"metadata\":{\"annotations\":{},\"name\":\"assisted-infra-env\",\"namespace\":\"assisted-spoke-cluster\"},\"spec\":{\"clusterRef\":{\"name\":\"assisted-test-cluster\",\"namespace\":\"assisted-spoke-cluster\"},\"kernelArguments\":[{\"operation\":\"append\",\"value\":\"console=ttyS0\"}],\"pullSecretRef\":{\"name\":\"assisted-pull-secret\"},\"sshAuthorizedKey\":\"ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com\"}}\n"
+[2026-07-07 09:51:38]         },
+[2026-07-07 09:51:38]         "creationTimestamp": "2026-07-07T14:51:34Z",
+[2026-07-07 09:51:38]         "finalizers": [
+[2026-07-07 09:51:38]             "infraenv.agent-install.openshift.io/ai-deprovision"
+[2026-07-07 09:51:38]         ],
+[2026-07-07 09:51:38]         "generation": 2,
+[2026-07-07 09:51:38]         "name": "assisted-infra-env",
+[2026-07-07 09:51:38]         "namespace": "assisted-spoke-cluster",
+[2026-07-07 09:51:38]         "resourceVersion": "49337",
+[2026-07-07 09:51:38]         "uid": "619b3383-92d0-4e0b-90e9-cad84e9f9356"
+[2026-07-07 09:51:38]     },
+[2026-07-07 09:51:38]     "spec": {
+[2026-07-07 09:51:38]         "clusterRef": {
+[2026-07-07 09:51:38]             "name": "assisted-test-cluster",
+[2026-07-07 09:51:38]             "namespace": "assisted-spoke-cluster"
+[2026-07-07 09:51:38]         },
+[2026-07-07 09:51:38]         "cpuArchitecture": "x86_64",
+[2026-07-07 09:51:38]         "ipxeScriptType": "DiscoveryImageAlways",
+[2026-07-07 09:51:38]         "kernelArguments": [
+[2026-07-07 09:51:38]             {
+[2026-07-07 09:51:38]                 "operation": "append",
+[2026-07-07 09:51:38]                 "value": "console=ttyS0"
+[2026-07-07 09:51:38]             }
+[2026-07-07 09:51:38]         ],
+[2026-07-07 09:51:38]         "nmStateConfigLabelSelector": {},
+[2026-07-07 09:51:38]         "pullSecretRef": {
+[2026-07-07 09:51:38]             "name": "assisted-pull-secret"
+[2026-07-07 09:51:38]         },
+[2026-07-07 09:51:38]         "sshAuthorizedKey": "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCPcn65jFaPQwB9uniwX/qYJtzVwS3+qeuAl4BujiMByRwVdnY5zG/jg8MYfE3AXEQV1bo2w3udjM9pL2X2ifLa2RdTfqZ97AvP2WxanWVbC6d16iMowKwFCCRgzNxwKohwmI3+Kd9vTpStbBJ/orCFz4mDFwHTEBTWjF9pyhD9ndPB5u+/JTdDbsQ+oNmKPqPR2toOyhDnKh7DVgxZss4fHIquUi2u8d76IlvQtf4ZRTqQ6pyHYpfIpgbrKHoQTsokLHaiOzbWGofzIseejLlg3Z0pW5EC7KNW/HXT8Vxa7I+fp/Z/M65OOm0g6iC6w/AhioF7lhL85rNpIdmBC0OXtATQhZPure7aBpKVfopUHopT8Z6mmlnFJZyZUAHy69/wFOjkogQlt+lDk7On8qVFGq2itK1EJ6cw9UzlQtMaJLmXylLTEOsEZlRa3Hl+C8c0r06WzZgAErxtdsne2wP3OAmE7aPnCGtJdNvfoTEfiuv2u2UKFxIPI6hZvMZa4M0= root@assisted-medium-02.redhat.com"
+[2026-07-07 09:51:38]     },
+[2026-07-07 09:51:38]     "status": {
+[2026-07-07 09:51:38]         "agentLabelSelector": {
+[2026-07-07 09:51:38]             "matchLabels": {
+[2026-07-07 09:51:38]                 "infraenvs.agent-install.openshift.io": "assisted-infra-env"
+[2026-07-07 09:51:38]             }
+[2026-07-07 09:51:38]         },
+[2026-07-07 09:51:38]         "bootArtifacts": {
+[2026-07-07 09:51:38]             "discoveryIgnitionURL": "https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v2/infra-envs/3817b041-3e71-4cc2-a244-7f9d3e9836c2/downloads/files?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbmZyYV9lbnZfaWQiOiIzODE3YjA0MS0zZTcxLTRjYzItYTI0NC03ZjlkM2U5ODM2YzIifQ.qbrU7XFEAyJnfScxjKkIkfDz2LXgtdqRZMoI2x5brzgmLJbOFU_nFvprZSIy3CTcCqT9kVgp5d1lgrVGBd51ag\u0026file_name=discovery.ign",
+[2026-07-07 09:51:38]             "initrd": "https://assisted-image-service-assisted-installer.apps.ostest.test.metalkube.org/images/3817b041-3e71-4cc2-a244-7f9d3e9836c2/pxe-initrd?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbmZyYV9lbnZfaWQiOiIzODE3YjA0MS0zZTcxLTRjYzItYTI0NC03ZjlkM2U5ODM2YzIifQ.8c79ODhoWWCj0PAxKmqfq3R-WT6gvLt4FSrDX5d2UAoBkfGRv5C66TDJULRTmPMVjsYg3llfM8Z1HOKsAR3SAw\u0026arch=x86_64\u0026version=5.0",
+[2026-07-07 09:51:38]             "ipxeScript": "https://assisted-service-assisted-installer.apps.ostest.test.metalkube.org/api/assisted-install/v2/infra-envs/3817b041-3e71-4cc2-a244-7f9d3e9836c2/downloads/files?api_key=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJpbmZyYV9lbnZfaWQiOiIzODE3YjA0MS0zZTcxLTRjYzItYTI0NC03ZjlkM2U5ODM2YzIifQ.t0hAnWTUTC57quccG7VFNow1Cbk9RM3D65cv9gwi3eRuHlI9mZ5a0i2VeQ9TChwPFMFDvB_wMjQwL9pP0oNy_w\u0026file_name=ipxe-script",
+[2026-07-07 09:51:38]             "kernel": "https://assisted-image-service-assisted-installer.apps.ostest.test.metalkube.org/boot-artifacts/kerne{"component":"entrypoint","file":"sigs.k8s.io/prow/pkg/entrypoint/run.go:169","func":"sigs.k8s.io/prow/pkg/entrypoint.Options.ExecuteProcess","level":"error","msg":"Process did not finish before 1h30m0s timeout","severity":"error","time":"2026-07-07T16:20:57Z"}
+{"component":"entrypoint","file":"sigs.k8s.io/prow/pkg/entrypoint/run.go:267","func":"sigs.k8s.io/prow/pkg/entrypoint.gracefullyTerminate","level":"error","msg":"Process did not exit before 5m0s grace period","severity":"error","time":"2026-07-07T16:25:57Z"}
