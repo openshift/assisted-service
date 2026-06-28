@@ -2229,6 +2229,7 @@ func (b *bareMetalInventory) V2UpdateCluster(ctx context.Context, params install
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+	b.populateOperatorBundles(&c.Cluster)
 	return installer.NewV2UpdateClusterCreated().WithPayload(&c.Cluster)
 }
 
