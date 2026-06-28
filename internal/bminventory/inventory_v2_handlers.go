@@ -51,6 +51,7 @@ func (b *bareMetalInventory) V2RegisterCluster(ctx context.Context, params insta
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+	b.populateOperatorBundles(&c.Cluster)
 	return installer.NewV2RegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
