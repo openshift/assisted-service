@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
@@ -21,14 +20,11 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	v1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/api/features"
 	"github.com/openshift/assisted-service/internal/common"
 	ignitioncommon "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
@@ -103,7 +99,6 @@ type installerGenerator struct {
 	nodeIpAllocations             map[strfmt.UUID]*network.NodeIpAllocation
 	manifestApi                   manifestsapi.ManifestsAPI
 	iriPatcher                    internalReleaseImagePatcher
-	rawInstallConfig              []byte
 }
 
 var fileNames = [...]string{
@@ -146,10 +141,6 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 
 func (g *installerGenerator) patchInternalReleaseManifests(ctx context.Context, manifestFiles []s3wrapper.ObjectInfo) error {
-	if !g.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall) {
-		return nil
-	}
-
 	if err := g.iriPatcher.PatchManifests(ctx, manifestFiles); err != nil {
 		g.log.WithError(err).Errorf("failed to process manifests for cluster %s", g.cluster.ID)
 		return err
@@ -172,8 +163,6 @@ func (g *installerGenerator) allocateNodeIpsIfNeeded(log logrus.FieldLogger) {
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, forceInsecurePolicyJson bool) error {
 	var err error
 	log := logutil.FromContext(ctx, g.log)
-	g.rawInstallConfig = installConfig
-
 	defer func() {
 		if err != nil {
 			os.Remove(filepath.Join(g.workDir, "manifests"))
@@ -777,11 +766,9 @@ func (g *installerGenerator) updateBootstrap(ctx context.Context, bootstrapPath 
 		setNMConfigration(config)
 	}
 
-	if g.isFeatureGateEnabled(features.FeatureGateNoRegistryClusterInstall) {
-		err = g.iriPatcher.UpdateBootstrap(config)
-		if err != nil {
-			return err
-		}
+	err = g.iriPatcher.UpdateBootstrap(config)
+	if err != nil {
+		return err
 	}
 
 	err = ignitioncommon.WriteIgnitionFile(bootstrapPath, config)
@@ -1308,55 +1295,6 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 		return err
 	}
 	return nil
-}
-
-func (g *installerGenerator) isFeatureGateEnabled(feature v1.FeatureGateName) bool {
-	var installConfig installcfg.InstallerConfigBaremetal
-
-	if err := json.Unmarshal(g.rawInstallConfig, &installConfig); err != nil {
-		g.log.Errorf("cannot convert install config data while checking feature gate %s: %v", string(feature), err)
-		return false
-	}
-
-	featureEnabled := false
-	switch installConfig.FeatureSet {
-	case v1.CustomNoUpgrade:
-		for _, fg := range installConfig.FeatureGates {
-			// Parse feature gate
-			featureParts := strings.Split(fg, "=")
-			if len(featureParts) != 2 {
-				g.log.Debugf("Cannot parse feature gate %s, skipping", fg)
-				continue
-			}
-			name := featureParts[0]
-			enabled, err := strconv.ParseBool(featureParts[1])
-			if err != nil {
-				g.log.Debugf("Unsupported feature value %s, skipping", fg)
-				continue
-			}
-
-			if name == string(feature) && enabled {
-				featureEnabled = true
-				break
-			}
-		}
-	default:
-		feats, err := features.FeatureSets(features.SelfManaged, installConfig.FeatureSet)
-		if err != nil {
-			g.log.Errorf("error while retrieving features definition: %v", err)
-			break
-		}
-
-		for _, f := range feats.Enabled {
-			if f.FeatureGateAttributes.Name == feature {
-				featureEnabled = true
-				break
-			}
-		}
-	}
-
-	g.log.Infof("Feature gate %s enabled: %v", string(feature), featureEnabled)
-	return featureEnabled
 }
 
 // UploadToS3 uploads the generated files to S3
