@@ -12,7 +12,6 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/swag"
 	configv1 "github.com/openshift/api/config/v1"
-	mcfgv1alpha1 "github.com/openshift/api/machineconfiguration/v1alpha1"
 	"github.com/openshift/assisted-service/internal/common"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/models"
@@ -26,7 +25,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/yaml"
-	k8syaml "sigs.k8s.io/yaml"
 )
 
 const (
@@ -49,7 +47,7 @@ type internalReleaseImagePatcher struct {
 	s3Client          s3wrapper.API
 	manifestApi       manifestsapi.ManifestsAPI
 	iriRegistryDomain string
-	iri               *mcfgv1alpha1.InternalReleaseImage
+	iriFound          bool
 }
 
 // NewInternalReleaseImagePatcher creates a new internalReleaseImagePatcher instance.
@@ -60,7 +58,6 @@ func NewInternalReleaseImagePatcher(cluster *common.Cluster, s3Client s3wrapper.
 		manifestApi:       manifestApi,
 		log:               log,
 		iriRegistryDomain: fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain),
-		iri:               nil,
 	}
 }
 
@@ -97,7 +94,7 @@ func (i *internalReleaseImagePatcher) uploadManifests(ctx context.Context, key s
 	fileName := path.Base(key)
 	i.log.Infof("Updating resource %s as %s", key, fileName)
 
-	data, err := k8syaml.Marshal(obj)
+	data, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
 	}
@@ -153,15 +150,20 @@ func (i *internalReleaseImagePatcher) getInternalReleaseImageManifest(ctx contex
 		if err != nil {
 			return err
 		}
-		obj := &mcfgv1alpha1.InternalReleaseImage{}
-		err = yaml.Unmarshal(content, obj)
+		var meta struct {
+			Kind     string `json:"kind"`
+			Metadata struct {
+				Name string `json:"name"`
+			} `json:"metadata"`
+		}
+		err = yaml.Unmarshal(content, &meta)
 		if err != nil {
 			i.log.Debugf("Cannot decode manifest %s, skipping", f.Path)
 			continue
 		}
 
-		if obj.Kind == iriKind && obj.Name == iriInstanceName {
-			i.iri = obj.DeepCopy()
+		if meta.Kind == iriKind && meta.Metadata.Name == iriInstanceName {
+			i.iriFound = true
 			break
 		}
 	}
@@ -181,7 +183,7 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 		return err
 	}
 	// Skip if InternalReleaseImage manifest wasn't found.
-	if i.iri == nil {
+	if !i.iriFound {
 		return nil
 	}
 	i.log.Infof("Patching InternalReleaseImage mirror resources")
@@ -327,7 +329,7 @@ func (i *internalReleaseImagePatcher) getRegistriesConfFromIgn(bootstrapConfig *
 
 func (i *internalReleaseImagePatcher) UpdateBootstrap(bootstrapConfig *config_latest_types.Config) error {
 	// Skip if InternalReleaseImage manifest wasn't found.
-	if i.iri == nil {
+	if !i.iriFound {
 		return nil
 	}
 	i.log.Infof("Updating bootstrap.ign registries.conf for InternalReleaseImage")
