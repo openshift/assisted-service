@@ -760,11 +760,6 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 		clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 && clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0
 }
 
-func isDiskEncryptionEnabled(clusterInstall *hiveext.AgentClusterInstall) bool {
-	return clusterInstall.Spec.DiskEncryption != nil &&
-		swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn) != models.DiskEncryptionEnableOnNone
-}
-
 // see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
 	//check if either master or worker pool hyperthreading settings are explicitly specified
@@ -1152,8 +1147,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		if cluster.DiskEncryption == nil { // true when current cluster configuration does not include disk encryption
 			cluster.DiskEncryption = &models.DiskEncryption{}
 		}
-		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.EnableOn), swag.StringValue(cluster.DiskEncryption.EnableOn), &params.DiskEncryption.EnableOn)
-		updateString(swag.StringValue(clusterInstall.Spec.DiskEncryption.Mode), swag.StringValue(cluster.DiskEncryption.Mode), &params.DiskEncryption.Mode)
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+		)
+		updateString(enableOn, swag.StringValue(cluster.DiskEncryption.EnableOn), &params.DiskEncryption.EnableOn)
+		updateString(mode, swag.StringValue(cluster.DiskEncryption.Mode), &params.DiskEncryption.Mode)
 		if clusterInstall.Spec.DiskEncryption.TangServers != cluster.DiskEncryption.TangServers {
 			params.DiskEncryption.TangServers = clusterInstall.Spec.DiskEncryption.TangServers
 			update = true
@@ -1526,10 +1525,19 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
-	if isDiskEncryptionEnabled(clusterInstall) {
+	if clusterInstall.Spec.DiskEncryption != nil &&
+		common.RequestsDiskEncryptionConfiguration(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+			clusterInstall.Spec.DiskEncryption.TangServers,
+		) {
+		enableOn, mode := common.DiskEncryptionFieldDefaults(
+			clusterInstall.Spec.DiskEncryption.EnableOn,
+			clusterInstall.Spec.DiskEncryption.Mode,
+		)
 		clusterParams.DiskEncryption = &models.DiskEncryption{
-			EnableOn:    clusterInstall.Spec.DiskEncryption.EnableOn,
-			Mode:        clusterInstall.Spec.DiskEncryption.Mode,
+			EnableOn:    swag.String(enableOn),
+			Mode:        swag.String(mode),
 			TangServers: clusterInstall.Spec.DiskEncryption.TangServers,
 		}
 	}

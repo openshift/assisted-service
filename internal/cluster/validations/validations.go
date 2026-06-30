@@ -776,10 +776,10 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 	if diskEncryptionParams == nil {
 		return nil
 	}
-	if !DiskEncryptionSupport && swag.StringValue(diskEncryptionParams.EnableOn) != models.DiskEncryptionEnableOnNone {
+	if !DiskEncryptionSupport && common.RequestsConfiguration(diskEncryptionParams) {
 		return errors.New("Disk encryption support is not enabled. Cannot apply configurations to the cluster")
 	}
-	if diskEncryptionParams.Mode != nil && swag.StringValue(diskEncryptionParams.Mode) == models.DiskEncryptionModeTang {
+	if common.HasMode(diskEncryptionParams, models.DiskEncryptionModeTang) {
 		if diskEncryptionParams.TangServers == "" {
 			return errors.New("Setting Tang mode but tang_servers isn't set")
 		}
