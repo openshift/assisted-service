@@ -581,7 +581,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		return err
 	}
 
-	err = ValidateDualStackNetworks(targetConfiguration, false, false, targetConfiguration.OpenshiftVersion)
+	err = ValidateDualStackNetworks(targetConfiguration, false, false, targetConfiguration.OpenshiftVersion, common.IsClusterTopologyHighlyAvailableArbiter(&targetConfiguration))
 	if err != nil {
 		return err
 	}
@@ -669,7 +669,7 @@ func ValidateVIPsWereNotSetDhcpMode(apiVips []*models.APIVip, ingressVips []*mod
 	return nil
 }
 
-func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool, openshiftVersion string) error {
+func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool, openshiftVersion string, isArbiterCluster bool) error {
 	var machineNetworks []*models.MachineNetwork
 	var serviceNetworks []*models.ServiceNetwork
 	var clusterNetworks []*models.ClusterNetwork
@@ -740,7 +740,7 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 			}
 		}
 	} else {
-		if len(machineNetworks) > 1 && targetLoadBalancerType == models.LoadBalancerTypeClusterManaged {
+		if len(machineNetworks) > 1 && targetLoadBalancerType == models.LoadBalancerTypeClusterManaged && !isArbiterCluster {
 			err := errors.Errorf("Single-stack cluster cannot contain multiple Machine Networks")
 			return err
 		}

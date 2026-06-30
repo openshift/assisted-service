@@ -5251,6 +5251,30 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster cannot contain multiple Machine Networks")
 				})
 
+				It("Multiple machine networks allowed for TNA cluster", func() {
+					arbiterHostID := strfmt.UUID(uuid.New().String())
+					addHost(arbiterHostID, models.HostRoleArbiter, "known", models.HostKindHost, infraEnvID, clusterID, getInventoryStr("arbiter0", "bootMode", "172.16.10.10/24"), db)
+					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
+						"control_plane_count": int64(2),
+						"openshift_version":   common.MinimumVersionForArbiterClusters,
+					}).Error).ShouldNot(HaveOccurred())
+
+					mockSuccess(1)
+					tnaMachineNetworks := []*models.MachineNetwork{
+						{Cidr: "10.32.96.0/20"},
+						{Cidr: "172.16.10.0/24"},
+					}
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							MachineNetworks: tnaMachineNetworks,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+					actual := reply.(*installer.V2UpdateClusterCreated)
+					validateNetworkConfiguration(actual.Payload, &clusterNetworks, &serviceNetworks, &tnaMachineNetworks)
+				})
+
 				It("Override networks - additional cluster subnet", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
