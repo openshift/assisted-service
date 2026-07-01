@@ -1,6 +1,6 @@
 ---
 name: assisted-service-writing-unit-tests
-description: Use when writing unit tests in assisted-service with gomock mocks, Ginkgo/Gomega, events, or database. Critical when tests pass but mocks aren't verified, or gomock.NewController appears in code.
+description: Use when writing non-subsystem tests in assisted-service.
 ---
 
 # Writing Unit Tests in Assisted-Service
@@ -20,6 +20,7 @@ Without `ctrl.Finish()`, tests pass even when mocks aren't called correctly - si
 | Database per test | `PrepareTestDB()` in `BeforeEach`, `DeleteTestDB()` in `AfterEach` |
 | Database for suite | `InitializeDBTest()` in `BeforeSuite`, `TerminateDBTest()` in `AfterSuite` |
 | Event verification | `eventstest.NewEventMatcher` with matchers |
+| OCP version in tests | Use hardcoded strings or `common.TestDefaultConfig` — do not use `TestVersion()` |
 
 ## When to Use Patterns
 
@@ -53,9 +54,9 @@ digraph db_decision {
 
 ## Scope
 
-**Covers:** Unit tests in `internal/` and `pkg/` with gomock, Ginkgo/Gomega, database, events.
+**Covers:** Non-subsystem tests in `internal/` and `pkg/` with gomock, Ginkgo/Gomega, database, events.
 
-**Does NOT cover:** Subsystem tests, E2E, external service integration, performance tests.
+**Does NOT cover:** Subsystem tests (`subsystem/`), E2E, external service integration, performance tests. Subsystem tests use different patterns, including `common.TestVersion()` for OCP versions.
 
 **Test files:** `*_test.go` (same package). Suites: `*_suite_test.go`.
 
@@ -134,6 +135,24 @@ Ginkgo hierarchy: `Describe("Component")` → `Context("when X")` → `It("shoul
 
 **Gomock matchers:** `.Times(N)`, `.MaxTimes(0)`, `.AnyTimes()`, `gomock.Any()`
 
+## OCP Versions: Use Hardcoded Strings, Not TestVersion()
+
+**Do not use `common.TestVersion()` in non-subsystem tests.** `TestVersion()` resolves versions dynamically from data files and is designed for subsystem tests (`subsystem/`), which run against the real service. Non-subsystem tests mock version data and should use hardcoded version strings directly.
+
+**Correct patterns:**
+```go
+OpenshiftVersion: swag.String("4.14"),
+```
+
+Or use the package-level defaults from `internal/common/test_configuration.go`:
+```go
+OpenshiftVersion: swag.String(common.OpenShiftVersion),
+ReleaseVersion:   common.ReleaseVersion,
+ReleaseImageUrl:  common.ReleaseImageURL,
+```
+
+See [docs/dev/test-versions.md](/docs/dev/test-versions.md) for the `TestVersion()` API used in subsystem tests.
+
 ## Red Flags - Stop and Fix
 
 These thoughts mean STOP - fix the issue:
@@ -143,6 +162,7 @@ These thoughts mean STOP - fix the issue:
 - "Minimum viable test to satisfy review" → Tests must verify behavior, not theater
 - "I'll add cleanup/verification later" → Do it now, tests will merge broken
 - Code has `gomock.NewController` but no `ctrl.Finish()` → Silent failures
+- Using `common.TestVersion()` outside `subsystem/` → Wrong pattern; use hardcoded strings or `common.TestDefaultConfig`
 
 **If you're rationalizing shortcuts due to time pressure, the test will be broken. No exceptions.**
 
@@ -156,6 +176,7 @@ These thoughts mean STOP - fix the issue:
 | Generic Entry names | "test 1", "test 2" in output | Descriptive: "valid IPv4 CIDR" |
 | Wrong DB pattern | Pollution between tests | Suite-level for reads, per-test for writes |
 | No event matchers | Generic `gomock.Any()` for events | Use `eventstest.NewEventMatcher` with specific matchers |
+| Using `TestVersion()` | Wrong abstraction for non-subsystem tests | Use hardcoded strings or `common.TestDefaultConfig` |
 
 ## Before Submitting
 
@@ -164,6 +185,7 @@ These thoughts mean STOP - fix the issue:
 - [ ] No shared state (all setup in `BeforeEach`)
 - [ ] Descriptive names ("valid IPv4 CIDR" not "test 1")
 - [ ] Database cleanup if using `PrepareTestDB()`
+- [ ] No `TestVersion()` usage — use hardcoded strings or `common.TestDefaultConfig`
 - [ ] Tests pass: `go test -v ./path/to/package`
 
 **Red flags:** Missing `ctrl.Finish()` → silent failures. Shared variables → flaky tests.

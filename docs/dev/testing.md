@@ -81,6 +81,12 @@ Depends on the job.
 [Read more](https://docs.ci.openshift.org/docs/architecture/ci-operator/#testing-with-a-cluster-from-a-cluster-pool)
 * Baremetal jobs (i.e. e2e) run on a provisioned baremetal machine by [Equnix](https://www.equinix.nl/).
 
+## Writing Tests with OCP Versions
+
+**Subsystem tests** must use `common.TestVersion()` for all OCP version references. Subsystem tests run against the real service, so versions are resolved from the data files and hardcoded strings break when versions are pruned (e.g., during ACM feature freeze). See [Test Versions](test-versions.md) for the full API and migration patterns.
+
+**Unit tests** may use hardcoded version strings since versions are not pulled from real sources. The one exception is `TestDefaultConfig` in `internal/common/test_configuration.go`, which uses `TestVersion().Latest()` to conveniently track the latest available version.
+
 ## How to run Assisted-service subsystem tests
 
 More information is available here: [Assisted Installer Testing](/docs/dev/running-test.md).
