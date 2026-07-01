@@ -470,6 +470,16 @@ var _ = Describe("AreMachineNetworksIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.MachineNetwork{
+				{Cidr: "fcff:0069:0001:0000::/64"},
+			},
+			n2: []*models.MachineNetwork{
+				{Cidr: "fcff:69:1::/64"},
+			},
+			expectedResult: true,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
@@ -566,6 +576,16 @@ var _ = Describe("ArServiceNetworksIdentical", func() {
 				},
 			},
 			expectedResult: false,
+		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.ServiceNetwork{
+				{Cidr: "fd02:0000:0000:0000::/112"},
+			},
+			n2: []*models.ServiceNetwork{
+				{Cidr: "fd02::/112"},
+			},
+			expectedResult: true,
 		},
 	}
 	for i := range tests {
@@ -691,6 +711,16 @@ var _ = Describe("ArClusterNetworksIdentical", func() {
 				},
 			},
 			expectedResult: false,
+		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.ClusterNetwork{
+				{Cidr: "fd01:0000:0000:0000::/48", HostPrefix: 64},
+			},
+			n2: []*models.ClusterNetwork{
+				{Cidr: "fd01::/48", HostPrefix: 64},
+			},
+			expectedResult: true,
 		},
 	}
 	for i := range tests {
@@ -1021,61 +1051,6 @@ var _ = Describe("AreIngressVipsIdentical", func() {
 	}
 })
 
-var _ = Describe("NormalizeIP", func() {
-	tests := []struct {
-		name     string
-		input    string
-		expected string
-	}{
-		{
-			name:     "IPv6 expanded to canonical",
-			input:    "2620:0052:0009:164d:0000:0000:0000:0046",
-			expected: "2620:52:9:164d::46",
-		},
-		{
-			name:     "IPv6 leading zeros",
-			input:    "2001:0db8:0000:0000:0000:0000:0000:0001",
-			expected: "2001:db8::1",
-		},
-		{
-			name:     "IPv6 mixed case normalized to lowercase",
-			input:    "2001:0DB8::ABCD",
-			expected: "2001:db8::abcd",
-		},
-		{
-			name:     "IPv6 already canonical unchanged",
-			input:    "2001:db8::1",
-			expected: "2001:db8::1",
-		},
-		{
-			name:     "IPv6 loopback",
-			input:    "0000:0000:0000:0000:0000:0000:0000:0001",
-			expected: "::1",
-		},
-		{
-			name:     "IPv4 unchanged",
-			input:    "192.168.1.100",
-			expected: "192.168.1.100",
-		},
-		{
-			name:     "Empty string unchanged",
-			input:    "",
-			expected: "",
-		},
-		{
-			name:     "Invalid input unchanged",
-			input:    "not-an-ip",
-			expected: "not-an-ip",
-		},
-	}
-	for i := range tests {
-		t := tests[i]
-		It(t.name, func() {
-			Expect(NormalizeIP(t.input)).To(Equal(t.expected))
-		})
-	}
-})
-
 var _ = Describe("GetVips", func() {
 	var cluster *common.Cluster
 	var ApiVips []string
@@ -1229,35 +1204,6 @@ var _ = Describe("ComputeParsedMachineNetworks", func() {
 	Expect(err).ShouldNot(HaveOccurred(), fmt.Sprintf("Debugging info: %v", err))
 	Expect(parsedMachineNetworks).To(Equal(expectedResult))
 
-})
-
-var _ = Describe("NormalizeCIDR", func() {
-	It("Normalizes a CIDR", func() {
-		cidr := "2A00:8A00:4000:0d80::/64"
-		expected := "2a00:8a00:4000:d80::/64"
-		actual, err := NormalizeCIDR(cidr)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(actual).To(Equal(expected))
-	})
-	It("Normalizes a CIDR - no change", func() {
-		cidr := "192.168.1.0/24"
-		expected := "192.168.1.0/24"
-		actual, err := NormalizeCIDR(cidr)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(actual).To(Equal(expected))
-	})
-	It("Empty CIDR", func() {
-		cidr := ""
-		expected := ""
-		actual, err := NormalizeCIDR(cidr)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(actual).To(Equal(expected))
-	})
-	It("Invalid CIDR", func() {
-		cidr := "invalid"
-		_, err := NormalizeCIDR(cidr)
-		Expect(err).To(HaveOccurred())
-	})
 })
 
 var _ = Describe("Network Comparison Functions with Dual-Stack Support", func() {
