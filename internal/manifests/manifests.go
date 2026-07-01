@@ -99,6 +99,12 @@ func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params op
 		return nil, err
 	}
 
+	if isCustomManifest {
+		if usageErr := m.setUsage(true, params.ClusterID); usageErr != nil {
+			log.Errorf("Failed to set feature usage '%s': %v", usage.CustomManifest, usageErr)
+		}
+	}
+
 	log.Infof("Done creating manifest %s for cluster %s", path, params.ClusterID.String())
 	manifest := models.Manifest{FileName: fileName, Folder: folder, ManifestSource: manifestSource}
 	return &manifest, nil
@@ -210,6 +216,18 @@ func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params op
 	err = m.deleteManifest(ctx, params.ClusterID, path)
 	if err != nil {
 		return err
+	}
+
+	// Unset feature usage if this was the last manifest. Don't fail on error
+	// because we successfully deleted the manifest as requested.
+	remaining, listErr := m.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: params.ClusterID})
+	if listErr != nil {
+		log.Errorf("Failed to check remaining manifests after deletion: %v", listErr)
+	}
+	if listErr == nil && len(remaining) == 0 {
+		if usageErr := m.setUsage(false, params.ClusterID); usageErr != nil {
+			log.Errorf("Failed to unset feature usage '%s': %v", usage.CustomManifest, usageErr)
+		}
 	}
 
 	log.Infof("Done deleting cluster manifest %s for cluster %s", path, params.ClusterID.String())

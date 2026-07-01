@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/manifests"
+	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -744,6 +745,51 @@ invalid YAML content: {
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				Expect(err.Error()).To(Equal("Manifest content of file manifests/99-test.yml for cluster ID " + clusterID.String() + " has an invalid YAML format: yaml: line 4: did not find expected node content"))
 			})
+		})
+	})
+
+	Context("CreateClusterManifestInternal usage tracking", func() {
+		It("creating a non-custom manifest does not affect usage when custom manifests exist", func() {
+			mockNotifier := stream.NewMockNotifier(ctrl)
+			mockNotifier.EXPECT().Notify(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			realUsageAPI := usage.NewManager(common.GetTestLog(), mockNotifier)
+			manifestsWithRealUsage := manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client, realUsageAPI)
+
+			clusterID := registerCluster().ID
+
+			mockUpload(2)
+			mockS3Client.EXPECT().DoesObjectExist(ctx, gomock.Any()).Return(false, nil).AnyTimes()
+
+			_, err := manifestsWithRealUsage.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
+				ClusterID: *clusterID,
+				CreateManifestParams: &models.CreateManifestParams{
+					Content:  &contentYaml,
+					FileName: &fileNameYaml,
+				},
+			}, true)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			cluster, err := common.GetClusterFromDB(db, *clusterID, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+			usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(usages).To(HaveKey(usage.CustomManifest))
+
+			systemFile := "system-manifest.yaml"
+			_, err = manifestsWithRealUsage.CreateClusterManifestInternal(ctx, operations.V2CreateClusterManifestParams{
+				ClusterID: *clusterID,
+				CreateManifestParams: &models.CreateManifestParams{
+					Content:  &contentYaml,
+					FileName: &systemFile,
+				},
+			}, false)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			cluster, err = common.GetClusterFromDB(db, *clusterID, common.SkipEagerLoading)
+			Expect(err).ShouldNot(HaveOccurred())
+			usages, err = usage.Unmarshal(cluster.Cluster.FeatureUsage)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(usages).To(HaveKey(usage.CustomManifest))
 		})
 	})
 
