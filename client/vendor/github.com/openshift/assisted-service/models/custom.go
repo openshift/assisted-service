@@ -74,6 +74,29 @@ func (m *DomainResolutionRequestDomain) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
+// Normalize returns the IP in canonical form (e.g. 2620:0052:0009:164d:0000:0000:0000:0046 → 2620:52:9:164d::46).
+func (m IP) Normalize() (IP, error) {
+	if m == "" {
+		return m, nil
+	}
+	addr, err := netip.ParseAddr(string(m))
+	if err != nil {
+		return m, fmt.Errorf("invalid IP address %q: %w", m, err)
+	}
+	return IP(addr.String()), nil
+}
+
+// Equal returns true if two IPs represent the same address, handling different IPv6 representations.
+// Falls back to string comparison if either value cannot be parsed.
+func (m IP) Equal(other IP) bool {
+	normA, errA := m.Normalize()
+	normB, errB := other.Normalize()
+	if errA != nil || errB != nil {
+		return string(m) == string(other)
+	}
+	return normA == normB
+}
+
 // Value implements driver.Valuer for IP to convert Go string to PostgreSQL inet.
 // Returns inet text (e.g. 203.0.113.1/32); works with database/sql drivers that accept string parameters.
 func (m IP) Value() (driver.Value, error) {
@@ -123,6 +146,29 @@ func (m *IP) Scan(value interface{}) error {
 		return fmt.Errorf("cannot convert %T to IP", value)
 	}
 	return nil
+}
+
+// Normalize returns the Subnet in canonical form (e.g. fcff:0069:0001::/64 → fcff:69:1::/64).
+func (m Subnet) Normalize() (Subnet, error) {
+	if m == "" {
+		return m, nil
+	}
+	_, ipnet, err := net.ParseCIDR(string(m))
+	if err != nil {
+		return m, fmt.Errorf("invalid CIDR %q: %w", m, err)
+	}
+	return Subnet(ipnet.String()), nil
+}
+
+// Equal returns true if two Subnets represent the same network, handling different IPv6 representations.
+// Falls back to string comparison if either value cannot be parsed.
+func (m Subnet) Equal(other Subnet) bool {
+	normA, errA := m.Normalize()
+	normB, errB := other.Normalize()
+	if errA != nil || errB != nil {
+		return string(m) == string(other)
+	}
+	return string(normA) == string(normB)
 }
 
 // Value implements driver.Valuer for Subnet to convert Go string to PostgreSQL cidr.

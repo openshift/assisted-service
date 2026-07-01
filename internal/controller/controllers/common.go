@@ -24,7 +24,6 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/gencrypto"
-	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -323,7 +322,13 @@ func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.
 
 func clusterNetworksEntriesToArray(entries []hiveext.ClusterNetworkEntry) []*models.ClusterNetwork {
 	return funk.Map(entries, func(entry hiveext.ClusterNetworkEntry) *models.ClusterNetwork {
-		return &models.ClusterNetwork{Cidr: models.Subnet(entry.CIDR), HostPrefix: int64(entry.HostPrefix)}
+		cidr := models.Subnet(entry.CIDR)
+		if normalized, err := cidr.Normalize(); err == nil {
+			cidr = normalized
+		} else {
+			logrus.WithError(err).Warnf("failed to normalize cluster network CIDR %s", entry.CIDR)
+		}
+		return &models.ClusterNetwork{Cidr: cidr, HostPrefix: int64(entry.HostPrefix)}
 	}).([]*models.ClusterNetwork)
 }
 
@@ -335,7 +340,13 @@ func serviceNetworksArrayToStrings(networks []*models.ServiceNetwork) []string {
 
 func serviceNetworksEntriesToArray(entries []string) []*models.ServiceNetwork {
 	return funk.Map(entries, func(entry string) *models.ServiceNetwork {
-		return &models.ServiceNetwork{Cidr: models.Subnet(entry)}
+		cidr := models.Subnet(entry)
+		if normalized, err := cidr.Normalize(); err == nil {
+			cidr = normalized
+		} else {
+			logrus.WithError(err).Warnf("failed to normalize service network CIDR %s", entry)
+		}
+		return &models.ServiceNetwork{Cidr: cidr}
 	}).([]*models.ServiceNetwork)
 }
 
@@ -347,7 +358,13 @@ func machineNetworksArrayToEntries(networks []*models.MachineNetwork) []hiveext.
 
 func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*models.MachineNetwork {
 	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
-		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
+		cidr := models.Subnet(entry.CIDR)
+		if normalized, err := cidr.Normalize(); err == nil {
+			cidr = normalized
+		} else {
+			logrus.WithError(err).Warnf("failed to normalize machine network CIDR %s", entry.CIDR)
+		}
+		return &models.MachineNetwork{Cidr: cidr}
 	}).([]*models.MachineNetwork)
 }
 
@@ -359,7 +376,13 @@ func ApiVipsArrayToStrings(vips []*models.APIVip) []string {
 
 func ApiVipsEntriesToArray(entries []string) []*models.APIVip {
 	return funk.Map(entries, func(entry string) *models.APIVip {
-		return &models.APIVip{IP: models.IP(network.NormalizeIP(entry))}
+		ip := models.IP(entry)
+		if normalized, err := ip.Normalize(); err == nil {
+			ip = normalized
+		} else {
+			logrus.WithError(err).Warnf("failed to normalize API VIP %s", entry)
+		}
+		return &models.APIVip{IP: ip}
 	}).([]*models.APIVip)
 }
 
@@ -371,7 +394,13 @@ func IngressVipsArrayToStrings(vips []*models.IngressVip) []string {
 
 func IngressVipsEntriesToArray(entries []string) []*models.IngressVip {
 	return funk.Map(entries, func(entry string) *models.IngressVip {
-		return &models.IngressVip{IP: models.IP(network.NormalizeIP(entry))}
+		ip := models.IP(entry)
+		if normalized, err := ip.Normalize(); err == nil {
+			ip = normalized
+		} else {
+			logrus.WithError(err).Warnf("failed to normalize Ingress VIP %s", entry)
+		}
+		return &models.IngressVip{IP: ip}
 	}).([]*models.IngressVip)
 }
 
