@@ -492,6 +492,117 @@ var _ = Describe("oc", func() {
 			Expect(coreosImage).Should(Equal(streamCoreOSImage))
 		})
 	})
+
+	Context("GetDefaultRhcosVersion", func() {
+		const (
+			installerImage = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:installer"
+			rhcosVersion   = "9.8.20260428-0"
+		)
+
+		It("returns default RHCOS version for x86_64", func() {
+			getInstallerCmd := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				installerImageName, false, releaseImage, "", tempFilePath)
+			getInstallerArgs := splitStringToInterfacesArray(getInstallerCmd)
+			mockExecuter.EXPECT().Execute(getInstallerArgs[0], getInstallerArgs[1:]...).Return(installerImage, "", 0).Times(1)
+
+			mockExecuter.EXPECT().Execute("oc", gomock.Any()).DoAndReturn(
+				func(cmd string, args ...interface{}) (string, string, int) {
+					if cmd != "oc" || len(args) < 4 || args[0] != "image" {
+						return "", "unexpected command", 1
+					}
+					pathArg := args[3].(string)
+					destDir := strings.TrimPrefix(pathArg, "/manifests/:")
+					bootImagesContent, err := os.ReadFile("testdata/coreos-bootimages.yaml")
+					Expect(err).ShouldNot(HaveOccurred())
+					err = os.WriteFile(filepath.Join(destDir, coreosBootImagesFileName), bootImagesContent, 0600)
+					Expect(err).ShouldNot(HaveOccurred())
+					return "", "", 0
+				},
+			).Times(1)
+
+			version, err := oc.GetDefaultRhcosVersion(log, releaseImage, "", pullSecret, common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(version).Should(Equal(rhcosVersion))
+		})
+
+		It("returns default RHCOS version for arm64 using aarch64 key", func() {
+			getInstallerCmd := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				installerImageName, false, releaseImage, "", tempFilePath)
+			getInstallerArgs := splitStringToInterfacesArray(getInstallerCmd)
+			mockExecuter.EXPECT().Execute(getInstallerArgs[0], getInstallerArgs[1:]...).Return(installerImage, "", 0).Times(1)
+
+			mockExecuter.EXPECT().Execute("oc", gomock.Any()).DoAndReturn(
+				func(cmd string, args ...interface{}) (string, string, int) {
+					if cmd != "oc" || len(args) < 4 || args[0] != "image" {
+						return "", "unexpected command", 1
+					}
+					pathArg := args[3].(string)
+					destDir := strings.TrimPrefix(pathArg, "/manifests/:")
+					bootImagesContent, err := os.ReadFile("testdata/coreos-bootimages.yaml")
+					Expect(err).ShouldNot(HaveOccurred())
+					err = os.WriteFile(filepath.Join(destDir, coreosBootImagesFileName), bootImagesContent, 0600)
+					Expect(err).ShouldNot(HaveOccurred())
+					return "", "", 0
+				},
+			).Times(1)
+
+			version, err := oc.GetDefaultRhcosVersion(log, releaseImage, "", pullSecret, common.ARM64CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(version).Should(Equal(rhcosVersion))
+		})
+
+		It("returns cached RHCOS version on second call", func() {
+			getInstallerCmd := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				installerImageName, false, releaseImage, "", tempFilePath)
+			getInstallerArgs := splitStringToInterfacesArray(getInstallerCmd)
+			mockExecuter.EXPECT().Execute(getInstallerArgs[0], getInstallerArgs[1:]...).Return(installerImage, "", 0).Times(1)
+
+			mockExecuter.EXPECT().Execute("oc", gomock.Any()).DoAndReturn(
+				func(cmd string, args ...interface{}) (string, string, int) {
+					destDir := strings.TrimPrefix(args[3].(string), "/manifests/:")
+					bootImagesContent, err := os.ReadFile("testdata/coreos-bootimages.yaml")
+					Expect(err).ShouldNot(HaveOccurred())
+					err = os.WriteFile(filepath.Join(destDir, coreosBootImagesFileName), bootImagesContent, 0600)
+					Expect(err).ShouldNot(HaveOccurred())
+					return "", "", 0
+				},
+			).Times(1)
+
+			version1, err := oc.GetDefaultRhcosVersion(log, releaseImage, "", pullSecret, common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			version2, err := oc.GetDefaultRhcosVersion(log, releaseImage, "", pullSecret, common.X86CPUArchitecture)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(version1).Should(Equal(rhcosVersion))
+			Expect(version2).Should(Equal(rhcosVersion))
+		})
+
+		It("fails when neither release image nor mirror is provided", func() {
+			_, err := oc.GetDefaultRhcosVersion(log, "", "", pullSecret, common.X86CPUArchitecture)
+			Expect(err).Should(HaveOccurred())
+		})
+	})
+})
+
+var _ = Describe("parseDefaultRhcosVersionFromBootImages", func() {
+	var bootImagesContent []byte
+	const rhcosVersion = "9.8.20260428-0"
+
+	BeforeEach(func() {
+		var err error
+		bootImagesContent, err = os.ReadFile("testdata/coreos-bootimages.yaml")
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("returns RHCOS version for x86_64", func() {
+		version, err := parseDefaultRhcosVersionFromBootImages(bootImagesContent, common.X86CPUArchitecture)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(version).Should(Equal(rhcosVersion))
+	})
+
+	It("fails for unsupported architecture", func() {
+		_, err := parseDefaultRhcosVersionFromBootImages(bootImagesContent, "fake")
+		Expect(err).Should(HaveOccurred())
+	})
 })
 
 var _ = Describe("getImageFromRelease", func() {

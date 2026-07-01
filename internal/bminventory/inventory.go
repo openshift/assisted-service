@@ -222,6 +222,7 @@ type bareMetalInventory struct {
 	secretValidator               validations.PullSecretValidator
 	versionsHandler               versions.Handler
 	osImages                      versions.OSImages
+	osImageResolver               versions.OsImageResolver
 	crdUtils                      CRDUtils
 	IgnitionBuilder               ignition.IgnitionBuilder
 	hwValidator                   hardware.Validator
@@ -256,6 +257,7 @@ func NewBareMetalInventory(
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
 	osImages versions.OSImages,
+	osImageResolver versions.OsImageResolver,
 	crdUtils CRDUtils,
 	IgnitionBuilder ignition.IgnitionBuilder,
 	hwValidator hardware.Validator,
@@ -291,6 +293,7 @@ func NewBareMetalInventory(
 		secretValidator:               pullSecretValidator,
 		versionsHandler:               versionsHandler,
 		osImages:                      osImages,
+		osImageResolver:               osImageResolver,
 		crdUtils:                      crdUtils,
 		IgnitionBuilder:               IgnitionBuilder,
 		hwValidator:                   hwValidator,
@@ -602,7 +605,7 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 		releaseVersion := *releaseImage.OpenshiftVersion
 		releaseArch := releaseImage.CPUArchitectures[0]
 		var osImage *models.OsImage
-		osImage, err = b.osImages.GetOsImage(releaseVersion, releaseArch)
+		osImage, err = b.osImageResolver.GetOsImageForRelease(releaseImage, releaseArch, swag.StringValue(params.PullSecret))
 		if err != nil || osImage.URL == nil {
 			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", releaseVersion, releaseArch)
 		}
@@ -1287,16 +1290,14 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImageResolver.GetOsImageForInfraEnv(ctx, infraEnv)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	var version string
-	if osImage.OpenshiftVersion != nil {
-		version = *osImage.OpenshiftVersion
-	} else {
-		return errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
+	version, err := versions.OsImageVersion(osImage)
+	if err != nil {
+		return err
 	}
 
 	var arch string
@@ -4316,7 +4317,7 @@ func (b *bareMetalInventory) DownloadMinimalInitrd(ctx context.Context, params i
 	var scriptContent, serviceContent string
 	if infraEnv.StaticNetworkConfig != "" {
 		var shouldUseNmstateService bool
-		shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
+		shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(b.osImages.GetOpenshiftVersionForInfraEnv(infraEnv))
 		if err != nil {
 			return common.GenerateErrorResponder(err)
 		}
@@ -4930,27 +4931,14 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 	return nil
 }
 
-// validateClusterArchitectureAndVersion validates if architecture specified inside Infraenv matches one
-// specified for the cluster. For single-arch clusters the validation needs to only compare values
-// of the params. For multiarch cluster we want to see if the multiarch release image contains the
-// the architecture specifically requested by the InfraEnv. We don't need to explicitly validate if
-// the OS image exists because if not, this will be detected by the function generating the ISO.
-func validateClusterArchitectureAndVersion(v versions.Handler, c *common.Cluster, cpuArch, ocpVersion string) error {
-	// For late-binding we don't know the cluster yet
+// validateInfraEnvArchitectureMatchesCluster validates if architecture specified inside Infraenv matches one
+// specified for the cluster.
+func validateInfraEnvArchitectureMatchesCluster(c *common.Cluster, cpuArch string) error {
 	if c == nil {
 		return nil
 	}
-	if ocpVersion == "" {
-		ocpVersion = c.OpenshiftVersion
-	}
-	if c.CPUArchitecture != common.MultiCPUArchitecture {
-		if c.CPUArchitecture != "" && c.CPUArchitecture != cpuArch {
-			return errors.Errorf("Specified CPU architecture (%s) doesn't match the cluster (%s)", cpuArch, c.CPUArchitecture)
-		}
-	} else {
-		if err := v.ValidateReleaseImageForRHCOS(ocpVersion, cpuArch); err != nil {
-			return err
-		}
+	if c.CPUArchitecture != common.MultiCPUArchitecture && c.CPUArchitecture != "" && c.CPUArchitecture != cpuArch {
+		return errors.Errorf("Specified CPU architecture (%s) doesn't match the cluster (%s)", cpuArch, c.CPUArchitecture)
 	}
 
 	return nil
@@ -5228,15 +5216,11 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		}
 
 		openshiftVersion := params.InfraenvCreateParams.OpenshiftVersion
-
-		if b.EnableImageService {
-			var osImage *models.OsImage
-			osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
-			openshiftVersion = *osImage.OpenshiftVersion
+		openshiftVersion, err = b.getOsImageVersion(ctx, openshiftVersion, params.InfraenvCreateParams.CPUArchitecture, swag.StringValue(params.InfraenvCreateParams.PullSecret))
+		if err != nil {
+			return err
 		}
+
 		if kubeKey == nil {
 			kubeKey = &types.NamespacedName{}
 		}
@@ -5380,10 +5364,31 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
+func (b *bareMetalInventory) getOsImageVersion(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (string, error) {
+	if !b.EnableImageService {
+		return openshiftVersion, nil
+	}
+
+	var osImage *models.OsImage
+	var err error
+	if openshiftVersion != "" {
+		osImage, err = b.osImageResolver.GetOsImageForVersion(ctx, openshiftVersion, cpuArchitecture, pullSecret)
+		if err != nil {
+			return "", common.NewApiError(http.StatusBadRequest, err)
+		}
+	} else {
+		osImage, err = b.osImages.GetLatestOsImage(cpuArchitecture)
+		if err != nil {
+			return "", common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+	return versions.OsImageVersion(osImage)
+}
+
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
 	var err error
 
-	if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, params.InfraenvCreateParams.CPUArchitecture, params.InfraenvCreateParams.OpenshiftVersion); err != nil {
+	if err = validateInfraEnvArchitectureMatchesCluster(cluster, params.InfraenvCreateParams.CPUArchitecture); err != nil {
 		return err
 	}
 
@@ -5657,14 +5662,17 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
 		}
 
-		if b.EnableImageService {
-			_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
+		pullSecret := params.InfraEnvUpdateParams.PullSecret
+		if pullSecret == "" {
+			pullSecret = infraEnv.PullSecret
 		}
 
-		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {
+		_, err = b.getOsImageVersion(ctx, openshiftVersion, infraEnv.CPUArchitecture, pullSecret)
+		if err != nil {
+			return err
+		}
+
+		if err = validateInfraEnvArchitectureMatchesCluster(cluster, infraEnv.CPUArchitecture); err != nil {
 			return err
 		}
 		if err = featuresupport.ValidateIncompatibleFeatures(log, infraEnv.CPUArchitecture, cluster, &infraEnv.InfraEnv, params.InfraEnvUpdateParams); err != nil {
@@ -6727,7 +6735,7 @@ func (b *bareMetalInventory) V2DownloadInfraEnvFiles(ctx context.Context, params
 		var netFiles []staticnetworkconfig.StaticNetworkConfigData
 		if infraEnv.StaticNetworkConfig != "" {
 			var shouldUseNmstateService bool
-			shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
+			shouldUseNmstateService, err = b.staticNetworkConfig.ShouldUseNmstateService(b.osImages.GetOpenshiftVersionForInfraEnv(infraEnv))
 			if err != nil {
 				return common.GenerateErrorResponder(err)
 			}

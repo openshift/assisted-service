@@ -1,9 +1,6 @@
 package versions
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -129,68 +126,22 @@ var _ = Describe("NewHandler", func() {
 	})
 })
 
-var _ = Describe("validateReleaseImageForRHCOS", func() {
-	log := common.GetTestLog()
-	releaseImages := models.ReleaseImages{
-		&models.ReleaseImage{
-			CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-			CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-			OpenshiftVersion: swag.String("4.11.1"),
-			URL:              swag.String("release_4.11.1"),
-			Default:          false,
-			Version:          swag.String("4.11.1-chocobomb-for-test"),
-		},
-		&models.ReleaseImage{
-			CPUArchitecture:  swag.String(common.MultiCPUArchitecture),
-			CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
-			OpenshiftVersion: swag.String("4.12"),
-			URL:              swag.String("release_4.12"),
-			Default:          false,
-			Version:          swag.String("4.12"),
-		},
-	}
-
-	It("validates successfuly using exact match", func() {
-		Expect(validateReleaseImageForRHCOS(log, "4.11.1", common.X86CPUArchitecture, releaseImages)).To(Succeed())
-	})
-	It("validates successfuly using major.minor", func() {
-		Expect(validateReleaseImageForRHCOS(log, "4.11", common.X86CPUArchitecture, releaseImages)).To(Succeed())
-	})
-	It("validates successfuly using major.minor using default architecture", func() {
-		Expect(validateReleaseImageForRHCOS(log, "4.11", "", releaseImages)).To(Succeed())
-	})
-	It("validates successfuly using major.minor.patch-something", func() {
-		Expect(validateReleaseImageForRHCOS(log, "4.12.2-chocobomb", common.X86CPUArchitecture, releaseImages)).To(Succeed())
-	})
-	It("fails validation using non-existing major.minor.patch-something", func() {
-		Expect(validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.X86CPUArchitecture, releaseImages)).NotTo(Succeed())
-	})
-	It("fails validation using multiarch", func() {
-		// This test is supposed to fail because there exists no RHCOS image that supports
-		// multiple architectures.
-		Expect(validateReleaseImageForRHCOS(log, "4.11", common.MultiCPUArchitecture, releaseImages)).NotTo(Succeed())
-	})
-	It("fails validation using invalid version", func() {
-		Expect(validateReleaseImageForRHCOS(log, "invalid", common.X86CPUArchitecture, releaseImages)).NotTo(Succeed())
+var _ = Describe("OsImageVersion", func() {
+	It("returns RHCOS version when set", func() {
+		openshiftVersion := "4.10"
+		rhcosVersion := "410.84.202201251210-0"
+		osImage := models.OsImage{OpenshiftVersion: &openshiftVersion, Version: &rhcosVersion}
+		v, err := OsImageVersion(&osImage)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(v).To(Equal(rhcosVersion))
 	})
 
-	It("advises on suitable Openshift versions if unable to find release image for architecture", func() {
-		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.X86CPUArchitecture, releaseImages)
-		Expect(err).ToNot(BeNil())
-		errorMessage := err.Error()
-		Expect(errorMessage).To(ContainSubstring(fmt.Sprintf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image.", "9.9", common.X86CPUArchitecture)))
-		Expect(errorMessage).To(ContainSubstring(fmt.Sprintf("These are the OCP versions for which a matching release image has been found for arch %s", common.X86CPUArchitecture)))
-		splitErrorMessage := strings.Split(errorMessage, ":")
-		Expect(len(splitErrorMessage)).To(Equal(3))
-		versionsSplit := strings.Split(strings.Trim(splitErrorMessage[2], " "), ",")
-		Expect(versionsSplit).To(ContainElement("4.11.1"))
-		Expect(versionsSplit).To(ContainElement("4.12"))
-
-	})
-
-	It("advises that no Openshift versions are available in release images if none found for architecture", func() {
-		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.PowerCPUArchitecture, releaseImages)
-		Expect(err).ToNot(BeNil())
-		Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("There are no OCP versions available in release images for arch %s", common.PowerCPUArchitecture)))
+	It("falls back to OpenShift version when RHCOS version is empty", func() {
+		openshiftVersion := "4.10"
+		emptyVersion := ""
+		osImage := models.OsImage{OpenshiftVersion: &openshiftVersion, Version: &emptyVersion}
+		v, err := OsImageVersion(&osImage)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(v).To(Equal(openshiftVersion))
 	})
 })

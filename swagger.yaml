@@ -7859,7 +7859,7 @@ definitions:
         description: Self link.
       openshift_version:
         type: string
-        description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+        description: Version of the OS image (either the RHCOS version or the OpenShift version).
       name:
         type: string
         description: Name of the infra-env.
@@ -8042,7 +8042,7 @@ definitions:
         x-nullable: true
       openshift_version:
         type: string
-        description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+        description: Version of the OS image (either the RHCOS version or the OpenShift version).
       cpu_architecture:
         type: string
         x-nullable: false
@@ -8115,7 +8115,7 @@ definitions:
         maxLength: 65535
       openshift_version:
         type: string
-        description: Version of the OS image
+        description: Version of the OS image (either the RHCOS version or the OpenShift version).
         x-nullable: true
       network_discovery_delay_seconds:
         type: integer

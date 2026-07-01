@@ -3,8 +3,6 @@ package versions
 import (
 	context "context"
 	"encoding/json"
-	"fmt"
-	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -25,7 +23,6 @@ type Handler interface {
 	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
-	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
 
 type MustGatherVersion map[string]string
@@ -73,53 +70,6 @@ func NewHandler(
 	}
 
 	return restHandler, nil
-}
-
-func validateReleaseImageForRHCOS(
-	log logrus.FieldLogger, rhcosVersion, cpuArchitecture string, releaseImages models.ReleaseImages,
-) error {
-	// Multi is not a valid RHCOS CPU architecture, its sub-architectures are
-	if cpuArchitecture == common.MultiCPUArchitecture {
-		return errors.Errorf("RHCOS CPU architecture should be single arch")
-	}
-	rhcosVersionPtr, err := common.GetMajorMinorVersion(rhcosVersion)
-	if err != nil {
-		return err
-	}
-	if cpuArchitecture == "" {
-		// Empty implies default CPU architecture
-		cpuArchitecture = common.DefaultCPUArchitecture
-	}
-
-	availableOCPVersions := []string{}
-	for _, releaseImage := range releaseImages {
-		minorVersion, err := common.GetMajorMinorVersion(*releaseImage.OpenshiftVersion)
-		if err != nil {
-			return err
-		}
-
-		if cpuArchitecture == *releaseImage.CPUArchitecture && *minorVersion == *rhcosVersionPtr {
-			log.Debugf("Validator for the architecture %s found the following OCP version: %s", cpuArchitecture, *releaseImage.Version)
-			return nil
-		}
-
-		for _, arch := range releaseImage.CPUArchitectures {
-			if arch == cpuArchitecture && *minorVersion == *rhcosVersionPtr {
-				if *minorVersion == *rhcosVersionPtr {
-					log.Debugf("Validator for the architecture %s found the following OCP version: %s", cpuArchitecture, *releaseImage.Version)
-					return nil
-				}
-			}
-		}
-		if swag.ContainsStrings(releaseImage.CPUArchitectures, cpuArchitecture) && !swag.ContainsStrings(availableOCPVersions, swag.StringValue(minorVersion)) {
-			availableOCPVersions = append(availableOCPVersions, swag.StringValue(releaseImage.OpenshiftVersion))
-		}
-	}
-	ocpVersionAdvice := fmt.Sprintf("There are no OCP versions available in release images for arch %s.", cpuArchitecture)
-	if len(availableOCPVersions) > 0 {
-		ocpVersionAdvice = fmt.Sprintf("These are the OCP versions for which a matching release image has been found for arch %s please review your release images or choose your OCP version to match one of these: %s", cpuArchitecture, strings.Join(availableOCPVersions, ","))
-	}
-	return errors.Errorf("The requested RHCOS version (%s, arch: %s) does not have a matching OpenShift release image. %s", *rhcosVersionPtr, cpuArchitecture, ocpVersionAdvice)
 }
 
 func AddReleaseImagesToDBIfNeeded(
@@ -231,4 +181,17 @@ func validateReleaseImage(releaseImage *models.ReleaseImage) error {
 
 	// To validate CPU architecture enum
 	return releaseImage.Validate(strfmt.Default)
+}
+
+func OsImageVersion(osImage *models.OsImage) (string, error) {
+	if osImage == nil {
+		return "", errors.New("os image is nil")
+	}
+	if osImage.Version != nil && *osImage.Version != "" {
+		return *osImage.Version, nil
+	}
+	if osImage.OpenshiftVersion != nil && *osImage.OpenshiftVersion != "" {
+		return *osImage.OpenshiftVersion, nil
+	}
+	return "", errors.Errorf("OS image entry '%+v' missing version fields", osImage)
 }

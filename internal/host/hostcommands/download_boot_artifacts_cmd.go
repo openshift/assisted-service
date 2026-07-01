@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
@@ -21,21 +20,21 @@ type downloadBootArtifactsCmd struct {
 	baseCmd
 	imageServiceBaseURL string
 	authType            auth.AuthType
-	osImages            versions.OSImages
+	osImageResolver     versions.OsImageResolver
 	db                  *gorm.DB
 	imageDuration       time.Duration
 	hostFSMountDir      string
 }
 
 func NewDownloadBootArtifactsCmd(log logrus.FieldLogger, imageServiceBaseUrl string, authType auth.AuthType,
-	osImages versions.OSImages, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string) *downloadBootArtifactsCmd {
+	osImageResolver versions.OsImageResolver, db *gorm.DB, imageDuration time.Duration, hostFSMountDir string) *downloadBootArtifactsCmd {
 	return &downloadBootArtifactsCmd{
 		baseCmd:             baseCmd{log: log},
 		imageServiceBaseURL: imageServiceBaseUrl,
 		authType:            authType,
 		db:                  db,
 		imageDuration:       imageDuration,
-		osImages:            osImages,
+		osImageResolver:     osImageResolver,
 		hostFSMountDir:      hostFSMountDir,
 	}
 }
@@ -47,14 +46,11 @@ func (c *downloadBootArtifactsCmd) GetSteps(ctx context.Context, host *models.Ho
 		return nil, err
 	}
 
-	osImage, err := c.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := c.osImageResolver.GetOsImageForInfraEnv(ctx, infraEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	if osImage.OpenshiftVersion == nil {
-		return nil, errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
-	}
 	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(c.imageServiceBaseURL, infraEnv.ID.String(), osImage, false)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate urls for DownloadBootArtifactsRequest: %w", err)

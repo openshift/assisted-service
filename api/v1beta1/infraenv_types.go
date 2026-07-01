@@ -128,7 +128,7 @@ type InfraEnvSpec struct {
 
 	// OSImageVersion is the version of OS image to use when generating the InfraEnv.
 	// The version should refer to an OSImage specified in the AgentServiceConfig
-	// (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
+	// It needs to be equal to either an OSImage's Version or OpenshiftVersion.
 	// Note: OSImageVersion can't be specified along with ClusterRef while creating an InfraEnv.
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`

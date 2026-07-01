@@ -257,7 +257,7 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 
 			// In order to mark a specific version and architecture as supported we do not
 			// only need to have an available release image, but we need RHCOS image as well.
-			if _, err := h.osImages.GetOsImage(displayName, arch); err != nil {
+			if _, err := h.osImages.GetOsImageByOpenshiftVersion(displayName, arch); err != nil {
 				h.log.Debugf("Marking architecture %s for version %s as not available because no matching OS image found", arch, displayName)
 				continue
 			}
