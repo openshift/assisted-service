@@ -520,14 +520,14 @@ func AreMachineNetworksIdentical(n1, n2 []*models.MachineNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr {
+			if !n1[i].Cidr.Equal(n2[i].Cidr) {
 				return false
 			}
 		}
 		return true
 	}
 	// For non-dual-stack, use original order-agnostic comparison
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr.Equal(n2[j].Cidr) })
 }
 
 func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
@@ -537,13 +537,13 @@ func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr {
+			if !n1[i].Cidr.Equal(n2[i].Cidr) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr.Equal(n2[j].Cidr) })
 }
 
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
@@ -553,13 +553,13 @@ func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr || n1[i].HostPrefix != n2[i].HostPrefix {
+			if !n1[i].Cidr.Equal(n2[i].Cidr) || n1[i].HostPrefix != n2[i].HostPrefix {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr.Equal(n2[j].Cidr) && n1[i].HostPrefix == n2[j].HostPrefix })
 }
 
 func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
@@ -568,13 +568,13 @@ func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if !ipsEqual(n1[i].IP, n2[i].IP) {
+			if !n1[i].IP.Equal(n2[i].IP) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return ipsEqual(n1[i].IP, n2[j].IP) })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP.Equal(n2[j].IP) })
 }
 
 func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
@@ -583,13 +583,13 @@ func AreIngressVipsIdentical(n1, n2 []*models.IngressVip) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if !ipsEqual(n1[i].IP, n2[i].IP) {
+			if !n1[i].IP.Equal(n2[i].IP) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return ipsEqual(n1[i].IP, n2[j].IP) })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].IP.Equal(n2[j].IP) })
 }
 
 func UpdateVipsTables(db *gorm.DB, cluster *common.Cluster, apiVipUpdated bool, ingressVipUpdated bool) error {
@@ -720,33 +720,4 @@ func ComputeParsedMachineNetworks(mNetworks []*models.MachineNetwork) ([]*net.IP
 		machineNetworks[i] = mNetwork
 	}
 	return machineNetworks, nil
-}
-
-// NormalizeCIDR normalizes a CIDR string to its canonical form.
-func NormalizeCIDR(cidr string) (string, error) {
-	if cidr == "" {
-		return "", nil
-	}
-	_, ipnet, err := net.ParseCIDR(cidr)
-	if err != nil {
-		return "", err
-	}
-	return ipnet.String(), nil
-}
-
-func NormalizeIP(ip string) string {
-	addr, err := netip.ParseAddr(ip)
-	if err != nil {
-		return ip
-	}
-	return addr.String()
-}
-
-func ipsEqual(a, b models.IP) bool {
-	ipA, errA := netip.ParseAddr(string(a))
-	ipB, errB := netip.ParseAddr(string(b))
-	if errA != nil || errB != nil {
-		return string(a) == string(b)
-	}
-	return ipA == ipB
 }

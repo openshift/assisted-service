@@ -1272,9 +1272,17 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	if db == nil {
 		db = m.db
 	}
-	apiVip = network.NormalizeIP(apiVip)
-	ingressVip = network.NormalizeIP(ingressVip)
 	log := logutil.FromContext(ctx, m.log)
+	if normalized, normalizeErr := models.IP(apiVip).Normalize(); normalizeErr == nil {
+		apiVip = string(normalized)
+	} else {
+		log.WithError(normalizeErr).Warnf("failed to normalize API VIP %s", apiVip)
+	}
+	if normalized, normalizeErr := models.IP(ingressVip).Normalize(); normalizeErr == nil {
+		ingressVip = string(normalized)
+	} else {
+		log.WithError(normalizeErr).Warnf("failed to normalize Ingress VIP %s", ingressVip)
+	}
 	formattedApiLease := network.FormatLease(apiVipLease)
 	formattedIngressLease := network.FormatLease(ingressVipLease)
 	clusterIngressVip := network.GetIngressVipById(c, 0)
