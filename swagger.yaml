@@ -5252,7 +5252,7 @@ definitions:
         type: string
         description: |
           A proxy URL to use for creating HTTPS connections outside the cluster.
-          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\> or https://\<username\>:\<pswd\>@\<ip\>:\<port\>
         x-nullable: true
       no_proxy:
         type: string
@@ -5488,7 +5488,7 @@ definitions:
         type: string
         description: |
           A proxy URL to use for creating HTTPS connections outside the cluster.
-          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\> or https://\<username\>:\<pswd\>@\<ip\>:\<port\>
         x-nullable: true
       no_proxy:
         type: string
@@ -5718,7 +5718,7 @@ definitions:
         type: string
         description: |
           A proxy URL to use for creating HTTPS connections outside the cluster.
-          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\> or https://\<username\>:\<pswd\>@\<ip\>:\<port\>
         x-go-custom-tag: gorm:"column:https_proxy"
       no_proxy:
         type: string
@@ -7979,7 +7979,7 @@ definitions:
         type: string
         description: |
           A proxy URL to use for creating HTTPS connections outside the cluster.
-          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\> or https://\<username\>:\<pswd\>@\<ip\>:\<port\>
         x-nullable: true
         x-go-custom-tag: gorm:"column:https_proxy"
       no_proxy:
