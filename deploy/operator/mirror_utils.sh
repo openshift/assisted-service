@@ -1,3 +1,73 @@
+function mirror_command_succeeded() {
+  log_file="${1}"
+  local grep_rc=0
+
+  grep -qE 'one or more errors occurred|errors during mirroring|error: unable to copy layer' "${log_file}" || grep_rc=$?
+  case "${grep_rc}" in
+    0) return 1 ;;
+    1) return 0 ;;
+    *) return 2 ;;
+  esac
+}
+
+function mirror_command_name() {
+  local args=("$@")
+  local i=0
+
+  if [[ "${args[0]}" == "env" ]]; then
+    i=1
+    while [[ "${args[i]}" == *=* ]]; do
+      i=$((i + 1))
+    done
+  fi
+
+  echo "${args[i]}"
+}
+
+function run_mirror_command_with_retry() {
+  attempts="${MIRROR_RETRY_ATTEMPTS:-5}"
+  interval="${MIRROR_RETRY_INTERVAL:-60}"
+  log_file=""
+  rc=0
+  success_rc=0
+  cmd_name=$(mirror_command_name "$@")
+  # Callers often enable xtrace; disable it around command execution so registry
+  # hosts and image refs from argv/output are not written to CI logs.
+  local was_xtrace=false
+  [[ $- == *x* ]] && was_xtrace=true
+
+  for attempt in $(seq 1 "${attempts}"); do
+    if ! log_file=$(mktemp); then
+      echo "Mirror failed: could not create temporary log file" >&2
+      return 1
+    fi
+    echo "Mirror attempt ${attempt}/${attempts}: ${cmd_name}"
+
+    # Capture output for error-pattern detection without logging registry
+    # hostnames or image references from the mirror command.
+    set +x
+    "$@" >"${log_file}" 2>&1
+    rc=$?
+    ${was_xtrace} && set -x
+
+    success_rc=0
+    mirror_command_succeeded "${log_file}" || success_rc=$?
+    rm -f "${log_file}"
+
+    if [[ "${rc}" -eq 0 && "${success_rc}" -eq 0 ]]; then
+      echo "Mirror attempt ${attempt}/${attempts}: ${cmd_name} succeeded"
+      return 0
+    fi
+
+    echo "Mirror failed (exit=${rc}), waiting ${interval}s before retry..."
+    if [[ "${attempt}" -lt "${attempts}" ]]; then
+      sleep "${interval}"
+    fi
+  done
+
+  return 1
+}
+
 function mirror_package() {
   # Here we will do the next actions:
   # 1. Create an index of specific packages from specific remote indexes
@@ -34,13 +104,13 @@ function mirror_package() {
         --packages "${package}" \
         --tag "${local_registry_index_tag}"
 
-  GODEBUG=x509ignoreCN=0 podman push \
+  run_mirror_command_with_retry env GODEBUG=x509ignoreCN=0 podman push \
         --tls-verify=false \
         "${local_registry_index_tag}" \
         --authfile "${authfile}"
 
   manifests_dir=$(mktemp -d -t manifests-XXXXXXXXXX)
-  GODEBUG=x509ignoreCN=0 oc adm catalog mirror \
+  run_mirror_command_with_retry env GODEBUG=x509ignoreCN=0 oc adm catalog mirror \
         "${local_registry_index_tag}" \
         "${local_registry_image_tag}" \
         --registry-config="${authfile}" \
@@ -155,21 +225,43 @@ function ocp_mirror_release() {
   local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-3}"
   local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-30}"
   local attempt=1
-  local output=""
+  local output_file=""
+  local rc=0
+  # Disable tracing around mirror I/O: xtrace would otherwise print registry
+  # hostnames and image refs from argv and captured output into CI logs.
+  local was_xtrace=false
+  [[ $- == *x* ]] && was_xtrace=true
 
   while [ "${attempt}" -le "${max_attempts}" ]; do
-    if output=$(oc adm -a "${pull_secret_file}" release mirror \
-               --from="${source_image}" \
-               --to="${dest_mirror_repo}" 2>&1); then
-      echo "${output}"
+    echo "Release mirror attempt ${attempt}/${max_attempts}"
+    if ! output_file=$(mktemp); then
+      echo "Release mirror failed: could not create temporary log file" >&2
+      return 1
+    fi
+
+    set +x
+    oc adm -a "${pull_secret_file}" release mirror \
+           --from="${source_image}" \
+           --to="${dest_mirror_repo}" \
+           >"${output_file}" 2>&1
+    rc=$?
+    ${was_xtrace} && set -x
+
+    if [ "${rc}" -eq 0 ]; then
+      rm -f "${output_file}"
+      echo "Release mirror succeeded (attempt ${attempt}/${max_attempts})"
       return 0
     fi
 
-    echo "${output}"
-
-    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error "${output}"; then
+    set +x
+    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error_file "${output_file}"; then
+      ${was_xtrace} && set -x
+      rm -f "${output_file}"
+      echo "Release mirror failed (attempt ${attempt}/${max_attempts})" >&2
       return 1
     fi
+    ${was_xtrace} && set -x
+    rm -f "${output_file}"
 
     echo "Release mirror failed with a transient registry error (attempt ${attempt}/${max_attempts}), retrying in ${retry_delay}s..." >&2
     sleep "${retry_delay}"
@@ -177,8 +269,8 @@ function ocp_mirror_release() {
   done
 }
 
-function transient_registry_error() {
-  echo "${1}" | grep -Eqi 'unexpected EOF|504 Gateway|502 Bad Gateway|503 Service Unavailable|connection reset|TLS handshake timeout|broken pipe|i/o timeout|use of closed network connection'
+function transient_registry_error_file() {
+  grep -Eqi 'unexpected EOF|504 Gateway|502 Bad Gateway|503 Service Unavailable|connection reset|TLS handshake timeout|broken pipe|i/o timeout|use of closed network connection' "${1}"
 }
 
 function image_repo_from_pullspec() {
