@@ -6085,3 +6085,152 @@ func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string 
 	Expect(err).ToNot(HaveOccurred())
 	return string(b)
 }
+
+var _ = Describe("Finalizing stage timeout reset", func() {
+	var (
+		ctx          = context.Background()
+		db           *gorm.DB
+		clusterApi   *Manager
+		mockEvents   *eventsapi.MockHandler
+		mockHostAPI  *host.MockAPI
+		mockMetric   *metrics.MockAPI
+		mockS3Api    *s3wrapper.MockAPI
+		ctrl         *gomock.Controller
+		dbName       string
+		clusterId    strfmt.UUID
+		operatorsApi operators.API
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = eventsapi.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		operatorsApi = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+			commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, mockHostAPI, mockMetric, nil, nil,
+			operatorsApi, nil, mockS3Api, nil, nil, nil, false, nil)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("should reset finalizing stage fields on transition from InstallingPendingUserAction to Finalizing", func() {
+		oldTimestamp := time.Now().Add(-2 * time.Hour)
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(models.ClusterStatusInstallingPendingUserAction),
+				StatusInfo:       swag.String("Waiting for user action"),
+				BaseDNSDomain:    "test.com",
+				PullSecretSet:    true,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				StatusUpdatedAt:  strfmt.DateTime(time.Now()),
+				InstallStartedAt: strfmt.DateTime(time.Now().Add(-1 * time.Hour)),
+				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				APIVips:          common.TestIPv4Networking.APIVips,
+				IngressVips:      common.TestIPv4Networking.IngressVips,
+			},
+		}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterId.String()).Updates(map[string]interface{}{
+			"progress_finalizing_stage_started_at": oldTimestamp,
+			"progress_finalizing_stage_timed_out":  true,
+		}).Error).ShouldNot(HaveOccurred())
+
+		hid1, hid2, hid3 := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+		hid4, hid5, hid6 := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+
+		hosts := []models.Host{
+			{ID: &hid1, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid2, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid3, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid4, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+			{ID: &hid5, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+			{ID: &hid6, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstallingInProgress), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+		}
+
+		for i := range hosts {
+			Expect(db.Create(&hosts[i]).Error).ShouldNot(HaveOccurred())
+		}
+
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
+
+		cluster = getClusterFromDB(clusterId, db)
+		clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(clusterAfterRefresh).ToNot(BeNil())
+		Expect(swag.StringValue(clusterAfterRefresh.Status)).To(Equal(models.ClusterStatusFinalizing))
+
+		var progressStartedAt time.Time
+		var progressTimedOut bool
+		row := db.Raw("SELECT progress_finalizing_stage_started_at, progress_finalizing_stage_timed_out FROM clusters WHERE id = ?", clusterId.String()).Row()
+		Expect(row.Scan(&progressStartedAt, &progressTimedOut)).ShouldNot(HaveOccurred())
+
+		Expect(progressStartedAt).To(BeTemporally("~", time.Now(), 5*time.Second))
+		Expect(progressStartedAt).NotTo(BeTemporally("~", oldTimestamp, 1*time.Minute))
+		Expect(progressTimedOut).To(BeFalse())
+	})
+
+	It("should NOT reset finalizing stage fields on transition from Installing to Finalizing", func() {
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				Status:           swag.String(models.ClusterStatusInstalling),
+				StatusInfo:       swag.String("Installing"),
+				BaseDNSDomain:    "test.com",
+				PullSecretSet:    true,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				StatusUpdatedAt:  strfmt.DateTime(time.Now()),
+				InstallStartedAt: strfmt.DateTime(time.Now().Add(-1 * time.Hour)),
+				MachineNetworks:  common.TestIPv4Networking.MachineNetworks,
+				APIVips:          common.TestIPv4Networking.APIVips,
+				IngressVips:      common.TestIPv4Networking.IngressVips,
+			},
+		}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+		hid1, hid2, hid3 := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+		hid4, hid5 := strfmt.UUID(uuid.New().String()), strfmt.UUID(uuid.New().String())
+
+		hosts := []models.Host{
+			{ID: &hid1, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid2, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid3, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+			{ID: &hid4, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+			{ID: &hid5, InfraEnvID: clusterId, ClusterID: &clusterId, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+		}
+
+		for i := range hosts {
+			Expect(db.Create(&hosts[i]).Error).ShouldNot(HaveOccurred())
+		}
+
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.ClusterStatusUpdatedEventName),
+			eventstest.WithClusterIdMatcher(clusterId.String()))).AnyTimes()
+
+		cluster = getClusterFromDB(clusterId, db)
+		clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(clusterAfterRefresh).ToNot(BeNil())
+		Expect(swag.StringValue(clusterAfterRefresh.Status)).To(Equal(models.ClusterStatusFinalizing))
+
+		var progressStartedAt *time.Time
+		var progressTimedOut *bool
+		row := db.Raw("SELECT progress_finalizing_stage_started_at, progress_finalizing_stage_timed_out FROM clusters WHERE id = ?", clusterId.String()).Row()
+		err = row.Scan(&progressStartedAt, &progressTimedOut)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		if progressStartedAt != nil {
+			Expect(*progressStartedAt).NotTo(BeTemporally("~", time.Now(), 5*time.Second))
+		}
+	})
+})
