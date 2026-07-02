@@ -95,8 +95,7 @@ func ValidateHTTPFormat(theurl string) error {
 	return nil
 }
 
-// ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
-func ValidateHTTPProxyFormat(proxyURL string) error {
+func validateProxyURLFormat(proxyURL string, allowedSchemes ...string) error {
 	if !govalidator.IsURL(proxyURL) {
 		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
 	}
@@ -104,13 +103,23 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 	if err != nil {
 		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
 	}
-	if u.Scheme == "https" {
-		return errors.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
+	for _, scheme := range allowedSchemes {
+		if u.Scheme == scheme {
+			return nil
+		}
 	}
-	if u.Scheme != "http" {
-		return errors.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
-	}
-	return nil
+	return errors.Errorf("The URL scheme must be %s and specified in the URL: '%s'",
+		strings.Join(allowedSchemes, " or "), proxyURL)
+}
+
+// ValidateHTTPProxyFormat validates the HTTP Proxy format (http scheme only)
+func ValidateHTTPProxyFormat(proxyURL string) error {
+	return validateProxyURLFormat(proxyURL, "http")
+}
+
+// ValidateHTTPSProxyFormat validates the HTTPS Proxy URL format (http or https schemes are valid)
+func ValidateHTTPSProxyFormat(proxyURL string) error {
+	return validateProxyURLFormat(proxyURL, "http", "https")
 }
 
 func validateNoProxyEntry(entry string) error {

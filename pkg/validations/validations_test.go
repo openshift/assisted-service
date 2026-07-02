@@ -37,7 +37,7 @@ var _ = Describe("URL validations", func() {
 			},
 			{
 				"https://proxy.com:3128",
-				"The URL scheme must be http; https is currently not supported: 'https://proxy.com:3128'",
+				"The URL scheme must be http and specified in the URL: 'https://proxy.com:3128'",
 			},
 			{
 				"ftp://proxy.com:3128",
@@ -72,6 +72,50 @@ var _ = Describe("URL validations", func() {
 		It("validates proxy URL input", func() {
 			for _, param := range parameters {
 				err := ValidateHTTPProxyFormat(param.input)
+				if param.err == "" {
+					Expect(err).Should(BeNil())
+				} else {
+					Expect(err).ShouldNot(BeNil())
+					Expect(err.Error()).To(Equal(param.err))
+				}
+			}
+		})
+	})
+
+	Context("test HTTPS proxy URL", func() {
+		var parameters = []struct {
+			input, err string
+		}{
+			{"http://proxy.com:3128", ""},
+			{"http://username:pswd@proxy.com", ""},
+			{"http://10.9.8.7:123", ""},
+			{"http://username:pswd@10.9.8.7:123", ""},
+			{"https://proxy.com:3128", ""},
+			{"https://username:pswd@proxy.com", ""},
+			{"https://10.9.8.7:123", ""},
+			{"https://username:pswd@10.9.8.7:443", ""},
+			{"https://[1080:0:0:0:8:800:200C:417A]:8888", ""},
+			{
+				"ftp://proxy.com:3128",
+				"The URL scheme must be http or https and specified in the URL: 'ftp://proxy.com:3128'",
+			},
+			{
+				"proxy.com:3128",
+				"The URL scheme must be http or https and specified in the URL: 'proxy.com:3128'",
+			},
+			{
+				"xyz",
+				"Proxy URL format is not valid: 'xyz'",
+			},
+			{
+				"",
+				"Proxy URL format is not valid: ''",
+			},
+		}
+
+		It("validates HTTPS proxy URL input", func() {
+			for _, param := range parameters {
+				err := ValidateHTTPSProxyFormat(param.input)
 				if param.err == "" {
 					Expect(err).Should(BeNil())
 				} else {
