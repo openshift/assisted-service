@@ -36,7 +36,6 @@
     - node_labels: "{{ lookup('env', 'NODE_LABELS') }}"
     - manifests: "{{ lookup('env', 'MANIFESTS') }}"
     - infraenv_label: ""
-    - disconnected: "{{ lookup('env', 'DISCONNECTED') }}"
 
   tasks:
   - name: create directory for generated CRDs

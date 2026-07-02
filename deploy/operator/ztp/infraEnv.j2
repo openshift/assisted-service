@@ -12,11 +12,6 @@ spec:
   pullSecretRef:
     name: '{{ pull_secret_name }}'
   sshAuthorizedKey: '{{ ssh_public_key }}'
-{% if disconnected == 'true' %}
-  mirrorRegistryRef:
-    name: assisted-mirror-config
-    namespace: '{{ spoke_namespace }}'
-{% endif %}
   # enable serial console when booting on the disccovery ISO
   # the console output will be logged by libvirt in order to ease debugging
   kernelArguments:

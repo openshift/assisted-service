@@ -217,7 +217,11 @@ function wait_for_resource() {
       if [[ "${counter}" -eq 150 ]]; # 2 minutes 
       then
         echo "$(date --rfc-3339=seconds) ERROR: failed Waiting for ${object} on namespace ${namespace}"
-        oc get ${object}  --namespace="${namespace}" -o json
+        oc get "${object}" --namespace="${namespace}" \
+            -o 'custom-columns=NAME:.metadata.name' 2>/dev/null || true
+        if [ "${ASSISTED_DEBUG_WAIT_FAILURES:-false}" = "true" ]; then
+            oc get "${object}" --namespace="${namespace}" -o json
+        fi
         (( errexit_was_on )) && set -e
         exit 1
         break 
