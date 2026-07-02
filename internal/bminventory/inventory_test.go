@@ -3755,6 +3755,13 @@ var _ = Describe("cluster", func() {
 				_ = updateCluster("http://proxy.proxy", "", "proxy.proxy")
 			})
 
+			It("set a valid https proxy", func() {
+				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.ProxySettingsChangedEventName),
+					eventstest.WithClusterIdMatcher(clusterID.String())))
+				_ = updateCluster("", "https://proxy.proxy", "")
+			})
+
 			It("set a valid noProxy wildcard", func() {
 				mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
 					eventstest.WithNameMatcher(eventgen.ProxySettingsChangedEventName),
@@ -10416,6 +10423,10 @@ var _ = Describe("infraEnvs", func() {
 
 			It("set a valid proxy", func() {
 				_ = updateInfraEnv("http://proxy.proxy", "", "proxy.proxy")
+			})
+
+			It("set a valid https proxy", func() {
+				_ = updateInfraEnv("", "https://proxy.proxy", "")
 			})
 
 			It("set a valid noProxy wildcard", func() {

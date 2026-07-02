@@ -4890,7 +4890,7 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) e
 		}
 	}
 	if httpsProxy != nil && *httpsProxy != "" {
-		if err := pkgvalidations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
+		if err := pkgvalidations.ValidateHTTPSProxyFormat(*httpsProxy); err != nil {
 			return errors.Errorf("Failed to validate HTTPS Proxy: %s", err)
 		}
 	}
