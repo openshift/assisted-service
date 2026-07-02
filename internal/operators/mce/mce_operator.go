@@ -10,7 +10,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
-	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
 )
@@ -64,12 +63,12 @@ func (o *operator) GetFullName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return make([]string, 0), nil
+func (o *operator) GetDependencies(cluster *common.Cluster) []string {
+	return []string{}
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return nil
+	return []models.FeatureSupportLevelID{}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the operator.
@@ -167,12 +166,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 
 // GetHostRequirements provides the requirements that the host needs to satisfy in order to be able to install the operator.
 func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
-	log := logutil.FromContext(ctx, o.log)
-	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
-	if err != nil {
-		log.WithError(err).Errorf("Cannot retrieve preflight requirements for cluster %s", cluster.ID)
-		return nil, err
-	}
+	preflightRequirements := o.GetPreflightRequirements(ctx, cluster)
 
 	if common.IsSingleNodeCluster(cluster) {
 		// SNO req
@@ -190,14 +184,10 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
-	dependencies, err := o.GetDependencies(cluster)
-	if err != nil {
-		return &models.OperatorHardwareRequirements{}, err
-	}
+func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: dependencies,
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: []string{},
@@ -214,7 +204,7 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 func (o *operator) GetSupportedArchitectures() []string {

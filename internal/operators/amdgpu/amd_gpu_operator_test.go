@@ -282,14 +282,13 @@ var _ = Describe("Operator", func() {
 
 	Context("Dependencies", func() {
 		It("Depends on the node feature discovery operator", func() {
-			deps, err := operator.GetDependencies(&common.Cluster{})
-			Expect(err).ToNot(HaveOccurred())
+			deps := operator.GetDependencies(&common.Cluster{})
 			Expect(deps).To(ContainElement(nodefeaturediscovery.Operator.Name))
+
 		})
 
 		It("Depends on the kmm operator", func() {
-			deps, err := operator.GetDependencies(&common.Cluster{})
-			Expect(err).ToNot(HaveOccurred())
+			deps := operator.GetDependencies(&common.Cluster{})
 			Expect(deps).To(ContainElement(kmm.Operator.Name))
 		})
 	})

@@ -892,7 +892,7 @@ var _ = Describe("Operators manager", func() {
 		),
 		Entry("when only CNV is specified",
 			[]*models.MonitoredOperator{&cnv.Operator},
-			[]*models.MonitoredOperator{&cnv.Operator, &lsoDependency},
+			[]*models.MonitoredOperator{&cnv.Operator},
 		),
 		Entry("when CNV, ODF and LSO are specified",
 			[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
@@ -1012,9 +1012,9 @@ var _ = Describe("Operators manager", func() {
 		})
 		It("should be provided for configured operators", func() {
 			requirements1 := models.OperatorHardwareRequirements{OperatorName: operatorName1}
-			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements1, nil)
+			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements1)
 			requirements2 := models.OperatorHardwareRequirements{OperatorName: operatorName2}
-			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements2, nil)
+			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements2)
 
 			reqBreakdown, err := manager.GetPreflightRequirementsBreakdownForCluster(context.TODO(), cluster)
 
@@ -1024,17 +1024,6 @@ var _ = Describe("Operators manager", func() {
 				&models.OperatorHardwareRequirements{OperatorName: operatorName1},
 				&models.OperatorHardwareRequirements{OperatorName: operatorName2},
 			))
-		})
-
-		It("should return error", func() {
-			theError := errors.New("boom")
-			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError).AnyTimes()
-			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError).AnyTimes()
-
-			_, err := manager.GetPreflightRequirementsBreakdownForCluster(context.TODO(), cluster)
-
-			Expect(err).To(HaveOccurred())
-			Expect(err).To(BeEquivalentTo(theError))
 		})
 	})
 
