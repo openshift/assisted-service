@@ -132,7 +132,12 @@ func (f *spokeK8sClientFactory) restConfigFromSecret(secret *corev1.Secret) (*re
 	if err != nil {
 		return nil, err
 	}
-	return clientConfig.ClientConfig()
+	restConfig, err := clientConfig.ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	f.logger.Infof("Creating spoke client for API server: %s (secret: %s/%s)", restConfig.Host, secret.Namespace, secret.Name)
+	return restConfig, nil
 }
 
 func (f *spokeK8sClientFactory) kubeConfigFromSecret(secret *corev1.Secret) ([]byte, error) {

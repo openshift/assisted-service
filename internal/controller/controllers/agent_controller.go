@@ -208,7 +208,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 
 	if agent.Spec.ClusterDeploymentName != nil {
 		kubeKey := types.NamespacedName{
-			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Namespace: agent.GetNamespace(),
 			Name:      agent.Spec.ClusterDeploymentName.Name,
 		}
 		clusterDeployment := &hivev1.ClusterDeployment{}
@@ -216,7 +216,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		// Retrieve clusterDeployment
 		if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
 			errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
-				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+				agent.Spec.ClusterDeploymentName.Name, agent.GetNamespace())
 			log.WithError(err).Error(errMsg)
 			// Update that we failed to retrieve the clusterDeployment
 			//TODO MGMT-7844 add mapping CD-ACI to rnot requeue always
@@ -227,7 +227,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		cluster, err2 := r.Installer.GetClusterByKubeKey(kubeKey)
 		if err2 != nil {
 			log.WithError(err2).Errorf("Fail to get cluster name: %s namespace: %s in backend",
-				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+				agent.Spec.ClusterDeploymentName.Name, agent.GetNamespace())
 			// Update that we failed to retrieve the cluster from the database
 			return r.updateStatus(ctx, log, agent, origAgent, &h.Host, nil, err2, true)
 		}
@@ -519,7 +519,7 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 				// only remove the spoke resources if the entire cluster isn't being deleted
 				clusterRef := types.NamespacedName{
 					Name:      agent.Spec.ClusterDeploymentName.Name,
-					Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+					Namespace: agent.GetNamespace(),
 				}
 				clusterExists, err := r.clusterExists(ctx, clusterRef)
 				if err != nil {
@@ -1702,7 +1702,7 @@ func (r *AgentReconciler) updateLabels(log logrus.FieldLogger, ctx context.Conte
 
 	namespace := ""
 	if agent.Spec.ClusterDeploymentName != nil {
-		namespace = agent.Spec.ClusterDeploymentName.Namespace
+		namespace = agent.GetNamespace()
 	}
 	changed = setAgentLabel(log, agent, AgentLabelClusterDeploymentNamespace, namespace) || changed
 
@@ -1853,7 +1853,7 @@ func (r *AgentReconciler) updateHostFencingCredentials(ctx context.Context, log 
 
 func (r *AgentReconciler) updateHostIgnitionEndpointToken(ctx context.Context, log logrus.FieldLogger, host *common.Host, agent *aiv1beta1.Agent, params *installer.V2UpdateHostParams) (bool, error) {
 	if agent.Spec.IgnitionEndpointTokenReference != nil {
-		token, err := r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference)
+		token, err := r.getIgnitionToken(ctx, agent.Spec.IgnitionEndpointTokenReference, agent.GetNamespace())
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get ignition token")
 			return false, err
@@ -2045,8 +2045,8 @@ func updateInstallDisk(host *models.Host, desiredDiskID, desiredDiskByPath strin
 	return !matchesInstallDisk, diskID, nil
 }
 
-func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference) (string, error) {
-	secretRef := types.NamespacedName{Namespace: ignitionEndpointTokenReference.Namespace, Name: ignitionEndpointTokenReference.Name}
+func (r *AgentReconciler) getIgnitionToken(ctx context.Context, ignitionEndpointTokenReference *aiv1beta1.IgnitionEndpointTokenReference, ownerNamespace string) (string, error) {
+	secretRef := types.NamespacedName{Namespace: ownerNamespace, Name: ignitionEndpointTokenReference.Name}
 	secret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if err != nil {
 		return "", errors.Wrap(err, "Failed to get user-data secret")
@@ -2211,13 +2211,13 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.Fie
 	var cluster *common.Cluster
 	if agent.Spec.ClusterDeploymentName != nil {
 		clusterKey := types.NamespacedName{
-			Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+			Namespace: agent.GetNamespace(),
 			Name:      agent.Spec.ClusterDeploymentName.Name,
 		}
 		cluster, err = r.Installer.GetClusterByKubeKey(clusterKey)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Failed to get cluster (name: %s namespace: %s)",
-				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+				agent.Spec.ClusterDeploymentName.Name, agent.GetNamespace())
 			return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 		}
 		clusterID = cluster.ID
