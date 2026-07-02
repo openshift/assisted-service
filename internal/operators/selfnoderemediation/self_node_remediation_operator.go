@@ -48,8 +48,8 @@ func (o *operator) GetFullName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{operatorsCommon.NodeHealthcheckOperatorName}, nil
+func (o *operator) GetDependencies(cluster *common.Cluster) []string {
+	return []string{operatorsCommon.NodeHealthcheckOperatorName}
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {

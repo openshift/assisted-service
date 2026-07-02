@@ -399,42 +399,12 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(*reason).To(ContainSubstring(fmt.Sprintf("cannot use Local Storage Operator because it's not compatible with the arm64 architecture on version %s", common.TestVersion().ForArch("arm64").Version())))
 		})
 
-		It("should lvm installed as cnv dependency", func() {
-			cluster := registerNewCluster(
-				common.TestVersion().GreaterThanOrEqual("4.12").Version(),
-				int64(1),
-				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
-				nil,
-				nil,
-			)
-			ops, err := utils_test.TestContext.Agent2BMClient.Operators.V2ListOfClusterOperators(ctx, opclient.NewV2ListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
-
-			var operatorNames []string
-			for _, op := range ops.GetPayload() {
-				operatorNames = append(operatorNames, op.Name)
-			}
-
-			// Builtin
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
-				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
-			}
-
-			// OLM
-			Expect(operatorNames).To(ContainElements(
-				cnv.Operator.Name,
-				lvm.Operator.Name,
-			))
-		})
-
 		// LVM subscription name changed at 4.12: lvmo (<4.12) -> lvms (>=4.12)
 		It("should lvm have right subscription name on version >= 4.12", func() {
 			cluster := registerNewCluster(
 				common.TestVersion().GreaterThanOrEqual("4.12").Version(),
 				int64(1),
-				[]*models.OperatorCreateParams{{Name: cnv.Operator.Name}},
+				[]*models.OperatorCreateParams{{Name: lvm.Operator.Name}},
 				nil,
 				nil,
 			)

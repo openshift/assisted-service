@@ -10,8 +10,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
-	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -37,24 +35,19 @@ var _ = Describe("CNV operator", func() {
 		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
-	DescribeTable("getDependencies", func(ocpVersion string, haMode int64, expectedOperator string) {
-		cluster := common.Cluster{
-			Cluster: models.Cluster{ControlPlaneCount: haMode, OpenshiftVersion: ocpVersion},
-		}
+	Context("GetDependencies", func() {
+		It("should return no dependencies", func() {
+			dependencies := operator.GetDependencies(&common.Cluster{})
+			Expect(dependencies).To(BeEmpty())
+		})
+	})
 
-		requirements, err := operator.GetDependencies(&cluster)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requirements).ToNot(BeNil())
-
-		Expect(requirements[0]).To(BeEquivalentTo(expectedOperator))
-	},
-
-		Entry("LVM, Single node 4.12", "4.12", int64(1), lvm.Operator.Name),
-		Entry("LSO, Multi node 4.15", "4.15", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Multi node 4.21", "4.21", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Multi node 4.12", "4.12", int64(common.MinMasterHostsNeededForInstallationInHaMode), lso.Operator.Name),
-		Entry("LSO, Single node 4.11", "4.11", int64(1), lso.Operator.Name),
-	)
+	Context("GetDependenciesFeatureSupportID", func() {
+		It("should return no dependencies", func() {
+			dependencies := operator.GetDependenciesFeatureSupportID()
+			Expect(dependencies).To(BeEmpty())
+		})
+	})
 
 	Context("host requirements", func() {
 
@@ -62,7 +55,7 @@ var _ = Describe("CNV operator", func() {
 
 		BeforeEach(func() {
 			cluster = common.Cluster{
-				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
+				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode, OpenshiftVersion: "4.12.0"},
 			}
 		})
 
@@ -227,7 +220,7 @@ var _ = Describe("CNV operator", func() {
 		It("should return reqs for SNO", func() {
 			host := models.Host{Role: models.HostRoleMaster}
 			cluster = common.Cluster{
-				Cluster: models.Cluster{ControlPlaneCount: 1, OpenshiftVersion: lvm.LvmsMinOpenshiftVersion4_12},
+				Cluster: models.Cluster{ControlPlaneCount: 1, OpenshiftVersion: "4.12.0"},
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), &cluster, &host)
@@ -299,9 +292,7 @@ var _ = Describe("CNV operator", func() {
 
 	DescribeTable("GetPreflightRequirements, should be returned", func(cfg cnv.Config, cluster common.Cluster) {
 		cnvOperator := cnv.NewCNVOperator(log, cfg)
-		requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
+		requirements := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
 		Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 		numQualitative := 3
 		workerRequirements := newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)
