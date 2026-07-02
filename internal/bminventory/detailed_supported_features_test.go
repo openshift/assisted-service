@@ -43,7 +43,7 @@ var _ = Describe("GetDetailedSupportedFeatures", func() {
 			{
 				OperatorName:     "cnv",
 				FeatureSupportID: models.FeatureSupportLevelIDCNV,
-				Dependencies:     []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLSO, models.FeatureSupportLevelIDLVM},
+				Dependencies:     []models.FeatureSupportLevelID{},
 			},
 		}).AnyTimes()
 	}
