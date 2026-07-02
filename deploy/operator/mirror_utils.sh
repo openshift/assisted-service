@@ -1,3 +1,43 @@
+function mirror_command_succeeded() {
+  log_file="${1}"
+
+  if grep -qE 'one or more errors occurred|errors during mirroring|error: unable to copy layer' "${log_file}"; then
+    return 1
+  fi
+
+  return 0
+}
+
+function run_mirror_command_with_retry() {
+  attempts="${MIRROR_RETRY_ATTEMPTS:-5}"
+  interval="${MIRROR_RETRY_INTERVAL:-60}"
+  log_file=""
+  rc=0
+
+  for attempt in $(seq 1 "${attempts}"); do
+    log_file=$(mktemp)
+    echo "Mirror attempt ${attempt}/${attempts}: $*"
+
+    set +o pipefail
+    "$@" 2>&1 | tee "${log_file}"
+    rc=${PIPESTATUS[0]}
+    set -o pipefail
+
+    if [[ "${rc}" -eq 0 ]] && mirror_command_succeeded "${log_file}"; then
+      rm -f "${log_file}"
+      return 0
+    fi
+
+    echo "Mirror failed (exit=${rc}), waiting ${interval}s before retry..."
+    rm -f "${log_file}"
+    if [[ "${attempt}" -lt "${attempts}" ]]; then
+      sleep "${interval}"
+    fi
+  done
+
+  return 1
+}
+
 function mirror_package() {
   # Here we will do the next actions:
   # 1. Create an index of specific packages from specific remote indexes
@@ -34,13 +74,13 @@ function mirror_package() {
         --packages "${package}" \
         --tag "${local_registry_index_tag}"
 
-  GODEBUG=x509ignoreCN=0 podman push \
+  run_mirror_command_with_retry env GODEBUG=x509ignoreCN=0 podman push \
         --tls-verify=false \
         "${local_registry_index_tag}" \
         --authfile "${authfile}"
 
   manifests_dir=$(mktemp -d -t manifests-XXXXXXXXXX)
-  GODEBUG=x509ignoreCN=0 oc adm catalog mirror \
+  run_mirror_command_with_retry env GODEBUG=x509ignoreCN=0 oc adm catalog mirror \
         "${local_registry_index_tag}" \
         "${local_registry_image_tag}" \
         --registry-config="${authfile}" \
@@ -153,7 +193,7 @@ function ocp_mirror_release() {
   source_image="${2}"
   dest_mirror_repo="${3}"
 
-  oc adm -a "${pull_secret_file}" release mirror \
+  run_mirror_command_with_retry oc adm -a "${pull_secret_file}" release mirror \
          --from="${source_image}" \
          --to="${dest_mirror_repo}"
 }
