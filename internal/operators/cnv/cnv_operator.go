@@ -64,8 +64,8 @@ func (o *operator) GetFullName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{}, nil
+func (o *operator) GetDependencies(cluster *common.Cluster) []string {
+	return []string{}
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
@@ -178,11 +178,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
-	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
-	if err != nil {
-		log.WithError(err).Errorf("Cannot Retrieve preflight requirements for cluster %s", cluster.ID)
-		return nil, err
-	}
+	preflightRequirements := o.GetPreflightRequirements(ctx, cluster)
 
 	if common.IsSingleNodeCluster(cluster) {
 		overhead, err := o.getDevicesMemoryOverhead(host)
@@ -221,7 +217,7 @@ func (o *operator) getWorkerRequirements(ctx context.Context, cluster *common.Cl
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements {
 	qualitativeRequirements := []string{
 		"Additional 1GiB of RAM per each supported GPU",
 		"Additional 1GiB of RAM per each supported SR-IOV NIC",
@@ -231,13 +227,9 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 		qualitativeRequirements = append(qualitativeRequirements, fmt.Sprintf("Additional disk with %d Gi", o.config.SNOPoolSizeRequestHPPGib))
 	}
 
-	cnvODependencies, err := o.GetDependencies(cluster)
-	if err != nil {
-		return &models.OperatorHardwareRequirements{}, err
-	}
 	requirements := models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: cnvODependencies,
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: qualitativeRequirements,
@@ -261,7 +253,7 @@ func (o *operator) GetPreflightRequirements(_ context.Context, cluster *common.C
 		requirements.Requirements.Master.Quantitative.RAMMib += WorkerMemory
 	}
 
-	return &requirements, nil
+	return &requirements
 }
 
 func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {

@@ -37,8 +37,7 @@ var _ = Describe("CNV operator", func() {
 
 	Context("GetDependencies", func() {
 		It("should return no dependencies", func() {
-			dependencies, err := operator.GetDependencies(&common.Cluster{})
-			Expect(err).ToNot(HaveOccurred())
+			dependencies := operator.GetDependencies(&common.Cluster{})
 			Expect(dependencies).To(BeEmpty())
 		})
 	})
@@ -293,8 +292,7 @@ var _ = Describe("CNV operator", func() {
 
 	DescribeTable("GetPreflightRequirements, should be returned", func(cfg cnv.Config, cluster common.Cluster) {
 		cnvOperator := cnv.NewCNVOperator(log, cfg)
-		requirements, err := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
-		Expect(err).ToNot(HaveOccurred())
+		requirements := cnvOperator.GetPreflightRequirements(context.TODO(), &cluster)
 		Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 		numQualitative := 3
 		workerRequirements := newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)

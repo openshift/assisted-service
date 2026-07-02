@@ -301,8 +301,7 @@ var _ = Describe("Operator", func() {
 	})
 
 	It("Depends on the node feature discovery operator", func() {
-		deps, err := operator.GetDependencies(&common.Cluster{})
-		Expect(err).ToNot(HaveOccurred())
+		deps := operator.GetDependencies(&common.Cluster{})
 		Expect(deps).To(ContainElement(nodefeaturediscovery.Operator.Name))
 	})
 })

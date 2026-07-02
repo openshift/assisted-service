@@ -114,15 +114,13 @@ var _ = Describe("GetDependencies", func() {
 				Hosts: []*models.Host{{}},
 			},
 		}
-		dependencies, err := operator.GetDependencies(cluster)
-		Expect(err).ToNot(HaveOccurred())
+		dependencies := operator.GetDependencies(cluster)
 		Expect(dependencies).To(BeEmpty())
 	})
 
 	It("should return no dependencies for a cluster without hosts", func() {
 		cluster := &common.Cluster{}
-		dependencies, err := operator.GetDependencies(cluster)
-		Expect(err).ToNot(HaveOccurred())
+		dependencies := operator.GetDependencies(cluster)
 		Expect(dependencies).To(BeEmpty())
 	})
 
@@ -132,8 +130,7 @@ var _ = Describe("GetDependencies", func() {
 				ControlPlaneCount: 1,
 			},
 		}
-		dependencies, err := operator.GetDependencies(cluster)
-		Expect(err).ToNot(HaveOccurred())
+		dependencies := operator.GetDependencies(cluster)
 		Expect(dependencies).To(ConsistOf(lvm.Operator.Name))
 	})
 })
