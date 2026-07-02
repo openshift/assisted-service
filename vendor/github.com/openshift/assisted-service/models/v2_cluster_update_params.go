@@ -57,7 +57,7 @@ type V2ClusterUpdateParams struct {
 	HTTPProxy *string `json:"http_proxy,omitempty"`
 
 	// A proxy URL to use for creating HTTPS connections outside the cluster.
-	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\> or https://\<username\>:\<pswd\>@\<ip\>:\<port\>
 	//
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
 
