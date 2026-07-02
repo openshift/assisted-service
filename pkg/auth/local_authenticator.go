@@ -11,7 +11,6 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -103,7 +102,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
 	}
 
-	return ocm.AdminPayload(), nil
+	return claims, nil
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {

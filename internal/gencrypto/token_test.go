@@ -96,6 +96,27 @@ var _ = Context("with an ECDSA key pair", func() {
 
 		validateToken(tokenString, publicKey, id)
 	})
+
+	It("LocalJWTForKey includes iat and exp claims", func() {
+		id := uuid.New().String()
+		tokenString, err := LocalJWTForKey(id, privateKeyPEM, InfraEnvKey)
+		Expect(err).ToNot(HaveOccurred())
+
+		parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
+		parsed, err := parser.Parse(tokenString, func(t *jwt.Token) (interface{}, error) { return publicKey, nil })
+		Expect(err).ToNot(HaveOccurred())
+
+		claims, ok := parsed.Claims.(jwt.MapClaims)
+		Expect(ok).To(BeTrue())
+
+		iat, ok := claims["iat"].(float64)
+		Expect(ok).To(BeTrue())
+		Expect(iat).To(BeNumerically(">", 0))
+
+		exp, ok := claims["exp"].(float64)
+		Expect(ok).To(BeTrue())
+		Expect(exp).To(BeNumerically(">", iat))
+	})
 })
 
 var _ = Describe("JWTForSymmetricKey", func() {

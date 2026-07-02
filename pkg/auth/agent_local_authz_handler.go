@@ -67,7 +67,10 @@ func (a *AgentLocalAuthzHandler) agentInstallerAuthorizer(request *http.Request,
 
 	authClaim, ok := claims["auth_scheme"].(string)
 	if !ok {
-		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("malformed auth_scheme claim"))
+		if authScheme == "agentAuth" {
+			return nil
+		}
+		return common.NewInfraError(http.StatusForbidden, fmt.Errorf("token lacks auth_scheme claim and endpoint requires %s", authScheme))
 	}
 
 	if authClaim == "" || authScheme == "" {

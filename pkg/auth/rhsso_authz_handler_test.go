@@ -53,6 +53,16 @@ var _ = Describe("NewAuthzHandler", func() {
 		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
 		_, ok = handler.(*NoneHandler)
 		Expect(ok).To(BeTrue())
+
+		cfg = &Config{AuthType: TypeLocal}
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
+		_, ok = handler.(*AgentLocalAuthzHandler)
+		Expect(ok).To(BeTrue())
+
+		cfg = &Config{AuthType: TypeAgentLocal}
+		handler = NewAuthzHandler(cfg, nil, logrus.New(), nil)
+		_, ok = handler.(*AgentLocalAuthzHandler)
+		Expect(ok).To(BeTrue())
 	})
 })
 
