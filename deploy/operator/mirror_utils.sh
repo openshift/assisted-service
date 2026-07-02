@@ -152,60 +152,10 @@ function ocp_mirror_release() {
   pull_secret_file="${1}"
   source_image="${2}"
   dest_mirror_repo="${3}"
-  local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-3}"
-  local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-30}"
-  local attempt=1
-  local output=""
 
-  while [ "${attempt}" -le "${max_attempts}" ]; do
-    if output=$(oc adm -a "${pull_secret_file}" release mirror \
-               --from="${source_image}" \
-               --to="${dest_mirror_repo}" 2>&1); then
-      echo "${output}"
-      return 0
-    fi
-
-    echo "${output}"
-
-    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error "${output}"; then
-      return 1
-    fi
-
-    echo "Release mirror failed with a transient registry error (attempt ${attempt}/${max_attempts}), retrying in ${retry_delay}s..." >&2
-    sleep "${retry_delay}"
-    attempt=$((attempt + 1))
-  done
-}
-
-function transient_registry_error() {
-  echo "${1}" | grep -Eqi 'unexpected EOF|504 Gateway|502 Bad Gateway|503 Service Unavailable|connection reset|TLS handshake timeout|broken pipe|i/o timeout|use of closed network connection'
-}
-
-function mirror_image_with_retry() {
-  authfile="${1}"
-  source_image="${2}"
-  dest_repo="${3}"
-  local max_attempts="${4:-3}"
-  local retry_delay="${5:-15}"
-  local attempt=1
-  local output=""
-
-  while [ "${attempt}" -le "${max_attempts}" ]; do
-    if output=$(oc image mirror -a "${authfile}" "${source_image}" "${dest_repo}" 2>&1); then
-      echo "${output}"
-      return 0
-    fi
-
-    echo "${output}"
-
-    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error "${output}"; then
-      return 1
-    fi
-
-    echo "Image mirror failed with a transient registry error (attempt ${attempt}/${max_attempts}), retrying in ${retry_delay}s..." >&2
-    sleep "${retry_delay}"
-    attempt=$((attempt + 1))
-  done
+  oc adm -a "${pull_secret_file}" release mirror \
+         --from="${source_image}" \
+         --to="${dest_mirror_repo}"
 }
 
 function image_repo_from_pullspec() {
@@ -216,37 +166,6 @@ function mirror_repo_from_source() {
   release_mirror_repo="${1}"
   source_repo="${2}"
   echo "${release_mirror_repo}/${source_repo#quay.io/}"
-}
-
-function release_payload_art_dev_pullspecs() {
-  release_image="${1}"
-  authfile="${2}"
-
-  oc adm -a "${authfile}" release info "${release_image}" --images 2>/dev/null | \
-    awk '{print $2}' | grep -E '^quay.io/openshift-release-dev/ocp-v[0-9]+\.[0-9]+-art-dev@sha256:' || true
-}
-
-function discover_os_image_stream_images_from_release_json() {
-  release_image="${1}"
-  authfile="${2}"
-  local payload_specs payload_file payload_count
-
-  payload_specs=$(release_payload_art_dev_pullspecs "${release_image}" "${authfile}")
-  payload_count=$(printf '%s\n' "${payload_specs}" | sed '/^$/d' | wc -l)
-
-  if [ "${payload_count}" -gt 0 ]; then
-    echo "Release metadata scan: excluding ${payload_count} exact release payload art-dev digests already covered by oc adm release mirror" >&2
-    payload_file=$(mktemp)
-    printf '%s\n' "${payload_specs}" | jq -R . | jq -s . > "${payload_file}"
-    oc adm -a "${authfile}" release info "${release_image}" -o json | \
-      jq -r --slurpfile payload "${payload_file}" \
-        '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | unique | map(select(. as $i | ($payload[0] | index($i)) | not)) | .[]'
-    rm -f "${payload_file}"
-  else
-    echo "Release metadata scan: could not determine release payload art-dev digests, scanning all art-dev digests" >&2
-    oc adm -a "${authfile}" release info "${release_image}" -o json | \
-      jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | unique | .[]'
-  fi
 }
 
 function discover_os_image_stream_images_from_mco_tool() {
@@ -289,10 +208,17 @@ function discover_os_image_stream_images_from_mco_tool() {
   '
 }
 
-# Discover the container images that node-image-pull needs by asking the same
-# machine-config-osimagestream helper the bootstrap installer uses. Fall back to
-# scanning release metadata only when the helper is unavailable in older payloads.
-function discover_os_image_stream_images() {
+function discover_os_image_stream_sources_from_release_json() {
+  release_image="${1}"
+  authfile="${2}"
+
+  oc adm -a "${authfile}" release info "${release_image}" -o json | \
+    jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | map(split("@")[0]) | unique | .[]'
+}
+
+# Discover OSImageStream source repositories for registries.conf. The MCO helper
+# matches bootstrap discovery; release metadata is a fallback for older payloads.
+function discover_os_image_stream_sources() {
   release_image="${1}"
   authfile="${2}"
   local images mco_status=0
@@ -300,8 +226,10 @@ function discover_os_image_stream_images() {
   images=$(discover_os_image_stream_images_from_mco_tool "${release_image}" "${authfile}") || mco_status=$?
 
   if [ "${mco_status}" -eq 0 ] && [ -n "${images}" ]; then
-    echo "Discovered $(printf '%s\n' "${images}" | sed '/^$/d' | wc -l) OSImageStream image(s) via machine-config-osimagestream" >&2
-    echo "${images}"
+    printf '%s\n' "${images}" | while IFS= read -r image; do
+      [ -n "${image}" ] || continue
+      image_repo_from_pullspec "${image}"
+    done | sort -u
     return 0
   fi
 
@@ -310,77 +238,7 @@ function discover_os_image_stream_images() {
   fi
 
   echo "machine-config-osimagestream unavailable; falling back to release metadata scan" >&2
-  images=$(discover_os_image_stream_images_from_release_json "${release_image}" "${authfile}")
-  echo "Discovered $(printf '%s\n' "${images}" | sed '/^$/d' | wc -l) OSImageStream image(s) via release metadata scan" >&2
-  echo "${images}"
-}
-
-function discover_os_image_stream_sources() {
-  release_image="${1}"
-  authfile="${2}"
-
-  discover_os_image_stream_images "${release_image}" "${authfile}" | \
-    while IFS= read -r image; do
-      [ -n "${image}" ] || continue
-      image_repo_from_pullspec "${image}"
-    done | sort -u
-}
-
-function idms_covers_source() {
-  source="${1}"
-  oc get imagedigestmirrorset -o json 2>/dev/null | \
-    jq -e --arg src "${source}" \
-      '.items[].spec.imageDigestMirrors[] | select(.source == $src) | .mirrors | length > 0' >/dev/null
-}
-
-function idms_covers_source_except_managed() {
-  source="${1}"
-  oc get imagedigestmirrorset -o json 2>/dev/null | \
-    jq -e --arg src "${source}" \
-      '.items[] | select(.metadata.name != "assisted-osimagestream-mirror") | .spec.imageDigestMirrors[] | select(.source == $src) | .mirrors | length > 0' >/dev/null
-}
-
-function icsp_covers_source() {
-  source="${1}"
-  oc get imagecontentsourcepolicy -o json 2>/dev/null | \
-    jq -e --arg src "${source}" \
-      '.items[].spec.repositoryDigestMirrors[]? | select(.source == $src) | .mirrors | length > 0' >/dev/null
-}
-
-function cluster_mirror_covers_source() {
-  source="${1}"
-  idms_covers_source "${source}" || icsp_covers_source "${source}"
-}
-
-function cluster_mirror_covers_source_except_managed() {
-  source="${1}"
-  idms_covers_source_except_managed "${source}" || icsp_covers_source "${source}"
-}
-
-function array_contains() {
-  local needle="$1"
-  shift
-  local item
-
-  for item in "$@"; do
-    [ "${item}" = "${needle}" ] && return 0
-  done
-  return 1
-}
-
-function managed_osimagestream_idms_sources() {
-  oc get imagedigestmirrorset assisted-osimagestream-mirror -o json 2>/dev/null | \
-    jq -r '.spec.imageDigestMirrors[]?.source // empty'
-}
-
-# IDMS/ICSP only map a source repo to a mirror; they do not prove a digest was copied.
-# Before skipping oc image mirror, verify the digest is present in the local mirror repo.
-function local_mirror_has_digest() {
-  pull_secret_file="${1}"
-  mirror_repo="${2}"
-  digest="${3}"
-
-  oc image info -a "${pull_secret_file}" "${mirror_repo}@${digest}" &>/dev/null
+  discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
 }
 
 # oc adm catalog mirror stores related images under ${local_registry}/olm/<repo-with-slashes-as-dashes>:latest
@@ -418,105 +276,6 @@ function registry_configs_for_os_image_stream_sources() {
       [ -n "${source}" ] || continue
       registry_config "${source}" "$(mirror_repo_from_source "${release_mirror_repo}" "${source}")"
     done
-}
-
-function apply_os_image_stream_idms() {
-  release_mirror_repo="${1}"
-  shift
-  local sources=("$@")
-  local merged_sources=()
-  local idms_entries=""
-  local source mirror_repo existing_source
-
-  while IFS= read -r existing_source; do
-    [ -n "${existing_source}" ] || continue
-    if ! array_contains "${existing_source}" "${merged_sources[@]}"; then
-      merged_sources+=("${existing_source}")
-    fi
-  done < <(managed_osimagestream_idms_sources)
-
-  for source in "${sources[@]}"; do
-    if ! array_contains "${source}" "${merged_sources[@]}"; then
-      merged_sources+=("${source}")
-    fi
-  done
-
-  for source in "${merged_sources[@]}"; do
-    if cluster_mirror_covers_source_except_managed "${source}"; then
-      echo "Cluster mirror already covers ${source}, skipping"
-      continue
-    fi
-    mirror_repo=$(mirror_repo_from_source "${release_mirror_repo}" "${source}")
-    idms_entries="${idms_entries}
-  - mirrors:
-    - ${mirror_repo}
-    source: ${source}"
-  done
-
-  if [ -z "${idms_entries}" ]; then
-    return 0
-  fi
-
-  if ! oc get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
-    echo "ImageDigestMirrorSet CRD not available, skipping OSImageStream IDMS"
-    return 0
-  fi
-
-  cat << EOF | oc apply -f -
-apiVersion: config.openshift.io/v1
-kind: ImageDigestMirrorSet
-metadata:
-  name: assisted-osimagestream-mirror
-spec:
-  imageDigestMirrors:${idms_entries}
-EOF
-}
-
-# Mirror OSImageStream images that are not covered by oc adm release mirror and
-# publish IDMS entries for their source repositories.
-function setup_os_image_stream_mirrors() {
-  pull_secret_file="${1}"
-  release_image="${2}"
-  release_mirror_repo="${3}"
-
-  local images sources=()
-  local image source_repo mirror_repo digest source
-  local mirrored=0 skipped=0
-
-  images=$(discover_os_image_stream_images "${release_image}" "${pull_secret_file}")
-  if [ -z "${images}" ]; then
-    echo "No OSImageStream images discovered for ${release_image}, skipping OS image stream mirror setup"
-    return 0
-  fi
-
-  while IFS= read -r image; do
-    [ -n "${image}" ] || continue
-    source_repo=$(image_repo_from_pullspec "${image}")
-    digest="${image#*@}"
-    mirror_repo=$(mirror_repo_from_source "${release_mirror_repo}" "${source_repo}")
-
-    if local_mirror_has_digest "${pull_secret_file}" "${mirror_repo}" "${digest}"; then
-      echo "Digest ${digest} already present at ${mirror_repo}, skipping mirror"
-      skipped=$((skipped + 1))
-    else
-      echo "Mirroring OSImageStream image ${image} -> ${mirror_repo}"
-      mirror_image_with_retry "${pull_secret_file}" "${image}" "${mirror_repo}"
-      mirrored=$((mirrored + 1))
-    fi
-
-    if ! array_contains "${source_repo}" "${sources[@]}"; then
-      sources+=("${source_repo}")
-    fi
-  done <<< "${images}"
-
-  echo "OSImageStream mirror summary: ${mirrored} mirrored, ${skipped} already present locally" >&2
-
-  if [ ${#sources[@]} -eq 0 ]; then
-    return 0
-  fi
-
-  echo "Ensuring disconnected mirrors exist for OSImageStream sources: ${sources[*]}"
-  apply_os_image_stream_idms "${release_mirror_repo}" "${sources[@]}"
 }
 
 function install_oc_mirrorv2(){

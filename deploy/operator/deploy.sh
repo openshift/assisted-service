@@ -35,15 +35,10 @@ function setup_disconnected_parameters() {
 
     merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
 
-    release_mirror_repo="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     ocp_mirror_release \
         "${PULL_SECRET_FILE}" \
         "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
-        "${release_mirror_repo}"
-    setup_os_image_stream_mirrors \
-        "${AUTHFILE}" \
-        "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
-        "${release_mirror_repo}"
+        "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 }
 
 set -o xtrace

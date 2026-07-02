@@ -88,12 +88,6 @@ ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
 oc get namespace "${SPOKE_NAMESPACE}" || oc create namespace "${SPOKE_NAMESPACE}"
 
-if [ "${DISCONNECTED}" = "true" ]; then
-    oc get configmap assisted-mirror-config -n "${ASSISTED_NAMESPACE}" -o json | \
-      jq --arg ns "${SPOKE_NAMESPACE}" '.metadata.namespace = $ns | del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.managedFields)' | \
-      oc apply -f -
-fi
-
 oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
     oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
 oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
@@ -145,7 +139,11 @@ STATE_INFO=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGEN
 
 if [[ "${COMPLETED_STATUS}" != "True" ]] || [[ "${COMPLETED_REASON}" != "InstallationCompleted" ]]; then
     echo "Cluster installation failed: Completed=${COMPLETED_STATUS}/${COMPLETED_REASON}, stateInfo=${STATE_INFO}"
-    oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o yaml
+    oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" \
+        -o 'custom-columns=NAME:.metadata.name,CONDITIONS:.status.conditions[*].type' 2>/dev/null || true
+    if [ "${ASSISTED_DEBUG_WAIT_FAILURES:-false}" = "true" ]; then
+        oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o yaml
+    fi
     exit 1
 fi
 echo "Cluster has been installed successfully!"
