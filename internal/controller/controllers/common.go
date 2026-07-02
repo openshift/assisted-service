@@ -323,7 +323,11 @@ func clusterNetworksArrayToEntries(networks []*models.ClusterNetwork) []hiveext.
 
 func clusterNetworksEntriesToArray(entries []hiveext.ClusterNetworkEntry) []*models.ClusterNetwork {
 	return funk.Map(entries, func(entry hiveext.ClusterNetworkEntry) *models.ClusterNetwork {
-		return &models.ClusterNetwork{Cidr: models.Subnet(entry.CIDR), HostPrefix: int64(entry.HostPrefix)}
+		cidr := entry.CIDR
+		if normalized, err := network.NormalizeCIDR(cidr); err == nil {
+			cidr = normalized
+		}
+		return &models.ClusterNetwork{Cidr: models.Subnet(cidr), HostPrefix: int64(entry.HostPrefix)}
 	}).([]*models.ClusterNetwork)
 }
 
@@ -335,7 +339,11 @@ func serviceNetworksArrayToStrings(networks []*models.ServiceNetwork) []string {
 
 func serviceNetworksEntriesToArray(entries []string) []*models.ServiceNetwork {
 	return funk.Map(entries, func(entry string) *models.ServiceNetwork {
-		return &models.ServiceNetwork{Cidr: models.Subnet(entry)}
+		cidr := entry
+		if normalized, err := network.NormalizeCIDR(cidr); err == nil {
+			cidr = normalized
+		}
+		return &models.ServiceNetwork{Cidr: models.Subnet(cidr)}
 	}).([]*models.ServiceNetwork)
 }
 
@@ -347,7 +355,11 @@ func machineNetworksArrayToEntries(networks []*models.MachineNetwork) []hiveext.
 
 func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*models.MachineNetwork {
 	return funk.Map(entries, func(entry hiveext.MachineNetworkEntry) *models.MachineNetwork {
-		return &models.MachineNetwork{Cidr: models.Subnet(entry.CIDR)}
+		cidr := entry.CIDR
+		if normalized, err := network.NormalizeCIDR(cidr); err == nil {
+			cidr = normalized
+		}
+		return &models.MachineNetwork{Cidr: models.Subnet(cidr)}
 	}).([]*models.MachineNetwork)
 }
 

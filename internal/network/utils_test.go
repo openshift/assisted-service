@@ -470,6 +470,16 @@ var _ = Describe("AreMachineNetworksIdentical", func() {
 			},
 			expectedResult: false,
 		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.MachineNetwork{
+				{Cidr: "fcff:0069:0001:0000::/64"},
+			},
+			n2: []*models.MachineNetwork{
+				{Cidr: "fcff:69:1::/64"},
+			},
+			expectedResult: true,
+		},
 	}
 	for i := range tests {
 		t := tests[i]
@@ -566,6 +576,16 @@ var _ = Describe("ArServiceNetworksIdentical", func() {
 				},
 			},
 			expectedResult: false,
+		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.ServiceNetwork{
+				{Cidr: "fd02:0000:0000:0000::/112"},
+			},
+			n2: []*models.ServiceNetwork{
+				{Cidr: "fd02::/112"},
+			},
+			expectedResult: true,
 		},
 	}
 	for i := range tests {
@@ -691,6 +711,16 @@ var _ = Describe("ArClusterNetworksIdentical", func() {
 				},
 			},
 			expectedResult: false,
+		},
+		{
+			name: "IPv6 non-canonical vs canonical",
+			n1: []*models.ClusterNetwork{
+				{Cidr: "fd01:0000:0000:0000::/48", HostPrefix: 64},
+			},
+			n2: []*models.ClusterNetwork{
+				{Cidr: "fd01::/48", HostPrefix: 64},
+			},
+			expectedResult: true,
 		},
 	}
 	for i := range tests {

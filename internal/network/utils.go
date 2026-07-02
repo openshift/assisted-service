@@ -520,14 +520,13 @@ func AreMachineNetworksIdentical(n1, n2 []*models.MachineNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr {
+			if !cidrsEqual(n1[i].Cidr, n2[i].Cidr) {
 				return false
 			}
 		}
 		return true
 	}
-	// For non-dual-stack, use original order-agnostic comparison
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return cidrsEqual(n1[i].Cidr, n2[j].Cidr) })
 }
 
 func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
@@ -537,13 +536,13 @@ func AreServiceNetworksIdentical(n1, n2 []*models.ServiceNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr {
+			if !cidrsEqual(n1[i].Cidr, n2[i].Cidr) {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return cidrsEqual(n1[i].Cidr, n2[j].Cidr) })
 }
 
 func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
@@ -553,13 +552,13 @@ func AreClusterNetworksIdentical(n1, n2 []*models.ClusterNetwork) bool {
 			return false
 		}
 		for i := 0; i < len(n1); i++ {
-			if n1[i].Cidr != n2[i].Cidr || n1[i].HostPrefix != n2[i].HostPrefix {
+			if !cidrsEqual(n1[i].Cidr, n2[i].Cidr) || n1[i].HostPrefix != n2[i].HostPrefix {
 				return false
 			}
 		}
 		return true
 	}
-	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return n1[i].Cidr == n2[j].Cidr && n1[i].HostPrefix == n2[j].HostPrefix })
+	return areListsEquivalent(len(n1), len(n2), func(i, j int) bool { return cidrsEqual(n1[i].Cidr, n2[j].Cidr) && n1[i].HostPrefix == n2[j].HostPrefix })
 }
 
 func AreApiVipsIdentical(n1, n2 []*models.APIVip) bool {
@@ -749,4 +748,13 @@ func ipsEqual(a, b models.IP) bool {
 		return string(a) == string(b)
 	}
 	return ipA == ipB
+}
+
+func cidrsEqual(a, b models.Subnet) bool {
+	normA, errA := NormalizeCIDR(string(a))
+	normB, errB := NormalizeCIDR(string(b))
+	if errA != nil || errB != nil {
+		return string(a) == string(b)
+	}
+	return normA == normB
 }
