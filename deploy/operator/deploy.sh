@@ -27,8 +27,6 @@ function setup_disconnected_parameters() {
         export ASSISTED_DEPLOYMENT_METHOD="from_community_operators"
     fi
 
-    export HIVE_DEPLOYMENT_METHOD="from_upstream"
-
     export MIRROR_BASE_URL="http://$(wrap_if_ipv6 ${PROVISIONING_HOST_IP})/images"
     export AUTHFILE="${XDG_RUNTIME_DIR}/containers/auth.json"
     mkdir -p $(dirname ${AUTHFILE})
