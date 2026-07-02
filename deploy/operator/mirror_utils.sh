@@ -158,6 +158,126 @@ function ocp_mirror_release() {
          --to="${dest_mirror_repo}"
 }
 
+function image_repo_from_pullspec() {
+  echo "${1%%@*}"
+}
+
+function mirror_repo_from_source() {
+  release_mirror_repo="${1}"
+  source_repo="${2}"
+  echo "${release_mirror_repo}/${source_repo#quay.io/}"
+}
+
+function discover_os_image_stream_images_from_mco_tool() {
+  release_image="${1}"
+  authfile="${2}"
+  local mco_image osimagestream_json authfile_dir authfile_name mco_stderr
+
+  if ! mco_image=$(oc adm -a "${authfile}" release info "${release_image}" --image-for machine-config-operator); then
+    echo "machine-config-osimagestream discovery failed: could not resolve machine-config-operator image" >&2
+    return 2
+  fi
+
+  if ! podman run --quiet --rm --net=none --authfile "${authfile}" "${mco_image}" test -x /usr/bin/machine-config-osimagestream 2>/dev/null; then
+    return 1
+  fi
+
+  authfile_dir=$(dirname "${authfile}")
+  authfile_name=$(basename "${authfile}")
+  mco_stderr=$(mktemp)
+
+  if ! osimagestream_json=$(podman run --quiet --rm --net=host \
+        --authfile "${authfile}" \
+        -v "${authfile_dir}:/authfile:ro,Z" \
+        "${mco_image}" \
+        /usr/bin/machine-config-osimagestream get osimagestream \
+          --release-image "${release_image}" \
+          --authfile "/authfile/${authfile_name}" \
+          --output-format json 2>"${mco_stderr}"); then
+    echo "machine-config-osimagestream discovery failed:" >&2
+    cat "${mco_stderr}" >&2
+    rm -f "${mco_stderr}"
+    return 2
+  fi
+  rm -f "${mco_stderr}"
+
+  echo "${osimagestream_json}" | jq -r '
+    .status.availableStreams[]? |
+    (.osImage, .osExtensionsImage) |
+    select(. != null and . != "")
+  '
+}
+
+function discover_os_image_stream_sources_from_release_json() {
+  release_image="${1}"
+  authfile="${2}"
+
+  oc adm -a "${authfile}" release info "${release_image}" -o json | \
+    jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | map(split("@")[0]) | unique | .[]'
+}
+
+# Discover OSImageStream source repositories for registries.conf. The MCO helper
+# matches bootstrap discovery; release metadata is a fallback for older payloads.
+function discover_os_image_stream_sources() {
+  release_image="${1}"
+  authfile="${2}"
+  local images mco_status=0
+
+  images=$(discover_os_image_stream_images_from_mco_tool "${release_image}" "${authfile}") || mco_status=$?
+
+  if [ "${mco_status}" -eq 0 ] && [ -n "${images}" ]; then
+    printf '%s\n' "${images}" | while IFS= read -r image; do
+      [ -n "${image}" ] || continue
+      image_repo_from_pullspec "${image}"
+    done | sort -u
+    return 0
+  fi
+
+  if [ "${mco_status}" -eq 2 ]; then
+    return 1
+  fi
+
+  echo "machine-config-osimagestream unavailable; falling back to release metadata scan" >&2
+  discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
+}
+
+# oc adm catalog mirror stores related images under ${local_registry}/olm/<repo-with-slashes-as-dashes>:latest
+function local_olm_image_from_source() {
+  source_image="${1}"
+  local_registry="${2}"
+  local path="${source_image#*/}"
+  path="${path%%@*}"
+  path="${path%%:*}"
+  echo "${local_registry}/olm/${path//\//-}:latest"
+}
+
+function configure_disconnected_database_image() {
+  local default_image="${DEFAULT_DATABASE_IMAGE:-quay.io/sclorg/postgresql-15-c9s:latest}"
+
+  if [ "${DISCONNECTED}" != "true" ]; then
+    return 0
+  fi
+
+  if [ -n "${DATABASE_IMAGE:-}" ]; then
+    return 0
+  fi
+
+  export DATABASE_IMAGE="$(local_olm_image_from_source "${default_image}" "${LOCAL_REGISTRY}")"
+  echo "Using disconnected DATABASE_IMAGE from local OLM mirror"
+}
+
+function registry_configs_for_os_image_stream_sources() {
+  release_image="${1}"
+  authfile="${2}"
+  release_mirror_repo="${3}"
+
+  discover_os_image_stream_sources "${release_image}" "${authfile}" | \
+    while IFS= read -r source; do
+      [ -n "${source}" ] || continue
+      registry_config "${source}" "$(mirror_repo_from_source "${release_mirror_repo}" "${source}")"
+    done
+}
+
 function install_oc_mirrorv2(){
   OC_MIRROR_URL=${OC_MIRROR_URL:-https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.19/oc-mirror.tar.gz}
   curl -L --retry 5 --connect-timeout 30 -s "${OC_MIRROR_URL}" | tar xvz -C /usr/local/bin/

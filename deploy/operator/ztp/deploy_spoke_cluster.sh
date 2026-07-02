@@ -133,10 +133,25 @@ fi
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Completed" "1m" "${SPOKE_NAMESPACE}"
+COMPLETED_STATUS=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
+COMPLETED_REASON=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}')
+STATE_INFO=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.debugInfo.stateInfo}')
+
+if [[ "${COMPLETED_STATUS}" != "True" ]] || [[ "${COMPLETED_REASON}" != "InstallationCompleted" ]]; then
+    echo "Cluster installation failed: Completed=${COMPLETED_STATUS}/${COMPLETED_REASON}, stateInfo=${STATE_INFO}"
+    oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" \
+        -o 'custom-columns=NAME:.metadata.name,CONDITIONS:.status.conditions[*].type' 2>/dev/null || true
+    if [ "${ASSISTED_DEBUG_WAIT_FAILURES:-false}" = "true" ]; then
+        oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o yaml
+    fi
+    exit 1
+fi
 echo "Cluster has been installed successfully!"
 
-wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
+if ! wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"; then
+    echo "Hive ClusterDeployment spec.installed never became true"
+    exit 1
+fi
 echo "Hive acknowledged cluster installation!"
 
 # For SNO we derive API IP from .status.apiVIP of the agentclusterinstall as this is the address of the single node.
@@ -151,7 +166,7 @@ if [ ${SPOKE_CONTROLPLANE_AGENTS} -eq 1 ] || [ "${USER_MANAGED_NETWORKING}" == "
         echo "Fatal:"
         echo "No value found in the agentclusterinstall for .status.apiVIP"
         echo "Cannot determine the address of the API"
-        exit
+        exit 1
     fi
 fi
 

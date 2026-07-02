@@ -41,7 +41,10 @@ func ImageServiceImage() string {
 }
 
 func DatabaseImage() string {
-	return getEnvVar("DATABASE_IMAGE", "quay.io/sclorg/postgresql-15-c9s:latest")
+	if value, ok := os.LookupEnv("DATABASE_IMAGE"); ok && value != "" {
+		return value
+	}
+	return "quay.io/sclorg/postgresql-15-c9s:latest"
 }
 
 func AgentImage() string {
