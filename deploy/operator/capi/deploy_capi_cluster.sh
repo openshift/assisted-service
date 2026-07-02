@@ -75,13 +75,13 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
     # 2. mirrored hypershift operator image to local mirror registry
     HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${HYPERSHIFT_IMAGE}):hypershift"
-    oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
+    run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
     # 3. mirrored CAPI provider agent image to local mirror registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
       export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${PROVIDER_IMAGE}):capi"
-      oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
+      run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
   
@@ -98,7 +98,7 @@ mirror:
   - name: ${RELEASE_IMAGE_HCP_OVERRIDE}
   - name: ${CAPI_IMAGE}
 EOM
-    oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace file://$PWD/mirror docker://"${OCP_MIRROR_REGISTRY}" --v2
+    run_mirror_command_with_retry oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace file://$PWD/mirror docker://"${OCP_MIRROR_REGISTRY}" --v2
 
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
