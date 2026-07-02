@@ -80,8 +80,8 @@ func (o *operator) GetFullName() string {
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	return []string{lso.Operator.Name}, nil
+func (o *operator) GetDependencies(cluster *common.Cluster) []string {
+	return []string{lso.Operator.Name}
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
@@ -287,14 +287,10 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
-	dependencies, err := o.GetDependencies(cluster)
-	if err != nil {
-		return &models.OperatorHardwareRequirements{}, err
-	}
+func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: dependencies,
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
@@ -321,7 +317,7 @@ func (o *operator) GetPreflightRequirements(context context.Context, cluster *co
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {

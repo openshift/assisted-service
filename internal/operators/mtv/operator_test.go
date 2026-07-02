@@ -72,8 +72,7 @@ var _ = Describe("MTV Operator", func() {
 		)
 
 		It("should return the dependencies", func() {
-			preflightRequirements, err := operator.GetPreflightRequirements(context.TODO(), &cluster)
-			Expect(err).To(BeNil())
+			preflightRequirements := operator.GetPreflightRequirements(context.TODO(), &cluster)
 			Expect(preflightRequirements.Dependencies).To(Equal([]string{cnv.Operator.Name}))
 		})
 	})

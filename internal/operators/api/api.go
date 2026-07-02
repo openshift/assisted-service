@@ -34,7 +34,7 @@ type Operator interface {
 	// GetFullName reports the full name of the specified Operator
 	GetFullName() string
 	// GetDependencies provides a list of dependencies of the Operator
-	GetDependencies(cluster *common.Cluster) ([]string, error)
+	GetDependencies(cluster *common.Cluster) []string
 	// GetDependenciesFeatureSupportID provides a list of all feature ids that are potential dependencies
 	GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID
 	// ValidateCluster verifies whether this operator is valid for given cluster
@@ -54,7 +54,7 @@ type Operator interface {
 	// GetMonitoredOperator returns MonitoredOperator corresponding to the Operator implementation
 	GetMonitoredOperator() *models.MonitoredOperator
 	// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
+	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements
 	// GetFeatureSupportID returns the operator unique feature-support ID
 	GetFeatureSupportID() models.FeatureSupportLevelID
 	// GetBundleLabels returns the list of bundles names associated with the operator based on the given feature IDs

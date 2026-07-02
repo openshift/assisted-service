@@ -19,6 +19,7 @@ volumes:
   # cache
   - $HOME/.cache/go-build:/go/pkg/mod
   - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
+  - $HOME/.cache/goimports:$HOME/.cache/goimports
 
   # libvirt
   - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
