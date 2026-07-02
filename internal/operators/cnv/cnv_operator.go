@@ -11,8 +11,6 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
-	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -67,30 +65,11 @@ func (o *operator) GetFullName() string {
 
 // GetDependencies provides a list of dependencies of the Operator
 func (o *operator) GetDependencies(cluster *common.Cluster) ([]string, error) {
-	lsoOperator := []string{lso.Operator.Name}
-	lvmOperator := []string{lvm.Operator.Name}
-
-	// Disable lso for ARM deployment as it's not supported
-	// to allow CNV ARM operator
-	if cluster.CPUArchitecture == common.ARM64CPUArchitecture || cluster.CPUArchitecture == common.MultiCPUArchitecture {
-		return make([]string, 0), nil
-	}
-
-	if cluster.OpenshiftVersion == "" {
-		return lsoOperator, nil
-	}
-
-	// SNO
-	if common.IsSingleNodeCluster(cluster) {
-		if isGreaterOrEqual, _ := common.BaseVersionGreaterOrEqual(lvm.LvmsMinOpenshiftVersion4_12, cluster.OpenshiftVersion); isGreaterOrEqual {
-			return lvmOperator, nil
-		}
-	}
-	return lsoOperator, nil
+	return []string{}, nil
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLSO, models.FeatureSupportLevelIDLVM}
+	return nil
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the Operator

@@ -820,7 +820,7 @@ var _ = Describe("Operators manager", func() {
 		),
 		Entry("when only CNV is specified",
 			[]*models.MonitoredOperator{&cnv.Operator},
-			[]*models.MonitoredOperator{&cnv.Operator, &lsoDependency},
+			[]*models.MonitoredOperator{&cnv.Operator},
 		),
 		Entry("when CNV, ODF and LSO are specified",
 			[]*models.MonitoredOperator{&cnv.Operator, &odf.Operator, &lso.Operator},
