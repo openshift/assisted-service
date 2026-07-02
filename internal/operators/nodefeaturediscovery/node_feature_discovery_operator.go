@@ -65,7 +65,7 @@ func (o *operator) GetDependencies(c *common.Cluster) []string {
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	return nil
+	return []models.FeatureSupportLevelID{}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the operator.

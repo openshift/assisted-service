@@ -46,9 +46,9 @@ var _ = Describe("Loki Operator", func() {
 	})
 
 	Context("GetDependenciesFeatureSupportID", func() {
-		It("should return nil for no dependencies", func() {
+		It("should return no dependencies", func() {
 			deps := operator.GetDependenciesFeatureSupportID()
-			Expect(deps).To(BeNil())
+			Expect(deps).To(BeEmpty())
 		})
 	})
 
