@@ -152,20 +152,37 @@ function ocp_mirror_release() {
   pull_secret_file="${1}"
   source_image="${2}"
   dest_mirror_repo="${3}"
+  local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-3}"
+  local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-30}"
+  local attempt=1
+  local output=""
 
-  oc adm -a "${pull_secret_file}" release mirror \
-         --from="${source_image}" \
-         --to="${dest_mirror_repo}"
+  while [ "${attempt}" -le "${max_attempts}" ]; do
+    if output=$(oc adm -a "${pull_secret_file}" release mirror \
+               --from="${source_image}" \
+               --to="${dest_mirror_repo}" 2>&1); then
+      echo "${output}"
+      return 0
+    fi
+
+    echo "${output}"
+
+    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error "${output}"; then
+      return 1
+    fi
+
+    echo "Release mirror failed with a transient registry error (attempt ${attempt}/${max_attempts}), retrying in ${retry_delay}s..." >&2
+    sleep "${retry_delay}"
+    attempt=$((attempt + 1))
+  done
+}
+
+function transient_registry_error() {
+  echo "${1}" | grep -Eqi 'unexpected EOF|504 Gateway|502 Bad Gateway|503 Service Unavailable|connection reset|TLS handshake timeout|broken pipe|i/o timeout|use of closed network connection'
 }
 
 function image_repo_from_pullspec() {
   echo "${1%%@*}"
-}
-
-function mirror_repo_from_source() {
-  release_mirror_repo="${1}"
-  source_repo="${2}"
-  echo "${release_mirror_repo}/${source_repo#quay.io/}"
 }
 
 function discover_os_image_stream_images_from_mco_tool() {
@@ -270,12 +287,15 @@ function registry_configs_for_os_image_stream_sources() {
   release_image="${1}"
   authfile="${2}"
   release_mirror_repo="${3}"
+  shift 3
 
-  discover_os_image_stream_sources "${release_image}" "${authfile}" | \
-    while IFS= read -r source; do
-      [ -n "${source}" ] || continue
-      registry_config "${source}" "$(mirror_repo_from_source "${release_mirror_repo}" "${source}")"
+  while IFS= read -r source; do
+    [ -n "${source}" ] || continue
+    for skip_repo in "$@"; do
+      [ "${source}" = "${skip_repo}" ] && continue 2
     done
+    registry_config "${source}" "${release_mirror_repo}"
+  done < <(discover_os_image_stream_sources "${release_image}" "${authfile}")
 }
 
 function install_oc_mirrorv2(){

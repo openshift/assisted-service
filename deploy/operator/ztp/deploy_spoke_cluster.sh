@@ -133,6 +133,7 @@ fi
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Stopped" "90m" "${SPOKE_NAMESPACE}"
 echo "Cluster installation has been stopped (either for good or bad reasons)"
 
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "condition=Completed" "1m" "${SPOKE_NAMESPACE}"
 COMPLETED_STATUS=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].status}')
 COMPLETED_REASON=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.conditions[?(@.type=="Completed")].reason}')
 STATE_INFO=$(oc get -n "${SPOKE_NAMESPACE}" "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" -o jsonpath='{.status.debugInfo.stateInfo}')
