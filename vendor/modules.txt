@@ -132,8 +132,8 @@ github.com/chai2010/gettext-go
 github.com/chai2010/gettext-go/mo
 github.com/chai2010/gettext-go/plural
 github.com/chai2010/gettext-go/po
-# github.com/containerd/containerd v1.7.29
-## explicit; go 1.23.0
+# github.com/containerd/containerd v1.7.33
+## explicit; go 1.24.0
 github.com/containerd/containerd/pkg/userns
 github.com/containerd/containerd/platforms
 # github.com/containerd/log v0.1.0
