@@ -43,8 +43,6 @@ func NewFeatureToggleClient(transport http.RoundTripper, path string) *FeatureTo
 }
 
 // Query returns the target 'feature_toggle_query' resource.
-//
-//
 func (c *FeatureToggleClient) Query() *FeatureToggleQueryClient {
 	return NewFeatureToggleQueryClient(
 		c.transport,

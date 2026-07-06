@@ -20,15 +20,14 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/servicelogs/v1
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/openshift-online/ocm-sdk-go/errors"
 	"github.com/openshift-online/ocm-sdk-go/helpers"
 )
@@ -64,6 +63,8 @@ func (c *ClusterLogsClient) Add() *ClusterLogsAddRequest {
 // List creates a request for the 'list' method.
 //
 // Retrieves the list of cluster logs.
+// Use this endpoint to list service logs (including private logs).
+// This endpoint is limited to users who allowed to view private logs.
 func (c *ClusterLogsClient) List() *ClusterLogsListRequest {
 	return &ClusterLogsListRequest{
 		transport: c.transport,
@@ -102,6 +103,13 @@ func (r *ClusterLogsAddRequest) Header(name string, value interface{}) *ClusterL
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterLogsAddRequest) Impersonate(user string) *ClusterLogsAddRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Body sets the value of the 'body' parameter.
 //
 // Log entry data.
@@ -135,7 +143,7 @@ func (r *ClusterLogsAddRequest) SendContext(ctx context.Context) (result *Cluste
 		Method: "POST",
 		URL:    uri,
 		Header: header,
-		Body:   ioutil.NopCloser(buffer),
+		Body:   io.NopCloser(buffer),
 	}
 	if ctx != nil {
 		request = request.WithContext(ctx)
@@ -148,29 +156,25 @@ func (r *ClusterLogsAddRequest) SendContext(ctx context.Context) (result *Cluste
 	result = &ClusterLogsAddResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClusterLogsAddResponse(result, response.Body)
+	err = readClusterLogsAddResponse(result, reader)
 	if err != nil {
 		return
 	}
 	return
-}
-
-// marshall is the method used internally to marshal requests for the
-// 'add' method.
-func (r *ClusterLogsAddRequest) marshal(writer io.Writer) error {
-	stream := helpers.NewStream(writer)
-	r.stream(stream)
-	return stream.Error
-}
-func (r *ClusterLogsAddRequest) stream(stream *jsoniter.Stream) {
 }
 
 // ClusterLogsAddResponse is the response for the 'add' method.
@@ -251,6 +255,13 @@ func (r *ClusterLogsListRequest) Header(name string, value interface{}) *Cluster
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *ClusterLogsListRequest) Impersonate(user string) *ClusterLogsListRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Order sets the value of the 'order' parameter.
 //
 // Order criteria.
@@ -259,10 +270,9 @@ func (r *ClusterLogsListRequest) Header(name string, value interface{}) *Cluster
 // a SQL statement. For example, in order to sort the
 // cluster logs descending by name identifier the value should be:
 //
-// [source,sql]
-// ----
+// ```sql
 // name desc
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then the order of the
 // results is undefined.
@@ -288,10 +298,9 @@ func (r *ClusterLogsListRequest) Page(value int) *ClusterLogsListRequest {
 // instead of the names of the columns of a table. For example, in order to
 // retrieve cluster logs with service_name starting with my:
 //
-// [source,sql]
-// ----
+// ```sql
 // service_name like 'my%'
-// ----
+// ```
 //
 // If the parameter isn't provided, or if the value is empty, then all the
 // items that the user has permission to see will be returned.
@@ -352,15 +361,21 @@ func (r *ClusterLogsListRequest) SendContext(ctx context.Context) (result *Clust
 	result = &ClusterLogsListResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readClusterLogsListResponse(result, response.Body)
+	err = readClusterLogsListResponse(result, reader)
 	if err != nil {
 		return
 	}
