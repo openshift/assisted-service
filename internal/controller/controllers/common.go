@@ -137,15 +137,6 @@ func ensureConfigMapIsLabelled(ctx context.Context, c client.Client, cm *corev1.
 		}
 	}
 
-	// Add the label to configmap if not present
-	if !metav1.HasLabel(cm.ObjectMeta, WatchResourceLabel) {
-		metav1.SetMetaDataLabel(&cm.ObjectMeta, WatchResourceLabel, WatchResourceValue)
-		err := c.Update(ctx, cm)
-		if err != nil {
-			errorMessage := fmt.Sprintf("failed to set label %s:%s for configmap %s/%s", WatchResourceLabel, WatchResourceValue, key.Namespace, key.Name)
-			return errors.Wrap(err, errorMessage)
-		}
-	}
 	return nil
 }
 

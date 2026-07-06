@@ -2056,9 +2056,8 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 				found := &corev1.ConfigMap{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: testMirrorRegConfigmapName, Namespace: testNamespace}, found)).To(Succeed())
-				Expect(found.Labels).To(HaveLen(2))
+				Expect(found.Labels).To(HaveLen(1))
 				Expect(found.Labels).To(HaveKeyWithValue(BackupLabel, BackupLabelValue))
-				Expect(found.Labels).To(HaveKeyWithValue(WatchResourceLabel, WatchResourceValue))
 			})
 		})
 
