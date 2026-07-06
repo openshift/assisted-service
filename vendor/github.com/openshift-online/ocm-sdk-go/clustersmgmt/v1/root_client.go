@@ -131,6 +131,16 @@ func (c *Client) Clusters() *ClustersClient {
 	)
 }
 
+// DeletedClusters returns the target 'deleted_clusters' resource.
+//
+// Reference to the resource that manages the collection of deleted clusters.
+func (c *Client) DeletedClusters() *DeletedClustersClient {
+	return NewDeletedClustersClient(
+		c.transport,
+		path.Join(c.path, "deleted_clusters"),
+	)
+}
+
 // Environment returns the target 'environment' resource.
 //
 // Reference to the resource that manages the environment.
@@ -178,6 +188,16 @@ func (c *Client) LoadBalancerQuotaValues() *LoadBalancerQuotaValuesClient {
 	return NewLoadBalancerQuotaValuesClient(
 		c.transport,
 		path.Join(c.path, "load_balancer_quota_values"),
+	)
+}
+
+// LogForwarding returns the target 'log_forwarding' resource.
+//
+// Reference to log forwarding related resources.
+func (c *Client) LogForwarding() *LogForwardingClient {
+	return NewLogForwardingClient(
+		c.transport,
+		path.Join(c.path, "log_forwarding"),
 	)
 }
 

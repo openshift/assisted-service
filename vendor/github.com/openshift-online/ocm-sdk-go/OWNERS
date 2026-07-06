@@ -13,6 +13,13 @@ approvers:
 - nimrodshn
 - oriAdler
 - tzvatot
+- cristianoveiga
+- macgregor
+# ARO approvers
+- miguelsorianod
+# ROSA approvers
+- robpblake
+- lucasponce
 reviewers:
 - ciaranRoche
 - davidleerh
@@ -21,3 +28,5 @@ reviewers:
 - nimrodshn
 - oriAdler
 - tzvatot
+- cristianoveiga
+- macgregor
