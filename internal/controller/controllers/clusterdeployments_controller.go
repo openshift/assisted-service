@@ -2028,10 +2028,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&aiv1beta1.Agent{},
 			handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment),
 			agentSpecStatusChangedPredicate).
-		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToClusterDeployment),
-			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
-				return obj.GetLabels()[WatchResourceLabel] == WatchResourceValue
-			}))).
+		Watches(&corev1.ConfigMap{}, handler.EnqueueRequestsFromMapFunc(r.mapConfigMapToClusterDeployment)).
 		WatchesRawSource(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
