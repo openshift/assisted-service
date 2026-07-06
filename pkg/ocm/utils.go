@@ -2,6 +2,7 @@ package ocm
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -32,6 +33,20 @@ const (
 
 type response interface {
 	Status() int
+}
+
+// errorFromOCMHTTPStatus maps an OCM Accounts Management HTTP error to the Assisted API response.
+// To align with assisted-service conventions, only auth/forbidden responses are InfraError.
+// All other HTTP failures are surfaced as ApiError with the same status code.
+func errorFromOCMHTTPStatus(status int, err error) error {
+	switch {
+	case status == http.StatusUnauthorized || status == http.StatusForbidden:
+		return common.NewInfraError(int32(status), err)
+	case status >= 400:
+		return common.NewApiError(int32(status), err)
+	default:
+		return nil
+	}
 }
 
 func AdminPayload() *AuthPayload {
@@ -87,11 +102,25 @@ func HandleOCMResponse(ctx context.Context, log sdkClient.Logger, response respo
 		log.Error(ctx, "Failed to send %s request. Error: %v", requestType, err)
 		if response != nil {
 			log.Error(ctx, "Failed to send %s request. Response: %v", requestType, response)
-			if response.Status() >= 400 && response.Status() < 500 {
-				return common.NewInfraError(http.StatusUnauthorized, err)
+			if mapped := errorFromOCMHTTPStatus(response.Status(), err); mapped != nil {
+				return mapped
 			}
 		}
 		return common.NewApiError(http.StatusServiceUnavailable, err)
+	}
+	// Production safeguard: newer ocm-sdk-go accountsmgmt clients can return err == nil together with an HTTP
+	// error status when the response body is empty — SendContext uses Peek(1); on io.EOF it returns before
+	// unmarshalling an errors.Error (see e.g. accountsmgmt/v1 subscription_client.go SubscriptionUpdateRequest.SendContext).
+	// Callers must treat non-success HTTP status as failure even when err is nil.
+	if response != nil {
+		st := response.Status()
+		if st >= 400 {
+			oerr := fmt.Errorf("%s request failed with HTTP status %d", requestType, st)
+			log.Error(ctx, "OCM %s returned HTTP status %d", requestType, st)
+			if mapped := errorFromOCMHTTPStatus(st, oerr); mapped != nil {
+				return mapped
+			}
+		}
 	}
 	return nil
 }
