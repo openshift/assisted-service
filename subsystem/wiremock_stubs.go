@@ -215,10 +215,22 @@ func (w *WireMock) createStubsForCapabilityReview() error {
 	if _, err := w.createStubIgnoreValidationsCapabilityReview(fakePayloadUsername2, OrgId2, true); err != nil {
 		return err
 	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadUsername, OrgId1, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadUsername2, OrgId2, false); err != nil {
+		return err
+	}
+	if _, err := w.createStubSoftTimeoutsOrgCapabilityReview(fakePayloadClusterEditor, OrgId1, false); err != nil {
+		return err
+	}
 	if _, err := w.createStubAccountsMgmt(fakePayloadUsername, OrgId1); err != nil {
 		return err
 	}
 	if _, err := w.createStubAccountsMgmt(fakePayloadUsername2, OrgId2); err != nil {
+		return err
+	}
+	if _, err := w.createStubAccountsMgmt(fakePayloadClusterEditor, OrgId1); err != nil {
 		return err
 	}
 	return nil
@@ -339,18 +351,42 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 
 	case subscriptionUpdateOpenshiftClusterID:
 
-		type subscriptionUpdateRequest struct {
-			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
+		// matchesJsonPath matches PATCH bodies produced across ocm-sdk-go / ocm-api-model versions (they always
+		// include "kind" and may add fields). equalToJson against a minimal template is brittle.
+		subResponse := subscription{
+			ID: FakeSubscriptionID,
 		}
 
-		subRequest := subscriptionUpdateRequest{
-			ExternalClusterID: "${json-unit.any-string}",
+		var resBody string
+		if resStatus >= 400 {
+			resBody = w.createErrorResponseBody(resStatus)
+		} else {
+			var resBodyBytes []byte
+			resBodyBytes, err = json.Marshal(subResponse)
+			if err != nil {
+				return err
+			}
+			resBody = string(resBodyBytes)
 		}
 
-		reqBody, err = json.Marshal(subRequest)
-		if err != nil {
-			return err
+		amsSubscriptionStub := &StubDefinition{
+			Request: &RequestDefinition{
+				URL:    subscriptionPath,
+				Method: "PATCH",
+				BodyPatterns: []map[string]string{
+					{"matchesJsonPath": "$.external_cluster_id"},
+				},
+			},
+			Response: &ResponseDefinition{
+				Status: resStatus,
+				Body:   resBody,
+				Headers: map[string]string{
+					"Content-Type": "application/json",
+				},
+			},
 		}
+		_, err = w.addStub(amsSubscriptionStub)
+		return err
 
 	case subscriptionUpdateStatusActive:
 
@@ -503,6 +539,31 @@ func (w *WireMock) createStubIgnoreValidationsCapabilityReview(username string, 
 
 	capabilityRequest := CapabilityRequest{
 		Name:     ocm.IgnoreValidationsCapabilityName,
+		Type:     ocm.OrganizationCapabilityType,
+		Username: username,
+		Org:      orgId,
+	}
+
+	capabilityResponse := CapabilityResponse{
+		Result: strconv.FormatBool(result),
+	}
+	return w.addCapabilityReviewStub(capabilityRequest, capabilityResponse)
+}
+
+func (w *WireMock) createStubSoftTimeoutsOrgCapabilityReview(username string, orgId string, result bool) (string, error) {
+	type CapabilityRequest struct {
+		Name     string `json:"capability"`
+		Type     string `json:"type"`
+		Username string `json:"account_username"`
+		Org      string `json:"organization_id"`
+	}
+
+	type CapabilityResponse struct {
+		Result string `json:"result"`
+	}
+
+	capabilityRequest := CapabilityRequest{
+		Name:     ocm.SoftTimeoutsCapabilityName,
 		Type:     ocm.OrganizationCapabilityType,
 		Username: username,
 		Org:      orgId,
