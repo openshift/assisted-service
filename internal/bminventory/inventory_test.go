@@ -31,6 +31,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
+	"github.com/lib/pq"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -1979,6 +1980,33 @@ var _ = Describe("cluster", func() {
 				resp := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf(""))))
 			})
+
+			It("V2GetCluster populates operator_bundles from source_bundles", func() {
+				// Add operators with source_bundles to the existing cluster
+				operatorName := "nvidia-gpu"
+				Expect(db.Create(&models.MonitoredOperator{
+					ClusterID:     clusterID,
+					Name:          operatorName,
+					OperatorType:  models.OperatorTypeOlm,
+					SourceBundles: pq.StringArray{"openshift-ai"},
+				}).Error).ShouldNot(HaveOccurred())
+
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockDurationsSuccess()
+				mockOperatorManager.EXPECT().GetBundle("openshift-ai", nil).Return(&models.Bundle{
+					ID:                "openshift-ai",
+					Operators:         []string{"openshift-ai"},
+					OptionalOperators: []string{"nvidia-gpu", "amd-gpu"},
+				}, nil).AnyTimes()
+
+				reply := bm.V2GetCluster(ctx, installer.V2GetClusterParams{ClusterID: clusterID})
+				actual, ok := reply.(*installer.V2GetClusterOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.OperatorBundles).To(HaveLen(1))
+				Expect(swag.StringValue(actual.Payload.OperatorBundles[0].ID)).To(Equal("openshift-ai"))
+				Expect(actual.Payload.OperatorBundles[0].OptionalOperators).To(ContainElement("nvidia-gpu"))
+				Expect(actual.Payload.OperatorBundles[0].OptionalOperators).NotTo(ContainElement("amd-gpu"))
+			})
 		})
 
 		Context("GetUnregisteredClusters", func() {
@@ -2917,6 +2945,42 @@ var _ = Describe("cluster", func() {
 					}
 					Expect(foundExpected).Should(BeTrue())
 				})
+
+				It("V2RegisterCluster populates operator_bundles with bundle operators", func() {
+					mockClusterRegisterSuccess(true)
+					newOperatorName := testOLMOperators[0].Name
+
+					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(
+						&models.MonitoredOperator{
+							Name:         testOLMOperators[0].Name,
+							OperatorType: testOLMOperators[0].OperatorType,
+						}, nil).Times(1)
+					mockOperatorManager.EXPECT().ExpandBundleOperators("openshift-ai", []string{newOperatorName}, gomock.Any()).Return(
+						[]*models.OperatorCreateParams{{Name: newOperatorName}}, nil).Times(1)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+						DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
+					mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockOperatorManager.EXPECT().GetBundle("openshift-ai", nil).Return(&models.Bundle{
+						ID:                "openshift-ai",
+						Operators:         []string{},
+						OptionalOperators: []string{newOperatorName},
+					}, nil).AnyTimes()
+
+					clusterParams := getDefaultClusterCreateParams()
+					clusterParams.OperatorBundles = []*models.BundleCreateParams{
+						{ID: swag.String("openshift-ai"), OptionalOperators: []string{newOperatorName}},
+					}
+					reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+						NewClusterParams: clusterParams,
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+					actual := reply.(*installer.V2RegisterClusterCreated)
+					Expect(actual.Payload.OperatorBundles).To(HaveLen(1))
+					Expect(swag.StringValue(actual.Payload.OperatorBundles[0].ID)).To(Equal("openshift-ai"))
+					Expect(actual.Payload.OperatorBundles[0].OptionalOperators).To(ContainElement(newOperatorName))
+				})
 			})
 
 			Context("UpdateCluster", func() {
@@ -3065,6 +3129,57 @@ var _ = Describe("cluster", func() {
 						Expect(equivalentMonitoredOperators(actual.Payload.MonitoredOperators, test.expectedOperators)).To(BeTrue())
 					})
 				}
+			})
+
+			It("V2UpdateCluster populates operator_bundles in response", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				newOperatorName := testOLMOperators[0].Name
+				originalOperators := []*models.MonitoredOperator{
+					&common.TestDefaultConfig.MonitoredOperator,
+				}
+				cluster := &common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					MonitoredOperators: originalOperators,
+					OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+					Platform:           &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+					CPUArchitecture:    common.DefaultCPUArchitecture,
+				}}
+				err := db.Create(cluster).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(createClusterIdMatcher(cluster)).Return(nil).Times(1)
+				mockSuccess()
+				mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(
+					&models.MonitoredOperator{
+						Name:         testOLMOperators[0].Name,
+						OperatorType: testOLMOperators[0].OperatorType,
+					}, nil).Times(1)
+				mockOperatorManager.EXPECT().ExpandBundleOperators("openshift-ai", []string{newOperatorName}, gomock.Any()).Return(
+					[]*models.OperatorCreateParams{{Name: newOperatorName}}, nil).Times(1)
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any(), gomock.Any()).
+					DoAndReturn(func(commonCluster *common.Cluster, operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+						return operators, nil
+					}).Times(1)
+				mockOperatorManager.EXPECT().EnsureOperatorPrerequisite(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockOperatorManager.EXPECT().GetBundle("openshift-ai", nil).Return(&models.Bundle{
+					ID:                "openshift-ai",
+					Operators:         []string{},
+					OptionalOperators: []string{newOperatorName},
+				}, nil).AnyTimes()
+
+				reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.V2ClusterUpdateParams{
+						OperatorBundles: []*models.BundleCreateParams{
+							{ID: swag.String("openshift-ai"), OptionalOperators: []string{newOperatorName}},
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				actual := reply.(*installer.V2UpdateClusterCreated)
+				Expect(actual.Payload.OperatorBundles).To(HaveLen(1))
+				Expect(swag.StringValue(actual.Payload.OperatorBundles[0].ID)).To(Equal("openshift-ai"))
+				Expect(actual.Payload.OperatorBundles[0].OptionalOperators).To(ContainElement(newOperatorName))
 			})
 
 			Context("Ensure CNV or LVM enabled", func() {
