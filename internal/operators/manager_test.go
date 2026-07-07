@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
@@ -578,6 +579,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -621,6 +623,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -695,6 +698,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -737,6 +741,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -933,6 +938,7 @@ var _ = Describe("Operators manager", func() {
 				oadp.Operator.Name,
 				loki.Operator.Name,
 				openshiftlogging.Operator.Name,
+				networkobservability.Operator.Name,
 			))
 		})
 

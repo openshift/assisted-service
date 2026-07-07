@@ -40,16 +40,15 @@ var _ = Describe("Network Observability Operator", func() {
 
 	Context("GetDependencies", func() {
 		It("should return no dependencies", func() {
-			deps, err := operator.GetDependencies(cluster)
-			Expect(err).ToNot(HaveOccurred())
+			deps := operator.GetDependencies(cluster)
 			Expect(deps).To(BeEmpty())
 		})
 	})
 
 	Context("GetDependenciesFeatureSupportID", func() {
-		It("should return nil for no dependencies", func() {
+		It("should return empty slice for no dependencies", func() {
 			deps := operator.GetDependenciesFeatureSupportID()
-			Expect(deps).To(BeNil())
+			Expect(deps).To(BeEmpty())
 		})
 	})
 
@@ -65,8 +64,7 @@ var _ = Describe("Network Observability Operator", func() {
 
 	Context("GetPreflightRequirements", func() {
 		It("should return zero requirements", func() {
-			reqs, err := operator.GetPreflightRequirements(ctx, cluster)
-			Expect(err).ToNot(HaveOccurred())
+			reqs := operator.GetPreflightRequirements(ctx, cluster)
 			Expect(reqs.OperatorName).To(Equal(Name))
 			Expect(reqs.Requirements.Master.Quantitative.CPUCores).To(Equal(int64(0)))
 			Expect(reqs.Requirements.Master.Quantitative.RAMMib).To(Equal(int64(0)))
