@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -167,16 +169,12 @@ func (r *GroupPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *GroupPollResponse) Body() *Group {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *GroupPollResponse) GetBody() (value *Group, ok bool) {
 	return r.response.GetBody()
 }
@@ -206,6 +204,13 @@ func (r *GroupGetRequest) Parameter(name string, value interface{}) *GroupGetReq
 // Header adds a request header.
 func (r *GroupGetRequest) Header(name string, value interface{}) *GroupGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *GroupGetRequest) Impersonate(user string) *GroupGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -241,15 +246,21 @@ func (r *GroupGetRequest) SendContext(ctx context.Context) (result *GroupGetResp
 	result = &GroupGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readGroupGetResponse(result, response.Body)
+	err = readGroupGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -289,8 +300,6 @@ func (r *GroupGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *GroupGetResponse) Body() *Group {
 	if r == nil {
 		return nil
@@ -300,8 +309,6 @@ func (r *GroupGetResponse) Body() *Group {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *GroupGetResponse) GetBody() (value *Group, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {

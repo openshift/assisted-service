@@ -22,7 +22,7 @@ package retry
 import (
 	"bytes"
 	"context"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"strings"
 
@@ -197,7 +197,7 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 	}()
 	var bodyCopy []byte
 	if originalBody != nil {
-		bodyCopy, err = ioutil.ReadAll(originalBody)
+		bodyCopy, err = io.ReadAll(originalBody)
 		if err != nil {
 			return
 		}
@@ -213,7 +213,7 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 
 		// Each time that we retry the request we need to rewind the request body:
 		if bodyCopy != nil {
-			request.Body = ioutil.NopCloser(bytes.NewBuffer(bodyCopy))
+			request.Body = io.NopCloser(bytes.NewBuffer(bodyCopy))
 		}
 
 		// Do an attempt, and return inmediately if this is the last one:
@@ -226,36 +226,58 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 		// Handle errors without HTTP response:
 		if err != nil {
 			message := err.Error()
-			switch {
-			case strings.Contains(message, "EOF"):
-				t.logger.Warn(
-					ctx,
-					"Request for method %s and URL '%s' failed with EOF, "+
-						"will try again: %v",
-					request.Method, request.URL, err,
-				)
-				continue
-			case strings.Contains(message, "connection reset by peer"):
-				t.logger.Warn(
-					ctx,
-					"Request for method %s and URL '%s' failed with connection "+
-						"reset by peer, will try again: %v",
-					request.Method, request.URL, err,
-				)
-				continue
-			case strings.Contains(message, "PROTOCOL_ERROR"):
-				t.logger.Warn(
-					ctx,
-					"Request for method %s and URL '%s' failed with protocol error, "+
-						"will try again: %v",
-					request.Method, request.URL, err,
-				)
-				continue
+			switch request.Method {
+			case http.MethodGet:
+				// GETs can retry on more types of failures because GET is naturally idempotent, other verbs are not.
+				switch {
+				case strings.Contains(message, "EOF"):
+					// EOF can happen after request bytes are sent. This makes it unsafe to retry on mutating requests,
+					// but ok to retry on idempotent ones.
+					t.logger.Warn(
+						ctx,
+						"Request for method %s and URL '%s' failed with EOF, "+
+							"will try again: %v",
+						request.Method, request.URL, err,
+					)
+					continue
+				case strings.Contains(message, "connection reset by peer"):
+					// "connection reset by peer"" can happen after request bytes are sent. This makes it unsafe to
+					// retry on mutating requests, but ok to retry on idempotent ones.
+					t.logger.Warn(
+						ctx,
+						"Request for method %s and URL '%s' failed with connection "+
+							"reset by peer, will try again: %v",
+						request.Method, request.URL, err,
+					)
+					continue
+				}
+				fallthrough // GETS can also retry on all generally retriable errors
+
 			default:
-				// For any other error we just report it to the caller:
-				err = fmt.Errorf("can't send request: %w", err)
-				return
+				switch {
+				case strings.Contains(message, "PROTOCOL_ERROR"):
+					t.logger.Warn(
+						ctx,
+						"Request for method %s and URL '%s' failed with protocol error, "+
+							"will try again: %v",
+						request.Method, request.URL, err,
+					)
+					continue
+				case strings.Contains(message, "REFUSED_STREAM"):
+					t.logger.Warn(
+						ctx,
+						"Request for method %s and URL '%s' failed with refused stream, "+
+							"will try again: %v",
+						request.Method, request.URL, err,
+					)
+					continue
+				default:
+					// For any other error we just report it to the caller:
+					err = fmt.Errorf("can't send request: %w", err)
+					return
+				}
 			}
+
 		}
 
 		// Handle HTTP responses with error codes:
@@ -271,6 +293,14 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 					"will try again",
 				request.Method, request.URL, code,
 			)
+			err = response.Body.Close()
+			if err != nil {
+				t.logger.Error(
+					ctx,
+					"Failed to close response body for method '%s' and URL '%s'",
+					request.Method, request.URL,
+				)
+			}
 			continue
 		case code >= 500 && method == http.MethodGet:
 			// For any other 5xx status code we can't be sure if the server processed
@@ -282,6 +312,14 @@ func (t *roundTripper) RoundTrip(request *http.Request) (response *http.Response
 					"will try again",
 				request.Method, request.URL, code,
 			)
+			err = response.Body.Close()
+			if err != nil {
+				t.logger.Error(
+					ctx,
+					"Failed to close response body for method '%s' and URL '%s'",
+					request.Method, request.URL,
+				)
+			}
 			continue
 		default:
 			// For any other status code we can't be sure if the server processed the
