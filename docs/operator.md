@@ -41,6 +41,36 @@ EOF
 Having the ClusterDeployment CRD installed is a prerequisite.
 Install Hive, if it has not already been installed.
 
+When installing hive-operator via OLM (`deploy/operator/setup_hive.sh with_olm`), the
+catalog source is selected automatically based on the hub cluster OpenShift version:
+
+- OpenShift **< 5.0** (e.g. 4.22): `community-operators` (shipped with the cluster)
+- OpenShift **>= 5.0**: `upstream-community-operators` (hive-operator was removed from
+  `community-operators` starting with OCP 5.0)
+
+Override with `HIVE_CATALOG_SOURCE` if needed. On OCP 5.0+ clusters that do not ship
+`upstream-community-operators` by default, the setup script creates it:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: upstream-community-operators
+  namespace: openshift-marketplace
+spec:
+  displayName: Upstream Community Operators
+  image: quay.io/operatorhubio/catalog:latest
+  publisher: OperatorHub.io
+  sourceType: grpc
+  updateStrategy:
+    registryPoll:
+      interval: 10m0s
+EOF
+```
+
+On OpenShift < 5.0, subscribe directly to the built-in community catalog:
+
 ``` bash
 cat <<EOF | kubectl create -f -
 apiVersion: operators.coreos.com/v1alpha1
@@ -53,6 +83,24 @@ spec:
   installPlanApproval: Automatic
   name: hive-operator
   source: community-operators
+  sourceNamespace: openshift-marketplace
+EOF
+```
+
+On OpenShift >= 5.0, use `upstream-community-operators` instead:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: hive-operator
+  namespace: openshift-operators
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: hive-operator
+  source: upstream-community-operators
   sourceNamespace: openshift-marketplace
 EOF
 ```
