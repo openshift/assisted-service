@@ -88,22 +88,19 @@ func (r *bmoUtils) GetIronicIPs() ([]string, []string, error) {
 		r.log.WithError(err).Error("unable to get provisioning CR")
 		return nil, nil, err
 	}
-	ironicIPs, inspectorIPs, err := provisioning.GetIronicIPs(provisioningInfo)
+	ironicIPs, err := provisioning.GetIronicIPs(provisioningInfo)
 	if err != nil {
 		r.log.WithError(err).Error("unable to determine Ironic's IP")
 		return nil, nil, err
 	}
-	if len(inspectorIPs) == 0 || inspectorIPs[0] == "" {
-		err = errors.New("unable to determine inspector IP, check if metal3 pod is running")
-		r.log.WithError(err)
-		return nil, nil, err
-	}
+
 	if len(ironicIPs) == 0 || ironicIPs[0] == "" {
 		err = errors.New("unable to determine Ironic's IP")
 		r.log.WithError(err)
 		return nil, nil, err
 	}
-	return ironicIPs, inspectorIPs, nil
+	// provisioning.GetIronicIPs used to return twice the same result
+	return ironicIPs, ironicIPs, nil
 }
 
 func (r *bmoUtils) getICCConfig(ctx context.Context) (*ICCConfig, error) {

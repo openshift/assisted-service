@@ -197,6 +197,7 @@ func (r *AgentLabelReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.Agent{}).
+		Named("agent-label").
 		Watches(&aiv1beta1.AgentClassification{}, handler.EnqueueRequestsFromMapFunc(mapAgentClassificationToAgent)).
 		Complete(r)
 }
