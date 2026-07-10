@@ -319,7 +319,6 @@ function from_index_image() {
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
-    configure_disconnected_database_image
     mirror_rhcos
   else
     catalog_source_name=${ASSISTED_SERVICE_OPERATOR_CATALOG}
@@ -334,7 +333,6 @@ function from_community_operators() {
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
-    configure_disconnected_database_image
     mirror_rhcos
   else
     catalog_source_name="community-operators"

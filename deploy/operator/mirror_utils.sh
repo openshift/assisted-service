@@ -258,31 +258,6 @@ function discover_os_image_stream_sources() {
   discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
 }
 
-# oc adm catalog mirror stores related images under ${local_registry}/olm/<repo-with-slashes-as-dashes>:latest
-function local_olm_image_from_source() {
-  source_image="${1}"
-  local_registry="${2}"
-  local path="${source_image#*/}"
-  path="${path%%@*}"
-  path="${path%%:*}"
-  echo "${local_registry}/olm/${path//\//-}:latest"
-}
-
-function configure_disconnected_database_image() {
-  local default_image="${DEFAULT_DATABASE_IMAGE:-quay.io/sclorg/postgresql-15-c9s:latest}"
-
-  if [ "${DISCONNECTED}" != "true" ]; then
-    return 0
-  fi
-
-  if [ -n "${DATABASE_IMAGE:-}" ]; then
-    return 0
-  fi
-
-  export DATABASE_IMAGE="$(local_olm_image_from_source "${default_image}" "${LOCAL_REGISTRY}")"
-  echo "Using disconnected DATABASE_IMAGE from local OLM mirror"
-}
-
 function registry_configs_for_os_image_stream_sources() {
   release_image="${1}"
   authfile="${2}"

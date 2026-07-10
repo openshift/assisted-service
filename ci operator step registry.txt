@@ -1,5 +1,0 @@
-ci-operator/step-registry/agent/e2e/test/conformance/iso-no-registry/agent-e2e-test-conformance-iso-no-registry-commands.sh - only limited set of commands (about 5 tests, NoRegistryClusterInstall)
-ci-operator/step-registry/assisted/baremetal/conf/assisted-baremetal-conf-commands.sh -> has a bug in it: https://gcsweb-ci.apps.ci.l2s4.p1.openshiftapps.com/gcs/test-platform-results/logs/periodic-ci-openshift-assisted-test-infra-master-e2e-vsphere-assisted-5-0-periodic/2066672614960533504/artifacts/e2e-vsphere-assisted-5-0-periodic/assisted-baremetal-conf/build-log.txt
-ci-operator/step-registry/baremetalds/e2e/test/baremetalds-e2e-test-commands.sh
-ci-operator/step-registry/hypershift/conformance/hypershift-conformance-chain.yaml
-
