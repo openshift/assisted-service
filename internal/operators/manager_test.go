@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/authorino"
 	"github.com/openshift/assisted-service/internal/operators/clusterobservability"
@@ -36,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/numaresources"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/oadp"
 	"github.com/openshift/assisted-service/internal/operators/odf"
 	"github.com/openshift/assisted-service/internal/operators/openshiftai"
@@ -970,6 +972,7 @@ var _ = Describe("Operators manager", func() {
 			manager                                                                                 *operators.Manager
 			cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator api.Operator
 			mtvOperator, serviceMeshOperator, pipelinesOperator, authorinoOperator, nfdOperator     api.Operator
+			nvidiaGPUOperator, amdGPUOperator                                                       api.Operator
 		)
 		BeforeEach(func() {
 			cfg := cnv.Config{}
@@ -987,10 +990,13 @@ var _ = Describe("Operators manager", func() {
 			pipelinesOperator = pipelines.NewPipelinesOperator(log)
 			authorinoOperator = authorino.NewAuthorinoOperator(log)
 			nfdOperator = nodefeaturediscovery.NewNodeFeatureDiscoveryOperator(log)
+			nvidiaGPUOperator = nvidiagpu.NewNvidiaGPUOperator(log)
+			amdGPUOperator = amdgpu.NewAMDGPUOperator(log)
 
 			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil,
 				cnvOperator, odfOperator, oaiOperator, serverlessOperator, lsoOperator, nmstateOperator,
 				mtvOperator, serviceMeshOperator, pipelinesOperator, authorinoOperator, nfdOperator,
+				nvidiaGPUOperator, amdGPUOperator,
 			)
 		})
 
@@ -1021,7 +1027,7 @@ var _ = Describe("Operators manager", func() {
 			))
 		})
 
-		It("OpenShift AI bundle contains the OpenShift AI, Serverless, ODF, ServiceMesh, pipelines, authorino and NFD operators", func() {
+		It("OpenShift AI bundle contains the OpenShift AI, Serverless, ODF, ServiceMesh, pipelines and authorino operators", func() {
 			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle).ToNot(BeNil())
@@ -1032,7 +1038,17 @@ var _ = Describe("Operators manager", func() {
 				serviceMeshOperator.GetName(),
 				pipelinesOperator.GetName(),
 				authorinoOperator.GetName(),
-				nfdOperator.GetName(),
+			))
+			Expect(bundle.Operators).NotTo(ContainElement(nfdOperator.GetName()))
+		})
+
+		It("OpenShift AI bundle has nvidia-gpu and amd-gpu as optional operators", func() {
+			bundle, err := manager.GetBundle(operatorscommon.BundleOpenShiftAI.ID, nil)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bundle).ToNot(BeNil())
+			Expect(bundle.OptionalOperators).To(ConsistOf(
+				nvidiaGPUOperator.GetName(),
+				amdGPUOperator.GetName(),
 			))
 		})
 
@@ -1045,6 +1061,7 @@ var _ = Describe("Operators manager", func() {
 			bundles := manager.ListBundles(filter, nil)
 			for _, bundle := range bundles {
 				Expect(bundle.Operators).NotTo(ContainElement(lso.Operator.Name))
+				Expect(bundle.OptionalOperators).NotTo(ContainElement(lso.Operator.Name))
 			}
 		})
 
@@ -1077,6 +1094,53 @@ var _ = Describe("Operators manager", func() {
 			bundle, err := manager.GetBundle(operatorscommon.BundleVirtualization.ID, nil)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(bundle.Title).ToNot(BeEmpty())
+		})
+
+		It("ExpandBundleOperators returns required + selected optional operators", func() {
+			ops, err := manager.ExpandBundleOperators(operatorscommon.BundleOpenShiftAI.ID, []string{"nvidia-gpu"}, nil)
+			Expect(err).ToNot(HaveOccurred())
+			names := make([]string, len(ops))
+			for i, op := range ops {
+				names[i] = op.Name
+			}
+			Expect(names).To(ContainElement("openshift-ai"))
+			Expect(names).To(ContainElement("nvidia-gpu"))
+			Expect(names).NotTo(ContainElement("amd-gpu"))
+		})
+
+		It("ExpandBundleOperators with no optional operators returns only required", func() {
+			ops, err := manager.ExpandBundleOperators(operatorscommon.BundleOpenShiftAI.ID, nil, nil)
+			Expect(err).ToNot(HaveOccurred())
+			names := make([]string, len(ops))
+			for i, op := range ops {
+				names[i] = op.Name
+			}
+			Expect(names).To(ContainElement("openshift-ai"))
+			Expect(names).NotTo(ContainElement("nvidia-gpu"))
+			Expect(names).NotTo(ContainElement("amd-gpu"))
+		})
+
+		It("ExpandBundleOperators with all optional operators", func() {
+			ops, err := manager.ExpandBundleOperators(operatorscommon.BundleOpenShiftAI.ID, []string{"nvidia-gpu", "amd-gpu"}, nil)
+			Expect(err).ToNot(HaveOccurred())
+			names := make([]string, len(ops))
+			for i, op := range ops {
+				names[i] = op.Name
+			}
+			Expect(names).To(ContainElement("nvidia-gpu"))
+			Expect(names).To(ContainElement("amd-gpu"))
+		})
+
+		It("ExpandBundleOperators fails with invalid bundle ID", func() {
+			_, err := manager.ExpandBundleOperators("invalid-bundle", nil, nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("not supported"))
+		})
+
+		It("ExpandBundleOperators fails with invalid optional operator", func() {
+			_, err := manager.ExpandBundleOperators(operatorscommon.BundleOpenShiftAI.ID, []string{"nonexistent-operator"}, nil)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("not a valid optional operator"))
 		})
 	})
 })
