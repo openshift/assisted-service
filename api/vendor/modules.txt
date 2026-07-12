@@ -127,14 +127,14 @@ go.mongodb.org/mongo-driver/bson/bsonrw
 go.mongodb.org/mongo-driver/bson/bsontype
 go.mongodb.org/mongo-driver/bson/primitive
 go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-# golang.org/x/net v0.33.0 => golang.org/x/net v0.24.0
+# golang.org/x/net v0.54.0 => golang.org/x/net v0.24.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/text v0.22.0
-## explicit; go 1.18
+# golang.org/x/text v0.37.0
+## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -215,3 +215,4 @@ sigs.k8s.io/yaml/goyaml.v2
 # github.com/golang/glog => github.com/golang/glog v1.2.4
 # github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
 # github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
+# golang.org/x/crypto => golang.org/x/crypto v0.52.0
