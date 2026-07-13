@@ -8319,10 +8319,10 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
+        "NETWORK_OBSERVABILITY",
         "DUAL_STACK_PRIMARY_IPV6",
         "LOKI",
-        "OPENSHIFT_LOGGING",
-        "NETWORK_OBSERVABILITY"
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
@@ -20083,10 +20083,10 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
+        "NETWORK_OBSERVABILITY",
         "DUAL_STACK_PRIMARY_IPV6",
         "LOKI",
-        "OPENSHIFT_LOGGING",
-        "NETWORK_OBSERVABILITY"
+        "OPENSHIFT_LOGGING"
       ],
       "x-nullable": false
     },
