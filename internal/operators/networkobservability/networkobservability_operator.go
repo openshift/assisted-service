@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	clusterValidationID = "network-observability-requirements-satisfied"
-	hostValidationID    = "network-observability-requirements-satisfied"
+	clusterValidationID = string(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied)
+	hostValidationID    = string(models.HostValidationIDNetworkObservabilityRequirementsSatisfied)
 )
 
 type operator struct {
