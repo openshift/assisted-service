@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -156,16 +158,12 @@ func (r *CPUTotalByNodeRolesOSMetricQueryPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CPUTotalByNodeRolesOSMetricQueryPollResponse) Body() *CPUTotalsNodeRoleOSMetricNode {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CPUTotalByNodeRolesOSMetricQueryPollResponse) GetBody() (value *CPUTotalsNodeRoleOSMetricNode, ok bool) {
 	return r.response.GetBody()
 }
@@ -195,6 +193,13 @@ func (r *CPUTotalByNodeRolesOSMetricQueryGetRequest) Parameter(name string, valu
 // Header adds a request header.
 func (r *CPUTotalByNodeRolesOSMetricQueryGetRequest) Header(name string, value interface{}) *CPUTotalByNodeRolesOSMetricQueryGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *CPUTotalByNodeRolesOSMetricQueryGetRequest) Impersonate(user string) *CPUTotalByNodeRolesOSMetricQueryGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -230,15 +235,21 @@ func (r *CPUTotalByNodeRolesOSMetricQueryGetRequest) SendContext(ctx context.Con
 	result = &CPUTotalByNodeRolesOSMetricQueryGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readCPUTotalByNodeRolesOSMetricQueryGetResponse(result, response.Body)
+	err = readCPUTotalByNodeRolesOSMetricQueryGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -278,8 +289,6 @@ func (r *CPUTotalByNodeRolesOSMetricQueryGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CPUTotalByNodeRolesOSMetricQueryGetResponse) Body() *CPUTotalsNodeRoleOSMetricNode {
 	if r == nil {
 		return nil
@@ -289,8 +298,6 @@ func (r *CPUTotalByNodeRolesOSMetricQueryGetResponse) Body() *CPUTotalsNodeRoleO
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CPUTotalByNodeRolesOSMetricQueryGetResponse) GetBody() (value *CPUTotalsNodeRoleOSMetricNode, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
