@@ -113,3 +113,4 @@ gorm.io/gorm/utils
 # github.com/buger/jsonparser => github.com/buger/jsonparser v1.1.2
 # github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
 # github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.15
+# golang.org/x/crypto => golang.org/x/crypto v0.52.0
