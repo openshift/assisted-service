@@ -35,8 +35,6 @@ github.com/go-openapi/swag
 # github.com/go-openapi/validate v0.22.2
 ## explicit; go 1.18
 github.com/go-openapi/validate
-# github.com/google/go-cmp v0.5.9
-## explicit; go 1.13
 # github.com/jinzhu/inflection v1.0.0
 ## explicit
 github.com/jinzhu/inflection
@@ -81,3 +79,4 @@ gorm.io/gorm/clause
 gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
+# golang.org/x/crypto => golang.org/x/crypto v0.52.0
