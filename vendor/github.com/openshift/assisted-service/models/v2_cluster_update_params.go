@@ -102,10 +102,16 @@ type V2ClusterUpdateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
-	// List of OLM operators to be installed.
+	// List of standalone OLM operators to be installed (not part of any bundle).
 	// For the full list of supported operators, check the endpoint `/v2/supported-operators`:
 	//
 	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
+
+	// List of operator bundles selected by the user with their optional operator choices.
+	// The backend expands bundles into their required operators, adds selected optional operators,
+	// resolves all dependencies, and tracks bundle membership via source_bundles on monitored operators.
+	//
+	OperatorBundles []*BundleCreateParams `json:"operator_bundles"`
 
 	// platform
 	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
@@ -193,6 +199,10 @@ func (m *V2ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOlmOperators(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateOperatorBundles(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -574,6 +584,32 @@ func (m *V2ClusterUpdateParams) validateOlmOperators(formats strfmt.Registry) er
 	return nil
 }
 
+func (m *V2ClusterUpdateParams) validateOperatorBundles(formats strfmt.Registry) error {
+	if swag.IsZero(m.OperatorBundles) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.OperatorBundles); i++ {
+		if swag.IsZero(m.OperatorBundles[i]) { // not required
+			continue
+		}
+
+		if m.OperatorBundles[i] != nil {
+			if err := m.OperatorBundles[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operator_bundles" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operator_bundles" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
 func (m *V2ClusterUpdateParams) validatePlatform(formats strfmt.Registry) error {
 	if swag.IsZero(m.Platform) { // not required
 		return nil
@@ -664,6 +700,10 @@ func (m *V2ClusterUpdateParams) ContextValidate(ctx context.Context, formats str
 	}
 
 	if err := m.contextValidateOlmOperators(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.contextValidateOperatorBundles(ctx, formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -819,6 +859,26 @@ func (m *V2ClusterUpdateParams) contextValidateOlmOperators(ctx context.Context,
 					return ve.ValidateName("olm_operators" + "." + strconv.Itoa(i))
 				} else if ce, ok := err.(*errors.CompositeError); ok {
 					return ce.ValidateName("olm_operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (m *V2ClusterUpdateParams) contextValidateOperatorBundles(ctx context.Context, formats strfmt.Registry) error {
+
+	for i := 0; i < len(m.OperatorBundles); i++ {
+
+		if m.OperatorBundles[i] != nil {
+			if err := m.OperatorBundles[i].ContextValidate(ctx, formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operator_bundles" + "." + strconv.Itoa(i))
+				} else if ce, ok := err.(*errors.CompositeError); ok {
+					return ce.ValidateName("operator_bundles" + "." + strconv.Itoa(i))
 				}
 				return err
 			}

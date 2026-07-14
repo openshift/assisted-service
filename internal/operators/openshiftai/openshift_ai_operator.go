@@ -8,9 +8,11 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/lib/pq"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
+	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/templating"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -39,18 +41,10 @@ type operator struct {
 	log       logrus.FieldLogger
 	config    *Config
 	templates *template.Template
-	vendors   []GPUVendor
-}
-
-//go:generate mockgen --build_flags=--mod=mod -package openshiftai -destination mock_gpu_vendor.go . GPUVendor
-type GPUVendor interface {
-	ClusterHasGPU(c *common.Cluster) (bool, error)
-	GetName() string
-	GetFeatureSupportID() models.FeatureSupportLevelID
 }
 
 // NewOpenShiftAIOperator creates new OpenShift AI operator.
-func NewOpenShiftAIOperator(log logrus.FieldLogger, vendors ...GPUVendor) *operator {
+func NewOpenShiftAIOperator(log logrus.FieldLogger) *operator {
 	config := &Config{}
 	err := envconfig.Process(common.EnvConfigPrefix, config)
 	if err != nil {
@@ -64,7 +58,6 @@ func NewOpenShiftAIOperator(log logrus.FieldLogger, vendors ...GPUVendor) *opera
 		log:       log,
 		config:    config,
 		templates: templates,
-		vendors:   vendors,
 	}
 }
 
@@ -77,49 +70,18 @@ func (o *operator) GetFullName() string {
 	return "OpenShift AI"
 }
 
-// GetDependencies provides a list of dependencies of the Operator
-func (o *operator) GetDependencies(c *common.Cluster) (result []string, err error) {
-	ret := make([]string, 0)
-
+// GetDependencies provides a list of dependencies of the Operator.
+// GPU vendors (NVIDIA, AMD) are no longer auto-selected as dependencies — users
+// must explicitly choose them via the bundle's optional_operators.
+func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
 	if common.IsSingleNodeCluster(c) {
-		ret = append(ret, lvm.Operator.Name)
+		return []string{lvm.Operator.Name}, nil
 	}
-
-	// If there is no hosts in the cluster, add all vendors as dependencies
-	if len(c.Hosts) == 0 {
-		for _, vendor := range o.vendors {
-			ret = append(ret, vendor.GetName())
-		}
-
-		return ret, nil
-	}
-
-	for _, vendor := range o.vendors {
-		hasGPU, err := vendor.ClusterHasGPU(c)
-		if err != nil {
-			return ret, fmt.Errorf("failed to check if cluster has GPU for %s: %w", vendor.GetName(), err)
-		}
-
-		if !hasGPU {
-			continue
-		}
-
-		ret = append(ret, vendor.GetName())
-	}
-
-	return ret, nil
+	return []string{}, nil
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
-	ret := make([]models.FeatureSupportLevelID, 0, len(o.vendors))
-
-	ret = append(ret, models.FeatureSupportLevelIDLVM)
-
-	for _, vendor := range o.vendors {
-		ret = append(ret, vendor.GetFeatureSupportID())
-	}
-
-	return ret
+	return []models.FeatureSupportLevelID{models.FeatureSupportLevelIDLVM}
 }
 
 // GetClusterValidationIDs returns cluster validation IDs for the operator.
@@ -177,19 +139,12 @@ func (o *operator) validateGPU(cluster *common.Cluster) (api.ValidationResult, e
 		Status:       api.Success,
 	}
 
-	for _, vendor := range o.vendors {
-		hasGPU, err := vendor.ClusterHasGPU(cluster)
-		if err != nil {
-			return result, fmt.Errorf("failed to check if cluster has GPU for %s: %w", vendor.GetName(), err)
-		}
+	hasGPUOperator := operatorscommon.HasOperator(cluster.MonitoredOperators, nvidiagpu.Operator.Name) ||
+		operatorscommon.HasOperator(cluster.MonitoredOperators, amdgpu.Operator.Name)
 
-		if hasGPU {
-			return result, nil
-		}
+	if !hasGPUOperator {
+		result.Reasons = []string{"No GPU vendor selected - OpenShift AI will install without GPU support"}
 	}
-
-	result.Status = api.Failure
-	result.Reasons = []string{"Cluster doesn't have any supported GPU"}
 
 	return result, nil
 }

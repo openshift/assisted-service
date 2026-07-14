@@ -279,5 +279,9 @@ func (o *operator) GetFeatureSupportID() models.FeatureSupportLevelID {
 }
 
 func (o *operator) GetBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
+	return []string{}
+}
+
+func (o *operator) GetOptionalBundleLabels(featureIDs []models.FeatureSupportLevelID) []string {
 	return []string(Operator.Bundles)
 }

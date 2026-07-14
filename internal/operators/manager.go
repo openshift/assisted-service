@@ -7,20 +7,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
-	"github.com/openshift/assisted-service/internal/operators/amdgpu"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/internal/operators/lvm"
 	"github.com/openshift/assisted-service/internal/operators/mce"
-	"github.com/openshift/assisted-service/internal/operators/nvidiagpu"
 	"github.com/openshift/assisted-service/internal/operators/odf"
-	"github.com/openshift/assisted-service/internal/operators/openshiftai"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -107,6 +105,9 @@ type API interface {
 	GetBundle(bundleID string, featureIDs []models.FeatureSupportLevelID) (*models.Bundle, error)
 	// GetOperatorDependenciesFeatureID returns the list of dependencies
 	GetOperatorDependenciesFeatureID() []OperatorFeatureSupportID
+	// ExpandBundleOperators expands a bundle into its operator create params with source_bundle set.
+	// Required operators are always included. Optional operators are included only if listed in optionalOperators.
+	ExpandBundleOperators(bundleID string, optionalOperators []string, featureIDs []models.FeatureSupportLevelID) ([]*models.OperatorCreateParams, error)
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
@@ -520,15 +521,6 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 		alreadyPresent = append(alreadyPresent, operatorName)
 	}
 
-	// If openshift-ai is included, mark nvidia-gpu & amd-gpu as dependency only
-	if operatorscommon.HasOperator(ret, openshiftai.Operator.Name) {
-		for _, operator := range ret {
-			if operator.Name == nvidiagpu.Operator.Name || operator.Name == amdgpu.Operator.Name {
-				operator.DependencyOnly = true
-			}
-		}
-	}
-
 	return ret, nil
 }
 
@@ -700,7 +692,7 @@ func (mgr *Manager) ListBundles(filters *featuresupport.SupportLevelFilters, fea
 		}
 
 		// Check if all operators in the bundle are supported using featuresupport API
-		if mgr.isBundleSupported(completeBundleDetails, filters, featureIDs) {
+		if mgr.filterBundleOperators(completeBundleDetails, filters, featureIDs) {
 			ret = append(ret, completeBundleDetails)
 		}
 	}
@@ -715,19 +707,53 @@ func (mgr *Manager) GetBundle(bundleID string, featureIDs []models.FeatureSuppor
 		return nil, fmt.Errorf("bundle '%s' is not supported", bundleID)
 	}
 
-	// Get all operators for the bundle based on feature IDs
 	for _, operator := range mgr.olmOperators {
-		operatorBundles := operator.GetBundleLabels(featureIDs)
-		for _, operatorBundle := range operatorBundles {
-			if operatorBundle == bundleID {
-				operatorName := operator.GetName()
+		operatorName := operator.GetName()
+
+		for _, ob := range operator.GetBundleLabels(featureIDs) {
+			if ob == bundleID {
 				bundle.Operators = append(bundle.Operators, operatorName)
 				break
 			}
 		}
+
+		if optOp, ok := operator.(api.OptionalBundleOperator); ok {
+			for _, ob := range optOp.GetOptionalBundleLabels(featureIDs) {
+				if ob == bundleID {
+					bundle.OptionalOperators = append(bundle.OptionalOperators, operatorName)
+					break
+				}
+			}
+		}
 	}
 
+	sort.Strings(bundle.Operators)
+	sort.Strings(bundle.OptionalOperators)
+
 	return bundle, nil
+}
+
+func (mgr *Manager) ExpandBundleOperators(bundleID string, optionalOperators []string, featureIDs []models.FeatureSupportLevelID) ([]*models.OperatorCreateParams, error) {
+	bundle, err := mgr.GetBundle(bundleID, featureIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, optOp := range optionalOperators {
+		if !funk.ContainsString(bundle.OptionalOperators, optOp) {
+			return nil, fmt.Errorf("operator '%s' is not a valid optional operator for bundle '%s'", optOp, bundleID)
+		}
+	}
+
+	var result []*models.OperatorCreateParams
+	for _, opName := range bundle.Operators {
+		result = append(result, &models.OperatorCreateParams{Name: opName})
+	}
+	for _, opName := range optionalOperators {
+		result = append(result, &models.OperatorCreateParams{Name: opName})
+	}
+
+	return result, nil
 }
 
 // lookupBundle tries to find a bundle with the given identifier. Returns a pointer to the basic information of the
@@ -760,24 +786,21 @@ func (mgr *Manager) GetOperatorDependenciesFeatureID() []OperatorFeatureSupportI
 	return ret
 }
 
-// isBundleSupported checks if all operators in a bundle are supported using featuresupport API
-func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) bool {
-	// If bundle has no operators, it's not supported
+// filterBundleOperators checks if all required operators in a bundle are supported
+// and removes unsupported optional operators from the bundle.
+func (mgr *Manager) filterBundleOperators(bundle *models.Bundle, filters *featuresupport.SupportLevelFilters, featureIDs []models.FeatureSupportLevelID) bool {
 	if len(bundle.Operators) == 0 {
 		return false
 	}
 
-	// If there is no filter, it's always supported
 	if filters == nil {
 		return true
 	}
 
-	// Check each operator in the bundle using featuresupport API
 	for _, operatorName := range bundle.Operators {
 		operatorFeatureSupportID, err := mgr.getOperatorFeatureSupportID(operatorName)
 		if err != nil {
 			mgr.log.WithError(err).Warnf("Operator %s has no feature support ID", operatorName)
-
 			return false
 		}
 
@@ -785,6 +808,19 @@ func (mgr *Manager) isBundleSupported(bundle *models.Bundle, filters *featuresup
 			return false
 		}
 	}
+
+	supportedOptional := make([]string, 0, len(bundle.OptionalOperators))
+	for _, operatorName := range bundle.OptionalOperators {
+		featureID, err := mgr.getOperatorFeatureSupportID(operatorName)
+		if err != nil {
+			mgr.log.WithError(err).Warnf("Optional operator %s has no feature support ID, skipping", operatorName)
+			continue
+		}
+		if mgr.isOperatorSupported(featureID, *filters, featureIDs) {
+			supportedOptional = append(supportedOptional, operatorName)
+		}
+	}
+	bundle.OptionalOperators = supportedOptional
 
 	return true
 }
