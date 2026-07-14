@@ -37,3 +37,5 @@ require (
 replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
 
 replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
+
+replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
