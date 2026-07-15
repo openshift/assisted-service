@@ -40,6 +40,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/itchyny/gojq v0.12.8
+	github.com/jackc/pgx/v5 v5.6.0
 	github.com/jinzhu/copier v0.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
@@ -49,8 +50,8 @@ require (
 	github.com/nmstate/nmstate/rust/src/go/nmstate v0.0.0-20220811151154-801022633c42
 	github.com/onsi/ginkgo v1.16.5
 	github.com/onsi/gomega v1.35.1
-	github.com/openshift-online/ocm-api-model/clientapi v0.0.440
-	github.com/openshift-online/ocm-sdk-go v0.1.486
+	github.com/openshift-online/ocm-api-model/clientapi v0.0.453
+	github.com/openshift-online/ocm-sdk-go v0.1.499
 	github.com/openshift/api v0.0.0-20251118143053-b6fddd3c8174
 	github.com/openshift/assisted-image-service v0.0.0-20231023144959-c402402f52bf
 	github.com/openshift/assisted-service/api v0.0.0
@@ -83,8 +84,8 @@ require (
 	golang.org/x/sys v0.45.0
 	gopkg.in/ini.v1 v1.67.0
 	gopkg.in/yaml.v2 v2.4.0
-	gorm.io/driver/postgres v1.3.5
-	gorm.io/gorm v1.25.8
+	gorm.io/driver/postgres v1.6.0
+	gorm.io/gorm v1.25.10
 	k8s.io/api v0.34.2
 	k8s.io/apiextensions-apiserver v0.29.5
 	k8s.io/apimachinery v0.34.2
@@ -122,9 +123,7 @@ require (
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.1 // indirect
-	github.com/jackc/chunkreader/v2 v2.0.1 // indirect
-	github.com/jackc/pgio v1.0.0 // indirect
-	github.com/jackc/pgproto3/v2 v2.3.3 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -138,7 +137,7 @@ require (
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/morikuni/aec v1.0.0 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
-	github.com/openshift-online/ocm-api-model/model v0.0.440 // indirect
+	github.com/openshift-online/ocm-api-model/model v0.0.453 // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
 	github.com/power-devops/perfstat v0.0.0-20210106213030-5aafc221ea8c // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -205,11 +204,8 @@ require (
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/itchyny/timefmt-go v0.1.3 // indirect
-	github.com/jackc/pgconn v1.14.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
-	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
-	github.com/jackc/pgtype v1.14.0 // indirect
-	github.com/jackc/pgx/v4 v4.18.3 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/jmespath/go-jmespath v0.4.1-0.20220621161143-b0104c826a24 // indirect
@@ -276,7 +272,6 @@ require (
 
 replace (
 	github.com/google/gnostic-models => github.com/google/gnostic-models v0.6.8
-	github.com/jackc/pgx/v4 => github.com/jackc/pgx/v4 v4.18.3
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20231019133159-8643f32fea3e
 	github.com/metal3-io/baremetal-operator/apis => github.com/openshift/baremetal-operator/apis v0.0.0-20231019133159-8643f32fea3e
 	github.com/metal3-io/baremetal-operator/pkg/hardwareutils => github.com/openshift/baremetal-operator/pkg/hardwareutils v0.0.0-20231019133159-8643f32fea3e
