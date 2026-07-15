@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"time"
@@ -198,6 +200,13 @@ func (r *SubscriptionReservedResourceGetRequest) Header(name string, value inter
 	return r
 }
 
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *SubscriptionReservedResourceGetRequest) Impersonate(user string) *SubscriptionReservedResourceGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
+	return r
+}
+
 // Send sends this request, waits for the response, and returns it.
 //
 // This is a potentially lengthy operation, as it requires network communication.
@@ -230,15 +239,21 @@ func (r *SubscriptionReservedResourceGetRequest) SendContext(ctx context.Context
 	result = &SubscriptionReservedResourceGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readSubscriptionReservedResourceGetResponse(result, response.Body)
+	err = readSubscriptionReservedResourceGetResponse(result, reader)
 	if err != nil {
 		return
 	}
