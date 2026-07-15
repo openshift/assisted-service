@@ -765,12 +765,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 
 	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
 
-	for _, v := range params.NewClusterParams.APIVips {
-		v.IP = models.IP(network.NormalizeIP(string(v.IP)))
-	}
-	for _, v := range params.NewClusterParams.IngressVips {
-		v.IP = models.IP(network.NormalizeIP(string(v.IP)))
-	}
+	normalizeAPIVips(log, params.NewClusterParams.APIVips)
+	normalizeIngressVips(log, params.NewClusterParams.IngressVips)
 
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
@@ -2802,11 +2798,31 @@ func wereClusterVipsUpdated(clusterVips []string, paramVips []string) bool {
 		return true
 	}
 	for i := range clusterVips {
-		if network.NormalizeIP(clusterVips[i]) != network.NormalizeIP(paramVips[i]) {
+		if !models.IP(clusterVips[i]).Equal(models.IP(paramVips[i])) {
 			return true
 		}
 	}
 	return false
+}
+
+func normalizeAPIVips(log logrus.FieldLogger, vips []*models.APIVip) {
+	for _, v := range vips {
+		normalized, normalizeErr := v.IP.Normalize()
+		if normalizeErr != nil {
+			log.WithError(normalizeErr).Warnf("failed to normalize API VIP %s", v.IP)
+		}
+		v.IP = normalized
+	}
+}
+
+func normalizeIngressVips(log logrus.FieldLogger, vips []*models.IngressVip) {
+	for _, v := range vips {
+		normalized, normalizeErr := v.IP.Normalize()
+		if normalizeErr != nil {
+			log.WithError(normalizeErr).Warnf("failed to normalize Ingress VIP %s", v.IP)
+		}
+		v.IP = normalized
+	}
 }
 
 func (b *bareMetalInventory) updateVips(db *gorm.DB, params installer.V2UpdateClusterParams, cluster *common.Cluster) error {
@@ -3927,8 +3943,20 @@ func (b *bareMetalInventory) processDhcpAllocationResponse(ctx context.Context, 
 		log.WithError(err).Warnf("Json unmarshal dhcp allocation from host %s", host.ID.String())
 		return err
 	}
-	apiVip := network.NormalizeIP(dhcpAllocationReponse.APIVipAddress.String())
-	ingressVip := network.NormalizeIP(dhcpAllocationReponse.IngressVipAddress.String())
+	apiVipIP := models.IP(dhcpAllocationReponse.APIVipAddress.String())
+	if normalized, normalizeErr := apiVipIP.Normalize(); normalizeErr == nil {
+		apiVipIP = normalized
+	} else {
+		log.WithError(normalizeErr).Warnf("failed to normalize API VIP %s", apiVipIP)
+	}
+	apiVip := string(apiVipIP)
+	ingressVipIP := models.IP(dhcpAllocationReponse.IngressVipAddress.String())
+	if normalized, normalizeErr := ingressVipIP.Normalize(); normalizeErr == nil {
+		ingressVipIP = normalized
+	} else {
+		log.WithError(normalizeErr).Warnf("failed to normalize Ingress VIP %s", ingressVipIP)
+	}
+	ingressVip := string(ingressVipIP)
 	primaryMachineCIDR := ""
 	if network.IsMachineCidrAvailable(cluster) {
 		primaryMachineCIDR = network.GetMachineCidrById(cluster, 0)
