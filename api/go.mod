@@ -44,8 +44,8 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/thoas/go-funk v0.9.3 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
-	golang.org/x/net v0.33.0 // indirect
-	golang.org/x/text v0.22.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
@@ -66,3 +66,5 @@ replace github.com/golang/glog => github.com/golang/glog v1.2.4
 replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
 
 replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
+
+replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
