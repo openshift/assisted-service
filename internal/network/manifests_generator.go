@@ -292,6 +292,7 @@ spec:
     storage:
       luks:
         - name: root
+          label: luks-root
           device: /dev/disk/by-partlabel/root
           clevis:
 		  {{- if eq .MODE "tpm" }}

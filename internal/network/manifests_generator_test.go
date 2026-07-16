@@ -8,6 +8,7 @@ import (
 	"regexp"
 
 	configv31 "github.com/coreos/ignition/v2/config/v3_1"
+	configv32 "github.com/coreos/ignition/v2/config/v3_2"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -1043,6 +1044,30 @@ var _ = Describe("disk encryption manifest", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	}
+
+	It("LUKS label differs from filesystem label to prevent label collisions", func() {
+		var manifestParams = map[string]interface{}{
+			"ROLE":   "master",
+			"MODE":   "tpm",
+			"CIPHER": "aes-cbc-essiv:sha256",
+		}
+		content, err := fillTemplate(manifestParams, diskEncryptionManifest, logrus.New())
+		Expect(err).ToNot(HaveOccurred())
+
+		var mc mcfgv1.MachineConfig
+		err = yaml.Unmarshal(content, &mc)
+		Expect(err).ToNot(HaveOccurred())
+		config, _, err := configv32.Parse(mc.Spec.Config.Raw)
+		Expect(err).ToNot(HaveOccurred())
+
+		Expect(config.Storage.Luks).To(HaveLen(1))
+		Expect(config.Storage.Luks[0].Label).ToNot(BeNil())
+		Expect(*config.Storage.Luks[0].Label).To(Equal("luks-root"))
+
+		Expect(config.Storage.Filesystems).To(HaveLen(1))
+		Expect(config.Storage.Filesystems[0].Label).ToNot(BeNil())
+		Expect(*config.Storage.Filesystems[0].Label).To(Equal("root"))
+	})
 })
 
 var _ = Describe("GetDiskEncryptionCipher", func() {
