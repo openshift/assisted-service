@@ -13,21 +13,66 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+#
+#
+MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
+PROJECT_PATH := $(patsubst %/,%,$(dir $(MKFILE_PATH)))
+LOCAL_BIN_PATH := $(PROJECT_PATH)/bin
 
-# Enable Go modules:
-export GO111MODULE=on
-export GOPROXY=https://proxy.golang.org
+# Add the project-level bin directory into PATH. Needed in order
+# for the tasks to use project-level bin directory binaries first
+export PATH := $(LOCAL_BIN_PATH):$(PATH)
 
 # Disable CGO so that we always generate static binaries:
 export CGO_ENABLED=0
 
-# Details of the model to use:
-model_version:=v0.0.142
-model_url:=https://github.com/openshift-online/ocm-api-model.git
+goimports_version:=v0.4.0
 
-# Details of the metamodel to use:
-metamodel_version:=v0.0.39
-metamodel_url:=https://github.com/openshift-online/ocm-api-metamodel.git
+# Additional flags to pass to the `ginkgo` command. This is used in the GitHub
+# actions environment to skip tests that are sensitive to the speed of the
+# machine: the leadership flag and retry tests.
+ginkgo_flags:=
+
+.DEFAULT_GOAL := examples
+
+GINKGO := $(LOCAL_BIN_PATH)/ginkgo
+ginkgo-install:
+	@GOBIN=$(LOCAL_BIN_PATH) go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.4 ;\
+
+verify: lint examples model metamodel-install goimports-install verify-hooks
+	go vet $(find . -maxdepth 1 -type d  ! -name 'vendor' ! -name '.')
+	hack/verify-gofmt.sh
+	hack/verify-client.sh $(METAMODEL) .
+	hack/verify-openapi.sh $(METAMODEL) ./openapi
+.PHONY: verify
+
+.PHONY: install-hooks
+install-hooks:
+	@echo "Installing git hooks..."
+	@if [ -f hooks/pre-push ]; then \
+		cp hooks/pre-push .git/hooks/pre-push && \
+		chmod +x .git/hooks/pre-push && \
+		echo "Installed and made .git/hooks/pre-push executable"; \
+	else \
+		echo "Error: hooks/pre-push not found in repository"; \
+		exit 1; \
+	fi
+
+.PHONY: verify-hooks
+verify-hooks:
+	@echo "Verifying git hooks..."
+	@if [ -f .git/hooks/pre-push ]; then \
+		if [ -x .git/hooks/pre-push ]; then \
+			echo ".git/hooks/pre-push is executable"; \
+		else \
+			echo ".git/hooks/pre-push is not executable"; \
+			echo "  Run 'make install-hooks' to fix this"; \
+			exit 1; \
+		fi \
+	else \
+		echo "Warning: .git/hooks/pre-push not found"; \
+		echo "  Run 'make install-hooks' to install it"; \
+	fi
 
 .PHONY: examples
 examples:
@@ -37,8 +82,13 @@ examples:
 	done
 
 .PHONY: test tests
-test tests:
-	ginkgo -r
+test tests: ginkgo-install
+ifndef ARTIFACT_DIR
+	$(GINKGO) run -r $(ginkgo_flags)
+else
+	$(GINKGO) run -r $(ginkgo_flags) --junit-report=junit_golang_tests_junit.xml --output-dir=${ARTIFACT_DIR}
+endif
+
 
 .PHONY: fmt
 fmt:
@@ -47,56 +97,37 @@ fmt:
 .PHONY: lint
 lint:
 	golangci-lint --version
-	golangci-lint run
+	golangci-lint custom && \
+	$(LOCAL_BIN_PATH)/ocm-lint run
+
+# set "normal" alias matching kube and ocp
+.PHONY: update
+update: generate
 
 .PHONY: generate
-generate: model metamodel
-	rm -rf \
-		accountsmgmt \
-		authorizations \
-		clustersmgmt \
-		servicelogs \
-		errors \
-		job_queue \
-		helpers \
-		openapi
-	metamodel/metamodel generate go \
-		--model=model/model \
-		--base=github.com/openshift-online/ocm-sdk-go \
-		--output=.
-	metamodel/metamodel generate openapi \
-		--model=model/model \
-		--output=openapi
+generate: model metamodel-install goimports-install
+	hack/generate-client.sh $(METAMODEL) .
+	hack/generate-openapi.sh $(METAMODEL) ./openapi
 
 .PHONY: model
 model:
-	rm -rf "$@"
-	if [ -d "$(model_url)" ]; then \
-		cp -r "$(model_url)" "$@"; \
-	else \
-		git clone "$(model_url)" "$@"; \
-		cd "$@"; \
-		git fetch --tags origin; \
-		git checkout -B build "$(model_version)"; \
-	fi
+	go mod tidy && go mod vendor
 
 .PHONY: metamodel
-metamodel:
-	rm -rf "$@"
-	if [ -d "$(metamodel_url)" ]; then \
-		cp -r "$(metamodel_url)" "$@"; \
-	else \
-		git clone "$(metamodel_url)" "$@"; \
-		cd "$@"; \
-		git fetch --tags origin; \
-		git checkout -B build "$(metamodel_version)"; \
-	fi
-	make -C "$@"
+METAMODEL=$(PROJECT_PATH)/metamodel_generator/metamodel
+metamodel-install:
+	 $(MAKE) -C metamodel_generator clean
+	 $(MAKE) -C metamodel_generator build
+
+.PHONY: goimports
+goimports-install:
+	@GOBIN=$(LOCAL_BIN_PATH) go install golang.org/x/tools/cmd/goimports@$(goimports_version)
 
 .PHONY: clean
 clean:
+	hack/clean-client.sh
+	hack/clean-openapi.sh
 	rm -rf \
-		.gobin \
-		metamodel \
+		$(PROJECT_PATH)/metamodel_generator/metamodel \
 		model \
 		$(NULL)

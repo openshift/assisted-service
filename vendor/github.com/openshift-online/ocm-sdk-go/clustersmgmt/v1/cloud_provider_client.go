@@ -20,7 +20,9 @@ limitations under the License.
 package v1 // github.com/openshift-online/ocm-sdk-go/clustersmgmt/v1
 
 import (
+	"bufio"
 	"context"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -179,16 +181,12 @@ func (r *CloudProviderPollResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CloudProviderPollResponse) Body() *CloudProvider {
 	return r.response.Body()
 }
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CloudProviderPollResponse) GetBody() (value *CloudProvider, ok bool) {
 	return r.response.GetBody()
 }
@@ -218,6 +216,13 @@ func (r *CloudProviderGetRequest) Parameter(name string, value interface{}) *Clo
 // Header adds a request header.
 func (r *CloudProviderGetRequest) Header(name string, value interface{}) *CloudProviderGetRequest {
 	helpers.AddHeader(&r.header, name, value)
+	return r
+}
+
+// Impersonate wraps requests on behalf of another user.
+// Note: Services that do not support this feature may silently ignore this call.
+func (r *CloudProviderGetRequest) Impersonate(user string) *CloudProviderGetRequest {
+	helpers.AddImpersonationHeader(&r.header, user)
 	return r
 }
 
@@ -253,15 +258,21 @@ func (r *CloudProviderGetRequest) SendContext(ctx context.Context) (result *Clou
 	result = &CloudProviderGetResponse{}
 	result.status = response.StatusCode
 	result.header = response.Header
+	reader := bufio.NewReader(response.Body)
+	_, err = reader.Peek(1)
+	if err == io.EOF {
+		err = nil
+		return
+	}
 	if result.status >= 400 {
-		result.err, err = errors.UnmarshalError(response.Body)
+		result.err, err = errors.UnmarshalErrorStatus(reader, result.status)
 		if err != nil {
 			return
 		}
 		err = result.err
 		return
 	}
-	err = readCloudProviderGetResponse(result, response.Body)
+	err = readCloudProviderGetResponse(result, reader)
 	if err != nil {
 		return
 	}
@@ -301,8 +312,6 @@ func (r *CloudProviderGetResponse) Error() *errors.Error {
 }
 
 // Body returns the value of the 'body' parameter.
-//
-//
 func (r *CloudProviderGetResponse) Body() *CloudProvider {
 	if r == nil {
 		return nil
@@ -312,8 +321,6 @@ func (r *CloudProviderGetResponse) Body() *CloudProvider {
 
 // GetBody returns the value of the 'body' parameter and
 // a flag indicating if the parameter has a value.
-//
-//
 func (r *CloudProviderGetResponse) GetBody() (value *CloudProvider, ok bool) {
 	ok = r != nil && r.body != nil
 	if ok {
