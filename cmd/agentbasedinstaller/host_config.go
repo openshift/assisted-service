@@ -65,7 +65,7 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	for _, cred := range fcFile.Credentials {
 		key := cred.Hostname
 		if key == "" {
-			key = cred.MACAddress
+			key = strings.ToLower(cred.MACAddress)
 		}
 		if key == "" {
 			log.Warn("Skipping fencing credential with empty hostname and MAC address")
@@ -78,8 +78,9 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 			Password:                cred.Password,
 			CertificateVerification: cred.CertificateVerification,
 		}
-		if cred.MACAddress != "" {
-			params.MacAddress = &cred.MACAddress
+		if cred.MACAddress != "" && cred.Hostname == "" {
+			mac := strings.ToLower(cred.MACAddress)
+			params.MacAddress = &mac
 		}
 		credentialsMap[key] = params
 		log.Infof("Loaded fencing credential for: %s", key)

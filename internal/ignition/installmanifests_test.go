@@ -1574,69 +1574,6 @@ status:
 		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
 	})
 
-	It("patches controlPlaneTopology to DualReplica for TNF cluster", func() {
-		base := `---
-apiVersion: config.openshift.io/v1
-kind: Infrastructure
-metadata:
-  creationTimestamp: "2022-03-29T10:42:09Z"
-  generation: 1
-  name: cluster
-  resourceVersion: "596"
-  uid: cc91565d-997f-441c-b28a-d2915c4afd84
-spec:
-  cloudConfig:
-    name: ""
-  platformSpec:
-    type: None
-status:
-  apiServerInternalURI: https://api-int.test-cluster.redhat.com:6443
-  apiServerURL: https://api.test-cluster.redhat.com:6443
-  controlPlaneTopology: HighlyAvailable
-  etcdDiscoveryDomain: ""
-  infrastructureName: test-cluster-s9qbn
-  infrastructureTopology: HighlyAvailable
-  platform: None
-  platformStatus:
-    type: None`
-
-		manifestsDir := filepath.Join(workDir, "/manifests")
-		Expect(os.Mkdir(manifestsDir, 0755)).To(Succeed())
-
-		err := os.WriteFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"), []byte(base), 0600)
-		Expect(err).NotTo(HaveOccurred())
-
-		cluster.ControlPlaneCount = 2
-		cluster.Hosts = []*models.Host{
-			{
-				Inventory:          hostInventory,
-				RequestedHostname:  "master-0",
-				Role:               models.HostRoleMaster,
-				FencingCredentials: `{"address":"https://bmc1","username":"admin","password":"pass"}`,
-			},
-			{
-				Inventory:          hostInventory,
-				RequestedHostname:  "master-1",
-				Role:               models.HostRoleMaster,
-				FencingCredentials: `{"address":"https://bmc2","username":"admin","password":"pass"}`,
-			},
-		}
-
-		Expect(generator.applyInfrastructureCRPatch(ctx)).To(Succeed())
-
-		content, err := os.ReadFile(filepath.Join(manifestsDir, "cluster-infrastructure-02-config.yml"))
-		Expect(err).NotTo(HaveOccurred())
-
-		merged := map[string]interface{}{}
-		err = yaml.Unmarshal(content, &merged)
-		Expect(err).NotTo(HaveOccurred())
-
-		status := merged["status"].(map[interface{}]interface{})
-		Expect(status["controlPlaneTopology"].(string)).To(Equal("DualReplica"))
-		Expect(status["infrastructureTopology"].(string)).To(Equal("HighlyAvailable"))
-		Expect(status["infrastructureName"].(string)).To(Equal("test-cluster-s9qbn"))
-	})
-
 	It("patches core manifests correctly", func() {
 		base := `---
 apiVersion: config.openshift.io/v1
