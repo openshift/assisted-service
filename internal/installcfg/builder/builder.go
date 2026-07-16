@@ -383,14 +383,10 @@ func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBare
 		}
 
 		fc := installcfg.FencingCredential{
+			Hostname: hostutil.GetHostnameForMsg(&master),
 			Address:  *hostFencingCredentials.Address,
 			Username: *hostFencingCredentials.Username,
 			Password: *hostFencingCredentials.Password,
-		}
-		if hostFencingCredentials.MacAddress != nil && *hostFencingCredentials.MacAddress != "" {
-			fc.MacAddress = *hostFencingCredentials.MacAddress
-		} else {
-			fc.Hostname = hostutil.GetHostnameForMsg(&master)
 		}
 
 		if hostFencingCredentials.CertificateVerification != nil && *hostFencingCredentials.CertificateVerification != "" {

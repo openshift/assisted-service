@@ -78,10 +78,6 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 			Password:                cred.Password,
 			CertificateVerification: cred.CertificateVerification,
 		}
-		if cred.MACAddress != "" && cred.Hostname == "" {
-			mac := strings.ToLower(cred.MACAddress)
-			params.MacAddress = &mac
-		}
 		credentialsMap[key] = params
 		log.Infof("Loaded fencing credential for: %s", key)
 	}

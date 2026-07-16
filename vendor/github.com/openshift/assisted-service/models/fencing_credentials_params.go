@@ -28,9 +28,6 @@ type FencingCredentialsParams struct {
 	// Enum: [Enabled Disabled]
 	CertificateVerification *string `json:"certificate_verification,omitempty"`
 
-	// The MAC address identifying the host for MAC-based fencing credentials.
-	MacAddress *string `json:"mac_address,omitempty"`
-
 	// The password to connect to the host's BMC.
 	// Required: true
 	Password *string `json:"password"`

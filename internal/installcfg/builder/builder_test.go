@@ -286,56 +286,6 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.FeatureGates).To(HaveLen(0))
 	})
 
-	It("create_configuration_with_all_hosts - TNF cluster with MAC-based fencing credentials", func() {
-		certificateVerificationDisabled := installcfg.CertificateVerificationDisabled
-		fencingCredentials1 := models.FencingCredentialsParams{
-			Address:    swag.String("https://address1.example.com"),
-			Password:   swag.String("password"),
-			Username:   swag.String("username"),
-			MacAddress: swag.String("aa:bb:cc:dd:ee:01"),
-		}
-		fencingCredentials2 := models.FencingCredentialsParams{
-			Address:                 swag.String("https://address2.example.com"),
-			CertificateVerification: swag.String(string(certificateVerificationDisabled)),
-			Password:                swag.String("password"),
-			Username:                swag.String("username"),
-			MacAddress:              swag.String("aa:bb:cc:dd:ee:02"),
-		}
-		fencingCredentialsHost1String, err := json.Marshal(fencingCredentials1)
-		Expect(err).ShouldNot(HaveOccurred())
-		fencingCredentialsHost2String, err := json.Marshal(fencingCredentials2)
-		Expect(err).ShouldNot(HaveOccurred())
-		host1.FencingCredentials = string(fencingCredentialsHost1String)
-		host1.Role = models.HostRoleMaster
-		host2.FencingCredentials = string(fencingCredentialsHost2String)
-		host2.Role = models.HostRoleMaster
-		cluster.Hosts = []*models.Host{&host1, &host2}
-		cluster.ControlPlaneCount = 2
-		cluster.OpenshiftVersion = "4.22"
-
-		var result installcfg.InstallerConfigBaremetal
-		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
-		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
-		Expect(err).ShouldNot(HaveOccurred())
-		err = json.Unmarshal(data, &result)
-		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.ControlPlane.Fencing).Should(Not(BeNil()))
-		Expect(result.ControlPlane.Fencing.Credentials).To(HaveLen(2))
-		Expect(result.ControlPlane.Fencing.Credentials[0]).To(Equal(installcfg.FencingCredential{
-			MacAddress: "aa:bb:cc:dd:ee:01",
-			Address:    *fencingCredentials1.Address,
-			Username:   *fencingCredentials1.Username,
-			Password:   *fencingCredentials1.Password,
-		}))
-		Expect(result.ControlPlane.Fencing.Credentials[1]).To(Equal(installcfg.FencingCredential{
-			MacAddress:              "aa:bb:cc:dd:ee:02",
-			Address:                 *fencingCredentials2.Address,
-			Username:                *fencingCredentials2.Username,
-			Password:                *fencingCredentials2.Password,
-			CertificateVerification: &certificateVerificationDisabled,
-		}))
-	})
-
 	It("create_configuration_with_hostnames", func() {
 		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)

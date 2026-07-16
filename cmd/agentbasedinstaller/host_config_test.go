@@ -97,14 +97,12 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(*creds["master-0"].Username).To(Equal("admin"))
 			Expect(*creds["master-0"].Password).To(Equal("password123"))
 			Expect(*creds["master-0"].CertificateVerification).To(Equal("Disabled"))
-			Expect(creds["master-0"].MacAddress).To(BeNil())
 
 			Expect(creds).To(HaveKey("master-1"))
 			Expect(*creds["master-1"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
 			Expect(*creds["master-1"].Username).To(Equal("admin2"))
 			Expect(*creds["master-1"].Password).To(Equal("password456"))
 			Expect(*creds["master-1"].CertificateVerification).To(Equal("Enabled"))
-			Expect(creds["master-1"].MacAddress).To(BeNil())
 		})
 
 		It("should parse credentials without optional certificateVerification", func() {
@@ -225,14 +223,12 @@ var _ = Describe("loadFencingCredentials", func() {
 			Expect(*creds["aa:bb:cc:dd:ee:01"].Username).To(Equal("admin"))
 			Expect(*creds["aa:bb:cc:dd:ee:01"].Password).To(Equal("password123"))
 			Expect(*creds["aa:bb:cc:dd:ee:01"].CertificateVerification).To(Equal("Disabled"))
-			Expect(*creds["aa:bb:cc:dd:ee:01"].MacAddress).To(Equal("aa:bb:cc:dd:ee:01"))
 
 			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
 			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
 			Expect(*creds["aa:bb:cc:dd:ee:02"].Username).To(Equal("admin2"))
 			Expect(*creds["aa:bb:cc:dd:ee:02"].Password).To(Equal("password456"))
 			Expect(*creds["aa:bb:cc:dd:ee:02"].CertificateVerification).To(Equal("Enabled"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].MacAddress).To(Equal("aa:bb:cc:dd:ee:02"))
 		})
 	})
 
@@ -259,11 +255,9 @@ var _ = Describe("loadFencingCredentials", func() {
 
 			Expect(creds).To(HaveKey("master-0"))
 			Expect(*creds["master-0"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
-			Expect(creds["master-0"].MacAddress).To(BeNil())
 
 			Expect(creds).To(HaveKey("aa:bb:cc:dd:ee:02"))
 			Expect(*creds["aa:bb:cc:dd:ee:02"].Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/def"))
-			Expect(*creds["aa:bb:cc:dd:ee:02"].MacAddress).To(Equal("aa:bb:cc:dd:ee:02"))
 		})
 
 		It("should prefer hostname over MAC when both are present on same entry", func() {
@@ -426,7 +420,6 @@ var _ = Describe("applyFencingCredentials", func() {
 			Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
 			Expect(*updateParams.FencingCredentials.Password).To(Equal("password"))
 			Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
-			Expect(*updateParams.FencingCredentials.MacAddress).To(Equal("aa:bb:cc:dd:ee:ff"))
 		})
 
 		It("should match using second MAC address when first does not match", func() {
@@ -451,7 +444,6 @@ var _ = Describe("applyFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(applied).To(BeTrue())
 			Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.2:8000/redfish/v1/Systems/xyz"))
-			Expect(*updateParams.FencingCredentials.MacAddress).To(Equal("11:22:33:44:55:66"))
 		})
 
 		It("should return false when no MAC address matches", func() {
@@ -858,7 +850,6 @@ var _ = Describe("LoadHostConfigs with MAC-only fencing credentials", func() {
 		Expect(*updateParams.FencingCredentials.Username).To(Equal("admin"))
 		Expect(*updateParams.FencingCredentials.Password).To(Equal("password123"))
 		Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
-		Expect(*updateParams.FencingCredentials.MacAddress).To(Equal("aa:bb:cc:dd:ee:ff"))
 	})
 })
 
