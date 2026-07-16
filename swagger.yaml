@@ -7029,6 +7029,7 @@ definitions:
           - Enabled
           - Disabled
         default: Enabled
+
   host-role-update-params:
     type: string
     enum:

@@ -851,6 +851,50 @@ var _ = Describe("LoadHostConfigs with MAC-only fencing credentials", func() {
 		Expect(*updateParams.FencingCredentials.Password).To(Equal("password123"))
 		Expect(*updateParams.FencingCredentials.CertificateVerification).To(Equal("Disabled"))
 	})
+
+	It("should normalize uppercase MAC addresses in fencing YAML to match lowercase mac_addresses file", func() {
+		hostDir := filepath.Join(tempDir, "host-0")
+		err := os.MkdirAll(hostDir, 0755)
+		Expect(err).NotTo(HaveOccurred())
+
+		err = os.WriteFile(filepath.Join(hostDir, "mac_addresses"), []byte("aa:bb:cc:dd:ee:ff\n"), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		fencingContent := `credentials:
+- macaddress: AA:BB:CC:DD:EE:FF
+  address: redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc
+  username: admin
+  password: password123
+  certificateVerification: Disabled
+`
+		err = os.WriteFile(filepath.Join(hostDir, "fencing-credentials.yaml"), []byte(fencingContent), 0600)
+		Expect(err).NotTo(HaveOccurred())
+
+		configs, err := LoadHostConfigs(tempDir, AgentWorkflowTypeInstall)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(configs).To(HaveLen(1))
+
+		testHostID := strfmt.UUID("test-host-id")
+		inventory := &models.Inventory{
+			Hostname: "master-0",
+			Interfaces: []*models.Interface{
+				{MacAddress: "aa:bb:cc:dd:ee:ff"},
+			},
+		}
+
+		matched := configs.findHostConfigs(testHostID, inventory)
+		Expect(matched).To(HaveLen(1))
+
+		testLogger, _ := test.NewNullLogger()
+		host := &models.Host{}
+		updateParams := &models.HostUpdateParams{}
+
+		applied, err := applyFencingCredentials(testLogger, host, matched[0], updateParams)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(applied).To(BeTrue())
+		Expect(updateParams.FencingCredentials).NotTo(BeNil())
+		Expect(*updateParams.FencingCredentials.Address).To(Equal("redfish+https://192.168.111.1:8000/redfish/v1/Systems/abc"))
+	})
 })
 
 var _ = Describe("LoadHostConfigs with AddNodes workflow", func() {
