@@ -32,19 +32,18 @@ const (
 )
 
 // loadFencingCredentials reads the fencing-credentials.yaml file from the specified path
-// and returns a map of hostname→credentials for easy lookup during host application.
+// and returns a map keyed by identifier (hostname or MAC address) for easy lookup.
 // Returns nil map (not error) if file doesn't exist, since fencing is optional.
 func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingCredentialsParams, error) {
 	fileData, err := os.ReadFile(fencingFilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Info("No fencing credentials file found, skipping fencing configuration")
-			return nil, nil // Not an error - fencing is optional
+			return nil, nil
 		}
 		return nil, fmt.Errorf("failed to read fencing credentials file at %s: %w", fencingFilePath, err)
 	}
 
-	// Intermediate structure matching installer's YAML output
 	type fencingCredentialsFile struct {
 		Credentials []struct {
 			Hostname                string  `yaml:"hostname"`
@@ -64,24 +63,27 @@ func loadFencingCredentials(fencingFilePath string) (map[string]*models.FencingC
 	credentialsMap := make(map[string]*models.FencingCredentialsParams)
 
 	for _, cred := range fcFile.Credentials {
-		if cred.Hostname == "" && cred.MACAddress == "" {
+		key := cred.Hostname
+		if key == "" {
+			key = strings.ToLower(cred.MACAddress)
+		}
+		if key == "" {
 			log.Warn("Skipping fencing credential with empty hostname and MAC address")
 			continue
 		}
-		var key string
-		if cred.Hostname != "" {
-			key = cred.Hostname
-		} else {
-			key = cred.MACAddress
-		}
 
-		credentialsMap[key] = &models.FencingCredentialsParams{
+		params := &models.FencingCredentialsParams{
 			Address:                 cred.Address,
 			Username:                cred.Username,
 			Password:                cred.Password,
 			CertificateVerification: cred.CertificateVerification,
 		}
-		log.Infof("Loaded fencing credential for key: %s", key)
+		if cred.MACAddress != "" {
+			lowered := strings.ToLower(cred.MACAddress)
+			params.MacAddress = &lowered
+		}
+		credentialsMap[key] = params
+		log.Infof("Loaded fencing credential for: %s", key)
 	}
 
 	log.Infof("Loaded %d fencing credentials from file", len(credentialsMap))
@@ -268,7 +270,12 @@ func applyFencingCredentials(log *log.Logger, host *models.Host, config *hostCon
 		return false, nil
 	}
 
-	log.Infof("Adding fencing credentials for hostname %s", config.hostname)
+	if config.hostname != "" {
+		log.Infof("Adding fencing credentials for hostname %s", config.hostname)
+	} else {
+		log.Info("Adding fencing credentials via MAC address match")
+	}
+
 	updateParams.FencingCredentials = creds
 	return true, nil
 }
@@ -306,7 +313,7 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		lines := strings.Split(string(macs), "\n")
 		addresses := []string{}
 		for _, l := range lines {
-			mac := strings.TrimSpace(l)
+			mac := strings.ToLower(strings.TrimSpace(l))
 			if len(mac) > 0 {
 				addresses = append(addresses, mac)
 			}
@@ -341,10 +348,9 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 		return nil, fmt.Errorf("failed to load fencing credentials: %w", err)
 	}
 
-	// Create hostname-based hostConfig entries for each fencing credential
 	for hostname := range fencingCreds {
 		configs = append(configs, &hostConfig{
-			configDir: hostConfigDir, // Store parent dir for lazy-loading fencing credentials
+			configDir: hostConfigDir,
 			hostname:  hostname,
 		})
 	}
@@ -352,29 +358,17 @@ func LoadHostConfigs(hostConfigDir string, workflowType AgentWorkflowType) (Host
 	return configs, nil
 }
 
-// hostConfig represents configuration for a single host, loaded from disk.
-// There are two types of hostConfig: MAC-based (for role and root device hints)
-// and hostname-based (for fencing credentials). A host can match both types,
-// receiving attributes from each. Attribute methods use guard clauses to return
-// nil for config types that don't support that attribute.
 type hostConfig struct {
 	// configDir is the path to host configuration files.
 	// For MAC-based configs: per-host directory (e.g., /hostconfig/host-0/)
-	// containing "role" and "root-device-hints.yaml" files.
+	// containing "role", "root-device-hints.yaml", and "fencing-credentials.yaml".
 	// For hostname-based configs: parent directory (e.g., /hostconfig/)
-	// containing the shared "fencing-credentials.yaml" file.
+	// containing the shared "fencing-credentials.yaml".
 	configDir string
 
-	// macAddresses identifies the host for MAC-based configs (role, root device hints).
-	// Empty for hostname-based configs.
 	macAddresses []string
-
-	// hostname identifies the host for hostname-based configs (fencing credentials).
-	// Empty for MAC-based configs.
-	hostname string
-
-	// hostID is set when this config is matched to a registered host.
-	hostID strfmt.UUID
+	hostname     string
+	hostID       strfmt.UUID
 }
 
 // currentHostHasMACAddress returns true if this host has a MAC address in addresses string array.
@@ -446,7 +440,6 @@ func (hc hostConfig) Role() (*string, error) {
 }
 
 func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, error) {
-	// Only hostname-based or MAC based configs have fencing credentials
 	if hc.hostname == "" && len(hc.macAddresses) == 0 {
 		return nil, nil
 	}
@@ -459,14 +452,12 @@ func (hc hostConfig) FencingCredentials() (*models.FencingCredentialsParams, err
 		return nil, nil
 	}
 
-	// lookup by hostname if present
 	if hc.hostname != "" {
 		return creds[hc.hostname], nil
 	}
-	// otherwise by MAC address
-	for _, macAddress := range hc.macAddresses {
-		if _, ok := creds[macAddress]; ok {
-			return creds[macAddress], nil
+	for _, mac := range hc.macAddresses {
+		if c, ok := creds[mac]; ok {
+			return c, nil
 		}
 	}
 	return nil, nil
@@ -504,7 +495,7 @@ func (configs HostConfigs) findByMAC(hostID strfmt.UUID, inventory *models.Inven
 				continue
 			}
 			for _, mac := range hc.macAddresses {
-				if nic.MacAddress == mac {
+				if strings.EqualFold(nic.MacAddress, mac) {
 					log.Infof("Found host config in %s (MAC match)", hc.configDir)
 					hc.hostID = hostID
 					return hc
