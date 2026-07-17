@@ -282,3 +282,15 @@ func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(ctx, clusterVersion
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), ctx, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }
+
+// URLAuthScopeCheck mocks base method.
+func (m *MockAPI) URLAuthScopeCheck(resourceType, scope, result string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "URLAuthScopeCheck", resourceType, scope, result)
+}
+
+// URLAuthScopeCheck indicates an expected call of URLAuthScopeCheck.
+func (mr *MockAPIMockRecorder) URLAuthScopeCheck(resourceType, scope, result any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "URLAuthScopeCheck", reflect.TypeOf((*MockAPI)(nil).URLAuthScopeCheck), resourceType, scope, result)
+}

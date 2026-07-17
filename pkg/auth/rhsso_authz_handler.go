@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 	params "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -193,6 +194,8 @@ func (a *AuthzHandler) HasOrgBasedCapability(ctx context.Context, capability str
 
 	return isAllowed, err
 }
+
+func (a *AuthzHandler) SetMetrics(metricsAPI metrics.API) {}
 
 func (a *AuthzHandler) checkClusterBasedAccess(id string, action Action, payload *ocm.AuthPayload) (bool, error) {
 	if a.db == nil {

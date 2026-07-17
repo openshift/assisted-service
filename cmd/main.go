@@ -500,6 +500,7 @@ func main() {
 		//in the constructor due to a cyclic dependency with the event handler
 		ocmClient.SetMetrics(metricsManager)
 	}
+	authzHandler.SetMetrics(metricsManager)
 
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
@@ -737,7 +738,7 @@ func main() {
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
 		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker, disconnectedIgnitionGenerator)
-	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
+	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"), db, metricsManager)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {

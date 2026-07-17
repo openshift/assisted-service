@@ -6,6 +6,7 @@ import (
 	"time"
 
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
@@ -176,4 +177,9 @@ type AuthPayload struct {
 	ClientID     string   `json:"clientId"`
 	Role         RoleType `json:"scope"`
 	IsAuthorized bool     `json:"is_authorized"`
+	// ResourceType is the claim key from a LocalJWT token (e.g. "infra_env_id" or "cluster_id").
+	// Empty for non-local-auth or non-scoped requests.
+	ResourceType gencrypto.LocalJWTKeyType `json:"resource_type,omitempty"`
+	// ResourceID is the resource UUID from the token's claim.
+	ResourceID string `json:"resource_id,omitempty"`
 }

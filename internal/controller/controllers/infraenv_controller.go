@@ -664,7 +664,7 @@ func generateStaticNetworkConfigDownloadURL(baseURL string, infraEnvId string, a
 		return downloadURL, nil
 	}
 
-	downloadURL, err = gencrypto.SignURL(downloadURL, infraEnvId, gencrypto.ClusterKey)
+	downloadURL, err = gencrypto.SignURL(downloadURL, infraEnvId, gencrypto.InfraEnvKey)
 	if err != nil {
 		return "", errors.Wrapf(err, "failed to sign static network config download URL for infraenv %s", infraEnvId)
 	}
