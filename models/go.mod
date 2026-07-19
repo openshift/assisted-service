@@ -43,3 +43,5 @@ replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
 replace github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.15
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+
+replace go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.41.0
