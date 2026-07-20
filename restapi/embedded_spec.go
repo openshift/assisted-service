@@ -1249,9 +1249,6 @@ func init() {
           },
           {
             "agentAuth": []
-          },
-          {
-            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -3630,9 +3627,6 @@ func init() {
             "agentAuth": []
           },
           {
-            "urlAuth": []
-          },
-          {
             "imageAuth": []
           },
           {
@@ -4171,9 +4165,6 @@ func init() {
               "read-only-admin",
               "user"
             ]
-          },
-          {
-            "urlAuth": []
           },
           {
             "imageAuth": []
@@ -12892,9 +12883,6 @@ func init() {
           },
           {
             "agentAuth": []
-          },
-          {
-            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -15278,9 +15266,6 @@ func init() {
             "agentAuth": []
           },
           {
-            "urlAuth": []
-          },
-          {
             "imageAuth": []
           },
           {
@@ -15819,9 +15804,6 @@ func init() {
               "read-only-admin",
               "user"
             ]
-          },
-          {
-            "urlAuth": []
           },
           {
             "imageAuth": []
