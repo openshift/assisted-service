@@ -16,12 +16,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"context"
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
-	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -31,33 +30,33 @@ var enabledFeatures EnabledFeatures
 
 func (r *Provisioning) SetupWebhookWithManager(mgr ctrl.Manager, features EnabledFeatures) error {
 	enabledFeatures = features
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
+		WithValidator(r).
 		Complete()
 }
 
 // https://golangbyexample.com/go-check-if-type-implements-interface/
-var _ webhook.Validator = &Provisioning{}
+var _ admission.Validator[*Provisioning] = &Provisioning{}
 
-// ValidateCreate implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateCreate() (admission.Warnings, error) {
-	provisioninglog.Info("validate create", "name", r.Name)
+// ValidateCreate implements admission.Validator so a webhook will be registered for the type
+func (r *Provisioning) ValidateCreate(ctx context.Context, obj *Provisioning) (admission.Warnings, error) {
+	provisioninglog.Info("validate create", "name", obj.Name)
 
-	if r.Name != ProvisioningSingletonName {
+	if obj.Name != ProvisioningSingletonName {
 		return nil, fmt.Errorf("Provisioning object is a singleton and must be named \"%s\"", ProvisioningSingletonName)
 	}
 
-	return nil, r.ValidateBaremetalProvisioningConfig(enabledFeatures)
+	return nil, obj.ValidateBaremetalProvisioningConfig(enabledFeatures)
 }
 
-// ValidateUpdate implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateUpdate(old runtime.Object) (admission.Warnings, error) {
-	provisioninglog.Info("validate update", "name", r.Name)
-	return nil, r.ValidateBaremetalProvisioningConfig(enabledFeatures)
+// ValidateUpdate implements admission.Validator so a webhook will be registered for the type
+func (r *Provisioning) ValidateUpdate(ctx context.Context, oldObj, newObj *Provisioning) (admission.Warnings, error) {
+	provisioninglog.Info("validate update", "name", newObj.Name)
+	return nil, newObj.ValidateBaremetalProvisioningConfig(enabledFeatures)
 }
 
-// ValidateDelete implements webhook.Validator so a webhook will be registered for the type
-func (r *Provisioning) ValidateDelete() (admission.Warnings, error) {
-	provisioninglog.Info("validate delete", "name", r.Name)
+// ValidateDelete implements admission.Validator so a webhook will be registered for the type
+func (r *Provisioning) ValidateDelete(ctx context.Context, obj *Provisioning) (admission.Warnings, error) {
+	provisioninglog.Info("validate delete", "name", obj.Name)
 	return nil, nil
 }

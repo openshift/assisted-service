@@ -68,16 +68,17 @@ type BMACConfig struct {
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
 	client.Client
-	APIReader             client.Reader
-	Log                   logrus.FieldLogger
-	Scheme                *runtime.Scheme
-	Installer             bminventory.InstallerInternals
-	SpokeK8sClientFactory spoke_k8s_client.SpokeK8sClientFactory
-	spokeClient           client.Client
-	ConvergedFlowEnabled  bool
-	PauseProvisionedBMHs  bool
-	Drainer               Drainer
-	Config                *BMACConfig
+	APIReader                           client.Reader
+	Log                                 logrus.FieldLogger
+	Scheme                              *runtime.Scheme
+	Installer                           bminventory.InstallerInternals
+	SpokeK8sClientFactory               spoke_k8s_client.SpokeK8sClientFactory
+	spokeClient                         client.Client
+	ConvergedFlowEnabled                bool
+	PauseProvisionedBMHs                bool
+	StaleProvisioningRemediationEnabled bool
+	Drainer                             Drainer
+	Config                              *BMACConfig
 }
 
 const (
@@ -117,6 +118,8 @@ const (
 	BMH_AGENT_CREATE_FENCING_CREDENTIALS_SECRET = "bmac.agent-install.openshift.io/create-fencing-credentials-secret" // nolint: gosec
 	AGENT_FENCING_NAME_FORMAT                   = "%s-fencing-credentials"
 
+	BMH_STALE_PROVISIONING_ANNOTATION = "bmac.agent-install.openshift.io/stale-provisioning-remediation"
+
 	drainStatusSuccess    = "drain succeeded"
 	drainStatusInProgress = "draining in progress"
 	drainStatusTimeout    = "drain timed out"
@@ -130,6 +133,38 @@ var (
 		"kube-root-ca.crt",
 	}
 )
+
+const (
+	staleProvisioningRemediating     = "remediating"
+	staleProvisioningStatusCorrected = "status-corrected"
+)
+
+// isStaleProvisioning returns true when the Agent has completed installation
+// but the BMH is still stuck in StateProvisioning, indicating that Ironic
+// failed to report the deployment completion to the hub.
+//
+// For day 1 hosts (Kind != HostKindAddToExistingClusterHost), completion is
+// signalled by Progress.CurrentStage == HostStageDone.
+//
+// For day 2 hosts (Kind == HostKindAddToExistingClusterHost), we require the
+// stronger signal DebugInfo.State == HostStatusAddedToExistingCluster.
+// HostStageDone alone is insufficient for day 2: ClusterDeployment.Spec.Installed
+// is already true from day 1, so the !installed precheck never fires. Using
+// HostStageDone would create a false-positive window of ~15 seconds between
+// the agent reporting completion and Ironic's polling loop reporting back to
+// BMO. HostStatusAddedToExistingCluster is only set after the backend host
+// state machine has fully transitioned and the agent controller has synced —
+// at least one reconcile cycle after HostStageDone — by which point Ironic
+// has had time to report the deployment completion.
+func isStaleProvisioning(agent *aiv1beta1.Agent, bmh *bmh_v1alpha1.BareMetalHost) bool {
+	if bmh.Status.Provisioning.State != bmh_v1alpha1.StateProvisioning {
+		return false
+	}
+	if agent.Status.Kind == models.HostKindAddToExistingClusterHost {
+		return agent.Status.DebugInfo.State == models.HostStatusAddedToExistingCluster
+	}
+	return agent.Status.Progress.CurrentStage == models.HostStageDone
+}
 
 const certificateAuthoritiesIgnitionOverride = `{
 	"ignition": {
@@ -279,6 +314,13 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			ctrlResult, retErr = res.Result()
 			return
 		}
+	}
+
+	// Handle stale BMH provisioning (converged flow): must run before
+	// handlePauseAndDetachBMHAnnotations to prevent annotation conflicts.
+	if res := r.reconcileBMHStaleProvisioning(ctx, log, bmh, agent); res.Stop(ctx) {
+		ctrlResult, retErr = res.Result()
+		return
 	}
 
 	// The reconcileBMH function below this can stop reconciliation so we want to handle
@@ -2081,4 +2123,119 @@ func (r *BMACReconciler) removePausedAnnotation(log logrus.FieldLogger, bmh *bmh
 		return reconcileComplete{stop: true}
 	}
 	return reconcileComplete{}
+}
+
+// reconcileBMHStaleProvisioning detects and remediates the stale provisioning
+// condition: the Agent has completed installation (HostStageDone) but the BMH
+// is stuck in StateProvisioning because Ironic failed to report completion.
+//
+// It uses a two-value marker annotation (BMH_STALE_PROVISIONING_ANNOTATION) to
+// track a five-phase state machine across reconcile loops.
+// 1. Detect stale status, put a marker, detach the bmh
+// 2. Wait for the bmh to be detached
+// 3. Fix the status through annotation, re-attach the bmh, update the marker
+// 4. Wait for the fix to be applied
+// 5. Wait for the bmh to be re-attached, remove the marker
+func (r *BMACReconciler) reconcileBMHStaleProvisioning(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	// Prechecks. If any condition is not satisfied and the marker is present,
+	// clean up the marker and force-detach annotation rather than silently
+	// no-oping — someone may have manually deleted or unbound the Agent while
+	// remediation was in progress, and we must not leave stale annotations.
+	precheckCleanup := func() reconcileResult {
+		if metav1.HasAnnotation(bmh.ObjectMeta, BMH_STALE_PROVISIONING_ANNOTATION) {
+			log.Infof("Stale provisioning remediation aborted: precheck no longer satisfied, cleaning up")
+			delete(bmh.ObjectMeta.Annotations, BMH_STALE_PROVISIONING_ANNOTATION)
+			delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+		}
+		return reconcileComplete{}
+	}
+
+	if !r.StaleProvisioningRemediationEnabled {
+		return precheckCleanup()
+	}
+
+	if !r.ConvergedFlowEnabled || agent == nil {
+		return precheckCleanup()
+	}
+
+	_, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
+	if err != nil {
+		return reconcileError{err: err}
+	}
+	if !installed {
+		return precheckCleanup()
+	}
+
+	markerValue, hasMarker := bmh.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION]
+
+	// isStaleProvisioning == false: BMH is no longer stuck in StateProvisioning.
+	if !isStaleProvisioning(agent, bmh) {
+		if !hasMarker {
+			return reconcileComplete{}
+		}
+		// marker = "status-corrected" AND OperationalStatus == "detached":
+		// Phase 5: BMO is still mid-re-import; wait for both fields to settle.
+		if markerValue == staleProvisioningStatusCorrected &&
+			bmh.Status.OperationalStatus == bmh_v1alpha1.OperationalStatusDetached {
+			return reconcileComplete{stop: true}
+		}
+		// else: remediation complete (normal completion or external resolution).
+		// Clean up unconditionally.
+		log.Infof("Stale provisioning remediation complete, BMH state is now %s", bmh.Status.Provisioning.State)
+		delete(bmh.ObjectMeta.Annotations, BMH_STALE_PROVISIONING_ANNOTATION)
+		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+		return reconcileComplete{}
+	}
+
+	// isStaleProvisioning == true: BMH is still stuck in StateProvisioning.
+
+	if !hasMarker {
+		// Fresh detection: check if another actor already set the detach annotation.
+		if currentDetach, hasDetach := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]; hasDetach {
+			log.Debugf("Stale provisioning detected but detach annotation already set by another actor (%s), skipping remediation", currentDetach)
+			return reconcileComplete{}
+		}
+		// Phase 1: begin remediation.
+		log.Infof("Stale provisioning detected: host installed but BMH stuck in provisioning")
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = make(map[string]string)
+		}
+		bmh.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+		detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+		detachJson, err := json.Marshal(detachArg)
+		if err != nil {
+			return reconcileError{err: err}
+		}
+		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+		return reconcileComplete{stop: true}
+	}
+
+	// Marker is present from a previous reconcile loop.
+
+	// Phase 2: waiting for BMO to process force-detach (marker = "remediating").
+	// Only applies before status correction; once the marker is "status-corrected"
+	// the detach annotation is gone and OperationalStatus is irrelevant here.
+	if markerValue == staleProvisioningRemediating &&
+		bmh.Status.OperationalStatus != bmh_v1alpha1.OperationalStatusDetached {
+		return reconcileComplete{stop: true}
+	}
+
+	// Phase 3: BMO has detached. Apply status correction.
+	// The force-detach annotation being present means we have not yet corrected status.
+	if _, hasDetach := bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]; hasDetach {
+		correctedStatus := bmh.Status.DeepCopy()
+		correctedStatus.Provisioning.State = bmh_v1alpha1.StateProvisioned
+		statusJson, err := json.Marshal(correctedStatus)
+		if err != nil {
+			return reconcileError{err: err}
+		}
+		bmh.ObjectMeta.Annotations[BMH_STATUS_ANNOTATION] = string(statusJson)
+		delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+		bmh.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningStatusCorrected
+		log.Infof("Stale provisioning: force-detach complete, status corrected to provisioned")
+		return reconcileComplete{stop: true}
+	}
+
+	// Phase 4: wait for BMO to fix bmh.Status.Provisioning.State from the annotation.
+	return reconcileComplete{stop: true}
 }

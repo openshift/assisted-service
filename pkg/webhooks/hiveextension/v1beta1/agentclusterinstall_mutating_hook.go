@@ -18,11 +18,11 @@ import (
 
 // AgentClusterInstallMutatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
 type AgentClusterInstallMutatingAdmissionHook struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // NewAgentClusterInstallMutatingAdmissionHook constructs a new AgentClusterInstallMutatingAdmissionHook
-func NewAgentClusterInstallMutatingAdmissionHook(decoder *admission.Decoder) *AgentClusterInstallMutatingAdmissionHook {
+func NewAgentClusterInstallMutatingAdmissionHook(decoder admission.Decoder) *AgentClusterInstallMutatingAdmissionHook {
 	return &AgentClusterInstallMutatingAdmissionHook{decoder: decoder}
 }
 

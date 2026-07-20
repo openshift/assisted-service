@@ -173,6 +173,7 @@ var Options struct {
 	AllowConvergedFlow                   bool          `envconfig:"ALLOW_CONVERGED_FLOW" default:"true"`
 	EnableMetal3                         bool          `envconfig:"ENABLE_METAL3" default:"true"`
 	PauseProvisionedBMHs                 bool          `envconfig:"PAUSE_PROVISIONED_BMHS" default:"true"`
+	StaleProvisioningRemediationEnabled  bool          `envconfig:"STALE_PROVISIONING_REMEDIATION_ENABLED" default:"true"`
 	ForceInsecurePolicyJson              bool          `envconfig:"FORCE_INSECURE_POLICY_JSON" default:"false"`
 	PreprovisioningImageControllerConfig controllers.PreprovisioningImageControllerConfig
 	BMACConfig                           controllers.BMACConfig
@@ -358,16 +359,17 @@ func startKubeAPIControllers(
 
 	if Options.EnableMetal3 && Options.EnableImageService {
 		failOnError((&controllers.BMACReconciler{
-			Client:                ctrlMgr.GetClient(),
-			APIReader:             ctrlMgr.GetAPIReader(),
-			Log:                   log,
-			Scheme:                ctrlMgr.GetScheme(),
-			Installer:             bm,
-			SpokeK8sClientFactory: spokeClientFactory,
-			ConvergedFlowEnabled:  useConvergedFlow,
-			PauseProvisionedBMHs:  Options.PauseProvisionedBMHs,
-			Drainer:               &controllers.KubectlDrainer{},
-			Config:                &Options.BMACConfig,
+			Client:                              ctrlMgr.GetClient(),
+			APIReader:                           ctrlMgr.GetAPIReader(),
+			Log:                                 log,
+			Scheme:                              ctrlMgr.GetScheme(),
+			Installer:                           bm,
+			SpokeK8sClientFactory:               spokeClientFactory,
+			ConvergedFlowEnabled:                useConvergedFlow,
+			PauseProvisionedBMHs:                Options.PauseProvisionedBMHs,
+			StaleProvisioningRemediationEnabled: Options.StaleProvisioningRemediationEnabled,
+			Drainer:                             &controllers.KubectlDrainer{},
+			Config:                              &Options.BMACConfig,
 		}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 	}
 	failOnError((&controllers.AgentClusterInstallReconciler{
