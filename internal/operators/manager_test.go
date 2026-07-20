@@ -237,6 +237,24 @@ var _ = Describe("Operators manager", func() {
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
+		It("should upload FlowCollector as controller manifest when network-observability properties request it", func() {
+			netobservOperator := networkobservability.Operator
+			netobservOperator.Properties = `{"createFlowCollector": true, "sampling": 100}`
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&netobservOperator,
+			}
+
+			m := models.Manifest{}
+			mockS3Api.EXPECT().Upload(
+				gomock.Any(),
+				MatchControllerManifest(networkobservability.Operator.Name, "(?s).*kind: FlowCollector.*sampling: 100.*"),
+				gomock.Any(),
+			).Return(nil).Times(1)
+			// 3 OpenShift manifests (namespace, subscription, operatorgroup) + olm-operator-manifests ConfigMap
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(4)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
 		It("should create 11 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
