@@ -87,12 +87,11 @@ func (mr *MockOperatorMockRecorder) GetClusterValidationIDs() *gomock.Call {
 }
 
 // GetDependencies mocks base method.
-func (m *MockOperator) GetDependencies(cluster *common.Cluster) ([]string, error) {
+func (m *MockOperator) GetDependencies(cluster *common.Cluster) []string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetDependencies", cluster)
 	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetDependencies indicates an expected call of GetDependencies.
@@ -201,12 +200,11 @@ func (mr *MockOperatorMockRecorder) GetName() *gomock.Call {
 }
 
 // GetPreflightRequirements mocks base method.
-func (m *MockOperator) GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (m *MockOperator) GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightRequirements", ctx, cluster)
 	ret0, _ := ret[0].(*models.OperatorHardwareRequirements)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	return ret0
 }
 
 // GetPreflightRequirements indicates an expected call of GetPreflightRequirements.

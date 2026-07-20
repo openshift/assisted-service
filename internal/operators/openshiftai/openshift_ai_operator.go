@@ -73,11 +73,12 @@ func (o *operator) GetFullName() string {
 // GetDependencies provides a list of dependencies of the Operator.
 // GPU vendors (NVIDIA, AMD) are no longer auto-selected as dependencies — users
 // must explicitly choose them via the bundle's optional_operators.
-func (o *operator) GetDependencies(c *common.Cluster) ([]string, error) {
+func (o *operator) GetDependencies(c *common.Cluster) []string {
 	if common.IsSingleNodeCluster(c) {
-		return []string{lvm.Operator.Name}, nil
+		return []string{lvm.Operator.Name}
 	}
-	return []string{}, nil
+
+	return []string{}
 }
 
 func (o *operator) GetDependenciesFeatureSupportID() []models.FeatureSupportLevelID {
@@ -231,11 +232,8 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 // operator.
 func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster,
 	host *models.Host) (result *models.ClusterHostRequirementsDetails, err error) {
-	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
-	if err != nil {
-		o.log.WithError(err).Errorf("Cannot retrieve preflight requirements for cluster %s", cluster.ID)
-		return
-	}
+	preflightRequirements := o.GetPreflightRequirements(ctx, cluster)
+
 	switch common.GetEffectiveRole(host) {
 	case models.HostRoleMaster:
 		result = preflightRequirements.Requirements.Master.Quantitative
@@ -248,15 +246,10 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only.
-func (o *operator) GetPreflightRequirements(context context.Context,
-	cluster *common.Cluster) (result *models.OperatorHardwareRequirements, err error) {
-	dependencies, err := o.GetDependencies(cluster)
-	if err != nil {
-		return
-	}
-	result = &models.OperatorHardwareRequirements{
+func (o *operator) GetPreflightRequirements(context context.Context, cluster *common.Cluster) *models.OperatorHardwareRequirements {
+	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
-		Dependencies: dependencies,
+		Dependencies: o.GetDependencies(cluster),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Qualitative: []string{},
@@ -274,7 +267,6 @@ func (o *operator) GetPreflightRequirements(context context.Context,
 			},
 		},
 	}
-	return
 }
 
 func (o *operator) GetSupportedArchitectures() []string {

@@ -30,8 +30,7 @@ var _ = Describe("MetalLB operator", func() {
 
 	It("GetDependencies", func() {
 		cluster := common.Cluster{}
-		dependencies, err := metalLBOp.GetDependencies(&cluster)
-		Expect(err).To(Not(HaveOccurred()))
+		dependencies := metalLBOp.GetDependencies(&cluster)
 		Expect(dependencies).To(BeEmpty())
 	})
 

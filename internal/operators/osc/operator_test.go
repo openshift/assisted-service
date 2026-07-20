@@ -44,10 +44,13 @@ var _ = Describe("OSC Operator", func() {
 				Cluster: models.Cluster{ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode},
 			}
 
-			deps, err := operator.GetDependencies(&cluster)
-			Expect(err).ToNot(HaveOccurred())
+			deps := operator.GetDependencies(&cluster)
 			Expect(deps).To(HaveLen(1))
 			Expect(deps[0]).To(Equal(nodefeaturediscovery.Operator.Name))
+
+			depIDs := operator.GetDependenciesFeatureSupportID()
+			Expect(depIDs).To(HaveLen(1))
+			Expect(depIDs[0]).To(Equal(models.FeatureSupportLevelIDNODEFEATUREDISCOVERY))
 		})
 
 	})

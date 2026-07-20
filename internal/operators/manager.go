@@ -112,17 +112,13 @@ type API interface {
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
 func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
-	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHardwareRequirements
 	if common.IsDay2Cluster(cluster) {
 		return requirements, nil
 	}
-	for operatorName, operator := range mgr.olmOperators {
-		reqs, err := operator.GetPreflightRequirements(ctx, cluster)
-		if err != nil {
-			logger.WithError(err).Errorf("Cannot get preflight requirements for %s operator", operatorName)
-			return nil, err
-		}
+	for _, operator := range mgr.olmOperators {
+		reqs := operator.GetPreflightRequirements(ctx, cluster)
+
 		requirements = append(requirements, reqs)
 	}
 	return requirements, nil
@@ -500,10 +496,7 @@ func (mgr *Manager) ResolveDependencies(cluster *common.Cluster, operators []*mo
 	}
 
 	// Get dependent operators
-	allDependentOperators, err := mgr.getDependencies(cluster, ret)
-	if err != nil {
-		return nil, err
-	}
+	allDependentOperators := mgr.getDependencies(cluster, ret)
 
 	for operatorName := range allDependentOperators {
 		if funk.Contains(alreadyPresent, operatorName) {
@@ -532,7 +525,7 @@ func (mgr *Manager) getDependency(name string, definitions map[string]*models.Mo
 	return mgr.GetOperatorByName(name)
 }
 
-func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) (map[string]bool, error) {
+func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models.MonitoredOperator) map[string]bool {
 	fifo := list.New()
 	visited := make(map[string]bool)
 	for _, op := range operators {
@@ -540,10 +533,8 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 			continue
 		}
 		mgr.log.Debugf("Attempting to resolve %s operator dependencies", op.Name)
-		deps, err := mgr.olmOperators[op.Name].GetDependencies(cluster)
-		if err != nil {
-			return map[string]bool{}, err
-		}
+		deps := mgr.olmOperators[op.Name].GetDependencies(cluster)
+
 		visited[op.Name] = true
 		mgr.log.Debugf("Dependencies found for %s operator: %+v ", op.Name, deps)
 		for _, dep := range deps {
@@ -553,10 +544,8 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 	for fifo.Len() > 0 {
 		first := fifo.Front()
 		op := first.Value.(string)
-		deps, err := mgr.olmOperators[op].GetDependencies(cluster)
-		if err != nil {
-			return map[string]bool{}, err
-		}
+		deps := mgr.olmOperators[op].GetDependencies(cluster)
+
 		for _, dep := range deps {
 			if !visited[dep] {
 				fifo.PushBack(dep)
@@ -566,7 +555,7 @@ func (mgr *Manager) getDependencies(cluster *common.Cluster, operators []*models
 		fifo.Remove(first)
 	}
 
-	return visited, nil
+	return visited
 }
 
 func (mgr *Manager) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
