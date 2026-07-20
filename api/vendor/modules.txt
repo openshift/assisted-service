@@ -742,3 +742,4 @@ sigs.k8s.io/yaml/goyaml.v2
 # golang.org/x/net => golang.org/x/net v0.24.0
 # sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.3
 # github.com/golang/glog => github.com/golang/glog v1.2.4
+# golang.org/x/crypto => golang.org/x/crypto v0.52.0
