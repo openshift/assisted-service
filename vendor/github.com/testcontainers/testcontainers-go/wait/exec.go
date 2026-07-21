@@ -2,6 +2,7 @@ package wait
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -30,7 +31,7 @@ func NewExecStrategy(cmd []string) *ExecStrategy {
 	return &ExecStrategy{
 		cmd:             cmd,
 		ExitCodeMatcher: defaultExitCodeMatcher,
-		ResponseMatcher: func(body io.Reader) bool { return true },
+		ResponseMatcher: func(_ io.Reader) bool { return true },
 		PollInterval:    defaultPollInterval(),
 	}
 }
@@ -43,6 +44,12 @@ func defaultExitCodeMatcher(exitCode int) bool {
 func (ws *ExecStrategy) WithStartupTimeout(startupTimeout time.Duration) *ExecStrategy {
 	ws.timeout = &startupTimeout
 	return ws
+}
+
+func (ws *ExecStrategy) WithExitCode(exitCode int) *ExecStrategy {
+	return ws.WithExitCodeMatcher(func(actualCode int) bool {
+		return actualCode == exitCode
+	})
 }
 
 func (ws *ExecStrategy) WithExitCodeMatcher(exitCodeMatcher func(exitCode int) bool) *ExecStrategy {
@@ -68,6 +75,22 @@ func ForExec(cmd []string) *ExecStrategy {
 
 func (ws *ExecStrategy) Timeout() *time.Duration {
 	return ws.timeout
+}
+
+// String returns a human-readable description of the wait strategy.
+func (ws *ExecStrategy) String() string {
+	if len(ws.cmd) == 0 {
+		return "exec command"
+	}
+	// Only show the command name and argument count to avoid exposing sensitive data
+	argCount := len(ws.cmd) - 1
+	if argCount == 0 {
+		return fmt.Sprintf("exec command %q", ws.cmd[0])
+	}
+	if argCount == 1 {
+		return fmt.Sprintf("exec command %q with 1 argument", ws.cmd[0])
+	}
+	return fmt.Sprintf("exec command %q with %d arguments", ws.cmd[0], argCount)
 }
 
 func (ws *ExecStrategy) WaitUntilReady(ctx context.Context, target StrategyTarget) error {
