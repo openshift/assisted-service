@@ -31,25 +31,28 @@ func (gpe ParallelContainersError) Error() string {
 	return fmt.Sprintf("%v", gpe.Errors)
 }
 
+// parallelContainersResult represents result.
+type parallelContainersResult struct {
+	ParallelContainersRequestError
+	Container Container
+}
+
 func parallelContainersRunner(
 	ctx context.Context,
 	requests <-chan GenericContainerRequest,
-	errors chan<- ParallelContainersRequestError,
-	containers chan<- Container,
+	results chan<- parallelContainersResult,
 	wg *sync.WaitGroup,
 ) {
+	defer wg.Done()
 	for req := range requests {
 		c, err := GenericContainer(ctx, req)
+		res := parallelContainersResult{Container: c}
 		if err != nil {
-			errors <- ParallelContainersRequestError{
-				Request: req,
-				Error:   err,
-			}
-			continue
+			res.Request = req
+			res.Error = err
 		}
-		containers <- c
+		results <- res
 	}
-	wg.Done()
 }
 
 // ParallelContainers creates a generic containers with parameters and run it in parallel mode
@@ -58,47 +61,29 @@ func ParallelContainers(ctx context.Context, reqs ParallelContainerRequest, opt 
 		opt.WorkersCount = defaultWorkersCount
 	}
 
-	tasksChanSize := opt.WorkersCount
-	if tasksChanSize > len(reqs) {
-		tasksChanSize = len(reqs)
-	}
+	tasksChanSize := min(opt.WorkersCount, len(reqs))
 
 	tasksChan := make(chan GenericContainerRequest, tasksChanSize)
-	errsChan := make(chan ParallelContainersRequestError)
-	resChan := make(chan Container)
-	waitRes := make(chan struct{})
+	resultsChan := make(chan parallelContainersResult, tasksChanSize)
+	done := make(chan struct{})
 
-	containers := make([]Container, 0)
-	errors := make([]ParallelContainersRequestError, 0)
-
-	wg := sync.WaitGroup{}
+	var wg sync.WaitGroup
 	wg.Add(tasksChanSize)
 
 	// run workers
-	for i := 0; i < tasksChanSize; i++ {
-		go parallelContainersRunner(ctx, tasksChan, errsChan, resChan, &wg)
+	for range tasksChanSize {
+		go parallelContainersRunner(ctx, tasksChan, resultsChan, &wg)
 	}
 
+	var errs []ParallelContainersRequestError
+	containers := make([]Container, 0, len(reqs))
 	go func() {
-		for {
-			select {
-			case c, ok := <-resChan:
-				if !ok {
-					resChan = nil
-				} else {
-					containers = append(containers, c)
-				}
-			case e, ok := <-errsChan:
-				if !ok {
-					errsChan = nil
-				} else {
-					errors = append(errors, e)
-				}
-			}
-
-			if resChan == nil && errsChan == nil {
-				waitRes <- struct{}{}
-				break
+		defer close(done)
+		for res := range resultsChan {
+			if res.Error != nil {
+				errs = append(errs, res.ParallelContainersRequestError)
+			} else {
+				containers = append(containers, res.Container)
 			}
 		}
 	}()
@@ -107,14 +92,15 @@ func ParallelContainers(ctx context.Context, reqs ParallelContainerRequest, opt 
 		tasksChan <- req
 	}
 	close(tasksChan)
+
 	wg.Wait()
-	close(resChan)
-	close(errsChan)
 
-	<-waitRes
+	close(resultsChan)
 
-	if len(errors) != 0 {
-		return containers, ParallelContainersError{Errors: errors}
+	<-done
+
+	if len(errs) != 0 {
+		return containers, ParallelContainersError{Errors: errs}
 	}
 
 	return containers, nil
