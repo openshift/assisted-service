@@ -2691,6 +2691,12 @@ func (r *ClusterDeploymentsReconciler) handleClusterInstalled(ctx context.Contex
 		err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
 		if err != nil {
 			log.WithError(err).Error("failed to update cluster metadata")
+		} else {
+			clusterDeployment.Spec.Installed = true
+			if updateErr := r.Update(ctx, clusterDeployment); updateErr != nil {
+				log.WithError(updateErr).Error("failed to set ClusterDeployment.Spec.Installed")
+				return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, updateErr)
+			}
 		}
 		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, cluster, err)
 	}
