@@ -199,10 +199,11 @@ type ignitionBuilder struct {
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	ocRelease               oc.Release
 	versionHandler          versions.Handler
+	osImages                versions.OSImages
 }
 
 func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
-	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler) (result IgnitionBuilder, err error) {
+	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, ocRelease oc.Release, versionHandler versions.Handler, osImages versions.OSImages) (result IgnitionBuilder, err error) {
 	// Parse the templates file system:
 	templates, err := templating.LoadTemplates(templatesRoot)
 	if err != nil {
@@ -217,6 +218,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 		ocRelease:               ocRelease,
 		versionHandler:          versionHandler,
+		osImages:                osImages,
 	}
 	return
 }
@@ -234,9 +236,10 @@ func (ib *ignitionBuilder) shouldAppendOKDFiles(ctx context.Context, infraEnv *c
 		return "", false
 	}
 	// Check if selected payload contains `okd-rpms` image
-	releaseImage, err := ib.versionHandler.GetReleaseImage(ctx, infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
+	openshiftVersion := ib.osImages.GetOpenshiftVersionForInfraEnv(infraEnv)
+	releaseImage, err := ib.versionHandler.GetReleaseImage(ctx, openshiftVersion, infraEnv.CPUArchitecture, infraEnv.PullSecret)
 	if err != nil {
-		ib.log.Warnf("unable to find release image for %s/%s", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+		ib.log.Warnf("unable to find release image for %s/%s", openshiftVersion, infraEnv.CPUArchitecture)
 		return "", false
 	}
 	okdRpmsImage, err := ib.ocRelease.GetOKDRPMSImage(ib.log, *releaseImage.URL, "", infraEnv.PullSecret)
@@ -369,7 +372,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		var filesList []staticnetworkconfig.StaticNetworkConfigData
 		var newErr error
 		var shouldUseNmstateService bool
-		shouldUseNmstateService, err = ib.staticNetworkConfig.ShouldUseNmstateService(infraEnv.OpenshiftVersion)
+		shouldUseNmstateService, err = ib.staticNetworkConfig.ShouldUseNmstateService(ib.osImages.GetOpenshiftVersionForInfraEnv(infraEnv))
 		if err != nil {
 			return "", err
 		}

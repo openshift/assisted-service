@@ -91,6 +91,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		infraEnvID                          strfmt.UUID
 		mockOcRelease                       *oc.MockRelease
 		mockVersionHandler                  *versions.MockHandler
+		mockOSImages                        *versions.MockOSImages
 		ignitionConfig                      IgnitionConfig
 		ocpVersionInvolvingGenerateKeyfiles = "4.12"
 	)
@@ -104,6 +105,11 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
+		mockOSImages = versions.NewMockOSImages(ctrl)
+		mockOSImages.EXPECT().GetOpenshiftVersionForInfraEnv(gomock.Any()).
+			DoAndReturn(func(infraEnv *common.InfraEnv) string {
+				return infraEnv.OpenshiftVersion
+			}).AnyTimes()
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
@@ -121,7 +127,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		var err error
-		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
+		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler, mockOSImages)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -1133,6 +1139,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		infraEnvID                        strfmt.UUID
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
+		mockOSImages                      *versions.MockOSImages
 		ignitionConfig                    IgnitionConfig
 	)
 	buildIgnitionAndAssertSubString := func(SSHPublicKey string, shouldExist bool, subStr string) {
@@ -1154,6 +1161,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
+		mockOSImages = versions.NewMockOSImages(ctrl)
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
@@ -1162,7 +1170,7 @@ var _ = Describe("Ignition SSH key building", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		var err error
-		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
+		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler, mockOSImages)
 		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})
@@ -1218,6 +1226,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		mockHost                          *models.Host
 		mockOcRelease                     *oc.MockRelease
 		mockVersionHandler                *versions.MockHandler
+		mockOSImages                      *versions.MockOSImages
 	)
 
 	BeforeEach(func() {
@@ -1227,7 +1236,7 @@ var _ = Describe("FormatSecondDayWorkerIgnitionFile", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockHost = &models.Host{Inventory: hostInventory}
 		var err error
-		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
+		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler, mockOSImages)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
@@ -1360,6 +1369,7 @@ var _ = Describe("OKD overrides", func() {
 		infraEnvID                         strfmt.UUID
 		mockOcRelease                      *oc.MockRelease
 		mockVersionHandler                 *versions.MockHandler
+		mockOSImages                       *versions.MockOSImages
 		ocpImage, okdOldImage, okdNewImage *models.ReleaseImage
 		defaultCfg, okdCfg                 IgnitionConfig
 	)
@@ -1371,6 +1381,11 @@ var _ = Describe("OKD overrides", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
+		mockOSImages = versions.NewMockOSImages(ctrl)
+		mockOSImages.EXPECT().GetOpenshiftVersionForInfraEnv(gomock.Any()).
+			DoAndReturn(func(infraEnv *common.InfraEnv) string {
+				return infraEnv.OpenshiftVersion
+			}).AnyTimes()
 		clusterID := strfmt.UUID(uuid.New().String())
 		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
@@ -1381,7 +1396,7 @@ var _ = Describe("OKD overrides", func() {
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
 		var err error
-		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
+		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler, mockOSImages)
 		Expect(err).ToNot(HaveOccurred())
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		ocpImage = common.TestDefaultConfig.ReleaseImage

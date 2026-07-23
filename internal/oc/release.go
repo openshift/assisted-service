@@ -35,6 +35,9 @@ const (
 	okdRPMSImageName               = "okd-rpms"
 	rhcosImageName                 = "rhel-coreos"
 	scosImageName                  = "stream-coreos"
+	installerImageName             = "installer"
+	coreosBootImagesFileName       = "coreos-bootimages.yaml"
+	defaultRhcosVersionCachePrefix = "default-rhcos"
 	DefaultTries                   = 5
 	DefaltRetryDelay               = time.Second * 5
 	staticInstallerRequiredVersion = "4.16.0-0.alpha"
@@ -66,6 +69,7 @@ type Release interface {
 	GetImageArchitecture(log logrus.FieldLogger, image string, pullSecret string) ([]string, error)
 	GetReleaseBinaryPath(releaseImage string, cacheDir string, ocpVersion string) (workdir string, binary string, path string, err error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string, ocpVersion string) (string, error)
+	GetDefaultRhcosVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string, cpuArchitecture string) (string, error)
 }
 
 type imageValue struct {
@@ -98,6 +102,7 @@ const (
 	templateGetVersion            = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s %s"
 	templateExtract               = "oc adm release extract --command=%s --to=%s --insecure=%t %s %s"
 	templateImageInfo             = "oc image info --output json %s %s"
+	templateImageExtractManifests = "oc image extract --path /manifests/:%s --insecure=%t %s %s"
 	templateSkopeoDetectMultiarch = "skopeo inspect --raw --no-tags docker://%s"
 	ocAuthArgument                = " --registry-config="
 	skopeoAuthArgument            = " --authfile "
@@ -123,6 +128,141 @@ func (r *release) GetOKDRPMSImage(log logrus.FieldLogger, releaseImage string, r
 // GetMustGatherImage gets must-gather image URL from the release image or releaseImageMirror, if provided.
 func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
 	return r.getImageByName(log, mustGatherImageName, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// GetDefaultRhcosVersion returns the default RHCOS version for the specified CPU architecture
+// by extracting coreos-bootimages.yaml from the installer image in the release payload.
+func (r *release) GetDefaultRhcosVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string, cpuArchitecture string) (string, error) {
+	if releaseImage == "" && releaseImageMirror == "" {
+		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
+	}
+
+	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateGetImage)
+	if err != nil {
+		return "", err
+	}
+	defer mirrorsFlag.Delete()
+	image, insecure := r.getReleaseImageToUse(releaseImage, releaseImageMirror, mirrorsFlag)
+
+	cpuArchitecture = cpuArchitectureForLookup(cpuArchitecture)
+	cacheKey := getDefaultRhcosVersionKey(image, cpuArchitecture)
+	actualRhcosValue, err := r.getImageValue(defaultRhcosVersionCachePrefix, cacheKey)
+	if err != nil {
+		return "", err
+	}
+	if actualRhcosValue.value != "" {
+		return actualRhcosValue.value, nil
+	}
+	actualRhcosValue.mutex.Lock()
+	defer actualRhcosValue.mutex.Unlock()
+	if actualRhcosValue.value != "" {
+		return actualRhcosValue.value, nil
+	}
+
+	installerImage, err := r.getImageFromRelease(log, installerImageName, releaseImage, releaseImageMirror, pullSecret)
+	if err != nil {
+		return "", fmt.Errorf("failed to get installer image from release: %w", err)
+	}
+
+	rhcosVersion, err := r.extractDefaultRhcosVersionFromInstaller(log, installerImage, insecure, pullSecret, cpuArchitecture)
+	if err != nil {
+		return "", err
+	}
+
+	actualRhcosValue.value = rhcosVersion
+	return rhcosVersion, nil
+}
+
+func cpuArchitectureForLookup(cpuArchitecture string) string {
+	switch cpuArchitecture {
+	case common.AMD64CPUArchitecture:
+		return common.X86CPUArchitecture
+	case common.ARM64CPUArchitecture:
+		return common.AARCH64CPUArchitecture
+	case "":
+		return common.DefaultCPUArchitecture
+	default:
+		return cpuArchitecture
+	}
+}
+
+func getDefaultRhcosVersionKey(releaseImage, cpuArchitecture string) string {
+	return cpuArchitecture + "@" + releaseImage
+}
+
+type coreosBootImagesConfigMap struct {
+	Data struct {
+		Stream string `yaml:"stream"`
+	} `yaml:"data"`
+}
+
+type coreosStreamData struct {
+	Architectures map[string]coreosStreamArch `json:"architectures"`
+}
+
+type coreosStreamArch struct {
+	Artifacts struct {
+		Metal struct {
+			Release string `json:"release"`
+		} `json:"metal"`
+	} `json:"artifacts"`
+}
+
+func (r *release) extractDefaultRhcosVersionFromInstaller(log logrus.FieldLogger, installerImage string, insecure bool, pullSecret, cpuArchitecture string) (string, error) {
+	tempDir, err := os.MkdirTemp("", "coreos-bootimages-")
+	if err != nil {
+		return "", fmt.Errorf("failed to create temp directory for coreos-bootimages extraction: %w", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageExtractManifests)
+	if err != nil {
+		return "", err
+	}
+	defer mirrorsFlag.Delete()
+
+	cmd := fmt.Sprintf(templateImageExtractManifests, tempDir, insecure, mirrorsFlag, installerImage)
+	log.Infof("Extracting coreos-bootimages from installer image (%s)", cmd)
+	if _, err = execute(log, r.executer, pullSecret, cmd, ocAuthArgument); err != nil {
+		return "", fmt.Errorf("failed to extract coreos-bootimages from installer image: %w", err)
+	}
+
+	bootImagesPath := filepath.Join(tempDir, coreosBootImagesFileName)
+	bootImagesBytes, err := os.ReadFile(bootImagesPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to read %s: %w", coreosBootImagesFileName, err)
+	}
+
+	return parseDefaultRhcosVersionFromBootImages(bootImagesBytes, cpuArchitecture)
+}
+
+func parseDefaultRhcosVersionFromBootImages(bootImagesBytes []byte, cpuArchitecture string) (string, error) {
+	var configMap coreosBootImagesConfigMap
+	if err := k8syaml.Unmarshal(bootImagesBytes, &configMap); err != nil {
+		return "", fmt.Errorf("failed to parse %s: %w", coreosBootImagesFileName, err)
+	}
+	if configMap.Data.Stream == "" {
+		return "", fmt.Errorf("%s is missing data.stream", coreosBootImagesFileName)
+	}
+
+	var streamData coreosStreamData
+	if err := json.Unmarshal([]byte(configMap.Data.Stream), &streamData); err != nil {
+		return "", fmt.Errorf("failed to parse data.stream in %s: %w", coreosBootImagesFileName, err)
+	}
+
+	rhcosVersion := rhcosVersionForArchitecture(streamData, cpuArchitecture)
+	if rhcosVersion == "" {
+		return "", fmt.Errorf("no default RHCOS version found for architecture %s in %s", cpuArchitecture, coreosBootImagesFileName)
+	}
+	return rhcosVersion, nil
+}
+
+func rhcosVersionForArchitecture(streamData coreosStreamData, cpuArchitecture string) string {
+	archData, ok := streamData.Architectures[cpuArchitecture]
+	if !ok {
+		return ""
+	}
+	return archData.Artifacts.Metal.Release
 }
 
 // GetCoreOSImage gets rhel-coreos image URL from the release image or releaseImageMirror, if provided.

@@ -185,13 +185,6 @@ func getReleaseImageByVersion(desiredOpenshiftVersion string, releaseImages []*m
 	return nil
 }
 
-// ValidateReleaseImageForRHCOS validates whether for a specified RHCOS version we have an OCP
-// version that can be used. This functions performs a very weak matching because RHCOS versions
-// are very loosely coupled with the OpenShift versions what allows for a variety of mix&match.
-func (h *kubeAPIVersionsHandler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArchitecture string) error {
-	return validateReleaseImageForRHCOS(h.log, rhcosVersion, cpuArchitecture, h.releaseImages)
-}
-
 // addReleaseImage adds a new release image to the handler's cache based on the specified image URL and pull secret.
 // It extracts the OpenShift version and CPU architecture(s) from the release image metadata using 'oc' / 'skopeo' CLI tools.
 func (h *kubeAPIVersionsHandler) addReleaseImage(releaseImageUrl, pullSecret string) (*models.ReleaseImage, error) {

@@ -86,6 +86,7 @@ type InfraEnvReconciler struct {
 	ImageServiceBaseURL string
 	AuthType            auth.AuthType
 	OsImages            versions.OSImages
+	OsImageResolver     versions.OsImageResolver
 	PullSecretHandler
 	InsecureIPXEURLs    bool
 	ImageServiceEnabled bool
@@ -487,7 +488,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 // Priority is given to the OSImageVersion specified in the InfraEnv
 // If there's a cluster reference, return cluster's OpenshiftVersion
 // If OsImageVersion is specified, return value or fallback to latest if missing from ASC
-func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (string, error) {
+func (r *InfraEnvReconciler) getOSImageVersion(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster, pullSecret string) (string, error) {
 	osImageVersion := infraEnv.Spec.OSImageVersion
 
 	if cluster != nil && osImageVersion == "" {
@@ -499,7 +500,7 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 		return "", nil
 	}
 
-	if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
+	if _, err := r.OsImageResolver.GetOsImageForVersion(ctx, osImageVersion, infraEnv.Spec.CpuArchitecture, pullSecret); err != nil {
 		msg := "Specified OSImageVersion is missing from AgentServiceConfig"
 		log.WithError(err).Error(msg)
 		return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
@@ -510,15 +511,15 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
 	infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
 
-	osImageVersion, err := r.getOSImageVersion(log, infraEnv, cluster)
-	if err != nil {
-		log.WithError(err).Error("failed to get OS image version")
-		return nil, err
-	}
-
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef))
 	if err != nil {
 		log.WithError(err).Error("failed to get pull secret")
+		return nil, err
+	}
+
+	osImageVersion, err := r.getOSImageVersion(ctx, log, infraEnv, cluster, pullSecret)
+	if err != nil {
+		log.WithError(err).Error("failed to get OS image version")
 		return nil, err
 	}
 
@@ -699,7 +700,7 @@ func (r *InfraEnvReconciler) setBootArtifactURLs(log logrus.FieldLogger, infraEn
 	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var err error
 	var osImage *models.OsImage
-	if osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture); err != nil {
+	if osImage, err = r.OsImageResolver.GetOsImageForInfraEnv(context.Background(), internalInfraEnv); err != nil {
 		return err
 	}
 	if bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs); err != nil {

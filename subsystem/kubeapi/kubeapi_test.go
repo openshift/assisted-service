@@ -2377,7 +2377,7 @@ location = "%s"
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvFake.Name, infraEnvSpec)
 
 		checkInfraEnvCondition(ctx, infraEnvFake, v1beta1.ImageCreatedCondition,
-			"does not have a matching OpenShift release image")
+			"The requested CPU architecture (fake) isn't specified in release images list")
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {

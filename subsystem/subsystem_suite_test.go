@@ -35,6 +35,7 @@ var log *logrus.Logger
 var wiremock *utils_test.WireMock
 var kubeClient k8sclient.Client
 var openshiftVersion = common.TestVersion().Version()
+var rhcosVersion = common.TestVersion().RhcosVersion()
 
 // s390x is used to detect multi version availability since it has no standalone release images.
 var multiarchOpenshiftVersion = common.TestVersion().ForArch("s390x").MultiVersion()

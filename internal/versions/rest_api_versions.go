@@ -122,19 +122,6 @@ func (h *restAPIVersionsHandler) GetMustGatherImages(openshiftVersion, cpuArchit
 	)
 }
 
-// ValidateReleaseImageForRHCOS validates whether for a specified RHCOS version we have an OCP
-// version that can be used. This functions performs a very weak matching because RHCOS versions
-// are very loosely coupled with the OpenShift versions what allows for a variety of mix&match.
-func (h *restAPIVersionsHandler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error {
-	var releaseImages models.ReleaseImages
-	err := h.db.Model(&models.ReleaseImage{}).Find(&releaseImages).Error
-	if err != nil {
-		return errors.Wrapf(err, "error occurred while trying to retrieve release images from the DB")
-	}
-
-	return validateReleaseImageForRHCOS(h.log, rhcosVersion, cpuArch, releaseImages)
-}
-
 func validateCPUArchitecture(cpuArchitecture string) error {
 	// Creating dummy release image to validate cpu architecture
 	releaseImage := &models.ReleaseImage{

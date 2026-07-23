@@ -24,6 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/imageservice"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
@@ -886,15 +887,16 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, errors.New("image service is disabled")))
 	}
 
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImageResolver.GetOsImageForInfraEnv(ctx, infraEnv)
 	if err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
-	if osImage.OpenshiftVersion == nil {
-		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
+	version, err := versions.OsImageVersion(osImage)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
-	newURL, expiresAt, err := b.generateShortImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, expiresAt, err := b.generateShortImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), version, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1074,14 +1076,10 @@ func kernelArgsAppendStr(infraEnv *common.InfraEnv) (string, error) {
 }
 
 func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImageResolver.GetOsImageForInfraEnv(ctx, infraEnv)
 	if err != nil {
 		return "", common.NewApiError(http.StatusBadRequest, err)
 	}
-	if osImage.OpenshiftVersion == nil {
-		return "", errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
-	}
-
 	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(b.ImageServiceBaseURL, infraEnv.ID.String(), osImage, b.insecureIPXEURLs)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate boot artifact URLs")

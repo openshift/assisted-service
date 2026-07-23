@@ -12,6 +12,7 @@ package versions
 import (
 	reflect "reflect"
 
+	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -54,6 +55,21 @@ func (mr *MockOSImagesMockRecorder) GetCPUArchitectures(openshiftVersion any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPUArchitectures", reflect.TypeOf((*MockOSImages)(nil).GetCPUArchitectures), openshiftVersion)
 }
 
+// GetHighestOpenshiftVersionForRhcosVersion mocks base method.
+func (m *MockOSImages) GetHighestOpenshiftVersionForRhcosVersion(rhcosVersion, cpuArchitecture string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHighestOpenshiftVersionForRhcosVersion", rhcosVersion, cpuArchitecture)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHighestOpenshiftVersionForRhcosVersion indicates an expected call of GetHighestOpenshiftVersionForRhcosVersion.
+func (mr *MockOSImagesMockRecorder) GetHighestOpenshiftVersionForRhcosVersion(rhcosVersion, cpuArchitecture any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHighestOpenshiftVersionForRhcosVersion", reflect.TypeOf((*MockOSImages)(nil).GetHighestOpenshiftVersionForRhcosVersion), rhcosVersion, cpuArchitecture)
+}
+
 // GetLatestOsImage mocks base method.
 func (m *MockOSImages) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
@@ -67,6 +83,20 @@ func (m *MockOSImages) GetLatestOsImage(cpuArchitecture string) (*models.OsImage
 func (mr *MockOSImagesMockRecorder) GetLatestOsImage(cpuArchitecture any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLatestOsImage", reflect.TypeOf((*MockOSImages)(nil).GetLatestOsImage), cpuArchitecture)
+}
+
+// GetOpenshiftVersionForInfraEnv mocks base method.
+func (m *MockOSImages) GetOpenshiftVersionForInfraEnv(infraEnv *common.InfraEnv) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOpenshiftVersionForInfraEnv", infraEnv)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetOpenshiftVersionForInfraEnv indicates an expected call of GetOpenshiftVersionForInfraEnv.
+func (mr *MockOSImagesMockRecorder) GetOpenshiftVersionForInfraEnv(infraEnv any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersionForInfraEnv", reflect.TypeOf((*MockOSImages)(nil).GetOpenshiftVersionForInfraEnv), infraEnv)
 }
 
 // GetOpenshiftVersions mocks base method.
@@ -83,32 +113,32 @@ func (mr *MockOSImagesMockRecorder) GetOpenshiftVersions() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOpenshiftVersions", reflect.TypeOf((*MockOSImages)(nil).GetOpenshiftVersions))
 }
 
-// GetOsImage mocks base method.
-func (m *MockOSImages) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+// GetOsImageByOpenshiftVersion mocks base method.
+func (m *MockOSImages) GetOsImageByOpenshiftVersion(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOsImage", openshiftVersion, cpuArchitecture)
+	ret := m.ctrl.Call(m, "GetOsImageByOpenshiftVersion", openshiftVersion, cpuArchitecture)
 	ret0, _ := ret[0].(*models.OsImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetOsImage indicates an expected call of GetOsImage.
-func (mr *MockOSImagesMockRecorder) GetOsImage(openshiftVersion, cpuArchitecture any) *gomock.Call {
+// GetOsImageByOpenshiftVersion indicates an expected call of GetOsImageByOpenshiftVersion.
+func (mr *MockOSImagesMockRecorder) GetOsImageByOpenshiftVersion(openshiftVersion, cpuArchitecture any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImage", reflect.TypeOf((*MockOSImages)(nil).GetOsImage), openshiftVersion, cpuArchitecture)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImageByOpenshiftVersion", reflect.TypeOf((*MockOSImages)(nil).GetOsImageByOpenshiftVersion), openshiftVersion, cpuArchitecture)
 }
 
-// GetOsImageOrLatest mocks base method.
-func (m *MockOSImages) GetOsImageOrLatest(version, cpuArch string) (*models.OsImage, error) {
+// GetOsImageByRhcosVersion mocks base method.
+func (m *MockOSImages) GetOsImageByRhcosVersion(rhcosVersion, cpuArchitecture string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOsImageOrLatest", version, cpuArch)
+	ret := m.ctrl.Call(m, "GetOsImageByRhcosVersion", rhcosVersion, cpuArchitecture)
 	ret0, _ := ret[0].(*models.OsImage)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetOsImageOrLatest indicates an expected call of GetOsImageOrLatest.
-func (mr *MockOSImagesMockRecorder) GetOsImageOrLatest(version, cpuArch any) *gomock.Call {
+// GetOsImageByRhcosVersion indicates an expected call of GetOsImageByRhcosVersion.
+func (mr *MockOSImagesMockRecorder) GetOsImageByRhcosVersion(rhcosVersion, cpuArchitecture any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImageOrLatest", reflect.TypeOf((*MockOSImages)(nil).GetOsImageOrLatest), version, cpuArch)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOsImageByRhcosVersion", reflect.TypeOf((*MockOSImages)(nil).GetOsImageByRhcosVersion), rhcosVersion, cpuArchitecture)
 }
