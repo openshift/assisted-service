@@ -580,7 +580,6 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-        - urlAuth: []
         - imageAuth: []
         - imageURLAuth: []
       description: Retrieves the details of the infra-env.
@@ -2052,7 +2051,6 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
-        - urlAuth: []
       description: Downloads files relating to the installed/installing cluster.
       operationId: V2DownloadClusterFiles
       produces:
@@ -2245,7 +2243,6 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-        - urlAuth: []
         - imageAuth: []
       description: |
         Get the initial ramdisk for minimal ISO based installations.
