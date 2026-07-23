@@ -79,6 +79,9 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		return nil, common.NewInfraError(http.StatusUnauthorized, err)
 	}
 
+	var resourceType string
+	var resourceID string
+
 	if infraEnvOk {
 		_, exists := a.cache.Get(infraEnvID)
 		if !exists {
@@ -89,6 +92,8 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
+		resourceType = string(gencrypto.InfraEnvKey)
+		resourceID = infraEnvID
 		a.log.Debugf("Authenticating infraEnv %s JWT", infraEnvID)
 	} else if clusterOk {
 		_, exists := a.cache.Get(clusterID)
@@ -100,10 +105,15 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 				return nil, common.NewInfraError(http.StatusUnauthorized, err)
 			}
 		}
+		resourceType = string(gencrypto.ClusterKey)
+		resourceID = clusterID
 		a.log.Debugf("Authenticating Cluster %s JWT", clusterID)
 	}
 
-	return ocm.AdminPayload(), nil
+	payload := ocm.AdminPayload()
+	payload.ResourceType = resourceType
+	payload.ResourceID = resourceID
+	return payload, nil
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
