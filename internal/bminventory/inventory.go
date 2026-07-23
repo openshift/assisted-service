@@ -4697,6 +4697,7 @@ func (b *bareMetalInventory) validateIgnitionEndpoint(ignitionEndpoint *models.I
 	if ignitionEndpoint == nil || ignitionEndpoint.URL == nil {
 		return nil
 	}
+	*ignitionEndpoint.URL = pkgvalidations.NormalizeHTTPURL(*ignitionEndpoint.URL)
 	if err := pkgvalidations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
 		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpoint.URL)
 		return common.NewApiError(http.StatusBadRequest, err)

@@ -83,8 +83,47 @@ func ValidateNTPSource(ntpSource string) bool {
 	return false
 }
 
+// NormalizeHTTPURL rewrites HTTP(S) URLs that contain an unbracketed IPv6 literal host
+// so they can be parsed by net/url (Go 1.26+).
+func NormalizeHTTPURL(theurl string) string {
+	if theurl == "" {
+		return theurl
+	}
+	const schemeSep = "://"
+	schemeIdx := strings.Index(theurl, schemeSep)
+	if schemeIdx < 0 {
+		return theurl
+	}
+	scheme := theurl[:schemeIdx+len(schemeSep)]
+	remainder := theurl[schemeIdx+len(schemeSep):]
+
+	path := ""
+	if slash := strings.Index(remainder, "/"); slash >= 0 {
+		path = remainder[slash:]
+		remainder = remainder[:slash]
+	}
+
+	if strings.HasPrefix(remainder, "[") {
+		return theurl
+	}
+
+	lastColon := strings.LastIndex(remainder, ":")
+	if lastColon < 0 {
+		return theurl
+	}
+
+	host := remainder[:lastColon]
+	port := remainder[lastColon+1:]
+	if port == "" || net.ParseIP(host) == nil || !strings.Contains(host, ":") {
+		return theurl
+	}
+
+	return scheme + net.JoinHostPort(host, port) + path
+}
+
 // ValidateHTTPFormat validates the HTTP and HTTPS format
 func ValidateHTTPFormat(theurl string) error {
+	theurl = NormalizeHTTPURL(theurl)
 	u, err := url.Parse(theurl)
 	if err != nil {
 		return fmt.Errorf("URL '%s' format is not valid: %w", theurl, err)

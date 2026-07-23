@@ -157,6 +157,15 @@ var _ = Describe("Ignition endpoint URL generation", func() {
 			Expect(cert).Should(BeNil())
 			Expect(err).ShouldNot(HaveOccurred())
 		})
+		It("for cluster with unbracketed IPv6 custom IgnitionEndpoint", func() {
+			customEndpoint := "https://fd2e:6f44:5dd8:c956::14:31187"
+			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
+
+			url, cert, err := GetIgnitionEndpointAndCert(&cluster, &host, logrus.New())
+			Expect(url).Should(Equal("https://[fd2e:6f44:5dd8:c956::14]:31187/worker"))
+			Expect(cert).Should(BeNil())
+			Expect(err).ShouldNot(HaveOccurred())
+		})
 		It("failing for cluster with wrong IgnitionEndpoint", func() {
 			customEndpoint := "https\\://foo.bar:33735/acme"
 			Expect(db.Model(&cluster).Update("ignition_endpoint_url", customEndpoint).Error).ShouldNot(HaveOccurred())
