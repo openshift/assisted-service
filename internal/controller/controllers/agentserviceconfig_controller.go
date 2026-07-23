@@ -61,6 +61,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -221,6 +222,7 @@ type ComponentStatusFn func(context.Context, logrus.FieldLogger, string, appsv1.
 // +kubebuilder:rbac:groups="apiregistration.k8s.io",resources=apiservices,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=authorization.k8s.io,resources=subjectaccessreviews,verbs=create
 // +kubebuilder:rbac:groups=networking.k8s.io,resources=ingresses,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=networking.k8s.io,resources=networkpolicies,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=certificates,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=cert-manager.io,resources=issuers,verbs=get;list;watch;create;update;patch;delete
 
@@ -384,6 +386,7 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool, ann
 		{"FilesystemStorage", aiv1beta1.ReasonStorageFailure, newFilesystemPVC},
 		{"DatabaseStorage", aiv1beta1.ReasonStorageFailure, newDatabasePVC},
 		{"AgentService", aiv1beta1.ReasonAgentServiceFailure, newAgentService},
+		{"AgentServiceNetworkPolicy", aiv1beta1.ReasonNetworkPolicyFailure, newAssistedServiceNetworkPolicy},
 		{"AgentLocalAuthSecret", aiv1beta1.ReasonAgentLocalAuthSecretFailure, newAgentLocalAuthSecret},
 		{"DatabaseSecret", aiv1beta1.ReasonPostgresSecretFailure, newPostgresSecret},
 		{"AgentRoute", aiv1beta1.ReasonAgentRouteFailure, newAgentRoute},
@@ -392,6 +395,7 @@ func getComponents(spec *aiv1beta1.AgentServiceConfigSpec, isOpenshift bool, ann
 	if imageServiceEnabled {
 		components = append(components,
 			component{"ImageServiceService", aiv1beta1.ReasonImageHandlerServiceFailure, newImageServiceService},
+			component{"ImageServiceNetworkPolicy", aiv1beta1.ReasonNetworkPolicyFailure, newImageServiceNetworkPolicy},
 			component{"ImageServiceServiceAccount", aiv1beta1.ReasonImageHandlerServiceAccountFailure, newImageServiceServiceAccount},
 			component{"ImageServiceRoute", aiv1beta1.ReasonImageHandlerRouteFailure, newImageServiceRoute},
 		)
@@ -776,6 +780,113 @@ func newImageServiceService(ctx context.Context, log logrus.FieldLogger, asc ASC
 	}
 
 	return svc, mutateFn, nil
+}
+
+func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	np := &netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, np, asc.rec.Scheme); err != nil {
+			return err
+		}
+		addAppLabel(serviceName, &np.ObjectMeta)
+
+		np.Spec = netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": serviceName},
+			},
+			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress, netv1.PolicyTypeEgress},
+			Ingress: []netv1.NetworkPolicyIngressRule{
+				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
+				{
+					Ports: []netv1.NetworkPolicyPort{
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &servicePort},
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &serviceHTTPPort},
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 9443}},
+					},
+				},
+			},
+			Egress: networkPolicyDefaultEgress(),
+		}
+		return nil
+	}
+
+	return np, mutateFn, nil
+}
+
+func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
+	np := &netv1.NetworkPolicy{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      imageServiceName,
+			Namespace: asc.namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(asc.Object, np, asc.rec.Scheme); err != nil {
+			return err
+		}
+		addAppLabel(imageServiceName, &np.ObjectMeta)
+
+		np.Spec = netv1.NetworkPolicySpec{
+			PodSelector: metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": imageServiceName},
+			},
+			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress, netv1.PolicyTypeEgress},
+			Ingress: []netv1.NetworkPolicyIngressRule{
+				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
+				{
+					Ports: []netv1.NetworkPolicyPort{
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerPort},
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerHTTPPort},
+					},
+				},
+			},
+			Egress: networkPolicyDefaultEgress(),
+		}
+		return nil
+	}
+
+	return np, mutateFn, nil
+}
+
+func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
+	return []netv1.NetworkPolicyEgressRule{
+		{
+			To: []netv1.NetworkPolicyPeer{{
+				NamespaceSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "openshift-dns"},
+				},
+			}},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolUDP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
+			},
+		},
+		{
+			To: []netv1.NetworkPolicyPeer{
+				{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0"}},
+				{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+			},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 6443}},
+			},
+		},
+		{
+			To: []netv1.NetworkPolicyPeer{
+				{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+				{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+			},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}},
+			},
+		},
+	}
 }
 
 func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {

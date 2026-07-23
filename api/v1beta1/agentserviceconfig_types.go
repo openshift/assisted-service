@@ -255,6 +255,8 @@ const (
 	ReasonOSImageAdditionalParamsRefFailure string = "ReasonOSImageAdditionalParamsRefFailure"
 	// ReasonImmutableAnnotationFailure when there has been a failure validating immutable annotations.
 	ReasonImmutableAnnotationFailure string = "ImmutableAnnotationFailure"
+	// ReasonNetworkPolicyFailure when there was a failure configuring/deploying a network policy.
+	ReasonNetworkPolicyFailure string = "NetworkPolicyFailure"
 )
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
