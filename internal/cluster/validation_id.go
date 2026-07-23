@@ -59,6 +59,7 @@ const (
 	AreMetallbRequirementsSatisfied                = ValidationID(models.ClusterValidationIDMetallbRequirementsSatisfied)
 	IsLokiRequirementsSatisfied                    = ValidationID(models.ClusterValidationIDLokiRequirementsSatisfied)
 	IsOpenShiftLoggingRequirementsSatisfied        = ValidationID(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied)
+	AreNetworkObservabilityRequirementsSatisfied   = ValidationID(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied)
 )
 
 func (v ValidationID) Category() (string, error) {
@@ -99,7 +100,8 @@ func (v ValidationID) Category() (string, error) {
 		AreOADPRequirementsSatisfied,
 		AreMetallbRequirementsSatisfied,
 		IsLokiRequirementsSatisfied,
-		IsOpenShiftLoggingRequirementsSatisfied:
+		IsOpenShiftLoggingRequirementsSatisfied,
+		AreNetworkObservabilityRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))

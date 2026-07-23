@@ -6272,7 +6272,8 @@ func init() {
                   "oadp",
                   "metallb",
                   "loki",
-                  "openshift-logging"
+                  "openshift-logging",
+                  "network-observability"
                 ]
               }
             }
@@ -7397,7 +7398,8 @@ func init() {
         "oadp-requirements-satisfied",
         "metallb-requirements-satisfied",
         "loki-requirements-satisfied",
-        "openshift-logging-requirements-satisfied"
+        "openshift-logging-requirements-satisfied",
+        "network-observability-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -8317,6 +8319,7 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
+        "NETWORK_OBSERVABILITY",
         "DUAL_STACK_PRIMARY_IPV6",
         "LOKI",
         "OPENSHIFT_LOGGING"
@@ -9007,7 +9010,8 @@ func init() {
         "oadp-requirements-satisfied",
         "metallb-requirements-satisfied",
         "loki-requirements-satisfied",
-        "openshift-logging-requirements-satisfied"
+        "openshift-logging-requirements-satisfied",
+        "network-observability-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -17920,7 +17924,8 @@ func init() {
                   "oadp",
                   "metallb",
                   "loki",
-                  "openshift-logging"
+                  "openshift-logging",
+                  "network-observability"
                 ]
               }
             }
@@ -19190,7 +19195,8 @@ func init() {
         "oadp-requirements-satisfied",
         "metallb-requirements-satisfied",
         "loki-requirements-satisfied",
-        "openshift-logging-requirements-satisfied"
+        "openshift-logging-requirements-satisfied",
+        "network-observability-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -20077,6 +20083,7 @@ func init() {
         "NUMA_RESOURCES",
         "OADP",
         "METALLB",
+        "NETWORK_OBSERVABILITY",
         "DUAL_STACK_PRIMARY_IPV6",
         "LOKI",
         "OPENSHIFT_LOGGING"
@@ -20767,7 +20774,8 @@ func init() {
         "oadp-requirements-satisfied",
         "metallb-requirements-satisfied",
         "loki-requirements-satisfied",
-        "openshift-logging-requirements-satisfied"
+        "openshift-logging-requirements-satisfied",
+        "network-observability-requirements-satisfied"
       ]
     },
     "host_network": {
