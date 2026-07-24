@@ -152,10 +152,125 @@ function ocp_mirror_release() {
   pull_secret_file="${1}"
   source_image="${2}"
   dest_mirror_repo="${3}"
+  local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-3}"
+  local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-30}"
+  local attempt=1
+  local output=""
 
-  oc adm -a "${pull_secret_file}" release mirror \
-         --from="${source_image}" \
-         --to="${dest_mirror_repo}"
+  while [ "${attempt}" -le "${max_attempts}" ]; do
+    if output=$(oc adm -a "${pull_secret_file}" release mirror \
+               --from="${source_image}" \
+               --to="${dest_mirror_repo}" 2>&1); then
+      echo "${output}"
+      return 0
+    fi
+
+    echo "${output}"
+
+    if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error "${output}"; then
+      return 1
+    fi
+
+    echo "Release mirror failed with a transient registry error (attempt ${attempt}/${max_attempts}), retrying in ${retry_delay}s..." >&2
+    sleep "${retry_delay}"
+    attempt=$((attempt + 1))
+  done
+}
+
+function transient_registry_error() {
+  echo "${1}" | grep -Eqi 'unexpected EOF|504 Gateway|502 Bad Gateway|503 Service Unavailable|connection reset|TLS handshake timeout|broken pipe|i/o timeout|use of closed network connection'
+}
+
+function image_repo_from_pullspec() {
+  echo "${1%%@*}"
+}
+
+function discover_os_image_stream_images_from_mco_tool() {
+  release_image="${1}"
+  authfile="${2}"
+  local mco_image osimagestream_json authfile_dir authfile_name mco_stderr
+
+  if ! mco_image=$(oc adm -a "${authfile}" release info "${release_image}" --image-for machine-config-operator); then
+    echo "machine-config-osimagestream discovery failed: could not resolve machine-config-operator image" >&2
+    return 2
+  fi
+
+  if ! podman run --quiet --rm --net=none --authfile "${authfile}" "${mco_image}" test -x /usr/bin/machine-config-osimagestream 2>/dev/null; then
+    return 1
+  fi
+
+  authfile_dir=$(dirname "${authfile}")
+  authfile_name=$(basename "${authfile}")
+  mco_stderr=$(mktemp)
+
+  if ! osimagestream_json=$(podman run --quiet --rm --net=host \
+        --authfile "${authfile}" \
+        -v "${authfile_dir}:/authfile:ro,Z" \
+        "${mco_image}" \
+        /usr/bin/machine-config-osimagestream get osimagestream \
+          --release-image "${release_image}" \
+          --authfile "/authfile/${authfile_name}" \
+          --output-format json 2>"${mco_stderr}"); then
+    echo "machine-config-osimagestream discovery failed:" >&2
+    cat "${mco_stderr}" >&2
+    rm -f "${mco_stderr}"
+    return 2
+  fi
+  rm -f "${mco_stderr}"
+
+  echo "${osimagestream_json}" | jq -r '
+    .status.availableStreams[]? |
+    (.osImage, .osExtensionsImage) |
+    select(. != null and . != "")
+  '
+}
+
+function discover_os_image_stream_sources_from_release_json() {
+  release_image="${1}"
+  authfile="${2}"
+
+  oc adm -a "${authfile}" release info "${release_image}" -o json | \
+    jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | map(split("@")[0]) | unique | .[]'
+}
+
+# Discover OSImageStream source repositories for registries.conf. The MCO helper
+# matches bootstrap discovery; release metadata is a fallback for older payloads.
+function discover_os_image_stream_sources() {
+  release_image="${1}"
+  authfile="${2}"
+  local images mco_status=0
+
+  images=$(discover_os_image_stream_images_from_mco_tool "${release_image}" "${authfile}") || mco_status=$?
+
+  if [ "${mco_status}" -eq 0 ] && [ -n "${images}" ]; then
+    printf '%s\n' "${images}" | while IFS= read -r image; do
+      [ -n "${image}" ] || continue
+      image_repo_from_pullspec "${image}"
+    done | sort -u
+    return 0
+  fi
+
+  if [ "${mco_status}" -eq 2 ]; then
+    return 1
+  fi
+
+  echo "machine-config-osimagestream unavailable; falling back to release metadata scan" >&2
+  discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
+}
+
+function registry_configs_for_os_image_stream_sources() {
+  release_image="${1}"
+  authfile="${2}"
+  release_mirror_repo="${3}"
+  shift 3
+
+  while IFS= read -r source; do
+    [ -n "${source}" ] || continue
+    for skip_repo in "$@"; do
+      [ "${source}" = "${skip_repo}" ] && continue 2
+    done
+    registry_config "${source}" "${release_mirror_repo}"
+  done < <(discover_os_image_stream_sources "${release_image}" "${authfile}")
 }
 
 function install_oc_mirrorv2(){
