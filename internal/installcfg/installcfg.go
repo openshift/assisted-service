@@ -225,7 +225,8 @@ type Fencing struct {
 }
 
 type FencingCredential struct {
-	Hostname                string                   `json:"hostname"`
+	Hostname                string                   `json:"hostname,omitempty"`
+	MacAddress              string                   `json:"macAddress,omitempty"`
 	Address                 string                   `json:"address"`
 	Username                string                   `json:"username"`
 	Password                string                   `json:"password"`
