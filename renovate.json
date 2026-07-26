@@ -9,11 +9,29 @@
     "prConcurrentLimit": 0,
     "enabledManagers": [
         "custom.regex",
-        "tekton"
+        "tekton",
+        "gomod"
     ],
     "tekton": {
         "managerFilePatterns": [
             "/^.tekton/*/"
+        ]
+    },
+    "gomod": {
+        "postUpdateOptions": [
+            "gomodUpdateImportPaths",
+            "gomodTidy"
+        ],
+        "packageRules": [
+            {
+                "matchManagers": [
+                    "gomod"
+                ],
+                "matchDepTypes": [
+                    "indirect"
+                ],
+                "enabled": false
+            }
         ]
     },
     "customManagers": [
@@ -186,6 +204,26 @@
                 "registry.access.redhat.com/ubi9/ubi-minimal"
             ],
             "enabled": false
+        },
+        {
+            "matchManagers": [
+                "gomod"
+            ],
+            "enabled": false
+        },
+        {
+            "matchManagers": [
+                "gomod"
+            ],
+            "matchPackageNames": [
+                "github.com/openshift/hive/apis"
+            ],
+            "groupName": "Hive API Synchronization",
+            "addLabels": [
+                "hive-api",
+                "api-sync"
+            ],
+            "enabled": true
         }
     ]
 }
