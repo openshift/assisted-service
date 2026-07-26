@@ -6,3 +6,4 @@ images:
   newTag: latest
 resources:
 - manager.yaml
+- infrastructure-operator-networkpolicy.yaml
