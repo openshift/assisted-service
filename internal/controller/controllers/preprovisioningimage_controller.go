@@ -191,13 +191,24 @@ func clearImageStatus(image *metal3_v1alpha1.PreprovisioningImage) {
 	image.Status.Architecture = ""
 }
 
+func getExpectedImageURL(image *metal3_v1alpha1.PreprovisioningImage, infraEnv *aiv1beta1.InfraEnv) string {
+	if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatISO) {
+		return infraEnv.Status.ISODownloadURL
+	}
+	if funk.Contains(image.Spec.AcceptFormats, metal3_v1alpha1.ImageFormatInitRD) {
+		return infraEnv.Status.BootArtifacts.InitrdURL
+	}
+	return ""
+}
+
 func (r *PreprovisioningImageReconciler) handleImageUpdate(ctx context.Context, log logrus.FieldLogger, image *metal3_v1alpha1.PreprovisioningImage, infraEnv *aiv1beta1.InfraEnv) error {
 	bmh, err := r.getBMH(ctx, image)
 	if err != nil {
 		return err
 	}
 
-	imageUpdated := image.Status.ImageUrl != "" && image.Status.ImageUrl != infraEnv.Status.ISODownloadURL
+	expectedURL := getExpectedImageURL(image, infraEnv)
+	imageUpdated := image.Status.ImageUrl != "" && image.Status.ImageUrl != expectedURL
 	log.Info("Setting images in PreprovisioningImage status")
 	err = r.patchImageStatus(ctx, log, image, func(img *metal3_v1alpha1.PreprovisioningImage) {
 		r.setImage(img, *infraEnv)
