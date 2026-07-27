@@ -701,6 +701,7 @@ func newHeadlessWebHookService(ctx context.Context, log logrus.FieldLogger, asc 
 	return svc, mutateFn, nil
 }
 
+// nolint:staticcheck // Deprecated but require more changes
 func newWebHookEndpoint(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
 
 	//retrieve the admission service IP from the ASC context

@@ -515,7 +515,7 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		})
 		It("successfully sets headless service + endpoint on spoke cluster", func() {
 			assertReconcileSuccess()
-			ep := corev1.Endpoints{}
+			ep := corev1.Endpoints{} //nolint:staticcheck // Deprecated but require more changes
 			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
 				Name:      webhookServiceName,
 				Namespace: testNamespace,

@@ -212,6 +212,7 @@ func (r *LocalClusterImportReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		},
 	)
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("local-cluster-import").
 		For(&aiv1beta1.AgentServiceConfig{}).
 		Owns(&hivev1.ClusterImageSet{}).
 		Owns(&v1.Namespace{}).

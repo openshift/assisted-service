@@ -405,6 +405,7 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, id string, spec 
 	Eventually(func() error {
 		bmh = *getBmhCRD(ctx, client, bmhKey)
 		bmh.Status.Provisioning.State = metal3_v1alpha1.StateReady
+		bmh.Status.HardwareProfile = "empty"
 		return client.Status().Update(ctx, &bmh)
 	}, "30s", "10s").Should(BeNil())
 }
@@ -2506,7 +2507,7 @@ location = "%s"
 			Name:      createBMHCRDNameFromID(host.ID.String()),
 		}
 
-		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), HardwareProfile: "empty"}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
@@ -2577,7 +2578,7 @@ location = "%s"
 			Name:      createBMHCRDNameFromID(host.ID.String()),
 		}
 
-		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), HardwareProfile: "empty"}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
@@ -2844,7 +2845,7 @@ location = "%s"
 		}
 
 		image := &metal3_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
-		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image, HardwareProfile: "empty"}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
@@ -5846,7 +5847,7 @@ var _ = Describe("bmac reconcile flow", func() {
 			Name:      host.ID.String(),
 		}
 
-		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{}
+		bmhSpec := metal3_v1alpha1.BareMetalHostSpec{HardwareProfile: "empty"}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 		bmhNsName = types.NamespacedName{
 			Namespace: Options.Namespace,

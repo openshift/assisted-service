@@ -117,7 +117,7 @@ var _ = Describe("bmoUtils", func() {
 			Expect(c.Create(context.Background(), provisioningInfo)).To(BeNil())
 			serviceIPs, inspectorIPs, err := bmoUtils.GetIronicIPs()
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unable to determine inspector IP, check if metal3 pod is running"))
+			Expect(err.Error()).To(ContainSubstring("unable to determine Ironic's IP"))
 			Expect(serviceIPs).Should(BeNil())
 			Expect(inspectorIPs).Should(BeNil())
 		})
