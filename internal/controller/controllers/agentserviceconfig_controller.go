@@ -791,6 +791,8 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			return err
 		}
 
+		serverName := fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace)
+
 		addAppLabel(serviceName, &sm.ObjectMeta)
 		sm.Spec.Endpoints = []monitoringv1.Endpoint{{
 			Port:   serviceName,
@@ -798,7 +800,7 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			TLSConfig: &monitoringv1.TLSConfig{
 				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
 				SafeTLSConfig: monitoringv1.SafeTLSConfig{
-					ServerName: fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace),
+					ServerName: &serverName,
 				},
 			},
 		}}

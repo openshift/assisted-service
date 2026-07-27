@@ -808,6 +808,15 @@ spec:
         - apiGroups:
           - metal3.io
           resources:
+          - baremetalhosts/status
+          - preprovisioningimages/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - metal3.io
+          resources:
           - preprovisioningimages
           verbs:
           - create
@@ -817,14 +826,6 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - metal3.io
-          resources:
-          - preprovisioningimages/status
-          verbs:
-          - get
-          - patch
-          - update
         - apiGroups:
           - metal3.io
           resources:

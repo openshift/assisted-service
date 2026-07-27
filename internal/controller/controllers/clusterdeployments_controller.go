@@ -2032,7 +2032,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 				return obj.GetLabels()[WatchResourceLabel] == WatchResourceValue
 			}))).
-		WatchesRawSource(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(source.Channel(clusterDeploymentUpdates, &handler.EnqueueRequestForObject{})).
 		Complete(r)
 }
 

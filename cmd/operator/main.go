@@ -212,7 +212,7 @@ func main() {
 			Scheme:          mgr.GetScheme(),
 			NodeSelector:    nodeSelector,
 			Tolerations:     tolerations,
-			Recorder:        mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+			Recorder:        mgr.GetEventRecorderFor("agentserviceconfig-controller"), //nolint:staticcheck // required few changes
 			PodIntrospector: introspector,
 			IsOpenShift:     isOpenShift,
 		},
@@ -229,7 +229,7 @@ func main() {
 			Scheme:       mgr.GetScheme(),
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
-			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"),
+			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"), //nolint:staticcheck // required few changes
 			IsOpenShift:  isOpenShift,
 		},
 		Client:       mgr.GetClient(),

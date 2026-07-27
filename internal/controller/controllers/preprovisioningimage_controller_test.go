@@ -384,7 +384,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
-			Expect(res.Requeue).To(Equal(true))
+			Expect(res.Requeue).To(Equal(true)) //nolint:staticcheck // Deprecated but require more changes
 			key := types.NamespacedName{
 				Namespace: testNamespace,
 				Name:      "testPPI",
@@ -417,7 +417,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			By("initially reconciling the preprovisioningimage during cooldown")
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
-			Expect(res.Requeue).To(Equal(true))
+			Expect(res.Requeue).To(Equal(true)) //nolint:staticcheck // Deprecated but require more changes
 
 			By("verifying the preprovisioningimage has wait for cooldown status")
 			key := types.NamespacedName{
@@ -1481,7 +1481,7 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 
 			Expect(err).To(BeNil())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 
 			// Verify finalizer was NOT removed
 			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}
@@ -1556,7 +1556,7 @@ var _ = Describe("PreprovisioningImage deletion protection", func() {
 			result, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 
 			Expect(err).To(BeNil())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 
 			// Verify ppi finalizer was not removed
 			key := types.NamespacedName{Name: ppi.Name, Namespace: ppi.Namespace}

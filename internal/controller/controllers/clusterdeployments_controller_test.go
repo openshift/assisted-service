@@ -1489,8 +1489,8 @@ var _ = Describe("cluster reconcile", func() {
 			Name:      agentClusterInstallName,
 		}
 		ownref := metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
+			APIVersion: "hive.openshift.io/v1",
+			Kind:       "ClusterDeployment",
 			Name:       cluster.Name,
 			UID:        cluster.UID,
 		}
@@ -3426,7 +3426,7 @@ var _ = Describe("cluster reconcile", func() {
 		request := newClusterDeploymentRequest(cluster)
 		result, err := cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
-		Expect(result.Requeue).To(BeFalse())
+		Expect(result.Requeue).To(BeFalse()) //nolint:staticcheck // Deprecated but require more changes
 	})
 
 	Context("cluster update", func() {
