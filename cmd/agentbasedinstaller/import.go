@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/models"
@@ -72,7 +73,8 @@ type Networking struct {
 	UserManagedNetworking *bool `json:"userManagedNetworking,omitempty"`
 }
 type ClusterConfig struct {
-	Networking Networking `json:"networking"`
+	Networking    Networking `json:"networking"`
+	IngressDomain string     `json:"ingressDomain,omitempty"`
 }
 
 func configureClusterParams(fsys fs.FS, params *models.V2ClusterUpdateParams) error {
@@ -89,6 +91,9 @@ func configureClusterParams(fsys fs.FS, params *models.V2ClusterUpdateParams) er
 	log.Info("Read import cluster config file")
 
 	params.UserManagedNetworking = clusterConfig.Networking.UserManagedNetworking
+	if clusterConfig.IngressDomain != "" {
+		params.IngressDomain = swag.String(clusterConfig.IngressDomain)
+	}
 	return nil
 }
 

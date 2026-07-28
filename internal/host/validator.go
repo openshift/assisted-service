@@ -1623,8 +1623,9 @@ func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContex
 
 func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) (ValidationStatus, string) {
 	target := "application ingress"
-	domainName := domainNameToResolve(c, fmt.Sprintf("%s.apps", constants.AppsSubDomainNameHostDNSValidation))
-	printableDomain := printableDomain(c, domainNameToResolve(c, "*.apps"), target)
+	appsDomain := network.GetClusterAppsDomain(&c.cluster.Cluster)
+	domainName := network.GetAppsDomainProbeHost(&c.cluster.Cluster)
+	printableDomain := printableDomain(c, "*."+appsDomain, target)
 
 	return v.isDomainNameResolvedCorrectly(c, domainName, printableDomain, target)
 }

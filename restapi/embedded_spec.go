@@ -6764,6 +6764,10 @@ func init() {
           "type": "boolean",
           "default": false
         },
+        "ingress_domain": {
+          "description": "Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain\n(or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of\nderiving apps.\u003ccluster_name\u003e.\u003cbase_dns_domain\u003e. Intended for Day-2 / add-hosts flows where the\nlive ingress domain may differ from the original install-config.\n",
+          "type": "string"
+        },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
@@ -11324,6 +11328,11 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
+        },
+        "ingress_domain": {
+          "description": "Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain\n(or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of\nderiving apps.\u003ccluster_name\u003e.\u003cbase_dns_domain\u003e. Intended for Day-2 / add-hosts flows where the\nlive ingress domain may differ from the original install-config.\n",
+          "type": "string",
+          "x-nullable": true
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
@@ -18557,6 +18566,10 @@ func init() {
           "type": "boolean",
           "default": false
         },
+        "ingress_domain": {
+          "description": "Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain\n(or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of\nderiving apps.\u003ccluster_name\u003e.\u003cbase_dns_domain\u003e. Intended for Day-2 / add-hosts flows where the\nlive ingress domain may differ from the original install-config.\n",
+          "type": "string"
+        },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",
           "type": "array",
@@ -23048,6 +23061,11 @@ func init() {
         "ignition_endpoint": {
           "description": "Explicit ignition endpoint overrides the default ignition endpoint.",
           "$ref": "#/definitions/ignition-endpoint"
+        },
+        "ingress_domain": {
+          "description": "Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain\n(or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of\nderiving apps.\u003ccluster_name\u003e.\u003cbase_dns_domain\u003e. Intended for Day-2 / add-hosts flows where the\nlive ingress domain may differ from the original install-config.\n",
+          "type": "string",
+          "x-nullable": true
         },
         "ingress_vips": {
           "description": "The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.",

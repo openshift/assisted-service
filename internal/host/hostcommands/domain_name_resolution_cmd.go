@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -48,7 +49,12 @@ func (f *domainNameResolutionCmd) prepareParam(host *models.Host, cluster *commo
 	}
 	apiDomainName := fmt.Sprintf("api.%s.%s", clusterName, baseDNSDomain)
 	apiInternalDomainName := fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain)
-	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, clusterName, baseDNSDomain)
+	appsDomainName := network.GetAppsDomainProbeHost(&cluster.Cluster)
+	if appsDomainName == "" {
+		err := errors.Errorf("unable to determine apps domain for cluster %s", host.ClusterID)
+		f.log.WithError(err).Warn("Apps domain is empty")
+		return "", err
+	}
 	wildcardDomainNameWithDot := fmt.Sprintf("%s.%s.%s.", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
 	wildcardDomainNameNoDot := fmt.Sprintf("%s.%s.%s", constants.DNSWildcardFalseDomainName, clusterName, baseDNSDomain)
 

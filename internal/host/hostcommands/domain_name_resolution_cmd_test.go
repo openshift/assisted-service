@@ -78,6 +78,33 @@ var _ = Describe("domainNameResolution", func() {
 		))
 	})
 
+	It("uses custom ingress_domain for apps probe only", func() {
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:            &clusterID,
+			Name:          name,
+			BaseDNSDomain: baseDNSDomain,
+			IngressDomain: "abc.example.com",
+		}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{URL: swag.String("quay.io/release")}, nil)
+		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
+		Expect(stepErr).ShouldNot(HaveOccurred())
+		Expect(stepReply).ToNot(BeNil())
+		var request models.DomainResolutionRequest
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[0]), &request)).ToNot(HaveOccurred())
+		req := func(s string) models.DomainResolutionRequestDomain {
+			return models.DomainResolutionRequestDomain{DomainName: swag.String(s)}
+		}
+		Expect(request.Domains).To(ContainElements(
+			req(fmt.Sprintf("api.%s.%s", name, baseDNSDomain)),
+			req(fmt.Sprintf("api-int.%s.%s", name, baseDNSDomain)),
+			req(constants.AppsSubDomainNameHostDNSValidation+".abc.example.com"),
+		))
+		Expect(request.Domains).ToNot(ContainElement(
+			req(fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, name, baseDNSDomain)),
+		))
+	})
+
 	It("Missing cluster name", func() {
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, BaseDNSDomain: baseDNSDomain}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

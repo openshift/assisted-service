@@ -167,6 +167,20 @@ var _ = DescribeTable(
 			UserManagedNetworking: swag.Bool(false),
 		},
 	}),
+	Entry("ingress domain from import-cluster-config", importCase{
+		files: map[string]string{
+			"import-cluster-config.json": "{\"networking\": {\"userManagedNetworking\": true}, \"ingressDomain\": \"abc.example.com\"}",
+		},
+		expectedImportParams: &models.ImportClusterParams{
+			APIVipDnsname:      swag.String("api.ostest"),
+			Name:               swag.String("ostest"),
+			OpenshiftClusterID: &clusterID,
+		},
+		expectedUpdateParams: &models.V2ClusterUpdateParams{
+			UserManagedNetworking: swag.Bool(true),
+			IngressDomain:         swag.String("abc.example.com"),
+		},
+	}),
 )
 
 func TestAgentbasedinstaller(t *testing.T) {

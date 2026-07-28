@@ -2668,6 +2668,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
 	optionalParam(params.ClusterUpdateParams.BaseDNSDomain, "base_dns_domain", updates)
+	optionalParam(params.ClusterUpdateParams.IngressDomain, "ingress_domain", updates)
 	optionalParam(params.ClusterUpdateParams.HTTPProxy, "http_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.HTTPSProxy, "https_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)

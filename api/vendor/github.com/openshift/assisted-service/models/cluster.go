@@ -146,6 +146,13 @@ type Cluster struct {
 	// reflect the actual cluster they represent
 	Imported *bool `json:"imported,omitempty"`
 
+	// Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain
+	// (or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of
+	// deriving apps.<cluster_name>.<base_dns_domain>. Intended for Day-2 / add-hosts flows where the
+	// live ingress domain may differ from the original install-config.
+	//
+	IngressDomain string `json:"ingress_domain,omitempty"`
+
 	// The virtual IPs used for cluster ingress traffic. Enter one IP address for single-stack clusters, or up to two for dual-stack clusters (at most one IP address per IP stack used). The order of stacks should be the same as order of subnets in Cluster Networks, Service Networks, and Machine Networks.
 	IngressVips []*IngressVip `json:"ingress_vips" gorm:"foreignkey:ClusterID;references:ID"`
 
