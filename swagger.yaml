@@ -5427,6 +5427,14 @@ definitions:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
         x-nullable: true
+      ingress_domain:
+        type: string
+        description: |
+          Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain
+          (or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of
+          deriving apps.<cluster_name>.<base_dns_domain>. Intended for Day-2 / add-hosts flows where the
+          live ingress domain may differ from the original install-config.
+        x-nullable: true
       cluster_network_cidr:
         type: string
         description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
@@ -5671,6 +5679,13 @@ definitions:
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
+      ingress_domain:
+        type: string
+        description: |
+          Cluster application ingress domain, typically from ingress.config.openshift.io/cluster .spec.domain
+          (or .spec.appsDomain when set). When provided, apps DNS validation uses this value instead of
+          deriving apps.<cluster_name>.<base_dns_domain>. Intended for Day-2 / add-hosts flows where the
+          live ingress domain may differ from the original install-config.
       cluster_network_cidr:
         type: string
         description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
