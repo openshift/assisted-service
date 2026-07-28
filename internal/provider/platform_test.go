@@ -39,6 +39,33 @@ var _ = Describe("GetActualCreateClusterPlatformParams", func() {
 					},
 				}, nil,
 				models.PlatformTypeExternal, true, false),
+			Entry("external OCI platform is accepted and UMN is set to true",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String(common.ExternalPlatformNameOci),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+					},
+				}, nil,
+				models.PlatformTypeExternal, true, false),
+			Entry("external Nutanix-named platform is accepted and UMN is set to true",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String("nutanix"),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerEmpty),
+					},
+				}, nil,
+				models.PlatformTypeExternal, true, false),
+			Entry("external platform with UMN explicitly false is rejected",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String("my-platform"),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerEmpty),
+					},
+				}, swag.Bool(false),
+				models.PlatformType(""), false, true),
 			Entry("baremetal platform is rejected",
 				&models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, nil,
 				models.PlatformType(""), false, true),
@@ -87,6 +114,33 @@ var _ = Describe("GetActualCreateClusterPlatformParams", func() {
 					},
 				}, nil,
 				models.PlatformTypeExternal, true, false),
+			Entry("external OCI platform is accepted and UMN is set to true",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String(common.ExternalPlatformNameOci),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerExternal),
+					},
+				}, nil,
+				models.PlatformTypeExternal, true, false),
+			Entry("external Nutanix-named platform is accepted and UMN is set to true",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String("nutanix"),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerEmpty),
+					},
+				}, nil,
+				models.PlatformTypeExternal, true, false),
+			Entry("external platform with UMN explicitly false is rejected",
+				&models.Platform{
+					Type: common.PlatformTypePtr(models.PlatformTypeExternal),
+					External: &models.PlatformExternal{
+						PlatformName:           swag.String("my-platform"),
+						CloudControllerManager: swag.String(models.PlatformExternalCloudControllerManagerEmpty),
+					},
+				}, swag.Bool(false),
+				models.PlatformType(""), false, true),
 			Entry("baremetal platform is rejected",
 				&models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)}, nil,
 				models.PlatformType(""), false, true),
