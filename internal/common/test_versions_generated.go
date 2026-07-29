@@ -235,16 +235,16 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.39-aarch64",
 		},
 		"4.20": {
-			Version: "4.20.30",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.30-aarch64",
+			Version: "4.20.31",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.31-aarch64",
 		},
 		"4.21": {
-			Version: "4.21.25",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.25-aarch64",
+			Version: "4.21.26",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.26-aarch64",
 		},
 		"4.22": {
-			Version: "4.22.6",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.6-aarch64",
+			Version: "4.22.7",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.7-aarch64",
 		},
 		"5.0": {
 			Version: "5.0.0-ec.4",
@@ -281,16 +281,16 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.39-multi",
 		},
 		"4.20": {
-			Version: "4.20.30-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.30-multi",
+			Version: "4.20.31-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.31-multi",
 		},
 		"4.21": {
-			Version: "4.21.25-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.25-multi",
+			Version: "4.21.26-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.26-multi",
 		},
 		"4.22": {
-			Version: "4.22.6-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.6-multi",
+			Version: "4.22.7-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.7-multi",
 		},
 		"5.0": {
 			Version: "5.0.0-ec.4-multi",
@@ -335,16 +335,16 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.39-x86_64",
 		},
 		"4.20": {
-			Version: "4.20.30",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.30-x86_64",
+			Version: "4.20.31",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.31-x86_64",
 		},
 		"4.21": {
-			Version: "4.21.25",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.25-x86_64",
+			Version: "4.21.26",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.26-x86_64",
 		},
 		"4.22": {
-			Version: "4.22.6",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.6-x86_64",
+			Version: "4.22.7",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.7-x86_64",
 		},
 		"5.0": {
 			Version: "5.0.0-ec.4",
