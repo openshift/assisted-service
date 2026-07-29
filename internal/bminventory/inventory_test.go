@@ -14103,6 +14103,29 @@ func verifyFeatureSupportApiErrorString(responder middleware.Responder, expected
 	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(featuresupport.GetFeatureByID(featureB).GetName()))
 }
 
+func buildAPIVipConnectivityWithCoreOSImage(osImageURL string) string {
+	mcJSON := fmt.Sprintf(`{"apiVersion":"machineconfiguration.openshift.io/v1","kind":"MachineConfig","spec":{"osImageURL":"%s","config":{"ignition":{"version":"3.5.0"}}}}`, osImageURL)
+	source := "data:," + url.PathEscape(mcJSON)
+	ign := map[string]interface{}{
+		"ignition": map[string]interface{}{"version": "3.2.0"},
+		"storage": map[string]interface{}{
+			"files": []map[string]interface{}{
+				{
+					"path":     "/etc/ignition-machine-config-encapsulated.json",
+					"contents": map[string]interface{}{"source": source},
+				},
+			},
+		},
+	}
+	ignBytes, _ := json.Marshal(ign)
+	resp := models.APIVipConnectivityResponse{
+		IsSuccess: true,
+		Ignition:  string(ignBytes),
+	}
+	respBytes, _ := json.Marshal(resp)
+	return string(respBytes)
+}
+
 func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, infraEnvId, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 	host := models.Host{
 		ID:         &hostId,
@@ -14594,6 +14617,30 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
 
 		Expect(bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)).ToNot(Succeed())
+	})
+
+	It("succeeds when release image is unavailable but CoreOS image is in worker ignition for persistent-boot", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		host := addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, inventory, db)
+
+		testCoreOSImage := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:abc123"
+		apiVipConnectivity := buildAPIVipConnectivityWithCoreOSImage(testCoreOSImage)
+		Expect(db.Model(&host).UpdateColumn("api_vip_connectivity", apiVipConnectivity).Error).ToNot(HaveOccurred())
+
+		mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.HostInstallationStartedEventName),
+			eventstest.WithHostIdMatcher(hostId.String()),
+			eventstest.WithInfraEnvIdMatcher(infraEnvID.String()),
+			eventstest.WithClusterIdMatcher(clusterID.String())))
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+
+		Expect(bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)).To(Succeed())
 	})
 })
 

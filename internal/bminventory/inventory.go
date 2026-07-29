@@ -1620,6 +1620,12 @@ func (b *bareMetalInventory) validateReleaseImageForDay2HostInstall(ctx context.
 
 	_, err = b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
 	if err != nil {
+		// For imported clusters with no ImageSetRef, the release image may not be
+		// available. The install command can use the CoreOS image from the worker
+		// ignition's encapsulated MachineConfig instead (MGMT-24903).
+		if hostutil.GetCoreOSImageFromIgnition(host) != "" {
+			return nil
+		}
 		return fmt.Errorf("no release image found for host: %w", err)
 	}
 
