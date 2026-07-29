@@ -883,8 +883,8 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 }
 
 func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
-	caCertificateRef *hiveext.CaCertificateReference) (*string, error) {
-	secretRef := types.NamespacedName{Namespace: caCertificateRef.Namespace, Name: caCertificateRef.Name}
+	caCertificateRef *hiveext.CaCertificateReference, ownerNamespace string) (*string, error) {
+	secretRef := types.NamespacedName{Namespace: ownerNamespace, Name: caCertificateRef.Name}
 	caSecret, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
 	if err != nil {
 		return nil, errors.Wrap(err, "error getting ca certificate secret")
@@ -902,14 +902,14 @@ func (r *ClusterDeploymentsReconciler) getEncodedCACert(ctx context.Context,
 }
 
 func (r *ClusterDeploymentsReconciler) parseIgnitionEndpoint(ctx context.Context,
-	kubeapiIgnitionEndpoint *hiveext.IgnitionEndpoint) (*models.IgnitionEndpoint, error) {
+	kubeapiIgnitionEndpoint *hiveext.IgnitionEndpoint, ownerNamespace string) (*models.IgnitionEndpoint, error) {
 
 	ignitionEndpoint := &models.IgnitionEndpoint{}
 	ignitionEndpoint.URL = swag.String(kubeapiIgnitionEndpoint.Url)
 
 	caCertificateReference := kubeapiIgnitionEndpoint.CaCertificateReference
 	if caCertificateReference != nil {
-		caCertificate, err := r.getEncodedCACert(ctx, caCertificateReference)
+		caCertificate, err := r.getEncodedCACert(ctx, caCertificateReference, ownerNamespace)
 		if err == nil {
 			ignitionEndpoint.CaCertificate = caCertificate
 		} else {
@@ -928,7 +928,7 @@ func (r *ClusterDeploymentsReconciler) updateIgnitionInUpdateParams(ctx context.
 	params *models.V2ClusterUpdateParams) (bool, error) {
 	update := false
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint)
+		ignitionEndpoint, err := r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint, clusterInstall.Namespace)
 		if err == nil {
 			params.IgnitionEndpoint = ignitionEndpoint
 			if cluster.IgnitionEndpoint == nil || !reflect.DeepEqual(cluster.IgnitionEndpoint, ignitionEndpoint) {
@@ -1652,7 +1652,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	var ignitionEndpoint *models.IgnitionEndpoint
 	var err error
 	if clusterInstall.Spec.IgnitionEndpoint != nil {
-		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint)
+		ignitionEndpoint, err = r.parseIgnitionEndpoint(ctx, clusterInstall.Spec.IgnitionEndpoint, clusterInstall.Namespace)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get and parse ignition ca certificate %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 			return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
@@ -1974,11 +1974,11 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			return []reconcile.Request{}
 		}
 		if agent.Spec.ClusterDeploymentName != nil {
-			log.Debugf("Map Agent : %s %s CD ref name %s ns %s", agent.Namespace, agent.Name, agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+			log.Debugf("Map Agent : %s %s CD ref name %s ns %s", agent.Namespace, agent.Name, agent.Spec.ClusterDeploymentName.Name, agent.GetNamespace())
 			return []reconcile.Request{
 				{
 					NamespacedName: types.NamespacedName{
-						Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+						Namespace: agent.GetNamespace(),
 						Name:      agent.Spec.ClusterDeploymentName.Name,
 					},
 				},
@@ -2706,7 +2706,7 @@ func getClusterDeploymentAdminKubeConfigSecretName(cd *hivev1.ClusterDeployment)
 
 // processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
 func (r *ClusterDeploymentsReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (*common.MirrorRegistryConfiguration, error) {
-	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, clusterInstall.Spec.MirrorRegistryRef, clusterInstall.Namespace)
 	if err != nil {
 		return nil, err
 	}
