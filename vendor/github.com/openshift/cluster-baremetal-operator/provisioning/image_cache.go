@@ -16,7 +16,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	appsclientv1 "k8s.io/client-go/kubernetes/typed/apps/v1"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -48,6 +48,47 @@ var (
 	}
 )
 
+func getImageVolumes() []corev1.Volume {
+	volumes := []corev1.Volume{
+		imageVolume(),
+		trustedCAVolume(),
+		{
+			Name: ironicConfigVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: ironicDataVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: baremetalSharedVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: ironicTmpVolume,
+			VolumeSource: corev1.VolumeSource{
+				EmptyDir: &corev1.EmptyDirVolumeSource{},
+			},
+		},
+		{
+			Name: ironicTlsVolume,
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: tlsSecretName,
+				},
+			},
+		},
+	}
+
+	return volumes
+}
+
 func imageVolume() corev1.Volume {
 	volType := corev1.HostPathDirectoryOrCreate
 	return corev1.Volume{
@@ -74,14 +115,16 @@ func transformURL(targetNamespace, URL string) (string, error) {
 	// and makes it available to this second-level cache.
 	// e.g. ProvisioningOSDownloadURL: https://releases-art-rhcos.svc.ci.openshift.org/art/storage/releases/rhcos-4.2/42.80.20190725.1/rhcos-42.80.20190725.1-openstack.qcow2.gz?sha256sum=123
 	// The first level cache transforms the URL and makes it available for the second level cache at:
-	// http://metal3-state.openshift-machine-api:6180/images/rhcos-42.80.20190725.1-openstack.qcow2/cached-rhcos-42.80.20190725.1-openstack.qcow2
+	// https://metal3-state.openshift-machine-api:6388/images/rhcos-42.80.20190725.1-openstack.qcow2/cached-rhcos-42.80.20190725.1-openstack.qcow2
 	// Finally, the second-level cache will make it available at:
 	// http://cluster.local:6181/images/rhcos-42.80.20190725.1-openstack.qcow2/cached-rhcos-42.80.20190725.1-openstack.qcow2
 	// See https://github.com/openshift/ironic-rhcos-downloader for more details
+	// NOTE: Uses HTTPS and ironicPrivatePort (6388) because TLS is always enabled in OpenShift.
+	// Plain HTTP access to /images on port 6180 is blocked when TLS is enabled.
 	cacheURL := url.URL{
-		Scheme: "http",
+		Scheme: "https",
 		Host: net.JoinHostPort(fmt.Sprintf("%s.%s.svc.cluster.local", stateService, targetNamespace),
-			baremetalHttpPort),
+			fmt.Sprint(ironicPrivatePort)),
 		Path: fmt.Sprintf("/images/%s/%s", imageName, imageName),
 	}
 	return cacheURL.String(), nil
@@ -93,11 +136,20 @@ func createContainerImageCache(images *Images) corev1.Container {
 		Image:           images.Ironic,
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		SecurityContext: &corev1.SecurityContext{
+			ReadOnlyRootFilesystem: ptr.To(true),
 			// Needed for hostPath image volume mount
-			Privileged: pointer.BoolPtr(true),
+			Privileged: ptr.To(true),
+			Capabilities: &corev1.Capabilities{
+				Drop: []corev1.Capability{"ALL"},
+			},
 		},
-		Command:      []string{"/bin/runhttpd"},
-		VolumeMounts: []corev1.VolumeMount{imageVolumeMount},
+		Command: []string{"/bin/runhttpd"},
+		VolumeMounts: []corev1.VolumeMount{
+			imageVolumeMount,
+			ironicConfigMount,
+			ironicDataMount,
+			sharedVolumeMount,
+		},
 		Ports: []corev1.ContainerPort{
 			{
 				Name:          imageCachePortName,
@@ -130,6 +182,7 @@ func createContainerImageCache(images *Images) corev1.Container {
 				corev1.ResourceMemory: resource.MustParse("50Mi"),
 			},
 		},
+		TerminationMessagePolicy: corev1.TerminationMessageFallbackToLogsOnError,
 	}
 	return container
 }
@@ -140,9 +193,18 @@ func newImageCacheInitContainers(info *ProvisioningInfo) ([]corev1.Container, er
 		return nil, err
 	}
 
-	return []corev1.Container{
-		createInitContainerMachineOsDownloader(info, newURL, false, false),
-	}, nil
+	initContainer := createInitContainerMachineOsDownloader(info, newURL, false, false)
+
+	// Add TLS volume mount for HTTPS access to metal3-state service
+	initContainer.VolumeMounts = append(initContainer.VolumeMounts, ironicTlsMount)
+
+	// Add CA cert path for curl to verify TLS
+	initContainer.Env = append(initContainer.Env, corev1.EnvVar{
+		Name:  ironicCertEnvVar,
+		Value: metal3TlsRootDir + "/ironic/ca.crt",
+	})
+
+	return []corev1.Container{initContainer}, nil
 }
 
 func newImageCacheContainers(images *Images, proxy *osconfigv1.Proxy) []corev1.Container {
@@ -173,13 +235,13 @@ func newImageCachePodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateSp
 			Key:               "node.kubernetes.io/not-ready",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 		{
 			Key:               "node.kubernetes.io/unreachable",
 			Effect:            corev1.TaintEffectNoExecute,
 			Operator:          corev1.TolerationOpExists,
-			TolerationSeconds: pointer.Int64Ptr(120),
+			TolerationSeconds: ptr.To[int64](120),
 		},
 	}
 
@@ -195,17 +257,14 @@ func newImageCachePodTemplateSpec(info *ProvisioningInfo) (*corev1.PodTemplateSp
 			NodeSelector: map[string]string{
 				"node-role.kubernetes.io/master": "",
 			},
-			Volumes: []corev1.Volume{
-				imageVolume(),
-				trustedCAVolume(),
-			},
+			Volumes:           getImageVolumes(),
 			InitContainers:    injectProxyAndCA(initContainers, info.Proxy),
 			Containers:        containers,
 			HostNetwork:       true,
 			DNSPolicy:         corev1.DNSClusterFirstWithHostNet,
 			PriorityClassName: "system-node-critical",
 			SecurityContext: &corev1.PodSecurityContext{
-				RunAsNonRoot: pointer.BoolPtr(false),
+				RunAsNonRoot: ptr.To(false),
 			},
 			ServiceAccountName: "cluster-baremetal-operator",
 			Tolerations:        tolerations,
@@ -246,6 +305,10 @@ func newImageCacheDaemonSet(info *ProvisioningInfo) (*appsv1.DaemonSet, error) {
 }
 
 func EnsureImageCache(info *ProvisioningInfo) (updated bool, err error) {
+	if info.IsHyperShift {
+		return
+	}
+
 	if info.ProvConfig.Spec.ProvisioningOSDownloadURL == "" {
 		err = DeleteImageCache(info)
 		return

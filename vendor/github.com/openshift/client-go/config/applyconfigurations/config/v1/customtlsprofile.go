@@ -6,13 +6,16 @@ import (
 	configv1 "github.com/openshift/api/config/v1"
 )
 
-// CustomTLSProfileApplyConfiguration represents an declarative configuration of the CustomTLSProfile type for use
+// CustomTLSProfileApplyConfiguration represents a declarative configuration of the CustomTLSProfile type for use
 // with apply.
+//
+// CustomTLSProfile is a user-defined TLS security profile. Be extremely careful
+// using a custom TLS profile as invalid configurations can be catastrophic.
 type CustomTLSProfileApplyConfiguration struct {
 	TLSProfileSpecApplyConfiguration `json:",inline"`
 }
 
-// CustomTLSProfileApplyConfiguration constructs an declarative configuration of the CustomTLSProfile type for use with
+// CustomTLSProfileApplyConfiguration constructs a declarative configuration of the CustomTLSProfile type for use with
 // apply.
 func CustomTLSProfile() *CustomTLSProfileApplyConfiguration {
 	return &CustomTLSProfileApplyConfiguration{}
@@ -23,7 +26,17 @@ func CustomTLSProfile() *CustomTLSProfileApplyConfiguration {
 // If called multiple times, values provided by each call will be appended to the Ciphers field.
 func (b *CustomTLSProfileApplyConfiguration) WithCiphers(values ...string) *CustomTLSProfileApplyConfiguration {
 	for i := range values {
-		b.Ciphers = append(b.Ciphers, values[i])
+		b.TLSProfileSpecApplyConfiguration.Ciphers = append(b.TLSProfileSpecApplyConfiguration.Ciphers, values[i])
+	}
+	return b
+}
+
+// WithGroups adds the given value to the Groups field in the declarative configuration
+// and returns the receiver, so that objects can be build by chaining "With" function invocations.
+// If called multiple times, values provided by each call will be appended to the Groups field.
+func (b *CustomTLSProfileApplyConfiguration) WithGroups(values ...configv1.TLSGroup) *CustomTLSProfileApplyConfiguration {
+	for i := range values {
+		b.TLSProfileSpecApplyConfiguration.Groups = append(b.TLSProfileSpecApplyConfiguration.Groups, values[i])
 	}
 	return b
 }
@@ -32,6 +45,6 @@ func (b *CustomTLSProfileApplyConfiguration) WithCiphers(values ...string) *Cust
 // and returns the receiver, so that objects can be built by chaining "With" function invocations.
 // If called multiple times, the MinTLSVersion field is set to the value of the last call.
 func (b *CustomTLSProfileApplyConfiguration) WithMinTLSVersion(value configv1.TLSProtocolVersion) *CustomTLSProfileApplyConfiguration {
-	b.MinTLSVersion = &value
+	b.TLSProfileSpecApplyConfiguration.MinTLSVersion = &value
 	return b
 }
