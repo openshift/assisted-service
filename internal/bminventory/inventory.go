@@ -604,14 +604,23 @@ func (b *bareMetalInventory) getNewClusterReleaseImage(ctx context.Context, para
 	if len(releaseImage.CPUArchitectures) == 1 {
 		releaseVersion := *releaseImage.OpenshiftVersion
 		releaseArch := releaseImage.CPUArchitectures[0]
-		var osImage *models.OsImage
-		osImage, err = b.osImages.GetOsImage(releaseVersion, releaseArch)
-		if err != nil || osImage.URL == nil {
-			return nil, errors.Errorf("No OS images are available for version %s and architecture %s", releaseVersion, releaseArch)
+		if err = b.validateOsImageForCluster(releaseVersion, releaseArch, params.OsStream); err != nil {
+			return nil, err
 		}
 	}
 
 	return releaseImage, nil
+}
+
+func (b *bareMetalInventory) validateOsImageForCluster(openshiftVersion, cpuArchitecture, osStream string) error {
+	if !b.EnableImageService {
+		return nil
+	}
+	osImage, err := b.osImages.GetOsImage(openshiftVersion, cpuArchitecture, osStream)
+	if err != nil || osImage.URL == nil {
+		return errors.Errorf("No OS images are available for version (%s), CPU architecture (%s) and os stream (%s)", openshiftVersion, cpuArchitecture, osStream)
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) getReleaseImage(ctx context.Context, params *models.ClusterCreateParams, arch string) (*models.ReleaseImage, error) {
@@ -811,6 +820,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(ctx context.Context, kubeKe
 			OrgSoftTimeoutsEnabled:       orgSoftTimeoutsEnabled,
 			ControlPlaneCount:            swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
 			LoadBalancer:                 params.NewClusterParams.LoadBalancer,
+			OsStream:                     params.NewClusterParams.OsStream,
 		},
 		KubeKeyName:                 kubeKey.Name,
 		KubeKeyNamespace:            kubeKey.Namespace,
@@ -1292,16 +1302,14 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	var version string
-	if osImage.OpenshiftVersion != nil {
-		version = *osImage.OpenshiftVersion
-	} else {
-		return errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
+	version, err := imageservice.OsImageVersion(osImage)
+	if err != nil {
+		return err
 	}
 
 	var arch string
@@ -2313,6 +2321,12 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, err
 	}
 
+	if params.ClusterUpdateParams.OsStream != nil {
+		if err = b.validateOsImageForCluster(cluster.OpenshiftVersion, cluster.CPUArchitecture, swag.StringValue(params.ClusterUpdateParams.OsStream)); err != nil {
+			return params, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	return params, nil
 }
 
@@ -2689,6 +2703,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
+	optionalParam(params.ClusterUpdateParams.OsStream, "os_stream", updates)
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
@@ -5244,15 +5259,16 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 		}
 
 		openshiftVersion := params.InfraenvCreateParams.OpenshiftVersion
-
-		if b.EnableImageService {
-			var osImage *models.OsImage
-			osImage, err = b.osImages.GetOsImageOrLatest(params.InfraenvCreateParams.OpenshiftVersion, params.InfraenvCreateParams.CPUArchitecture)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
-			openshiftVersion = *osImage.OpenshiftVersion
+		osStream := params.InfraenvCreateParams.OsStream
+		if cluster != nil && osStream == "" {
+			osStream = cluster.OsStream
 		}
+
+		openshiftVersion, err = b.getOsImageOpenshiftVersion(openshiftVersion, params.InfraenvCreateParams.CPUArchitecture, osStream)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
 		if kubeKey == nil {
 			kubeKey = &types.NamespacedName{}
 		}
@@ -5300,6 +5316,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				KernelArguments:              kernelArguments,
 				AdditionalTrustBundle:        params.InfraenvCreateParams.AdditionalTrustBundle,
 				NetworkDiscoveryDelaySeconds: params.InfraenvCreateParams.NetworkDiscoveryDelaySeconds,
+				OsStream:                     osStream,
 			},
 			KubeKeyNamespace: kubeKey.Namespace,
 			ImageTokenKey:    imageTokenKey,
@@ -5394,6 +5411,17 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 	}
 
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
+}
+
+func (b *bareMetalInventory) getOsImageOpenshiftVersion(openshiftVersion, cpuArch, osStream string) (string, error) {
+	if !b.EnableImageService {
+		return openshiftVersion, nil
+	}
+	osImage, err := b.osImages.GetOsImageOrLatest(openshiftVersion, cpuArch, osStream)
+	if err != nil {
+		return "", err
+	}
+	return *osImage.OpenshiftVersion, nil
 }
 
 func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, params installer.RegisterInfraEnvParams, cluster *common.Cluster) error {
@@ -5673,11 +5701,14 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			openshiftVersion = *params.InfraEnvUpdateParams.OpenshiftVersion
 		}
 
-		if b.EnableImageService {
-			_, err = b.osImages.GetOsImageOrLatest(openshiftVersion, infraEnv.CPUArchitecture)
-			if err != nil {
-				return common.NewApiError(http.StatusBadRequest, err)
-			}
+		osStream := infraEnv.OsStream
+		if params.InfraEnvUpdateParams.OsStream != nil {
+			osStream = *params.InfraEnvUpdateParams.OsStream
+		}
+
+		_, err = b.getOsImageOpenshiftVersion(openshiftVersion, infraEnv.CPUArchitecture, osStream)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
 		if err = validateClusterArchitectureAndVersion(b.versionsHandler, cluster, infraEnv.CPUArchitecture, openshiftVersion); err != nil {
@@ -5762,6 +5793,11 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 	inputVersion := swag.StringValue(params.InfraEnvUpdateParams.OpenshiftVersion)
 	if inputVersion != "" && inputVersion != infraEnv.OpenshiftVersion {
 		updates["openshift_version"] = inputVersion
+	}
+
+	inputOsStream := swag.StringValue(params.InfraEnvUpdateParams.OsStream)
+	if inputOsStream != "" && inputOsStream != infraEnv.OsStream {
+		updates["os_stream"] = inputOsStream
 	}
 
 	if err := b.updateInfraEnvNtpSources(params, infraEnv, updates, log); err != nil {

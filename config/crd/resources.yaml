@@ -655,6 +655,11 @@ spec:
                 items:
                   type: string
                 type: array
+              osStream:
+                description: |-
+                  OSStream is the OS stream to use for this cluster (e.g. rhel-9, rhel-10).
+                  If unset, the default OS stream for the OpenShift version is used.
+                type: string
               platformType:
                 description: PlatformType is the name for the specific platform upon
                   which to perform the installation.
@@ -2225,10 +2230,19 @@ spec:
                     cpuArchitecture:
                       description: The CPU architecture of the image (x86_64/arm64/etc).
                       type: string
+                    defaultOsStream:
+                      description: |-
+                        DefaultOSStream indicates whether this OS image is the default stream
+                        for its OpenShift version and CPU architecture.
+                      type: boolean
                     openshiftVersion:
                       description: |-
                         OpenshiftVersion is the Major.Minor version of OpenShift that this image
                         is to be associated with.
+                      type: string
+                    osStream:
+                      description: OSStream is the OS stream of this image (e.g. rhel-9,
+                        rhel-10).
                       type: string
                     rootFSUrl:
                       description: |-
@@ -3097,10 +3111,19 @@ spec:
                     cpuArchitecture:
                       description: The CPU architecture of the image (x86_64/arm64/etc).
                       type: string
+                    defaultOsStream:
+                      description: |-
+                        DefaultOSStream indicates whether this OS image is the default stream
+                        for its OpenShift version and CPU architecture.
+                      type: boolean
                     openshiftVersion:
                       description: |-
                         OpenshiftVersion is the Major.Minor version of OpenShift that this image
                         is to be associated with.
+                      type: string
+                    osStream:
+                      description: OSStream is the OS stream of this image (e.g. rhel-9,
+                        rhel-10).
                       type: string
                     rootFSUrl:
                       description: |-
@@ -3435,6 +3458,12 @@ spec:
                   The version should refer to an OSImage specified in the AgentServiceConfig
                   (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
                   Note: OSImageVersion can't be specified along with ClusterRef while creating an InfraEnv.
+                type: string
+              osStream:
+                description: |-
+                  OSStream is the OS stream to use when generating the InfraEnv (e.g. rhel-9, rhel-10).
+                  If unset and ClusterRef is set, the cluster's OS stream is used.
+                  Note: OSStream can't be specified along with ClusterRef while creating an InfraEnv.
                 type: string
               proxy:
                 description: |-

@@ -793,10 +793,19 @@ spec:
                     cpuArchitecture:
                       description: The CPU architecture of the image (x86_64/arm64/etc).
                       type: string
+                    defaultOsStream:
+                      description: |-
+                        DefaultOSStream indicates whether this OS image is the default stream
+                        for its OpenShift version and CPU architecture.
+                      type: boolean
                     openshiftVersion:
                       description: |-
                         OpenshiftVersion is the Major.Minor version of OpenShift that this image
                         is to be associated with.
+                      type: string
+                    osStream:
+                      description: OSStream is the OS stream of this image (e.g. rhel-9,
+                        rhel-10).
                       type: string
                     rootFSUrl:
                       description: |-

@@ -888,15 +888,16 @@ func (b *bareMetalInventory) GetInfraEnvDownloadURL(ctx context.Context, params 
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, errors.New("image service is disabled")))
 	}
 
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream)
 	if err != nil {
 		return common.GenerateErrorResponder(common.NewApiError(http.StatusBadRequest, err))
 	}
-	if osImage.OpenshiftVersion == nil {
-		return common.GenerateErrorResponder(errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage))
+	version, err := imageservice.OsImageVersion(osImage)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
 	}
 
-	newURL, expiresAt, err := b.generateShortImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), *osImage.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
+	newURL, expiresAt, err := b.generateShortImageDownloadURL(infraEnv.ID.String(), string(*infraEnv.Type), version, infraEnv.CPUArchitecture, infraEnv.ImageTokenKey)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1076,12 +1077,9 @@ func kernelArgsAppendStr(infraEnv *common.InfraEnv) (string, error) {
 }
 
 func (b *bareMetalInventory) bootIPXEScript(ctx context.Context, infraEnv *common.InfraEnv) (string, error) {
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream)
 	if err != nil {
 		return "", common.NewApiError(http.StatusBadRequest, err)
-	}
-	if osImage.OpenshiftVersion == nil {
-		return "", errors.Errorf("OS image entry '%+v' missing OpenshiftVersion field", osImage)
 	}
 
 	bootArtifactURLs, err := imageservice.GetBootArtifactURLs(b.ImageServiceBaseURL, infraEnv.ID.String(), osImage, b.insecureIPXEURLs)

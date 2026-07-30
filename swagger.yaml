@@ -5202,6 +5202,9 @@ definitions:
       ocp_release_image:
         type: string
         description: OpenShift release image URI.
+      os_stream:
+        type: string
+        description: The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
@@ -5578,6 +5581,10 @@ definitions:
         x-nullable: true
       load_balancer:
         $ref: '#/definitions/load_balancer'
+      os_stream:
+        type: string
+        description: The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.
+        x-nullable: true
 
   import-cluster-params:
     type: object
@@ -5664,6 +5671,9 @@ definitions:
         type: string
         format: uuid
         description: Cluster ID on OCP system.
+      os_stream:
+        type: string
+        description: The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.
       image_info:
         $ref: '#/definitions/image_info'
       platform:
@@ -7664,6 +7674,14 @@ definitions:
       version:
         type: string
         description: Build ID of the OS image.
+      os_stream:
+        type: string
+        description: The OS stream of this image (e.g. rhel-9, rhel-10).
+        x-nullable: true
+      default_os_stream:
+        type: boolean
+        description: Whether this OS image is the default stream for its OpenShift version and CPU architecture.
+        x-nullable: true
 
   os-images:
     type: array
@@ -7873,6 +7891,9 @@ definitions:
         type: string
       email_domain:
         type: string
+      os_stream:
+        type: string
+        description: The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.
       proxy:
         $ref: "#/definitions/proxy"
       additional_ntp_sources:
@@ -8054,6 +8075,9 @@ definitions:
          # TODO: remove arm64 when AI moves to using aarch64
         enum: ['x86_64', 'aarch64', 'arm64','ppc64le','s390x']
         description: The CPU architecture of the image (x86_64/arm64/etc).
+      os_stream:
+        type: string
+        description: The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.
       kernel_arguments:
         $ref: '#/definitions/kernel_arguments'
       additional_trust_bundle:
@@ -8120,6 +8144,10 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OS image
+        x-nullable: true
+      os_stream:
+        type: string
+        description: The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.
         x-nullable: true
       network_discovery_delay_seconds:
         type: integer
