@@ -2536,6 +2536,12 @@ func getOSImages(log logrus.FieldLogger, spec *aiv1beta1.AgentServiceConfigSpec,
 			Version:          &spec.OSImages[i].Version,
 			CPUArchitecture:  &spec.OSImages[i].CPUArchitecture,
 		}
+		if spec.OSImages[i].OSStream != "" {
+			osImage.OsStream = &spec.OSImages[i].OSStream
+		}
+		if spec.OSImages[i].DefaultOSStream != nil {
+			osImage.DefaultOsStream = spec.OSImages[i].DefaultOSStream
+		}
 		osImages = append(osImages, &osImage)
 	}
 

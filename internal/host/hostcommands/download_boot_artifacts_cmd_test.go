@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -60,11 +61,12 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		infraEnv.OpenshiftVersion = *common.TestDefaultConfig.OsImage.OpenshiftVersion
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 
-		initrdUrl := fmt.Sprintf("%s/images/%s/pxe-initrd?arch=%s&version=%s", imgSvcURL, infraEnvID, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion)
-		rootfsUrl := fmt.Sprintf("%s/boot-artifacts/rootfs?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion)
-		kernelUrl := fmt.Sprintf("%s/boot-artifacts/kernel?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, infraEnv.OpenshiftVersion)
+		rhcosVersion := *common.TestDefaultConfig.OsImage.Version
+		initrdUrl := fmt.Sprintf("%s/images/%s/pxe-initrd?arch=%s&version=%s", imgSvcURL, infraEnvID, infraEnv.CPUArchitecture, rhcosVersion)
+		rootfsUrl := fmt.Sprintf("%s/boot-artifacts/rootfs?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, rhcosVersion)
+		kernelUrl := fmt.Sprintf("%s/boot-artifacts/kernel?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, rhcosVersion)
 
 		stepReply, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).To(BeNil())
@@ -81,6 +83,38 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(*req.HostFsMountDir).To(Equal(hostFSMountDir))
 	})
 
+	It("passes os stream from infra-env to OS image lookup", func() {
+		infraEnv := hostutil.GenerateTestInfraEnv(infraEnvID)
+		infraEnv.CPUArchitecture = *common.TestDefaultConfig.OsImage.CPUArchitecture
+		infraEnv.OpenshiftVersion = *common.TestDefaultConfig.OsImage.OpenshiftVersion
+		infraEnv.OsStream = "rhel-9"
+		Expect(db.Create(infraEnv).Error).To(BeNil())
+
+		osImage := &models.OsImage{
+			CPUArchitecture:  common.TestDefaultConfig.OsImage.CPUArchitecture,
+			OpenshiftVersion: common.TestDefaultConfig.OsImage.OpenshiftVersion,
+			Version:          common.TestDefaultConfig.OsImage.Version,
+			OsStream:         swag.String("rhel-9"),
+		}
+		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(osImage, nil).Times(1)
+
+		rhcosVersion := *common.TestDefaultConfig.OsImage.Version
+		initrdUrl := fmt.Sprintf("%s/images/%s/pxe-initrd?arch=%s&version=%s", imgSvcURL, infraEnvID, infraEnv.CPUArchitecture, rhcosVersion)
+		rootfsUrl := fmt.Sprintf("%s/boot-artifacts/rootfs?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, rhcosVersion)
+		kernelUrl := fmt.Sprintf("%s/boot-artifacts/kernel?arch=%s&version=%s", imgSvcURL, infraEnv.CPUArchitecture, rhcosVersion)
+
+		stepReply, stepErr := downloadCmd.GetSteps(ctx, &host)
+		Expect(stepErr).To(BeNil())
+		Expect(stepReply).ToNot(BeNil())
+
+		var req models.DownloadBootArtifactsRequest
+		Expect(json.Unmarshal([]byte(stepReply[0].Args[0]), &req)).To(Succeed())
+		Expect(*req.InitrdURL).To(Equal(initrdUrl))
+		Expect(*req.RootfsURL).To(Equal(rootfsUrl))
+		Expect(*req.KernelURL).To(Equal(kernelUrl))
+	})
+
 	It("fails when the host's infra-env doesn't exist", func() {
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
@@ -94,7 +128,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})
@@ -105,7 +139,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("No OS images are available")
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture).Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})
@@ -115,7 +149,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("No OS images are available")
-		mockOSImages.EXPECT().GetOsImageOrLatest("", "").Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest("", "", "").Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})

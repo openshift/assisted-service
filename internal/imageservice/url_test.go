@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
@@ -124,6 +125,19 @@ var _ = Describe("URL building", func() {
 		checkURL(bootArtifacts.RootFSURL, scheme, host, "/v3/boot-artifacts/rootfs", version, arch)
 		checkURL(bootArtifacts.InitrdURL, scheme, host, fmt.Sprintf("/v3/images/%s/pxe-initrd", id), version, arch)
 	})
+
+	It("successfully builds all boot artifact URLs with RHCOS version instead of openshift version", func() {
+		rhcosVersion := "9.6.20260101-0"
+		osImage := models.OsImage{CPUArchitecture: &arch, OpenshiftVersion: &version, Version: &rhcosVersion}
+		bootArtifacts, err := GetBootArtifactURLs(baseURL, id, &osImage, false)
+		Expect(err).To(BeNil())
+
+		scheme := "https"
+		host := "image-service.example.com"
+		checkURL(bootArtifacts.KernelURL, scheme, host, "/v3/boot-artifacts/kernel", rhcosVersion, arch)
+		checkURL(bootArtifacts.RootFSURL, scheme, host, "/v3/boot-artifacts/rootfs", rhcosVersion, arch)
+		checkURL(bootArtifacts.InitrdURL, scheme, host, fmt.Sprintf("/v3/images/%s/pxe-initrd", id), rhcosVersion, arch)
+	})
 })
 
 var _ = Describe("URL parsing", func() {
@@ -172,3 +186,22 @@ func checkURL(u, scheme, host, path, version, arch string) {
 	Expect(parsed.Query().Get("version")).To(Equal(version))
 	Expect(parsed.Query().Get("arch")).To(Equal(arch))
 }
+
+var _ = Describe("OsImageVersion", func() {
+	It("prefers RHCOS version", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			OpenshiftVersion: swag.String("4.22"),
+			Version:          swag.String("9.6.20260101-0"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("9.6.20260101-0"))
+	})
+
+	It("falls back to openshift version", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			OpenshiftVersion: swag.String("4.22"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("4.22"))
+	})
+})

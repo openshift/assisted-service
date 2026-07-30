@@ -211,7 +211,7 @@ func RegisterInfraEnv(ctx context.Context, log *log.Logger, bmInventory *client.
 	if modelsCluster != nil {
 		clusterID = modelsCluster.ID
 	}
-	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "")
+	infraEnvParams := controllers.CreateInfraEnvParams(&infraEnv, models.ImageType(imageTypeISO), pullSecret, clusterID, "", "")
 
 	fileInfo, _ := os.Stat(nmStateConfigPath)
 	if fileInfo != nil {
