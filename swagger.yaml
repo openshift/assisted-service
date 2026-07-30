@@ -7029,6 +7029,10 @@ definitions:
           - Enabled
           - Disabled
         default: Enabled
+      mac_address:
+        description: The MAC address identifying the host for MAC-based fencing credentials.
+        type: string
+        x-nullable: true
 
   host-role-update-params:
     type: string

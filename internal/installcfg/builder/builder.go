@@ -382,17 +382,22 @@ func (i *installConfigBuilder) handleFencing(cfg *installcfg.InstallerConfigBare
 			return err
 		}
 
-		fencingCredentials[index] = installcfg.FencingCredential{
-			Hostname: hostutil.GetHostnameForMsg(&master),
+		fc := installcfg.FencingCredential{
 			Address:  *hostFencingCredentials.Address,
 			Username: *hostFencingCredentials.Username,
 			Password: *hostFencingCredentials.Password,
 		}
+		if hostFencingCredentials.MacAddress != nil && *hostFencingCredentials.MacAddress != "" {
+			fc.MacAddress = *hostFencingCredentials.MacAddress
+		} else {
+			fc.Hostname = hostutil.GetHostnameForMsg(&master)
+		}
 
 		if hostFencingCredentials.CertificateVerification != nil && *hostFencingCredentials.CertificateVerification != "" {
 			certificateVerification := installcfg.CertificateVerification(*hostFencingCredentials.CertificateVerification)
-			fencingCredentials[index].CertificateVerification = &certificateVerification
+			fc.CertificateVerification = &certificateVerification
 		}
+		fencingCredentials[index] = fc
 	}
 
 	cfg.ControlPlane.Fencing = &installcfg.Fencing{Credentials: fencingCredentials}

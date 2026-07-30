@@ -8344,6 +8344,11 @@ func init() {
             "Disabled"
           ]
         },
+        "mac_address": {
+          "description": "The MAC address identifying the host for MAC-based fencing credentials.",
+          "type": "string",
+          "x-nullable": true
+        },
         "password": {
           "description": "The password to connect to the host's BMC.",
           "type": "string"
@@ -20103,6 +20108,11 @@ func init() {
             "Enabled",
             "Disabled"
           ]
+        },
+        "mac_address": {
+          "description": "The MAC address identifying the host for MAC-based fencing credentials.",
+          "type": "string",
+          "x-nullable": true
         },
         "password": {
           "description": "The password to connect to the host's BMC.",
