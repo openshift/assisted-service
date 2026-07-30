@@ -274,7 +274,7 @@ function registry_configs_for_os_image_stream_sources() {
 }
 
 function install_oc_mirrorv2(){
-  OC_MIRROR_URL=${OC_MIRROR_URL:-https://mirror.openshift.com/pub/cgw/oc-mirror/oc-mirror.tar.gz}
+  OC_MIRROR_URL=${OC_MIRROR_URL:-https://mirror.openshift.com/pub/cgw/oc-mirror/latest/oc-mirror-rhel9-linux-amd64.tar.gz}
   curl -L --retry 5 --connect-timeout 30 -s "${OC_MIRROR_URL}" | tar xvz -C /usr/local/bin/
   chmod +x /usr/local/bin/oc-mirror
 }
