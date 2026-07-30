@@ -6890,6 +6890,10 @@ func init() {
           "description": "Indication if organization soft timeouts is enabled for the cluster.",
           "type": "boolean"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string"
+        },
         "platform": {
           "$ref": "#/definitions/platform"
         },
@@ -7184,6 +7188,10 @@ func init() {
           "items": {
             "$ref": "#/definitions/bundle-create-params"
           }
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string"
         },
         "platform": {
           "x-nullable": true,
@@ -9343,6 +9351,10 @@ func init() {
         "org_id": {
           "type": "string"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
+          "type": "string"
+        },
         "proxy": {
           "$ref": "#/definitions/proxy"
         },
@@ -9456,6 +9468,10 @@ func init() {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
+          "type": "string"
+        },
         "proxy": {
           "$ref": "#/definitions/proxy"
         },
@@ -9525,6 +9541,11 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OS image",
+          "type": "string",
+          "x-nullable": true
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
           "type": "string",
           "x-nullable": true
         },
@@ -10605,10 +10626,20 @@ func init() {
           ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
+        "default_os_stream": {
+          "description": "Whether this OS image is the default stream for its OpenShift version and CPU architecture.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the operating system image",
           "type": "string",
           "example": "4.12"
+        },
+        "os_stream": {
+          "description": "The OS stream of this image (e.g. rhel-9, rhel-10).",
+          "type": "string",
+          "x-nullable": true
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",
@@ -11393,6 +11424,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/bundle-create-params"
           }
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string",
+          "x-nullable": true
         },
         "platform": {
           "$ref": "#/definitions/platform"
@@ -18683,6 +18719,10 @@ func init() {
           "description": "Indication if organization soft timeouts is enabled for the cluster.",
           "type": "boolean"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string"
+        },
         "platform": {
           "$ref": "#/definitions/platform"
         },
@@ -18977,6 +19017,10 @@ func init() {
           "items": {
             "$ref": "#/definitions/bundle-create-params"
           }
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string"
         },
         "platform": {
           "x-nullable": true,
@@ -21105,6 +21149,10 @@ func init() {
         "org_id": {
           "type": "string"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
+          "type": "string"
+        },
         "proxy": {
           "$ref": "#/definitions/proxy"
         },
@@ -21220,6 +21268,10 @@ func init() {
           "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
           "type": "string"
         },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
+          "type": "string"
+        },
         "proxy": {
           "$ref": "#/definitions/proxy"
         },
@@ -21290,6 +21342,11 @@ func init() {
         },
         "openshift_version": {
           "description": "Version of the OS image",
+          "type": "string",
+          "x-nullable": true
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.",
           "type": "string",
           "x-nullable": true
         },
@@ -22355,10 +22412,20 @@ func init() {
           ],
           "x-go-custom-tag": "gorm:\"default:'x86_64'\""
         },
+        "default_os_stream": {
+          "description": "Whether this OS image is the default stream for its OpenShift version and CPU architecture.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "openshift_version": {
           "description": "Version of the operating system image",
           "type": "string",
           "example": "4.12"
+        },
+        "os_stream": {
+          "description": "The OS stream of this image (e.g. rhel-9, rhel-10).",
+          "type": "string",
+          "x-nullable": true
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",
@@ -23117,6 +23184,11 @@ func init() {
           "items": {
             "$ref": "#/definitions/bundle-create-params"
           }
+        },
+        "os_stream": {
+          "description": "The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.",
+          "type": "string",
+          "x-nullable": true
         },
         "platform": {
           "$ref": "#/definitions/platform"

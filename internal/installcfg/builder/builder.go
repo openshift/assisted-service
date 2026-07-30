@@ -109,8 +109,9 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 			Name:           string(models.HostRoleMaster),
 			Replicas:       i.countHostsByRole(cluster, models.HostRoleMaster),
 		},
-		PullSecret: cluster.PullSecret,
-		SSHKey:     cluster.SSHPublicKey,
+		PullSecret:    cluster.PullSecret,
+		SSHKey:        cluster.SSHPublicKey,
+		OSImageStream: cluster.OsStream,
 	}
 
 	// For "None" network type, don't set networkType in install-config (user provides CNI manifests)

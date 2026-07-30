@@ -390,6 +390,94 @@ var _ = Describe("infraenv web validate", func() {
 				return createTestClient()
 			},
 		},
+		{
+			name: "Test can't specify both Spec.ClusterRef and Spec.OSStream",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "newName",
+					Namespace: "newName",
+				},
+				OSStream: "rhel-10",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: false,
+		},
+		{
+			name: "Test InfraEnv create does not fail when only Spec.OSStream is specified",
+			newSpec: v1beta1.InfraEnvSpec{
+				OSStream: "rhel-10",
+			},
+			operation:       admissionv1.Create,
+			expectedAllowed: true,
+		},
+		{
+			name: "Test OSStream can be added when cluster is installed",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				OSStream: "rhel-10",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: true,
+			setupClient: func() client.Client {
+				cd := &hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cluster",
+						Namespace: "test-namespace",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
+							Kind: "AgentClusterInstall",
+							Name: "test-aci",
+						},
+						Installed: true,
+					},
+				}
+				return createTestClient(cd)
+			},
+		},
+		{
+			name: "Test OSStream cannot be added when cluster is not installed",
+			newSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+				OSStream: "rhel-10",
+			},
+			oldSpec: v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      "test-cluster",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			setupClient: func() client.Client {
+				cd := &hivev1.ClusterDeployment{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-cluster",
+						Namespace: "test-namespace",
+					},
+					Spec: hivev1.ClusterDeploymentSpec{
+						ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
+							Kind: "AgentClusterInstall",
+							Name: "test-aci",
+						},
+						Installed: false,
+					},
+				}
+				return createTestClient(cd)
+			},
+		},
 	}
 
 	for i := range cases {

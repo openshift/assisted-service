@@ -230,6 +230,9 @@ type Cluster struct {
 	// Indication if organization soft timeouts is enabled for the cluster.
 	OrgSoftTimeoutsEnabled bool `json:"org_soft_timeouts_enabled,omitempty"`
 
+	// The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.
+	OsStream string `json:"os_stream,omitempty"`
+
 	// platform
 	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 

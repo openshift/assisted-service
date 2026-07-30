@@ -116,6 +116,9 @@ type V2ClusterUpdateParams struct {
 	//
 	OperatorBundles []*BundleCreateParams `json:"operator_bundles"`
 
+	// The OS stream to use for this cluster (e.g. rhel-9, rhel-10). If unset, the default OS stream for the OpenShift version is used.
+	OsStream *string `json:"os_stream,omitempty"`
+
 	// platform
 	Platform *Platform `json:"platform,omitempty" gorm:"embedded;embeddedPrefix:platform_"`
 

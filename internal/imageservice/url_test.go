@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
@@ -172,3 +173,22 @@ func checkURL(u, scheme, host, path, version, arch string) {
 	Expect(parsed.Query().Get("version")).To(Equal(version))
 	Expect(parsed.Query().Get("arch")).To(Equal(arch))
 }
+
+var _ = Describe("OsImageVersion", func() {
+	It("prefers RHCOS version", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			OpenshiftVersion: swag.String("4.22"),
+			Version:          swag.String("9.6.20260101-0"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("9.6.20260101-0"))
+	})
+
+	It("falls back to openshift version", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			OpenshiftVersion: swag.String("4.22"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("4.22"))
+	})
+})

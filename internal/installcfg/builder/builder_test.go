@@ -142,6 +142,19 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.Arbiter).Should(BeNil())
 		Expect(result.FeatureSet).To(Equal(configv1.Default))
 		Expect(result.FeatureGates).To(HaveLen(0))
+		Expect(result.OSImageStream).To(BeEmpty())
+	})
+
+	It("sets osImageStream from cluster OsStream", func() {
+		cluster.OsStream = "rhel-10"
+
+		var result installcfg.InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.OSImageStream).To(Equal("rhel-10"))
 	})
 
 	It("create_configuration_with_all_hosts - TNA cluster TechPreview", func() {
@@ -256,9 +269,9 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 			Username:                swag.String("username"),
 		}
 		fencingCredentials2 := models.FencingCredentialsParams{
-			Address:                 swag.String("https://address2.example.com"),
-			Password:                swag.String("password"),
-			Username:                swag.String("username"),
+			Address:  swag.String("https://address2.example.com"),
+			Password: swag.String("password"),
+			Username: swag.String("username"),
 		}
 		fencingCredentialsHost1String, err := json.Marshal(fencingCredentials1)
 		Expect(err).ShouldNot(HaveOccurred())

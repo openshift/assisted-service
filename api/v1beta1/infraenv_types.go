@@ -133,6 +133,12 @@ type InfraEnvSpec struct {
 	// +optional
 	OSImageVersion string `json:"osImageVersion,omitempty"`
 
+	// OSStream is the OS stream to use when generating the InfraEnv (e.g. rhel-9, rhel-10).
+	// If unset and ClusterRef is set, the cluster's OS stream is used.
+	// Note: OSStream can't be specified along with ClusterRef while creating an InfraEnv.
+	// +optional
+	OSStream string `json:"osStream,omitempty"`
+
 	// MirrorRegistryRef references a ConfigMap containing mirror registry configuration in TOML format.
 	// The referenced ConfigMap should contain 'registries.conf' and optionally 'ca-bundle.crt' keys.
 	// This configuration is embedded into the discovery image so that agents can pull container images

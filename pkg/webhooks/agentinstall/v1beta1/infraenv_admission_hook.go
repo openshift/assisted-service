@@ -198,9 +198,9 @@ func (a *InfraEnvValidatingAdmissionHook) validateCreate(admissionSpec *admissio
 		}
 	}
 
-	// Ensure that ClusterRef and OSImageVersion are not both specified
-	if newObject.Spec.ClusterRef != nil && newObject.Spec.OSImageVersion != "" {
-		message := "Either Spec.ClusterRef or Spec.OSImageVersion should be specified (not both)."
+	// Ensure that ClusterRef cannot be combined with OSImageVersion or OSStream
+	if newObject.Spec.ClusterRef != nil && (newObject.Spec.OSImageVersion != "" || newObject.Spec.OSStream != "") {
+		message := "Spec.ClusterRef is mutually exclusive with either Spec.OSImageVersion or Spec.OSStream."
 		contextLogger.Infof("Failed validation: %v", message)
 		contextLogger.Error(message)
 		return &admissionv1.AdmissionResponse{
@@ -294,6 +294,19 @@ func (a *InfraEnvValidatingAdmissionHook) validateUpdate(admissionSpec *admissio
 		}
 	}
 
+	if !a.osStreamValid(contextLogger, oldObject, newObject) {
+		message := "spec.OSStream is not valid. It can't be added alongside with a clusterRef when the cluster is not installed yet."
+		contextLogger.Infof("Failed validation: %v", message)
+
+		return &admissionv1.AdmissionResponse{
+			Allowed: false,
+			Result: &metav1.Status{
+				Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+				Message: message,
+			},
+		}
+	}
+
 	// If we get here, then all checks passed, so the object is valid.
 	contextLogger.Info("Successful validation")
 	return &admissionv1.AdmissionResponse{
@@ -303,6 +316,17 @@ func (a *InfraEnvValidatingAdmissionHook) validateUpdate(admissionSpec *admissio
 
 // osImageVersionValid checks if the OSImageVersion is valid: if it has been added, then the cluster must be installed.
 func (a *InfraEnvValidatingAdmissionHook) osImageVersionValid(logger *log.Entry, oldObject *v1beta1.InfraEnv, newObject *v1beta1.InfraEnv) bool {
+	return a.isFieldAddedOnlyWhenClusterIsInstalled(logger, oldObject, newObject,
+		oldObject.Spec.OSImageVersion == "" && newObject.Spec.OSImageVersion != "")
+}
+
+// osStreamValid checks if the OSStream is valid: if it has been added, then the cluster must be installed.
+func (a *InfraEnvValidatingAdmissionHook) osStreamValid(logger *log.Entry, oldObject *v1beta1.InfraEnv, newObject *v1beta1.InfraEnv) bool {
+	return a.isFieldAddedOnlyWhenClusterIsInstalled(logger, oldObject, newObject,
+		oldObject.Spec.OSStream == "" && newObject.Spec.OSStream != "")
+}
+
+func (a *InfraEnvValidatingAdmissionHook) isFieldAddedOnlyWhenClusterIsInstalled(logger *log.Entry, oldObject *v1beta1.InfraEnv, newObject *v1beta1.InfraEnv, fieldAdded bool) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -311,8 +335,8 @@ func (a *InfraEnvValidatingAdmissionHook) osImageVersionValid(logger *log.Entry,
 		return true
 	}
 
-	// If OSImageVersion was not added, then there is nothing to check
-	if !(oldObject.Spec.OSImageVersion == "" && newObject.Spec.OSImageVersion != "") {
+	// If the field was not added, then there is nothing to check
+	if !fieldAdded {
 		return true
 	}
 

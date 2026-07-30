@@ -15,9 +15,9 @@ import (
 
 //go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_osimages.go -self_package github.com/openshift/assisted-service/internal/versions . OSImages
 type OSImages interface {
-	GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error)
-	GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error)
-	GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error)
+	GetOsImage(openshiftVersion, cpuArchitecture, osStream string) (*models.OsImage, error)
+	GetLatestOsImage(cpuArchitecture, osStream string) (*models.OsImage, error)
+	GetOsImageOrLatest(version, cpuArch, osStream string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 }
@@ -61,8 +61,8 @@ func validateOSImage(osImage *models.OsImage) error {
 	return nil
 }
 
-// Returns the OsImage entity
-func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+// Returns the OsImage entity matching the given OpenShift version, CPU architecture and optional OS stream.
+func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture, osStream string) (*models.OsImage, error) {
 	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
 
 	if cpuArchitecture == "" {
@@ -76,62 +76,117 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture string) (
 			return cpuArchitecture == common.DefaultCPUArchitecture
 		}
 		return swag.StringValue(osImage.CPUArchitecture) == cpuArchitecture
-	})
+	}).([]*models.OsImage)
 	if funk.IsEmpty(archImages) {
 		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)
 	}
 
+	candidates := findVersionCandidates(archImages, openshiftVersion)
+	if len(candidates) == 0 {
+		return nil, errors.Errorf(
+			"The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list",
+			openshiftVersion, cpuArchitecture)
+	}
+
+	return selectByOsStream(candidates, osStream, openshiftVersion, cpuArchitecture)
+}
+
+func findVersionCandidates(archImages []*models.OsImage, openshiftVersion string) []*models.OsImage {
 	// Search for specified x.y.z openshift version
-	osImage := funk.Find(archImages, func(osImage *models.OsImage) bool {
+	exact := funk.Filter(archImages, func(osImage *models.OsImage) bool {
 		return swag.StringValue(osImage.OpenshiftVersion) == openshiftVersion
-	})
+	}).([]*models.OsImage)
+	if len(exact) > 0 {
+		return exact
+	}
 
 	versionKey, err := common.GetMajorMinorVersion(openshiftVersion)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
-	if osImage == nil {
-		// Fallback to x.y version
-		osImage = funk.Find(archImages, func(osImage *models.OsImage) bool {
-			return *osImage.OpenshiftVersion == *versionKey
-		})
+	// Fallback to x.y version
+	majorMinor := funk.Filter(archImages, func(osImage *models.OsImage) bool {
+		return *osImage.OpenshiftVersion == *versionKey
+	}).([]*models.OsImage)
+	if len(majorMinor) > 0 {
+		return majorMinor
 	}
 
-	if osImage == nil {
-		// Find latest available patch version by x.y version
-		osImages := funk.Filter(archImages, func(osImage *models.OsImage) bool {
-			imageVersionKey, err := common.GetMajorMinorVersion(*osImage.OpenshiftVersion)
-			if err != nil {
-				return false
-			}
-			return *imageVersionKey == *versionKey
-		}).([]*models.OsImage)
-		sort.Slice(osImages, func(i, j int) bool {
-			v1, _ := version.NewVersion(*osImages[i].OpenshiftVersion)
-			v2, _ := version.NewVersion(*osImages[j].OpenshiftVersion)
-			return v1.GreaterThan(v2)
+	// Find latest available patch version by x.y version
+	patchMatches := funk.Filter(archImages, func(osImage *models.OsImage) bool {
+		imageVersionKey, err := common.GetMajorMinorVersion(*osImage.OpenshiftVersion)
+		if err != nil {
+			return false
+		}
+		return *imageVersionKey == *versionKey
+	}).([]*models.OsImage)
+	if len(patchMatches) == 0 {
+		return nil
+	}
+
+	sort.Slice(patchMatches, func(i, j int) bool {
+		v1, _ := version.NewVersion(*patchMatches[i].OpenshiftVersion)
+		v2, _ := version.NewVersion(*patchMatches[j].OpenshiftVersion)
+		return v1.GreaterThan(v2)
+	})
+
+	latestVersion := *patchMatches[0].OpenshiftVersion
+	return funk.Filter(patchMatches, func(osImage *models.OsImage) bool {
+		return *osImage.OpenshiftVersion == latestVersion
+	}).([]*models.OsImage)
+}
+
+func selectByOsStream(candidates []*models.OsImage, osStream, openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
+	if osStream != "" {
+		match := funk.Find(candidates, func(osImage *models.OsImage) bool {
+			return swag.StringValue(osImage.OsStream) == osStream
 		})
-		if !funk.IsEmpty(osImages) {
-			osImage = osImages[0]
+		if match == nil {
+			return nil, errors.Errorf(
+				"The requested OS image for version (%s), CPU architecture (%s) and OS stream (%s) isn't specified in OS images list",
+				openshiftVersion, cpuArchitecture, osStream)
+		}
+		return match.(*models.OsImage), nil
+	}
+
+	hasOsStreamMetadata := false
+	for _, c := range candidates {
+		if swag.StringValue(c.OsStream) != "" || swag.BoolValue(c.DefaultOsStream) {
+			hasOsStreamMetadata = true
+			break
 		}
 	}
 
-	if osImage != nil {
-		return osImage.(*models.OsImage), nil
+	// Legacy catalog with no stream metadata: keep first-match behavior
+	if !hasOsStreamMetadata {
+		return candidates[0], nil
 	}
 
-	return nil, errors.Errorf(
-		"The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list",
-		openshiftVersion, cpuArchitecture)
+	defaults := funk.Filter(candidates, func(osImage *models.OsImage) bool {
+		return swag.BoolValue(osImage.DefaultOsStream)
+	}).([]*models.OsImage)
+
+	switch len(defaults) {
+	case 1:
+		return defaults[0], nil
+	case 0:
+		return nil, errors.Errorf(
+			"No default OS stream found for version (%s) and CPU architecture (%s)",
+			openshiftVersion, cpuArchitecture)
+	default:
+		return nil, errors.Errorf(
+			"Multiple default OS streams found for version (%s) and CPU architecture (%s)",
+			openshiftVersion, cpuArchitecture)
+	}
 }
 
-// Returns the latest OSImage entity for a specified CPU architecture
-func (images osImageList) GetLatestOsImage(cpuArchitecture string) (*models.OsImage, error) {
+// Returns the latest OSImage entity for a specified CPU architecture and optional OS stream
+func (images osImageList) GetLatestOsImage(cpuArchitecture, osStream string) (*models.OsImage, error) {
 	var latest *models.OsImage
 	openshiftVersions := images.GetOpenshiftVersions()
 	for _, k := range openshiftVersions {
-		osImage, err := images.GetOsImage(k, cpuArchitecture)
+		osImage, err := images.GetOsImage(k, cpuArchitecture, osStream)
 		if err != nil {
 			continue
 		}
@@ -151,18 +206,18 @@ func (images osImageList) GetLatestOsImage(cpuArchitecture string) (*models.OsIm
 	return latest, nil
 }
 
-func (images osImageList) GetOsImageOrLatest(version string, cpuArch string) (*models.OsImage, error) {
+func (images osImageList) GetOsImageOrLatest(version, cpuArch, osStream string) (*models.OsImage, error) {
 	var osImage *models.OsImage
 	var err error
 	if version != "" {
-		osImage, err = images.GetOsImage(version, cpuArch)
+		osImage, err = images.GetOsImage(version, cpuArch, osStream)
 		if err != nil {
-			return nil, errors.Wrapf(err, "No OS image for Openshift version %s and architecture %s", version, cpuArch)
+			return nil, errors.Wrapf(err, "No OS image for Openshift version (%s), CPU architecture (%s) and OS stream (%s)", version, cpuArch, osStream)
 		}
 	} else {
-		osImage, err = images.GetLatestOsImage(cpuArch)
+		osImage, err = images.GetLatestOsImage(cpuArch, osStream)
 		if err != nil {
-			return nil, errors.Wrapf(err, "Failed to get latest OS image for architecture %s", cpuArch)
+			return nil, errors.Wrapf(err, "Failed to get latest OS image for CPU architecture (%s) and OS stream (%s)", cpuArch, osStream)
 		}
 	}
 	return osImage, nil

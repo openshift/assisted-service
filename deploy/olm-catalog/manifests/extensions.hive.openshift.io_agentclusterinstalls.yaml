@@ -530,6 +530,11 @@ spec:
                       For single-node installations (none or external platform), set to true or leave empty.
                     type: boolean
                 type: object
+              osStream:
+                description: |-
+                  OSStream is the OS stream to use for this cluster (e.g. rhel-9, rhel-10).
+                  If unset, the default OS stream for the OpenShift version is used.
+                type: string
               platformType:
                 description: PlatformType is the name for the specific platform upon
                   which to perform the installation.
