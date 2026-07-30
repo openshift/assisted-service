@@ -4,11 +4,11 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/models"
+	"k8s.io/utils/ptr"
 )
 
 func TestErrorUtils(t *testing.T) {
@@ -22,10 +22,10 @@ var _ = Describe("Error Utils", func() {
 
 		err := installer.V2DownloadHostIgnitionConflict{
 			Payload: &models.Error{
-				Href:   swag.String("href"),
-				ID:     swag.Int32(555),
-				Kind:   swag.String("kind"),
-				Reason: swag.String("reason"),
+				Href:   ptr.To("href"),
+				ID:     ptr.To(int32(555)),
+				Kind:   ptr.To("kind"),
+				Reason: ptr.To("reason"),
 			},
 		}
 
@@ -46,8 +46,8 @@ var _ = Describe("Error Utils", func() {
 
 		err := installer.V2DownloadHostIgnitionForbidden{
 			Payload: &models.InfraError{
-				Code:    swag.Int32(403),
-				Message: swag.String("forbidden"),
+				Code:    ptr.To(int32(403)),
+				Message: ptr.To("forbidden"),
 			},
 		}
 

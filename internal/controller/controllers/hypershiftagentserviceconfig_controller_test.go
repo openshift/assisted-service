@@ -18,6 +18,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	certificatesv1 "k8s.io/api/certificates/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -515,12 +516,12 @@ var _ = Describe("HypershiftAgentServiceConfig reconcile", func() {
 		})
 		It("successfully sets headless service + endpoint on spoke cluster", func() {
 			assertReconcileSuccess()
-			ep := corev1.Endpoints{}
+			ep := discoveryv1.EndpointSlice{}
 			Expect(fakeSpokeClient.Get(ctx, types.NamespacedName{
 				Name:      webhookServiceName,
 				Namespace: testNamespace,
 			}, &ep)).To(Succeed())
-			Expect(ep.Subsets[0].Addresses[0].IP).To(Equal("1.2.3.4"))
+			Expect(ep.Endpoints[0].Addresses[0]).To(Equal("1.2.3.4"))
 		})
 		It("konnectivity agent deployment created with kubeconfig args", func() {
 			hubClient := hr.Client

@@ -2847,7 +2847,7 @@ var _ = Describe("agent reconcile", func() {
 		By("sets the infraEnv as an owner when it isn't set")
 		Expect(c.Get(ctx, key, newAgent)).To(Succeed())
 		Expect(newAgent.OwnerReferences).To(HaveLen(1))
-		Expect(newAgent.OwnerReferences[0].Kind).To(Equal(infraEnv.Kind))
+		Expect(newAgent.OwnerReferences[0].Kind).To(Equal("InfraEnv"))
 		Expect(newAgent.OwnerReferences[0].Name).To(Equal(infraEnvName))
 		Expect(newAgent.OwnerReferences[0].UID).To(Equal(infraEnv.GetUID()))
 
@@ -5194,7 +5194,7 @@ var _ = Describe("handleAgentFinalizer", func() {
 		res, err := r.handleAgentFinalizer(ctx, common.GetTestLog(), agent)
 		Expect(err).To(BeNil())
 		Expect(res).NotTo(BeNil())
-		Expect(res.Requeue).To(BeTrue())
+		Expect(res.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 	})
 
 	It("returns nil when the finalizer already exists", func() {

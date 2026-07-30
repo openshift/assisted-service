@@ -1488,15 +1488,12 @@ var _ = Describe("cluster reconcile", func() {
 			Namespace: testNamespace,
 			Name:      agentClusterInstallName,
 		}
-		ownref := metav1.OwnerReference{
-			APIVersion: cluster.APIVersion,
-			Kind:       cluster.Kind,
-			Name:       cluster.Name,
-			UID:        cluster.UID,
-		}
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
 		Expect(clusterInstall.ObjectMeta.OwnerReferences).NotTo(BeNil())
-		Expect(clusterInstall.ObjectMeta.OwnerReferences[0]).To(Equal(ownref))
+		Expect(clusterInstall.ObjectMeta.OwnerReferences[0].APIVersion).To(Equal("hive.openshift.io/v1"))
+		Expect(clusterInstall.ObjectMeta.OwnerReferences[0].Kind).To(Equal("ClusterDeployment"))
+		Expect(clusterInstall.ObjectMeta.OwnerReferences[0].Name).To(Equal(cluster.Name))
+		Expect(clusterInstall.ObjectMeta.OwnerReferences[0].UID).To(Equal(cluster.UID))
 	})
 
 	It("skips owner reference update when already set", func() {

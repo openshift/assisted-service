@@ -1,7 +1,6 @@
 package provider
 
 import (
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -10,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -88,7 +88,7 @@ func replaceMachineNetworkIfNeeded(log logrus.FieldLogger, cluster *common.Clust
 func ConfigureUserManagedNetworkingInInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *installcfg.InstallerConfigBaremetal) {
 	cfg.Networking.MachineNetwork = GetMachineNetworkForUserManagedNetworking(log, cluster)
 	if cluster.NetworkType != nil {
-		cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
+		cfg.Networking.NetworkType = ptr.Deref(cluster.NetworkType, "")
 	}
 
 	if common.IsSingleNodeCluster(cluster) {

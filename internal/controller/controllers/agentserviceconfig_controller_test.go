@@ -32,6 +32,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clnt "sigs.k8s.io/controller-runtime/pkg/client"
@@ -1897,7 +1898,7 @@ var _ = Describe("newServiceMonitor", func() {
 		endpoint := found.Spec.Endpoints[0]
 		Expect(endpoint.TLSConfig.CAFile).To(Equal("/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt"))
 		Expect(endpoint.Scheme).To(Equal("https"))
-		Expect(endpoint.TLSConfig.ServerName).To(Equal("assisted-service.test-namespace.svc"))
+		Expect(endpoint.TLSConfig.ServerName).To(HaveValue(Equal("assisted-service.test-namespace.svc")))
 	})
 })
 
@@ -2095,7 +2096,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: assistedCAConfigMapName,
 								},
-								DefaultMode: swag.Int32(420),
+								DefaultMode: ptr.To(int32(420)),
 							},
 						},
 					},
@@ -2112,7 +2113,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: testMirrorRegConfigmapName,
 								},
-								DefaultMode: swag.Int32(420),
+								DefaultMode: ptr.To(int32(420)),
 							},
 						},
 					},
@@ -3648,7 +3649,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err := reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 
 			// Check that initial state was recorded
 			updatedASC := &aiv1beta1.AgentServiceConfig{}
@@ -3698,13 +3699,13 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err := reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 
 			By("reconcile again with no changes to the ASC notations")
 			result, err = reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 
 			// Check that no immutable annotation failure condition exists
 			finalASC := &aiv1beta1.AgentServiceConfig{}
@@ -3724,7 +3725,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err := reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			// Try to add immutable annotation (should fail)
 			updatedASC := &aiv1beta1.AgentServiceConfig{}
@@ -3738,7 +3739,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err = reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Validation failed, not requeuing
-			Expect(result.Requeue).To(BeFalse())
+			Expect(result.Requeue).To(BeFalse()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			// Check that immutable annotation failure condition exists
 			finalASC := &aiv1beta1.AgentServiceConfig{}
@@ -3762,7 +3763,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err := reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			updatedASC := &aiv1beta1.AgentServiceConfig{}
 			Expect(reconciler.Client.Get(ctx, req.NamespacedName, updatedASC)).To(Succeed())
@@ -3772,7 +3773,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			By("reconcile again with annotation's value changed")
 			result, err = reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(result.Requeue).To(BeFalse())
+			Expect(result.Requeue).To(BeFalse()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			// Check that immutable annotation failure condition exists
 			finalASC := &aiv1beta1.AgentServiceConfig{}
@@ -3795,7 +3796,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err := reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Expected requeuing due to other objects
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			By("removing immutable annotation")
 			updatedASC := &aiv1beta1.AgentServiceConfig{}
@@ -3807,7 +3808,7 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 			result, err = reconciler.Reconcile(ctx, req)
 			Expect(err).ToNot(HaveOccurred())
 			// Validation failed, not requeuing
-			Expect(result.Requeue).To(BeFalse())
+			Expect(result.Requeue).To(BeFalse()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 
 			// Check that immutable annotation failure condition exists
 			finalASC := &aiv1beta1.AgentServiceConfig{}

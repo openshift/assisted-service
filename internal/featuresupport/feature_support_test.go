@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/ptr"
 )
 
 func getPlatformFilters() []SupportLevelFilters {
@@ -891,7 +892,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			cluster := common.Cluster{Cluster: models.Cluster{
 				CPUArchitecture:       models.ClusterCPUArchitectureArm64,
 				ControlPlaneCount:     1,
-				UserManagedNetworking: swag.Bool(true),
+				UserManagedNetworking: ptr.To(true),
 				Platform:              &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)},
 			}}
 			Expect(ValidateIncompatibleFeatures(log, models.ClusterCPUArchitectureArm64, &cluster, nil, nil)).To(BeNil())

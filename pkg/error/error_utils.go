@@ -1,9 +1,9 @@
 package error
 
 import (
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 )
 
 type AssistedServiceErrorAPI interface {
@@ -20,19 +20,19 @@ func assistedErrorToError(err AssistedServiceErrorAPI) error {
 	payload := err.GetPayload()
 	return errors.Errorf(
 		"AssistedServiceError Code: %s Href: %s ID: %d Kind: %s Reason: %s",
-		swag.StringValue(payload.Code),
-		swag.StringValue(payload.Href),
-		swag.Int32Value(payload.ID),
-		swag.StringValue(payload.Kind),
-		swag.StringValue(payload.Reason))
+		ptr.Deref(payload.Code, ""),
+		ptr.Deref(payload.Href, ""),
+		ptr.Deref(payload.ID, 0),
+		ptr.Deref(payload.Kind, ""),
+		ptr.Deref(payload.Reason, ""))
 }
 
 func infraErrorToError(err AssistedServiceInfraErrorAPI) error {
 	payload := err.GetPayload()
 	return errors.Errorf(
 		"AssistedServiceInfraError Code: %d Message: %s",
-		swag.Int32Value(payload.Code),
-		swag.StringValue(payload.Message))
+		ptr.Deref(payload.Code, 0),
+		ptr.Deref(payload.Message, ""))
 }
 
 func GetAssistedError(err error) error {

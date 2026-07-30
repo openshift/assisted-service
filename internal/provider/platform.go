@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/featuresupport"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 )
 
 func isPlatformBM(platform *models.Platform) bool {
@@ -80,13 +81,13 @@ func setExternalDefaultValues(platform *models.Platform, cluster *common.Cluster
 
 	// we are creating a new cluster, set CloudControllerManager to "" if unset
 	if cluster == nil && platform.External.CloudControllerManager == nil {
-		platform.External.CloudControllerManager = swag.String(models.PlatformExternalCloudControllerManagerEmpty)
+		platform.External.CloudControllerManager = ptr.To(models.PlatformExternalCloudControllerManagerEmpty)
 	}
 
 	// we are updating an existing cluster from a non-external cluster
 	// we must ensure that CloudControllerManager is set
 	if cluster != nil && *cluster.Platform.Type != models.PlatformTypeExternal && platform.External.CloudControllerManager == nil {
-		platform.External.CloudControllerManager = swag.String(models.PlatformExternalCloudControllerManagerEmpty)
+		platform.External.CloudControllerManager = ptr.To(models.PlatformExternalCloudControllerManagerEmpty)
 	}
 }
 
@@ -117,11 +118,11 @@ func checkPlatformWrongParamsInput(platform *models.Platform, userManagedNetwork
 		(!(isClusterPlatformBM(cluster) && isPlatformNone(platform)) &&
 			!(isClusterPlatformNone(cluster) && isPlatformBM(platform))) {
 
-		if !isUMNAllowedForPlatform(platform) && swag.BoolValue(cluster.UserManagedNetworking) {
+		if !isUMNAllowedForPlatform(platform) && ptr.Deref(cluster.UserManagedNetworking, false) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking enabled", *platform.Type))
 		}
 
-		if isUMNMandatoryForPlatform(platform) && !swag.BoolValue(cluster.UserManagedNetworking) {
+		if isUMNMandatoryForPlatform(platform) && !ptr.Deref(cluster.UserManagedNetworking, false) {
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform with user-managed-networking disabled", *platform.Type))
 		}
 	}
@@ -192,13 +193,13 @@ func checkPlaformUpdate(platform *models.Platform, cluster *common.Cluster) *mod
 }
 
 func getUpdateParamsForPlatformBM(platform *models.Platform, userManagedNetworking *bool, cluster *common.Cluster) (*models.Platform, *bool, error) {
-	if !swag.BoolValue(userManagedNetworking) && (platform == nil || isPlatformBM(platform)) {
+	if !ptr.Deref(userManagedNetworking, false) && (platform == nil || isPlatformBM(platform)) {
 		// Platform is already baremetal, nothing to do
 		return nil, nil, nil
 	}
 
-	if (platform != nil && isPlatformNone(platform)) || (swag.BoolValue(userManagedNetworking) && platform == nil) {
-		return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
+	if (platform != nil && isPlatformNone(platform)) || (ptr.Deref(userManagedNetworking, false) && platform == nil) {
+		return createPlatformFromType(models.PlatformTypeNone), ptr.To(true), nil
 	}
 
 	return platform, userManagedNetworking, nil
@@ -211,19 +212,19 @@ func getUpdateParamsForPlatformUMNMandatory(platform *models.Platform, userManag
 	}
 
 	if cluster.ControlPlaneCount == 1 {
-		if !swag.BoolValue(userManagedNetworking) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
+		if !ptr.Deref(userManagedNetworking, false) || (platform != nil && !isUMNMandatoryForPlatform(platform)) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting platform different than none or oci platforms is not allowed in single node Openshift"))
 		}
 	}
 
-	if !swag.BoolValue(userManagedNetworking) {
+	if !ptr.Deref(userManagedNetworking, false) {
 		if platform == nil || isPlatformBM(platform) {
 			if cluster.CPUArchitecture != common.X86CPUArchitecture &&
-				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+				!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDCLUSTERMANAGEDNETWORKING, cluster.OpenshiftVersion, ptr.To(cluster.CPUArchitecture)) {
 				return nil, nil, common.NewApiError(http.StatusBadRequest, errors.New("disabling User Managed Networking or setting Bare-Metal platform is not allowed for clusters with non-x86_64 CPU architecture"))
 			}
 
-			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
+			return createPlatformFromType(models.PlatformTypeBaremetal), ptr.To(false), nil
 		}
 	}
 
@@ -265,21 +266,21 @@ func GetClusterPlatformByControlPlaneCount(platform *models.Platform, userManage
 	// 1. The validation comes afterward anyway, since arbiter cluster are allowed to have controlPlaneCount valid for normal HA cluster.
 	// 2. It will make it easier to add support for other platforms in the future.
 	// In practice the second condition is unnecessary since if the first condition is false then the second is also false, but it's clearer to keep it explicitly.
-	if swag.Int64Value(controlPlaneCount) >= common.MinMasterHostsNeededForInstallationInHaArbiterMode ||
-		swag.Int64Value(controlPlaneCount) >= common.MinMasterHostsNeededForInstallationInHaMode {
-		if (platform == nil || isPlatformBM(platform)) && !swag.BoolValue(userManagedNetworking) {
-			return createPlatformFromType(models.PlatformTypeBaremetal), swag.Bool(false), nil
+	if ptr.Deref(controlPlaneCount, 0) >= common.MinMasterHostsNeededForInstallationInHaArbiterMode ||
+		ptr.Deref(controlPlaneCount, 0) >= common.MinMasterHostsNeededForInstallationInHaMode {
+		if (platform == nil || isPlatformBM(platform)) && !ptr.Deref(userManagedNetworking, false) {
+			return createPlatformFromType(models.PlatformTypeBaremetal), ptr.To(false), nil
 		}
 
 		if swag.BoolValue(userManagedNetworking) || platform == nil || isUMNMandatoryForPlatform(platform) {
 			if platform == nil {
 				// default to None platform
-				return createPlatformFromType(models.PlatformTypeNone), swag.Bool(true), nil
+				return createPlatformFromType(models.PlatformTypeNone), ptr.To(true), nil
 			} else {
-				return platform, swag.Bool(true), nil
+				return platform, ptr.To(true), nil
 			}
 		}
-	} else if swag.Int64Value(controlPlaneCount) == 1 {
+	} else if ptr.Deref(controlPlaneCount, 0) == 1 {
 		if isPlatformBM(platform) {
 			return nil, nil, common.NewApiError(http.StatusBadRequest, errors.Errorf("Can't set %s platform on single node OpenShift", *platform.Type))
 		}

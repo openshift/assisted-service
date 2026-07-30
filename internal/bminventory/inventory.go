@@ -78,6 +78,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/utils/ptr"
 )
 
 const DefaultUser = "kubeadmin"
@@ -469,7 +470,7 @@ func getDefaultNetworkType(params installer.V2RegisterClusterParams) (*string, e
 		return nil, err
 	}
 
-	isSingleNodeCluster := swag.Int64Value(params.NewClusterParams.ControlPlaneCount) == 1
+	isSingleNodeCluster := ptr.Deref(params.NewClusterParams.ControlPlaneCount, 0) == 1
 	if isOpenShiftVersionRecentEnough || isSingleNodeCluster {
 		return swag.String(models.ClusterCreateParamsNetworkTypeOVNKubernetes), nil
 	} else {
@@ -490,7 +491,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if swag.Int64Value(params.NewClusterParams.ControlPlaneCount) == 1 {
+	if ptr.Deref(params.NewClusterParams.ControlPlaneCount, 0) == 1 {
 		// verify minimal OCP version
 		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 		if err != nil {
@@ -549,7 +550,7 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 	// should be called after defaults were set
 	if err := b.validateHighAvailabilityWithControlPlaneCount(
 		swag.StringValue(params.NewClusterParams.HighAvailabilityMode),
-		swag.Int64Value(params.NewClusterParams.ControlPlaneCount),
+		ptr.Deref(params.NewClusterParams.ControlPlaneCount, 0),
 		swag.StringValue(params.NewClusterParams.OpenshiftVersion),
 	); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)

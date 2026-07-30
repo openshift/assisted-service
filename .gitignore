@@ -25,6 +25,8 @@ livecd.iso
 # Go workspace
 go.work
 go.work.sum
+!vendor/**/go.work
+!vendor/**/go.work.sum
 
 # Generated manifests
 deploy/operator/ztp/generated/**

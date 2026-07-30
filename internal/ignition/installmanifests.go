@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -594,7 +595,7 @@ func (g *installerGenerator) expandUserMultiDocYamls(ctx context.Context) error 
 	for _, manifestObject := range manifestObjects {
 
 		// Make sure we account for any metadata that is stored using the legacy filesystem method.
-		hasLegacyUserSuppliedMetadata := swag.ContainsStrings(legacyUserManifestPaths, manifestObject.Path)
+		hasLegacyUserSuppliedMetadata := slices.Contains(legacyUserManifestPaths, manifestObject.Path)
 
 		// Skip any files that are not user supplied
 		metadata := manifestObject.Metadata[constants.ManifestSourceAttribute]

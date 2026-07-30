@@ -745,9 +745,9 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(
 
 	return approvedHosts == expectedHostCount &&
 		registered == expectedHostCount &&
-		int(swag.Int64Value(masterCountPtr)) == expectedMasterCount &&
-		int(swag.Int64Value(arbiterCountPtr)) == expectedArbiterCount &&
-		int(swag.Int64Value(workerCountPtr)) == expectedWorkerCount &&
+		int(ptr.Deref(masterCountPtr, 0)) == expectedMasterCount &&
+		int(ptr.Deref(arbiterCountPtr, 0)) == expectedArbiterCount &&
+		int(ptr.Deref(workerCountPtr, 0)) == expectedWorkerCount &&
 		unsyncedHosts == 0, nil
 }
 
@@ -2032,7 +2032,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
 				return obj.GetLabels()[WatchResourceLabel] == WatchResourceValue
 			}))).
-		WatchesRawSource(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
+		WatchesRawSource(source.Channel(clusterDeploymentUpdates, &handler.EnqueueRequestForObject{})).
 		Complete(r)
 }
 

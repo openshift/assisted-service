@@ -21,6 +21,7 @@ import (
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/util/yaml"
+	"k8s.io/utils/ptr"
 )
 
 const (
@@ -95,8 +96,8 @@ func (a AddressFamily) String() string {
 }
 
 var (
-	UnlimitedEvents *int64 = swag.Int64(-1)
-	NoOffsetEvents  *int64 = swag.Int64(0)
+	UnlimitedEvents *int64 = ptr.To(int64(-1))
+	NoOffsetEvents  *int64 = ptr.To(int64(0))
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
@@ -768,7 +769,7 @@ func GetDefaultHighAvailabilityAndMasterCountParams(highAvailabilityMode *string
 	// Both not set, multi node by default
 	if highAvailabilityMode == nil && controlPlaneCount == nil {
 		return swag.String(models.ClusterCreateParamsHighAvailabilityModeFull),
-			swag.Int64(MinMasterHostsNeededForInstallationInHaMode)
+			ptr.To(int64(MinMasterHostsNeededForInstallationInHaMode))
 	}
 
 	// only highAvailabilityMode set

@@ -124,7 +124,10 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	cfg := ctrl.GetConfigOrDie()
+	cfg.QPS = 20
+	cfg.Burst = 30
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
@@ -212,7 +215,7 @@ func main() {
 			Scheme:          mgr.GetScheme(),
 			NodeSelector:    nodeSelector,
 			Tolerations:     tolerations,
-			Recorder:        mgr.GetEventRecorderFor("agentserviceconfig-controller"),
+			Recorder:        mgr.GetEventRecorderFor("agentserviceconfig-controller"), //nolint:staticcheck // GetEventRecorderFor deprecated in controller-runtime v0.21; migration to events.EventRecorder deferred
 			PodIntrospector: introspector,
 			IsOpenShift:     isOpenShift,
 		},
@@ -229,7 +232,7 @@ func main() {
 			Scheme:       mgr.GetScheme(),
 			NodeSelector: nodeSelector,
 			Tolerations:  tolerations,
-			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"),
+			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"), //nolint:staticcheck // GetEventRecorderFor deprecated in controller-runtime v0.21; migration to events.EventRecorder deferred
 			IsOpenShift:  isOpenShift,
 		},
 		Client:       mgr.GetClient(),

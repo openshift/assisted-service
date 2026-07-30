@@ -5,9 +5,9 @@ package common
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 
-	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -36,17 +36,17 @@ func ShouldIgnoreValidation(ignoredValidations []string, validationId string, no
 	if !MayIgnoreValidation(validationId, nonIgnoribles) {
 		return false
 	}
-	if swag.ContainsStrings(ignoredValidations, "all") {
+	if slices.Contains(ignoredValidations, "all") {
 		return true
 	}
-	return swag.ContainsStrings(ignoredValidations, validationId)
+	return slices.Contains(ignoredValidations, validationId)
 }
 
 func MayIgnoreValidation(validationID string, nonIgnorables []string) bool {
 	if validationID == "all" {
 		return true
 	}
-	return !swag.ContainsStrings(nonIgnorables, validationID)
+	return !slices.Contains(nonIgnorables, validationID)
 }
 
 func MayIgnoreValidations(validationIDs []string, nonIgnorables []string) (bool, []string) {

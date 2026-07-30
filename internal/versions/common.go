@@ -4,6 +4,7 @@ import (
 	context "context"
 	"encoding/json"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -17,6 +18,7 @@ import (
 	"github.com/thoas/go-funk"
 	"golang.org/x/sync/semaphore"
 	"gorm.io/gorm"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -111,7 +113,7 @@ func validateReleaseImageForRHCOS(
 				}
 			}
 		}
-		if swag.ContainsStrings(releaseImage.CPUArchitectures, cpuArchitecture) && !swag.ContainsStrings(availableOCPVersions, swag.StringValue(minorVersion)) {
+		if slices.Contains(releaseImage.CPUArchitectures, cpuArchitecture) && !slices.Contains(availableOCPVersions, ptr.Deref(minorVersion, "")) {
 			availableOCPVersions = append(availableOCPVersions, swag.StringValue(releaseImage.OpenshiftVersion))
 		}
 	}

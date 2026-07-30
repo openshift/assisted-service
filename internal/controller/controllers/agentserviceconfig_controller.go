@@ -27,6 +27,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	certtypes "github.com/cert-manager/cert-manager/pkg/apis/certmanager/v1"
@@ -61,6 +62,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -798,7 +800,7 @@ func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (cl
 			TLSConfig: &monitoringv1.TLSConfig{
 				CAFile: "/etc/prometheus/configmaps/serving-certs-ca-bundle/service-ca.crt",
 				SafeTLSConfig: monitoringv1.SafeTLSConfig{
-					ServerName: fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace),
+					ServerName: ptr.To(fmt.Sprintf("%s.%s.svc", serviceName, asc.namespace)),
 				},
 			},
 		}}
@@ -1993,7 +1995,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 						LocalObjectReference: corev1.LocalObjectReference{
 							Name: assistedCAConfigMapName,
 						},
-						DefaultMode: swag.Int32(420),
+						DefaultMode: ptr.To(int32(420)),
 					},
 				},
 			},
@@ -2127,7 +2129,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 			VolumeSource: corev1.VolumeSource{
 				ConfigMap: &corev1.ConfigMapVolumeSource{
 					LocalObjectReference: *asc.spec.MirrorRegistryRef,
-					DefaultMode:          swag.Int32(420),
+					DefaultMode:          ptr.To(int32(420)),
 					Items: []corev1.KeyToPath{
 						{
 							Key:  mirrorRegistryRefRegistryConfKey,
@@ -2159,7 +2161,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 					VolumeSource: corev1.VolumeSource{
 						ConfigMap: &corev1.ConfigMapVolumeSource{
 							LocalObjectReference: *asc.spec.MirrorRegistryRef,
-							DefaultMode:          swag.Int32(420),
+							DefaultMode:          ptr.To(int32(420)),
 							Items: []corev1.KeyToPath{
 								{
 									Key:  mirrorRegistryRefCertKey,
@@ -3129,7 +3131,7 @@ func validate(ctx context.Context, log logrus.FieldLogger, asc ASC, supportsCert
 		}
 		count := 0
 		for k := range secret.Data {
-			if swag.ContainsStrings([]string{"headers", "query_params"}, k) {
+			if slices.Contains([]string{"headers", "query_params"}, k) {
 				count++
 			}
 		}

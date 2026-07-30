@@ -86,6 +86,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 )
 
 const testCert string = `-----BEGIN CERTIFICATE-----
@@ -465,7 +466,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 			Type: common.PlatformTypePtr(models.PlatformTypeBaremetal),
 		},
 		CPUArchitecture:   models.ClusterCPUArchitectureX8664,
-		ControlPlaneCount: swag.Int64(common.MinMasterHostsNeededForInstallationInHaMode),
+		ControlPlaneCount: ptr.To(int64(common.MinMasterHostsNeededForInstallationInHaMode)),
 	}
 }
 
@@ -2083,7 +2084,7 @@ var _ = Describe("cluster", func() {
 
 			MinimalOpenShiftVersionForNoneHA := "4.8.0-fc.0"
 			clusterParams.OpenshiftVersion = swag.String(MinimalOpenShiftVersionForNoneHA)
-			clusterParams.ControlPlaneCount = swag.Int64(1)
+			clusterParams.ControlPlaneCount = ptr.To(int64(1))
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -2098,7 +2099,7 @@ var _ = Describe("cluster", func() {
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
-			clusterParams.ControlPlaneCount = swag.Int64(1)
+			clusterParams.ControlPlaneCount = ptr.To(int64(1))
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -2109,7 +2110,7 @@ var _ = Describe("cluster", func() {
 				db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, false, nil)
 			insufficientOpenShiftVersionForNoneHA := "4.7.0-fc.1"
 			clusterParams.OpenshiftVersion = swag.String(insufficientOpenShiftVersionForNoneHA)
-			clusterParams.ControlPlaneCount = swag.Int64(1)
+			clusterParams.ControlPlaneCount = ptr.To(int64(1))
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -2122,7 +2123,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			openShiftVersionForNoneHA := "4.8.0"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.ControlPlaneCount = swag.Int64(1)
+			clusterParams.ControlPlaneCount = ptr.To(int64(1))
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})
@@ -2139,7 +2140,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRegisterSuccessWithVersion(models.ClusterCPUArchitectureX8664, "4.8")
 			openShiftVersionForNoneHA := "4.8.0-fc.2"
 			clusterParams.OpenshiftVersion = swag.String(openShiftVersionForNoneHA)
-			clusterParams.ControlPlaneCount = swag.Int64(1)
+			clusterParams.ControlPlaneCount = ptr.To(int64(1))
 			reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
 				NewClusterParams: clusterParams,
 			})

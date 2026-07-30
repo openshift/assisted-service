@@ -4252,7 +4252,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 				innerResult, err := res.Result()
 				// After a successful drain, the BMH is configured for cleaning and
 				// the flow waits for the BMH to reach StateDeleting before proceeding.
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusSuccess))
@@ -4271,7 +4271,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 				innerResult, err := res.Result()
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusInProgress))
@@ -4284,7 +4284,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 				innerResult, err := res.Result()
-				Expect(innerResult.Requeue).To(BeFalse())
+				Expect(innerResult.Requeue).To(BeFalse()) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 				Expect(err).To(HaveOccurred())
 
 				annotations := bmh.GetAnnotations()
@@ -4301,7 +4301,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 				innerResult, err := res.Result()
 				// After drain timeout, the BMH is configured for cleaning and
 				// the flow waits for the BMH to reach StateDeleting before proceeding.
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Requeue deprecated in CR v0.21
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusTimeout))

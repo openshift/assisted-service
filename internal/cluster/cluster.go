@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -1743,7 +1744,7 @@ func (m *Manager) ResetClusterFiles(ctx context.Context, c *common.Cluster, obje
 		// Check whether file is represented as "user supplied" in legacy metadata
 		// Also prevent the deletion of any logs, and don't allow the manifest metadata folder to be directly deleted.
 		metadata, ok := file.Metadata[constants.ManifestSourceAttribute]
-		if (ok && metadata == constants.ManifestSourceUserSupplied) || swag.ContainsStrings(legacyUserManifestPaths, file.Path) || strings.Contains(file.Path, "logs") {
+		if (ok && metadata == constants.ManifestSourceUserSupplied) || slices.Contains(legacyUserManifestPaths, file.Path) || strings.Contains(file.Path, "logs") {
 			continue
 		}
 		// Delete anything else

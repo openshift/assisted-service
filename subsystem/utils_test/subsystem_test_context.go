@@ -23,6 +23,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/utils/ptr"
 )
 
 type SubsystemTestContext struct {
@@ -454,7 +455,7 @@ func (t *SubsystemTestContext) GenerateApiVipPostStepReply(ctx context.Context, 
 	checkVipApiResponse := models.APIVipConnectivityResponse{
 		IsSuccess: success,
 	}
-	if cluster != nil && swag.StringValue(cluster.Status) == models.ClusterStatusAddingHosts {
+	if cluster != nil && ptr.Deref(cluster.Status, "") == models.ClusterStatusAddingHosts {
 		checkVipApiResponse.Ignition = `{
 			"ignition": {
 			  "config": {},

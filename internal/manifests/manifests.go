@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
@@ -30,6 +31,7 @@ import (
 	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
+	"k8s.io/utils/ptr"
 )
 
 var _ manifestsapi.ManifestsAPI = &Manifests{}
@@ -186,7 +188,7 @@ func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params ope
 		manifestSourceAttributeValue, ok := file.Metadata[constants.ManifestSourceAttribute]
 		if ok {
 			manifestSource = manifestSourceAttributeValue
-		} else if swag.ContainsStrings(legacyUserManifestPaths, file.Path) {
+		} else if slices.Contains(legacyUserManifestPaths, file.Path) {
 			manifestSource = constants.ManifestSourceUserSupplied
 		}
 		if manifestSource == constants.ManifestSourceUserSupplied || swag.BoolValue(params.IncludeSystemGenerated) {
@@ -466,7 +468,7 @@ func (m *Manifests) validateAllowedToModifyManifests(ctx context.Context, cluste
 		models.ClusterStatusInsufficient,
 		models.ClusterStatusReady,
 	}
-	if !funk.ContainsString(preInstallationStates, swag.StringValue(cluster.Status)) {
+	if !funk.ContainsString(preInstallationStates, ptr.Deref(cluster.Status, "")) {
 		return m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("cluster %s is not in pre-installation states, "+
 			"can't modify manifests after installation has been started",
 			cluster.ID))
@@ -551,7 +553,7 @@ func (m *Manifests) decodeUserSuppliedManifest(ctx context.Context, clusterID st
 	if manifest == nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s is nil", filename, string(clusterID)))
 	}
-	if strings.Trim(swag.StringValue(manifest), " ") == "" {
+	if strings.Trim(ptr.Deref(manifest, ""), " ") == "" {
 		return nil, m.prepareAndLogError(ctx, http.StatusBadRequest, errors.Errorf("Manifest content of file %s for cluster ID %s is empty", filename, string(clusterID)))
 	}
 	manifestContent, err := base64.StdEncoding.DecodeString(swag.StringValue(manifest))
