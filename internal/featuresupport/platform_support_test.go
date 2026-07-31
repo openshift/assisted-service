@@ -36,6 +36,8 @@ var _ = Describe("IsPlatformSupported API", func() {
 			Entry("external arm64 4.13", models.PlatformTypeExternal, nil, "4.13.0", "arm64", false),
 			Entry("external s390x 4.13", models.PlatformTypeExternal, nil, "4.13.0", "s390x", false),
 			Entry("external ppc64le 4.13", models.PlatformTypeExternal, nil, "4.13.0", "ppc64le", false),
+			// External platform on s390x is supported from 4.14 onwards
+			Entry("external s390x 4.14", models.PlatformTypeExternal, nil, "4.14.0", "s390x", true),
 
 			// Nutanix platform - limited architecture support
 			Entry("nutanix x86_64 4.13", models.PlatformTypeNutanix, nil, "4.13.0", "x86_64", true),
