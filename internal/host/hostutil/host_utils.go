@@ -331,6 +331,21 @@ func GetDiskEncryptionForDay2(log logrus.FieldLogger, host *models.Host) (*ignit
 	return &config.Storage.Luks[0], nil
 }
 
+// GetCoreOSImageFromIgnition extracts the CoreOS image (spec.osImageURL) from the
+// encapsulated MachineConfig in the host's API VIP connectivity response. Returns
+// empty string if the response is missing, the ignition doesn't contain the
+// encapsulated MachineConfig, or the MachineConfig has no osImageURL.
+func GetCoreOSImageFromIgnition(host *models.Host) string {
+	if host.APIVipConnectivity == "" {
+		return ""
+	}
+	var response models.APIVipConnectivityResponse
+	if err := json.Unmarshal([]byte(host.APIVipConnectivity), &response); err != nil {
+		return ""
+	}
+	return ignition.GetOSImageURL(response.Ignition)
+}
+
 func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logger logrus.FieldLogger) (string, *string, error) {
 	poolName := string(common.GetEffectiveRole(host))
 

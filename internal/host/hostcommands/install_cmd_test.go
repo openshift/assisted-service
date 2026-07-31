@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -566,6 +567,47 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			request := generateRequestForStep(stepReply[0])
 			Expect(request.CoreosImage).To(Equal(testCoreOSImage))
+		})
+
+	})
+
+	Context("day2 persistent-boot without release image", func() {
+		var (
+			noReleaseVersions *versions.MockHandler
+			noReleaseMock     *oc.MockRelease
+		)
+
+		BeforeEach(func() {
+			noReleaseMock = oc.NewMockRelease(ctrl)
+			noReleaseVersions = versions.NewMockHandler(ctrl)
+			noReleaseVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("release image not found")).AnyTimes()
+
+			var inventory models.Inventory
+			Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).ToNot(HaveOccurred())
+			inventory.Boot = &models.Boot{DeviceType: models.BootDeviceTypePersistent}
+			newInventoryBytes, err := json.Marshal(inventory)
+			Expect(err).ToNot(HaveOccurred())
+			host.Inventory = string(newInventoryBytes)
+			Expect(db.Model(cluster).UpdateColumn("kind", models.ClusterKindAddHostsCluster).Error).ToNot(HaveOccurred())
+		})
+
+		It("falls back to CoreOS image from worker ignition", func() {
+			testCoreOSImage := "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:abc123"
+			host.APIVipConnectivity = buildAPIVipConnectivityWithCoreOSImage(testCoreOSImage)
+
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, noReleaseMock, InstructionConfig{}, mockEvents, noReleaseVersions, true, true)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			request := generateRequestForStep(stepReply[0])
+			Expect(request.CoreosImage).To(Equal(testCoreOSImage))
+		})
+
+		It("fails when worker ignition has no CoreOS image", func() {
+			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, noReleaseMock, InstructionConfig{}, mockEvents, noReleaseVersions, true, true)
+			_, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("cannot determine CoreOS image"))
 		})
 	})
 
@@ -2076,6 +2118,29 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 		ExpectWithOffset(1, expectedstepreply.StepType).To(Equal(models.StepTypeInstall))
 		ExpectWithOffset(1, strings.Contains(expectedstepreply.Args[0], string(expectedrole))).To(Equal(true))
 	}
+}
+
+func buildAPIVipConnectivityWithCoreOSImage(osImageURL string) string {
+	mcJSON := fmt.Sprintf(`{"apiVersion":"machineconfiguration.openshift.io/v1","kind":"MachineConfig","spec":{"osImageURL":"%s","config":{"ignition":{"version":"3.5.0"}}}}`, osImageURL)
+	source := "data:," + url.PathEscape(mcJSON)
+	ign := map[string]interface{}{
+		"ignition": map[string]interface{}{"version": "3.2.0"},
+		"storage": map[string]interface{}{
+			"files": []map[string]interface{}{
+				{
+					"path":     "/etc/ignition-machine-config-encapsulated.json",
+					"contents": map[string]interface{}{"source": source},
+				},
+			},
+		},
+	}
+	ignBytes, _ := json.Marshal(ign)
+	resp := models.APIVipConnectivityResponse{
+		IsSuccess: true,
+		Ignition:  string(ignBytes),
+	}
+	respBytes, _ := json.Marshal(resp)
+	return string(respBytes)
 }
 
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, infraEnvId, clusterId, hostId strfmt.UUID,

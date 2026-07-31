@@ -153,20 +153,31 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 	}
 
 	installToDisk := inventory != nil && inventory.Boot != nil && inventory.Boot.DeviceType == models.BootDeviceTypePersistent
+	isDay2 := swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster
 
 	// Get release image for host only if it's either not a day-2 host or it's installing to disk
 	var releaseImage *models.ReleaseImage
-	if installToDisk || swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+	if installToDisk || !isDay2 {
 		releaseImage, err = i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
-		if err != nil {
+		if err != nil && !isDay2 {
 			return "", err
 		}
 	}
 
 	if installToDisk {
-		request.CoreosImage, err = i.ocRelease.GetCoreOSImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
-		if err != nil {
-			return "", err
+		if releaseImage != nil {
+			request.CoreosImage, err = i.ocRelease.GetCoreOSImage(i.log, *releaseImage.URL, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+			if err != nil {
+				return "", err
+			}
+		} else {
+			// Day-2 persistent-boot: release image unavailable (e.g. imported cluster
+			// with no ImageSetRef). Use the CoreOS image from the worker ignition's
+			// encapsulated MachineConfig instead (MGMT-24903).
+			request.CoreosImage = hostutil.GetCoreOSImageFromIgnition(host)
+			if request.CoreosImage == "" {
+				return "", errors.Errorf("cannot determine CoreOS image for persistent-boot day-2 host %s: release image not available and worker ignition does not contain a CoreOS image reference", host.ID)
+			}
 		}
 		i.log.Infof("installing to disk with CoreOS image %s", request.CoreosImage)
 	}

@@ -144,6 +144,45 @@ func GetCACertInIgnition(contents string) (*string, error) {
 	return cert, nil
 }
 
+const encapsulatedMachineConfigPath = "/etc/ignition-machine-config-encapsulated.json"
+
+// GetOSImageURL extracts spec.osImageURL from the encapsulated MachineConfig
+// (/etc/ignition-machine-config-encapsulated.json) embedded in an ignition config.
+// Returns empty string if the file is not present or cannot be parsed.
+func GetOSImageURL(ignitionJSON string) string {
+	if ignitionJSON == "" {
+		return ""
+	}
+
+	config, err := ParseToLatest([]byte(ignitionJSON))
+	if err != nil {
+		return ""
+	}
+
+	for _, file := range config.Storage.Files {
+		if file.Path != encapsulatedMachineConfigPath {
+			continue
+		}
+		if file.Contents.Source == nil {
+			return ""
+		}
+		decoded, err := dataurl.DecodeString(*file.Contents.Source)
+		if err != nil {
+			return ""
+		}
+		var mc struct {
+			Spec struct {
+				OSImageURL string `json:"osImageURL"`
+			} `json:"spec"`
+		}
+		if err := json.Unmarshal(decoded.Data, &mc); err != nil {
+			return ""
+		}
+		return mc.Spec.OSImageURL
+	}
+	return ""
+}
+
 func extractCerts(ignition config_latest_types.Ignition) (*string, error) {
 	if len(ignition.Security.TLS.CertificateAuthorities) == 0 {
 		return nil, nil

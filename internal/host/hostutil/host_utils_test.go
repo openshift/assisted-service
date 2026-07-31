@@ -820,6 +820,58 @@ var _ = Describe("GetHostInstallationDisk", func() {
 	})
 })
 
+var _ = Describe("GetCoreOSImageFromIgnition", func() {
+	const testOSImageURL = "quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:abc123"
+
+	buildConnectivityResponse := func(osImageURL string) string {
+		mcJSON := fmt.Sprintf(`{"apiVersion":"machineconfiguration.openshift.io/v1","kind":"MachineConfig","spec":{"osImageURL":"%s","config":{"ignition":{"version":"3.5.0"}}}}`, osImageURL)
+		source := dataurl.EncodeBytes([]byte(mcJSON))
+		ign := map[string]interface{}{
+			"ignition": map[string]interface{}{"version": "3.2.0"},
+			"storage": map[string]interface{}{
+				"files": []map[string]interface{}{
+					{
+						"path":     "/etc/ignition-machine-config-encapsulated.json",
+						"contents": map[string]interface{}{"source": source},
+					},
+				},
+			},
+		}
+		ignBytes, _ := json.Marshal(ign)
+		resp := models.APIVipConnectivityResponse{
+			IsSuccess: true,
+			Ignition:  string(ignBytes),
+		}
+		respBytes, _ := json.Marshal(resp)
+		return string(respBytes)
+	}
+
+	It("extracts CoreOS image from host connectivity response", func() {
+		host := &models.Host{
+			APIVipConnectivity: buildConnectivityResponse(testOSImageURL),
+		}
+		Expect(GetCoreOSImageFromIgnition(host)).To(Equal(testOSImageURL))
+	})
+
+	It("returns empty string when APIVipConnectivity is empty", func() {
+		host := &models.Host{}
+		Expect(GetCoreOSImageFromIgnition(host)).To(BeEmpty())
+	})
+
+	It("returns empty string when ignition has no encapsulated MC", func() {
+		ign := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+		resp := models.APIVipConnectivityResponse{IsSuccess: true, Ignition: ign}
+		respBytes, _ := json.Marshal(resp)
+		host := &models.Host{APIVipConnectivity: string(respBytes)}
+		Expect(GetCoreOSImageFromIgnition(host)).To(BeEmpty())
+	})
+
+	It("returns empty string when APIVipConnectivity is invalid JSON", func() {
+		host := &models.Host{APIVipConnectivity: "not json"}
+		Expect(GetCoreOSImageFromIgnition(host)).To(BeEmpty())
+	})
+})
+
 func TestHostUtil(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "HostUtil Tests")
