@@ -1117,6 +1117,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
+	if len(clusterInstall.Spec.NTPSources) > 0 {
+		ntpSources := strings.Join(clusterInstall.Spec.NTPSources, ",")
+		updateString(ntpSources, cluster.NtpSources, &params.NtpSources)
+	}
+
 	// Update ignition endpoint if needed
 	shouldUpdate, err := r.updateIgnitionInUpdateParams(ctx, log, clusterInstall, cluster, params)
 	if err != nil {
@@ -1578,6 +1583,10 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0 {
 		clusterParams.HighAvailabilityMode = swag.String(HighAvailabilityModeNone)
+	}
+
+	if len(clusterInstall.Spec.NTPSources) > 0 {
+		clusterParams.NtpSources = swag.String(strings.Join(clusterInstall.Spec.NTPSources, ","))
 	}
 
 	if hyperthreadingInSpec(clusterInstall) {
