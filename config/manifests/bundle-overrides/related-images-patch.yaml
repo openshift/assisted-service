@@ -1,0 +1,20 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  name: assisted-service-operator.v99.0.0-unreleased
+  annotations:
+    createdAt: ""
+spec:
+  relatedImages:
+    - name: controller
+      image: quay.io/edge-infrastructure/assisted-service:latest
+    - name: image-service
+      image: quay.io/edge-infrastructure/assisted-image-service:latest
+    - name: postgresql
+      image: quay.io/sclorg/postgresql-16-c9s:latest
+    - name: installer
+      image: quay.io/edge-infrastructure/assisted-installer:latest
+    - name: agent
+      image: quay.io/edge-infrastructure/assisted-installer-agent:latest
+    - name: reporter
+      image: quay.io/edge-infrastructure/assisted-installer-controller:latest

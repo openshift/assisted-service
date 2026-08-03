@@ -122,6 +122,11 @@ function generate_bundle() {
     kustomize build config/manifests | operator-sdk generate bundle -q --overwrite=true --output-dir ${BUNDLE_OUTPUT_DIR} ${BUNDLE_METADATA_OPTS}
     mv ${__root}/bundle.Dockerfile ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile && sed -i '/scorecard/d' ${BUNDLE_OUTPUT_DIR}/bundle.Dockerfile
 
+    # operator-sdk v1.42+ drops relatedImages and overwrites createdAt — patch them back via kustomize overlay
+    cp ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service-operator.clusterserviceversion.yaml ${__root}/config/manifests/bundle-overrides/csv.yaml
+    kustomize build ${__root}/config/manifests/bundle-overrides -o ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service-operator.clusterserviceversion.yaml
+    rm ${__root}/config/manifests/bundle-overrides/csv.yaml
+
     operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
 }
 
