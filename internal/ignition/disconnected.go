@@ -64,11 +64,6 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 	log := logutil.FromContext(ctx, g.log)
 	log.Infof("GenerateDisconnectedIgnition called for infraEnv %s", *infraEnv.ID)
 
-	// For disconnected ISOs, we require the infraEnv to be bound to a cluster
-	if infraEnv.ClusterID == "" {
-		return "", errors.Errorf("InfraEnv %s is not bound to a cluster, which is required for disconnected ignition generation", *infraEnv.ID)
-	}
-
 	disconnectedManifestsDir, err := createDisconnectedManifestsDir(g.workDir, infraEnv)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to create disconnected manifests directory")

@@ -200,12 +200,38 @@ var _ = Describe("Disconnected Ignition", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should fail when ClusterID is empty", func() {
+		It("should succeed when ClusterID is empty", func() {
 			infraEnv.ClusterID = ""
 
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, clusterVersion, common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), clusterVersion, infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(
+				mockRelease.Path,
+				"agent",
+				"create",
+				"unconfigured-ignition",
+				"--dir",
+				gomock.Any(),
+			).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
+				ignitionContent := `{"ignition":{"version":"3.2.0"}}`
+				err := os.WriteFile(filepath.Join(oveDir, "unconfigured-agent.ign"), []byte(ignitionContent), 0600)
+				Expect(err).NotTo(HaveOccurred())
+				return "success", "", 0
+			})
+
 			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("InfraEnv test-infra-env-id is not bound to a cluster, which is required for disconnected ignition generation"))
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should fail when cluster version is empty", func() {

@@ -13358,14 +13358,42 @@ var _ = Describe("V2DownloadInfraEnvFiles", func() {
 		Expect(ignition["version"]).To(Equal("3.2.0"))
 	})
 
-	It("returns error when infraEnv has disconnected-iso type but is not bound to a cluster", func() {
-		imageType := models.ImageTypeDisconnectedIso
-		err := db.Model(&common.InfraEnv{}).Where("id = ?", infraEnvID).Update("type", imageType).Error
+	It("returns OVE ignition for discovery.ign when InfraEnv has disconnected-iso type and is not bound to a cluster", func() {
+		var infraEnv common.InfraEnv
+		Expect(db.First(&infraEnv, "id = ?", infraEnvID).Error).To(Succeed())
+		infraEnv.Type = common.ImageTypePtr(models.ImageTypeDisconnectedIso)
+		infraEnv.ClusterID = ""
+		Expect(db.Save(&infraEnv).Error).To(Succeed())
+
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				URL:              swag.String("test-url"),
+				Version:          swag.String("4.16.0"),
+			}, nil)
+		mockInstallerCache.EXPECT().Get(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(installercache.NewMockRelease("/tmp/test", mockEvents), nil)
+		mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockExecuter.EXPECT().Execute(gomock.Any(), "agent", "create", "unconfigured-ignition", gomock.Any(), gomock.Any()).
+			DoAndReturn(func(command string, args ...string) (string, string, int) {
+				tempDir := args[len(args)-1]
+				mockIgnition := `{"ignition": {"version": "3.2.0"},"storage":{"files":[]}}`
+				err := os.WriteFile(filepath.Join(tempDir, "unconfigured-agent.ign"),
+					[]byte(mockIgnition), 0600)
+				Expect(err).NotTo(HaveOccurred())
+				return "", "", 0
+			})
+
+		body := getResponseData("discovery.ign", false, nil, "", infraEnvID)
+
+		var ignitionConfig map[string]interface{}
+		err := json.Unmarshal(body, &ignitionConfig)
 		Expect(err).NotTo(HaveOccurred())
 
-		params := installer.V2DownloadInfraEnvFilesParams{InfraEnvID: infraEnvID, FileName: "discovery.ign"}
-		response := bm.V2DownloadInfraEnvFiles(ctx, params)
-		verifyApiError(response, http.StatusNotFound)
+		ignition, ok := ignitionConfig["ignition"].(map[string]interface{})
+		Expect(ok).To(BeTrue())
+		Expect(ignition["version"]).To(Equal("3.2.0"))
 	})
 
 	It("returns not found with a non-existant InfraEnv", func() {

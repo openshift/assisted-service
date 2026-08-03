@@ -103,8 +103,12 @@ type Release struct {
 
 // Cleanup is called to signal that the caller has finished using the release and that resources may be released.
 func (rl *Release) Cleanup(ctx context.Context) error {
+	var clusterID *strfmt.UUID
+	if rl.clusterID != "" {
+		clusterID = &rl.clusterID
+	}
 	rl.eventsHandler.V2AddMetricsEvent(
-		ctx, &rl.clusterID, nil, nil, "", models.EventSeverityInfo,
+		ctx, clusterID, nil, nil, "", models.EventSeverityInfo,
 		metricEventInstallerCacheRelease,
 		time.Now(),
 		"release_id", rl.releaseID,
