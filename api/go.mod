@@ -99,3 +99,5 @@ replace (
 	golang.org/x/net => golang.org/x/net v0.24.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.3
 )
+
+replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
