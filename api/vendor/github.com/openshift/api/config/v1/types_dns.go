@@ -10,6 +10,12 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/470
+// +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=dnses,scope=Cluster
+// +kubebuilder:subresource:status
+// +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
 type DNS struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -18,7 +24,6 @@ type DNS struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
-	// +kubebuilder:validation:Required
 	// +required
 	Spec DNSSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -115,7 +120,7 @@ type DNSPlatformSpec struct {
 	// and must handle unrecognized platforms with best-effort defaults.
 	//
 	// +unionDiscriminator
-	// +kubebuilder:validation:Required
+	// +required
 	// +kubebuilder:validation:XValidation:rule="self in ['','AWS']",message="allowed values are '' and 'AWS'"
 	Type PlatformType `json:"type"`
 
@@ -129,7 +134,14 @@ type AWSDNSSpec struct {
 	// privateZoneIAMRole contains the ARN of an IAM role that should be assumed when performing
 	// operations on the cluster's private hosted zone specified in the cluster DNS config.
 	// When left empty, no role should be assumed.
-	// +kubebuilder:validation:Pattern:=`^arn:(aws|aws-cn|aws-us-gov):iam::[0-9]{12}:role\/.*$`
+	//
+	// The ARN must follow the format: arn:<partition>:iam::<account-id>:role/<role-name>, where:
+	// <partition> is the AWS partition (aws, aws-cn, aws-us-gov, or aws-eusc),
+	// <account-id> is a 12-digit numeric identifier for the AWS account,
+	// <role-name> is the IAM role name.
+	//
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate="",rule=`matches(self, '^arn:(aws|aws-cn|aws-us-gov):iam::[0-9]{12}:role/.*$')`,message=`privateZoneIAMRole must be a valid AWS IAM role ARN in the format: arn:<partition>:iam::<account-id>:role/<role-name>`
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=AWSEuropeanSovereignCloudInstall,rule=`matches(self, '^arn:(aws|aws-cn|aws-us-gov|aws-eusc):iam::[0-9]{12}:role/.*$')`,message=`privateZoneIAMRole must be a valid AWS IAM role ARN in the format: arn:<partition>:iam::<account-id>:role/<role-name>`
 	// +optional
 	PrivateZoneIAMRole string `json:"privateZoneIAMRole"`
 }
