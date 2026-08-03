@@ -140,6 +140,11 @@ type AgentClusterInstallSpec struct {
 	// +optional
 	SSHPublicKey string `json:"sshPublicKey,omitempty"`
 
+	// NTPSources is a list of NTP sources (hostname or IP) to be used as the exclusive NTP
+	// configuration for the cluster hosts. Mutually exclusive with the InfraEnv's AdditionalNTPSources.
+	// +optional
+	NTPSources []string `json:"ntpSources,omitempty"`
+
 	// ProvisionRequirements defines configuration for when the installation is ready to be launched automatically.
 	ProvisionRequirements ProvisionRequirements `json:"provisionRequirements"`
 
