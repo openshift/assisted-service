@@ -981,6 +981,11 @@ func (in *InfraEnvSpec) DeepCopyInto(out *InfraEnvSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.NTPSources != nil {
+		in, out := &in.NTPSources, &out.NTPSources
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	if in.PullSecretRef != nil {
 		in, out := &in.PullSecretRef, &out.PullSecretRef
 		*out = new(corev1.LocalObjectReference)

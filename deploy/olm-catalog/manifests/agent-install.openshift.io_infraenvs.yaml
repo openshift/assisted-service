@@ -250,6 +250,13 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              ntpSources:
+                description: |-
+                  NTPSources is a list of NTP sources (hostname or IP) to be used as the exclusive NTP
+                  configuration for hosts in this InfraEnv. Mutually exclusive with AdditionalNTPSources.
+                items:
+                  type: string
+                type: array
               osImageVersion:
                 description: |-
                   OSImageVersion is the version of OS image to use when generating the InfraEnv.

@@ -111,6 +111,11 @@ func (in *AgentClusterInstallSpec) DeepCopyInto(out *AgentClusterInstallSpec) {
 		copy(*out, *in)
 	}
 	in.Networking.DeepCopyInto(&out.Networking)
+	if in.NTPSources != nil {
+		in, out := &in.NTPSources, &out.NTPSources
+		*out = make([]string, len(*in))
+		copy(*out, *in)
+	}
 	out.ProvisionRequirements = in.ProvisionRequirements
 	if in.ControlPlane != nil {
 		in, out := &in.ControlPlane, &out.ControlPlane
