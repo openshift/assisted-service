@@ -34,6 +34,7 @@ import (
 	"github.com/thoas/go-funk"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -43,6 +44,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	k8scheme "k8s.io/client-go/kubernetes/scheme"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -711,39 +713,32 @@ func newWebHookEndpoint(ctx context.Context, log logrus.FieldLogger, asc ASC) (c
 		return nil, nil, pkgerror.New("missing webhook admision service clusterIP")
 	}
 
-	ep := &corev1.Endpoints{
+	ep := &discoveryv1.EndpointSlice{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      webhookServiceName,
 			Namespace: asc.namespace,
 		},
+		AddressType: discoveryv1.AddressTypeIPv4,
 	}
 
-	endpointAddress := corev1.EndpointAddress{
-		IP: clusterIP.(string),
+	endpoints := []discoveryv1.Endpoint{
+		{Addresses: []string{clusterIP.(string)}},
 	}
 
-	endpointPort := corev1.EndpointPort{
-		Name:     webhookServiceName,
-		Port:     443,
-		Protocol: corev1.ProtocolTCP,
-	}
-
-	ep.Subsets = []corev1.EndpointSubset{
+	ports := []discoveryv1.EndpointPort{
 		{
-			Addresses: []corev1.EndpointAddress{endpointAddress},
-			Ports:     []corev1.EndpointPort{endpointPort},
+			Name:     ptr.To(webhookServiceName),
+			Port:     ptr.To(int32(443)),
+			Protocol: ptr.To(corev1.ProtocolTCP),
 		},
 	}
 
+	ep.Endpoints = endpoints
+	ep.Ports = ports
+
 	mutateFn := func() error {
-		//TODO: services and endpoints on the spoke can not be controlled by our controller
-		//this is an open integration issue
-		ep.Subsets = []corev1.EndpointSubset{
-			{
-				Addresses: []corev1.EndpointAddress{endpointAddress},
-				Ports:     []corev1.EndpointPort{endpointPort},
-			},
-		}
+		ep.Endpoints = endpoints
+		ep.Ports = ports
 		return nil
 	}
 	return ep, mutateFn, nil

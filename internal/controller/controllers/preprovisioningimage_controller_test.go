@@ -100,7 +100,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		clusterVersion        *configv1.ClusterVersion
 		defaultIronicImage    = "ironic-agent-image:latest"
 		ironicServiceIPs      = []string{"198.51.100.1", "2001:db8::dead:beee"}
-		ironicInspectorIPs    = []string{"198.51.100.2", "2001:db8::dead:beef"}
 	)
 
 	BeforeEach(func() {
@@ -171,14 +170,11 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			}}
 			ppi = newPreprovisioningImage("testPPI", testNamespace, InfraEnvLabel, "testInfraEnv", bmh.Name)
 			Expect(c.Create(ctx, ppi)).To(BeNil())
-			mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, ironicInspectorIPs, nil)
-		})
-		AfterEach(func() {
-			mockCtrl.Finish()
+			mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, nil)
 		})
 
 		setInfraEnvIronicConfig := func() {
-			conf, err := ignition.GenerateIronicConfig(getUrlFromIP(ironicServiceIPs[0]), getUrlFromIP(ironicInspectorIPs[0]), *backendInfraEnv, defaultIronicImage)
+			conf, err := ignition.GenerateIronicConfig(getUrlFromIP(ironicServiceIPs[0]), getUrlFromIP(ironicServiceIPs[0]), *backendInfraEnv, defaultIronicImage)
 			Expect(err).NotTo(HaveOccurred())
 			backendInfraEnv.InternalIgnitionConfigOverride = string(conf)
 			mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
@@ -194,7 +190,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 					Expect(params.InfraEnvUpdateParams.IgnitionConfigOverride).To(Equal(""))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(defaultIronicImage))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicServiceIPs[0]))
-					Expect(*internalIgnitionConfig).Should(ContainSubstring(ironicInspectorIPs[0]))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
@@ -222,7 +217,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[1])))
-					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[1])))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ClusterID: clusterID, ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
@@ -247,7 +241,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
 					Expect(params.InfraEnvID).To(Equal(*backendInfraEnv.ID))
 					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicServiceIPs[1])))
-					Expect(*internalIgnitionConfig).Should(ContainSubstring(url.QueryEscape(ironicInspectorIPs[1])))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
 			mockCRDEventsHandler.EXPECT().NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace).Times(1)
@@ -302,7 +295,6 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.UpdateInfraEnvParams, internalIgnitionConfig *string, _ *common.MirrorRegistryConfiguration) {
 					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(ironicServiceIPs[0])))
-					Expect(*internalIgnitionConfig).To(ContainSubstring(url.QueryEscape(ironicInspectorIPs[0])))
 					Expect(*internalIgnitionConfig).To(ContainSubstring(overrideAgentImage))
 				}).Return(
 				&common.InfraEnv{InfraEnv: models.InfraEnv{ID: &infraEnvID, CPUArchitecture: infraEnvArch}, GeneratedAt: strfmt.DateTime(time.Now())}, nil).Times(1)
@@ -384,7 +376,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
-			Expect(res.Requeue).To(Equal(true))
+			Expect(res.Requeue).To(Equal(true)) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 			key := types.NamespacedName{
 				Namespace: testNamespace,
 				Name:      "testPPI",
@@ -417,7 +409,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 			By("initially reconciling the preprovisioningimage during cooldown")
 			res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 			Expect(err).To(BeNil())
-			Expect(res.Requeue).To(Equal(true))
+			Expect(res.Requeue).To(Equal(true)) //nolint:staticcheck // Requeue field deprecated in controller-runtime v0.21, production code migration deferred
 
 			By("verifying the preprovisioningimage has wait for cooldown status")
 			key := types.NamespacedName{
@@ -1218,7 +1210,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 
 		mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
-		mockBMOUtils.EXPECT().GetIronicIPs().Return(nil, nil, fmt.Errorf("failed to get urls"))
+		mockBMOUtils.EXPECT().GetIronicIPs().Return(nil, fmt.Errorf("failed to get urls"))
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).To(Equal("failed to get urls"))
@@ -1233,7 +1225,7 @@ var _ = Describe("PreprovisioningImage reconcile", func() {
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(backendInfraEnv, nil)
 		Expect(c.Create(ctx, infraEnv)).To(BeNil())
 		mockBMOUtils.EXPECT().getICCConfig(gomock.Any()).Times(1).Return(nil, errors.Errorf("ICC configuration is not available"))
-		mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, ironicInspectorIPs, nil)
+		mockBMOUtils.EXPECT().GetIronicIPs().AnyTimes().Return(ironicServiceIPs, nil)
 		mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("Failed to update infraEnvInternal"))
 
 		res, err := pr.Reconcile(ctx, newPreprovisioningImageRequest(ppi))

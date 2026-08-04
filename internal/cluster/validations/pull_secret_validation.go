@@ -205,7 +205,7 @@ func (v *registryPullSecretValidator) ValidatePullSecret(additionalPublicRegistr
 		}
 	}
 
-	ignorableRegistries := maps.Clone(v.publicRegistries)
+	ignorableRegistries := maps.Clone(v.publicRegistries) //nolint:govet // type parameter inference not yet supported by inliner
 	for _, registry := range additionalPublicRegistries {
 		ignorableRegistries[registry] = true
 	}

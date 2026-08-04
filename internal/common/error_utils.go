@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"gorm.io/gorm"
+	"k8s.io/utils/ptr"
 )
 
 const APINotFound = "V1 API not found"
@@ -32,7 +33,7 @@ func GenerateError(id int32, err error) *models.Error {
 	return &models.Error{
 		Code:   swag.String(strconv.Itoa(int(id))),
 		Href:   swag.String(""),
-		ID:     swag.Int32(id),
+		ID:     ptr.To(id),
 		Kind:   swag.String("Error"),
 		Reason: swag.String(reason),
 	}
@@ -44,7 +45,7 @@ func GenerateInternalFromError(err error) *models.Error {
 
 func GenerateInfraError(id int32, err error) *models.InfraError {
 	return &models.InfraError{
-		Code:    swag.Int32(id),
+		Code:    ptr.To(id),
 		Message: swag.String(err.Error()),
 	}
 }

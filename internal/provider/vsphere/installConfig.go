@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/models"
 	errorWrap "github.com/pkg/errors"
+	"k8s.io/utils/ptr"
 )
 
 func setPlatformValues(openshiftVersion string, platform *installcfg.VsphereInstallConfigPlatform) {
@@ -102,7 +103,7 @@ func (p vsphereProvider) AddPlatformToInstallConfig(
 	} else {
 		cfg.Networking.MachineNetwork = provider.GetMachineNetworkForUserManagedNetworking(p.Log, cluster)
 		if cluster.NetworkType != nil {
-			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
+			cfg.Networking.NetworkType = ptr.Deref(cluster.NetworkType, "")
 		}
 	}
 

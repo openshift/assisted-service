@@ -36,6 +36,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"gopkg.in/yaml.v2"
 	"gorm.io/gorm"
+	"k8s.io/utils/ptr"
 )
 
 var hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
@@ -486,7 +487,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 				Expect(err).NotTo(HaveOccurred())
 				Expect(masterConfig.Storage.Files).To(HaveLen(1))
 				f := masterConfig.Storage.Files[0]
-				Expect(f.Mode).To(Equal(swag.Int(0o644)))
+				Expect(f.Mode).To(Equal(ptr.To(0o644)))
 				Expect(f.Contents.Source).To(Equal(swag.String("data:,abc")))
 				Expect(f.Path).To(Equal("/etc/keepalived/unsupported-monitor.conf"))
 			})
@@ -506,15 +507,15 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(3))
 			f := masterConfig.Storage.Files[0]
-			Expect(f.Mode).To(Equal(swag.Int(0o644)))
+			Expect(f.Mode).To(Equal(ptr.To(0o644)))
 			Expect(f.Contents.Source).To(Equal(swag.String("data:,abc")))
 			Expect(f.Path).To(Equal("/etc/keepalived/unsupported-monitor.conf"))
 			f = masterConfig.Storage.Files[1]
-			Expect(f.Mode).To(Equal(swag.Int(0o644)))
+			Expect(f.Mode).To(Equal(ptr.To(0o644)))
 			Expect(f.Contents.Source).To(Equal(swag.String("data:,api")))
 			Expect(f.Path).To(Equal("/etc/keepalived/lease-api"))
 			f = masterConfig.Storage.Files[2]
-			Expect(f.Mode).To(Equal(swag.Int(0o644)))
+			Expect(f.Mode).To(Equal(ptr.To(0o644)))
 			Expect(f.Contents.Source).To(Equal(swag.String("data:,ingress")))
 			Expect(f.Path).To(Equal("/etc/keepalived/lease-ingress"))
 		})

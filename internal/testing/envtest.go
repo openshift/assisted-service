@@ -21,12 +21,11 @@ const (
 	// Name of the Go package that contains the tool:
 	envtestSetupToolsPkg = "sigs.k8s.io/controller-runtime/tools"
 
-	// Branch `release-0.17` is the newest version that can be installed with Go 1.21. This should be updated when
-	// we update the version of Go.
-	envtestSetupToolVersion = "release-0.17"
+	// Branch should match the controller-runtime version in go.mod.
+	envtestSetupToolVersion = "release-0.23"
 
 	// This is the version of the Kubernetes binaries that will be installed by the 'setup-envtest' tool.
-	envtestAssetsVersion = "1.30.0"
+	envtestAssetsVersion = "1.35.0"
 
 	// Default location where the library looks for binaries.
 	envtestAssetsDir = "/usr/local/kubebuilder/bin"

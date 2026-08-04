@@ -25,6 +25,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/thoas/go-funk"
 	"golang.org/x/crypto/ssh"
+	"k8s.io/utils/ptr"
 )
 
 type Config struct {
@@ -199,16 +200,16 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration := common.Cluster{}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
-		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, swag.StringValue(params.OpenshiftVersion), swag.String(params.CPUArchitecture)) {
+		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, ptr.Deref(params.OpenshiftVersion, ""), ptr.To(params.CPUArchitecture)) {
 
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", *params.OpenshiftVersion))
 	}
 
-	targetConfiguration.UserManagedNetworking = swag.Bool(false)
+	targetConfiguration.UserManagedNetworking = ptr.To(false)
 	if params.UserManagedNetworking != nil {
 		targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	}
-	targetConfiguration.VipDhcpAllocation = swag.Bool(false)
+	targetConfiguration.VipDhcpAllocation = ptr.To(false)
 	if params.VipDhcpAllocation != nil {
 		targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	}
@@ -217,14 +218,14 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.APIVips = params.APIVips
 	targetConfiguration.IngressVips = params.IngressVips
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
-	targetConfiguration.ControlPlaneCount = swag.Int64Value(controlPlaneCount)
+	targetConfiguration.ControlPlaneCount = ptr.Deref(controlPlaneCount, 0)
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	targetConfiguration.HighAvailabilityMode = haMode
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
 	targetConfiguration.MachineNetworks = params.MachineNetworks
 	targetConfiguration.LoadBalancer = params.LoadBalancer
-	targetConfiguration.OpenshiftVersion = swag.StringValue(params.OpenshiftVersion)
+	targetConfiguration.OpenshiftVersion = ptr.Deref(params.OpenshiftVersion, "")
 	targetConfiguration.PrimaryIPStack = primaryIPStack
 	return validateVIPAddresses(ipV6Supported, targetConfiguration)
 }
@@ -235,7 +236,7 @@ func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdate
 		ingressVips []*models.IngressVip
 	)
 
-	if swag.BoolValue(cluster.VipDhcpAllocation) {
+	if ptr.Deref(cluster.VipDhcpAllocation, false) {
 		return ValidateVIPsWereNotSetUserManagedNetworking(
 			apiVips, ingressVips, vipDhcpAllocation,
 		)
@@ -278,14 +279,14 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	// If the user explicitly provides VIPs while changing DHCP mode, validation will
 	// fail appropriately (e.g., "Setting API VIPs is forbidden when cluster is in
 	// vip-dhcp-allocation mode").
-	dhcpModeChanging := params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) != swag.BoolValue(cluster.VipDhcpAllocation)
+	dhcpModeChanging := params.VipDhcpAllocation != nil && ptr.Deref(params.VipDhcpAllocation, false) != ptr.Deref(cluster.VipDhcpAllocation, false)
 	if dhcpModeChanging && params.APIVips == nil && params.IngressVips == nil {
 		apiVips = []*models.APIVip{}
 		ingressVips = []*models.IngressVip{}
 	}
 
 	if (len(params.APIVips) > 1 || len(params.IngressVips) > 1) &&
-		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, swag.String(cluster.CPUArchitecture)) {
+		!featuresupport.IsFeatureAvailable(models.FeatureSupportLevelIDDUALSTACKVIPS, cluster.OpenshiftVersion, ptr.To(cluster.CPUArchitecture)) {
 
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s %s", "dual-stack VIPs are not supported in OpenShift", cluster.OpenshiftVersion))
 	}
@@ -294,7 +295,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params.UserManagedNetworking != nil && swag.BoolValue(params.UserManagedNetworking) {
+	if params.UserManagedNetworking != nil && ptr.Deref(params.UserManagedNetworking, false) {
 		vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 		if params.VipDhcpAllocation != nil { // VipDhcpAllocation from update params should take precedence
 			vipDhcpAllocation = swag.BoolValue(params.VipDhcpAllocation)
@@ -474,13 +475,13 @@ func validateNetworksIPAddressFamily(ipV6Supported bool, targetConfiguration com
 	clusterNetworks := network.DerefClusterNetworks(funk.Get(targetConfiguration, "ClusterNetworks"))
 
 	for i := range machineNetworks {
-		networks = append(networks, swag.String(string(machineNetworks[i].Cidr)))
+		networks = append(networks, ptr.To(string(machineNetworks[i].Cidr)))
 	}
 	if err = ValidateIPAddressFamily(ipV6Supported, "machine networks", targetConfiguration.PrimaryIPStack, networks...); err != nil {
 		multiErr = multierror.Append(multiErr, err)
 	}
 	for i := range serviceNetworks {
-		networks = append(networks, swag.String(string(serviceNetworks[i].Cidr)))
+		networks = append(networks, ptr.To(string(serviceNetworks[i].Cidr)))
 	}
 	if err = ValidateIPAddressFamily(ipV6Supported, "service networks", targetConfiguration.PrimaryIPStack, networks...); err != nil {
 		multiErr = multierror.Append(multiErr, err)
@@ -800,7 +801,7 @@ func ValidateDiskEncryptionParams(diskEncryptionParams *models.DiskEncryption, D
 }
 
 func ValidateControlPlaneCountWithPlatform(controlPlaneCount *int64, platform *models.Platform) error {
-	if swag.Int64Value(controlPlaneCount) == 1 {
+	if ptr.Deref(controlPlaneCount, 0) == 1 {
 		if platform != nil && platform.Type != nil && *platform.Type != models.PlatformTypeNone && !common.IsPlatformExternal(platform) {
 			return errors.Errorf("Single node cluster is not supported alongside %s platform", *platform.Type)
 		}

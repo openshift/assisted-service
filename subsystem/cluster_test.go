@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -2342,7 +2343,7 @@ name: exampleNamespace2`
 				if err == io.EOF {
 					break
 				}
-				Expect(swag.ContainsStrings(expectedFiles, header.Name)).To(BeTrue())
+				Expect(slices.Contains(expectedFiles, header.Name)).To(BeTrue())
 				Expect(err).NotTo(HaveOccurred())
 				numOfarchivedFiles += 1
 			}
