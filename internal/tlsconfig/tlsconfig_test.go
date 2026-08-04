@@ -126,3 +126,21 @@ var _ = Describe("getProfileSpec", func() {
 		Expect(spec.MinTLSVersion).To(Equal(configv1.VersionTLS12))
 	})
 })
+
+var _ = Describe("shouldHonorClusterTLSProfile", func() {
+	It("returns false for empty adherence", func() {
+		Expect(shouldHonorClusterTLSProfile("")).To(BeFalse())
+	})
+
+	It("returns false for LegacyAdheringComponentsOnly", func() {
+		Expect(shouldHonorClusterTLSProfile("LegacyAdheringComponentsOnly")).To(BeFalse())
+	})
+
+	It("returns true for StrictAllComponents", func() {
+		Expect(shouldHonorClusterTLSProfile("StrictAllComponents")).To(BeTrue())
+	})
+
+	It("returns true for unknown values (forward compatibility)", func() {
+		Expect(shouldHonorClusterTLSProfile("SomeFutureValue")).To(BeTrue())
+	})
+})

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -55,6 +56,7 @@ import (
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/stream"
 	"github.com/openshift/assisted-service/internal/system"
+	"github.com/openshift/assisted-service/internal/tlsconfig"
 	"github.com/openshift/assisted-service/internal/uploader"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -157,6 +159,8 @@ var Options struct {
 	ServeHTTPS                           bool          `envconfig:"SERVE_HTTPS" default:"false"`
 	HTTPSKeyFile                         string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile                        string        `envconfig:"HTTPS_CERT_FILE" default:""`
+	TLSMinVersion                        string        `envconfig:"TLS_MIN_VERSION" default:""`
+	TLSCipherSuites                      string        `envconfig:"TLS_CIPHER_SUITES" default:""`
 	MaxIdleConns                         int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
 	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
@@ -722,6 +726,7 @@ func main() {
 
 	// Determine if IPXE artifact URLs need to be http
 	serverInfo := servers.New(Options.HTTPListenPort, swag.StringValue(port), Options.HTTPSKeyFile, Options.HTTPSCertFile)
+	applyClusterTLSConfig(log, serverInfo)
 	generateInsecureIPXEURLs := serverInfo.HTTP != nil
 
 	disconnectedIgnitionGenerator := ignition.NewDisconnectedIgnitionGenerator(
@@ -818,6 +823,18 @@ func setupServerForIPXE(serverInfo *servers.ServerInfo, h http.Handler) {
 	if serverInfo.HTTPS != nil {
 		serverInfo.HTTPS.Handler = h
 	}
+}
+
+func applyClusterTLSConfig(log *logrus.Logger, serverInfo *servers.ServerInfo) {
+	if Options.TLSMinVersion == "" || serverInfo.HTTPS == nil {
+		return
+	}
+	tlsCfg, err := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites)
+	if err != nil {
+		log.WithError(err).Fatal("unable to build TLS config from environment")
+	}
+	serverInfo.HTTPS.TLSConfig = tlsCfg
+	log.Infof("Applied cluster TLS profile: MinVersion=0x%04x, CipherSuites=%d", tlsCfg.MinVersion, len(tlsCfg.CipherSuites))
 }
 
 func setupDB(log logrus.FieldLogger, slowQueryConfig slowquery.Config) *gorm.DB {
@@ -977,9 +994,22 @@ func createControllerManager() (manager.Manager, error) {
 				Label: labels.NewSelector().Add(*infraenvLabel),
 			}
 		}
-		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+		var webhookTLSOpts []func(*tls.Config)
+		restCfg := ctrl.GetConfigOrDie()
+		if Options.TLSMinVersion != "" {
+			tlsCfg, tlsErr := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites)
+			if tlsErr != nil {
+				return nil, tlsErr
+			}
+			webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
+				cfg.MinVersion = tlsCfg.MinVersion
+				cfg.CipherSuites = tlsCfg.CipherSuites
+			})
+		}
+
+		return ctrl.NewManager(restCfg, ctrl.Options{
 			Scheme:           schemes,
-			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443}),
+			WebhookServer:    webhook.NewServer(webhook.Options{Port: 9443, TLSOpts: webhookTLSOpts}),
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 			Cache: cache.Options{
