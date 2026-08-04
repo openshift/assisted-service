@@ -63,6 +63,9 @@ type InfraEnvCreateParams struct {
 	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
+	// The OS stream to use for this infra-env (e.g. rhel-9, rhel-10). If unset, inherits from the associated cluster or uses the default OS stream.
+	OsStream string `json:"os_stream,omitempty"`
+
 	// proxy
 	Proxy *Proxy `json:"proxy,omitempty" gorm:"embedded;embeddedPrefix:proxy_"`
 

@@ -25,10 +25,16 @@ type OsImage struct {
 	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture *string `json:"cpu_architecture" gorm:"default:'x86_64'"`
 
+	// Whether this OS image is the default stream for its OpenShift version and CPU architecture.
+	DefaultOsStream *bool `json:"default_os_stream,omitempty"`
+
 	// Version of the operating system image
 	// Example: 4.12
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
+
+	// The OS stream of this image (e.g. rhel-9, rhel-10).
+	OsStream *string `json:"os_stream,omitempty"`
 
 	// The base OS image used for the discovery iso.
 	// Required: true
