@@ -124,12 +124,14 @@ go.mongodb.org/mongo-driver/x/bsonx/bsoncore
 # go.yaml.in/yaml/v2 v2.4.3
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
-# golang.org/x/net v0.55.0 => golang.org/x/net v0.24.0
-## explicit; go 1.18
+# golang.org/x/net v0.55.0 => golang.org/x/net v0.55.0
+## explicit; go 1.25.0
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
+golang.org/x/net/internal/httpcommon
+golang.org/x/net/internal/httpsfv
 # golang.org/x/text v0.37.0
 ## explicit; go 1.25.0
 golang.org/x/text/secure/bidirule
@@ -214,6 +216,6 @@ sigs.k8s.io/structured-merge-diff/v6/value
 ## explicit; go 1.22
 sigs.k8s.io/yaml
 # github.com/openshift/assisted-service/models => ../models
-# golang.org/x/net => golang.org/x/net v0.24.0
+# golang.org/x/net => golang.org/x/net v0.55.0
 # github.com/golang/glog => github.com/golang/glog v1.2.4
 # golang.org/x/crypto => golang.org/x/crypto v0.52.0

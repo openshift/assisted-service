@@ -57,7 +57,7 @@ require (
 
 replace (
 	github.com/openshift/assisted-service/models => ../models
-	golang.org/x/net => golang.org/x/net v0.24.0
+	golang.org/x/net => golang.org/x/net v0.55.0
 )
 
 replace github.com/golang/glog => github.com/golang/glog v1.2.4
