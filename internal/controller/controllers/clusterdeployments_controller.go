@@ -1719,13 +1719,12 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 }
 
 func (r *ClusterDeploymentsReconciler) ensureClusterImageSetRef(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) (*hivev1.ClusterImageSet, error) {
+	if isInstalled(clusterDeployment, clusterInstall) {
+		return nil, nil
+	}
+
 	// Make sure that the ImageSetRef is set before continuing
 	if clusterInstall.Spec.ImageSetRef == nil {
-		// ImageSetRef is not required for already installed clusters
-		// however we should still try to pull and cache it if it is specified
-		if isInstalled(clusterDeployment, clusterInstall) {
-			return nil, nil
-		}
 		return nil, newInputError("ClusterImageSet must be specified in AgentClusterInstall.Spec.ImageSetRef for cluster that is not installed")
 	}
 

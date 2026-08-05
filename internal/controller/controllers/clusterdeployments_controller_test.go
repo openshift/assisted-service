@@ -1094,6 +1094,29 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0}))
 			})
 
+			It("stale ClusterImageSet reference when adding nodes to an installed cluster should succeed", func() {
+				// Regression test: an installed cluster may reference a ClusterImageSet that no longer
+				// exists (e.g. deleted after the cluster was installed, or never synced to this hub).
+				// Adding Day-2 workers must not fail with "ClusterImageSet not found".
+				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
+				cluster := newClusterDeployment(clusterName, testNamespace,
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+				cluster.Spec.Installed = true
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
+				// ImageSetRef points to a ClusterImageSet that does not exist in Kubernetes
+				aci.Spec.ImageSetRef = &hivev1.ClusterImageSetReference{Name: "stale-imageset-that-does-not-exist"}
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: 0}))
+			})
+
 			It("fail to get openshift version when trying to create a cluster", func() {
 				mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
 				mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("some-error"))
@@ -4440,8 +4463,6 @@ var _ = Describe("cluster reconcile", func() {
 		BeforeEach(func() {
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
-			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
-			Expect(c.Create(ctx, imageSet)).To(BeNil())
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).To(BeNil())
@@ -4451,7 +4472,6 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			mockMirrorRegistries.EXPECT().IsMirrorRegistriesConfigured().AnyTimes().Return(false)
-			mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil)
 		})
 
 		It("success", func() {
@@ -4474,7 +4494,9 @@ var _ = Describe("cluster reconcile", func() {
 			V2ImportClusterInternal := func(ctx context.Context, kubeKey *types.NamespacedName, id *strfmt.UUID,
 				params installer.V2ImportClusterParams) (*common.Cluster, error) {
 				Expect(string(*params.NewImportClusterParams.OpenshiftClusterID)).To(Equal(cid))
-				Expect(params.NewImportClusterParams.OpenshiftVersion).To(Equal(ocpVersion))
+				// OpenshiftVersion is not populated for installed clusters since ClusterImageSet
+				// resolution is skipped (the ImageSetRef may reference a stale/deleted ClusterImageSet)
+				Expect(params.NewImportClusterParams.OpenshiftVersion).To(Equal(""))
 				return clusterReply, nil
 			}
 			mockInstallerInternal.EXPECT().
@@ -4534,8 +4556,6 @@ var _ = Describe("cluster reconcile", func() {
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
-			imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
-			Expect(c.Create(ctx, imageSet)).To(BeNil())
 			clusterDeployment = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			clusterDeployment.Spec.Installed = true
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -5418,8 +5438,6 @@ var _ = Describe("day2 cluster", func() {
 	var (
 		c                              client.Client
 		ctx                            = context.Background()
-		imageSetName                   = "openshift-v4.8.0"
-		releaseImageUrl                = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
 		clusterKey                     types.NamespacedName
 		clusterName                    = "test-cluster"
 		agentClusterInstallName        = "test-cluster-aci"
@@ -5432,14 +5450,6 @@ var _ = Describe("day2 cluster", func() {
 		mockVersions                   *versions.MockHandler
 		dbCluster                      *common.Cluster
 		mockMirrorRegistries           *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
-		ocpReleaseVersion              = "4.8.0"
-		ocpVersion                     = "4.8"
-		releaseImage                   = &models.ReleaseImage{
-			CPUArchitecture:  &common.TestDefaultConfig.CPUArchitecture,
-			OpenshiftVersion: &ocpVersion,
-			URL:              &releaseImageUrl,
-			Version:          &ocpReleaseVersion,
-		}
 	)
 
 	BeforeEach(func() {
@@ -5469,9 +5479,6 @@ var _ = Describe("day2 cluster", func() {
 
 		pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
-
-		imageSet := getDefaultTestImageSet(imageSetName, releaseImageUrl)
-		Expect(c.Create(ctx, imageSet)).To(BeNil())
 
 		secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
 		adminKubeconfigSecret := &corev1.Secret{
@@ -5532,7 +5539,6 @@ var _ = Describe("day2 cluster", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 		mockInstallerInternal.EXPECT().V2ImportClusterInternal(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), gomock.Any(), gomock.Any()).Return(releaseImage, nil).AnyTimes()
 
 		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).Return(dbCluster, nil)
 
