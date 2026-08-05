@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -32,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/internal/kubernetes"
 	"github.com/openshift/assisted-service/internal/spoke_k8s_client"
 	"github.com/openshift/assisted-service/internal/system"
+	"github.com/openshift/assisted-service/internal/tlsconfig"
 	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
@@ -124,12 +126,27 @@ func main() {
 	flag.Parse()
 
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+
+	restCfg := ctrl.GetConfigOrDie()
+
+	tlsCfg, err := tlsconfig.FetchTLSConfig(context.Background(), restCfg)
+	if err != nil {
+		setupLog.Error(err, "unable to fetch TLS config from APIServer")
+		os.Exit(1)
+	}
+	tlsOpts := []func(*tls.Config){
+		func(cfg *tls.Config) {
+			cfg.MinVersion = tlsCfg.MinVersion
+			cfg.CipherSuites = tlsCfg.CipherSuites
+		},
+	}
+
+	mgr, err := ctrl.NewManager(restCfg, ctrl.Options{
 		Scheme: scheme,
 		Metrics: metricsserver.Options{
 			BindAddress: metricsAddr,
 		},
-		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
+		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443, TLSOpts: tlsOpts}),
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       "86f835c3.agent-install.openshift.io",
@@ -215,6 +232,7 @@ func main() {
 			Recorder:        mgr.GetEventRecorderFor("agentserviceconfig-controller"),
 			PodIntrospector: introspector,
 			IsOpenShift:     isOpenShift,
+			RestConfig:      restCfg,
 		},
 		Client:    mgr.GetClient(),
 		Namespace: ns,
@@ -231,6 +249,7 @@ func main() {
 			Tolerations:  tolerations,
 			Recorder:     mgr.GetEventRecorderFor("hypershiftagentserviceconfig-controller"),
 			IsOpenShift:  isOpenShift,
+			RestConfig:   restCfg,
 		},
 		Client:       mgr.GetClient(),
 		SpokeClients: spokeClientCache,
@@ -256,8 +275,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	ctx, cancel := context.WithCancel(ctrl.SetupSignalHandler())
+	defer cancel()
+
+	// The APIServer resource only exists on OpenShift, so there is no
+	// cluster-wide TLS profile to watch on other Kubernetes flavors.
+	if isOpenShift {
+		if err := tlsconfig.WatchForTLSProfileChanges(ctx, restCfg, cancel); err != nil {
+			setupLog.Error(err, "unable to start TLS profile watcher")
+			os.Exit(1)
+		}
+	}
+
 	setupLog.Info("starting manager")
-	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
+	if err := mgr.Start(ctx); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
