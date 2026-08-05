@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/restapi"
 	"gorm.io/gorm"
 )
@@ -42,6 +43,8 @@ func (a *AgentLocalAuthzHandler) HasAccessTo(ctx context.Context, obj interface{
 func (a *AgentLocalAuthzHandler) HasOrgBasedCapability(ctx context.Context, capability string) (bool, error) {
 	return true, nil
 }
+
+func (a *AgentLocalAuthzHandler) SetMetrics(metricsAPI metrics.API) {}
 
 func (a *AgentLocalAuthzHandler) authorizerMiddleware(request *http.Request) error {
 	route := middleware.MatchedRouteFrom(request)

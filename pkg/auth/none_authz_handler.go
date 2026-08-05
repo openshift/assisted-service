@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/openshift/assisted-service/internal/metrics"
 	"gorm.io/gorm"
 )
 
@@ -42,3 +43,5 @@ func (*NoneHandler) IsAdmin(ctx context.Context) bool {
 func (*NoneHandler) HasOrgBasedCapability(ctx context.Context, capability string) (bool, error) {
 	return true, nil
 }
+
+func (*NoneHandler) SetMetrics(metricsAPI metrics.API) {}

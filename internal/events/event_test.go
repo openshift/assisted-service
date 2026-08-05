@@ -55,7 +55,7 @@ var _ = Describe("Add event", func() {
 		cfg := &auth.Config{AuthType: auth.TypeRHSSO, EnableOrgTenancy: true}
 		authz_handler := auth.NewAuthzHandler(cfg, nil, logrus.New(), db)
 		theEvents.(*Events).authz = authz_handler
-		api = &Api{handler: theEvents, log: log}
+		api = &Api{handler: theEvents, log: log, db: db}
 		inputEvent = &models.Event{
 			Message:  swag.String(eventMessage),
 			Name:     eventName,

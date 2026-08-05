@@ -47,6 +47,8 @@ const (
 	// blacklist metrics
 	counterClusterBlacklistedEvents = "assisted_installer_cluster_blacklisted_events_total"
 	gaugeBlacklistedClustersCurrent = "assisted_installer_blacklisted_clusters_current"
+	// url auth scope metrics
+	counterURLAuthScopeCheck = "assisted_installer_urlauth_scope_checks_total"
 )
 
 const (
@@ -76,6 +78,8 @@ const (
 	// blacklist metric descriptions
 	counterDescriptionClusterBlacklistedEvents = "Counts cluster blacklisting events (no cluster labels to avoid high cardinality)"
 	gaugeDescriptionBlacklistedClustersCurrent = "Current number of clusters that are blacklisted"
+	// url auth scope metric descriptions
+	counterDescriptionURLAuthScopeCheck = "Number of URL auth resource scope checks, by resource_type, scope (path or query), and result (allowed or denied)"
 )
 
 const (
@@ -120,6 +124,8 @@ type API interface {
 	// blacklist metrics
 	BlacklistedClusterInc()
 	BlacklistedClustersCurrent(count int)
+	// url auth scope metrics
+	URLAuthScopeCheck(resourceType, scope, result string)
 }
 
 type MetricsManager struct {
@@ -153,6 +159,8 @@ type MetricsManager struct {
 	// blacklist metrics
 	serviceLogicClusterBlacklistedEvents   *prometheus.CounterVec
 	serviceLogicBlacklistedClustersCurrent *prometheus.GaugeVec
+	// url auth scope metrics
+	serviceLogicURLAuthScopeCheck *prometheus.CounterVec
 
 	collectors []prometheus.Collector
 }
@@ -378,6 +386,14 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 				Name:      gaugeBlacklistedClustersCurrent,
 				Help:      gaugeDescriptionBlacklistedClustersCurrent,
 			}, []string{}),
+
+		serviceLogicURLAuthScopeCheck: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterURLAuthScopeCheck,
+				Help:      counterDescriptionURLAuthScopeCheck,
+			}, []string{"resource_type", "scope", "result"}),
 	}
 
 	m.collectors = append(m.collectors, newDirectoryUsageCollector(metricsManagerConfig.DirectoryUsageMonitorConfig.Directories, diskStatsHelper, log))
@@ -409,6 +425,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler eventsapi.H
 		// blacklist metrics
 		m.serviceLogicClusterBlacklistedEvents,
 		m.serviceLogicBlacklistedClustersCurrent,
+		// url auth scope metrics
+		m.serviceLogicURLAuthScopeCheck,
 	)
 
 	for _, collector := range m.collectors {
@@ -616,4 +634,8 @@ func (m *MetricsManager) InstallerCacheGetReleaseCached(releaseId string, cacheH
 
 func (m *MetricsManager) InstallerCacheReleaseEvicted(success bool) {
 	m.serviceLogicInstallerReleaseEvicted.WithLabelValues(fmt.Sprintf("%t", success)).Inc()
+}
+
+func (m *MetricsManager) URLAuthScopeCheck(resourceType, scope, result string) {
+	m.serviceLogicURLAuthScopeCheck.WithLabelValues(resourceType, scope, result).Inc()
 }
