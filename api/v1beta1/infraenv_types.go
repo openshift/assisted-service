@@ -66,6 +66,11 @@ type InfraEnvSpec struct {
 	// +optional
 	AdditionalNTPSources []string `json:"additionalNTPSources,omitempty"`
 
+	// NTPSources is a list of NTP sources (hostname or IP) to be used as the exclusive NTP
+	// configuration for hosts in this InfraEnv. Mutually exclusive with AdditionalNTPSources.
+	// +optional
+	NTPSources []string `json:"ntpSources,omitempty"`
+
 	// SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
 	// +optional
 	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`

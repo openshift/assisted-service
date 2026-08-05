@@ -648,6 +648,13 @@ spec:
                       For single-node installations (none or external platform), set to true or leave empty.
                     type: boolean
                 type: object
+              ntpSources:
+                description: |-
+                  NTPSources is a list of NTP sources (hostname or IP) to be used as the exclusive NTP
+                  configuration for the cluster hosts. Mutually exclusive with the InfraEnv's AdditionalNTPSources.
+                items:
+                  type: string
+                type: array
               platformType:
                 description: PlatformType is the name for the specific platform upon
                   which to perform the installation.
@@ -3415,6 +3422,13 @@ spec:
                     type: object
                 type: object
                 x-kubernetes-map-type: atomic
+              ntpSources:
+                description: |-
+                  NTPSources is a list of NTP sources (hostname or IP) to be used as the exclusive NTP
+                  configuration for hosts in this InfraEnv. Mutually exclusive with AdditionalNTPSources.
+                items:
+                  type: string
+                type: array
               osImageVersion:
                 description: |-
                   OSImageVersion is the version of OS image to use when generating the InfraEnv.

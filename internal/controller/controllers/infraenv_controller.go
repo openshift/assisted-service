@@ -184,6 +184,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		updateParams.InfraEnvUpdateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
 	}
+	if len(infraEnv.Spec.NTPSources) > 0 {
+		updateParams.InfraEnvUpdateParams.NtpSources = swag.String(strings.Join(infraEnv.Spec.NTPSources[:], ","))
+	}
 	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
 	if imageType != common.ImageTypeValue(internalInfraEnv.Type) {
 		updateParams.InfraEnvUpdateParams.ImageType = imageType
@@ -474,6 +477,9 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
 		createParams.InfraenvCreateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+	}
+	if len(infraEnv.Spec.NTPSources) > 0 {
+		createParams.InfraenvCreateParams.NtpSources = swag.String(strings.Join(infraEnv.Spec.NTPSources[:], ","))
 	}
 
 	if len(infraEnv.Spec.KernelArguments) > 0 {
