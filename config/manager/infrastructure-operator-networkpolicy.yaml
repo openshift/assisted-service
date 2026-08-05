@@ -1,0 +1,60 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: infrastructure-operator
+  labels:
+    control-plane: infrastructure-operator
+spec:
+  podSelector:
+    matchLabels:
+      control-plane: infrastructure-operator
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Same-namespace traffic
+    - from:
+        - podSelector: {}
+    # Monitoring
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              network.openshift.io/policy-group: monitoring
+      ports:
+        - protocol: TCP
+          port: 8080
+    # Webhook calls from kube-apiserver
+    - ports:
+        - protocol: TCP
+          port: 9443
+  egress:
+    # DNS
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - protocol: UDP
+          port: 5353
+        - protocol: TCP
+          port: 5353
+    # Kubernetes API
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              component: apiserver
+      ports:
+        - protocol: TCP
+          port: 6443
+    # HTTPS egress (registries for image lookups)
+    - to:
+        - ipBlock:
+            cidr: 0.0.0.0/0
+            except:
+              - 169.254.169.254/32
+        - ipBlock:
+            cidr: ::/0
+      ports:
+        - protocol: TCP
+          port: 443
