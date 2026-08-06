@@ -70,6 +70,21 @@ func (mr *MockReleaseMockRecorder) GetCoreOSImage(log, releaseImage, releaseImag
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCoreOSImage", reflect.TypeOf((*MockRelease)(nil).GetCoreOSImage), log, releaseImage, releaseImageMirror, pullSecret)
 }
 
+// GetDefaultRhcosVersion mocks base method.
+func (m *MockRelease) GetDefaultRhcosVersion(log logrus.FieldLogger, releaseImage, releaseImageMirror, pullSecret, cpuArchitecture string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDefaultRhcosVersion", log, releaseImage, releaseImageMirror, pullSecret, cpuArchitecture)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDefaultRhcosVersion indicates an expected call of GetDefaultRhcosVersion.
+func (mr *MockReleaseMockRecorder) GetDefaultRhcosVersion(log, releaseImage, releaseImageMirror, pullSecret, cpuArchitecture any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultRhcosVersion", reflect.TypeOf((*MockRelease)(nil).GetDefaultRhcosVersion), log, releaseImage, releaseImageMirror, pullSecret, cpuArchitecture)
+}
+
 // GetImageArchitecture mocks base method.
 func (m *MockRelease) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
 	m.ctrl.T.Helper()

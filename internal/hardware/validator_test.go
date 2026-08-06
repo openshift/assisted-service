@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -106,6 +107,7 @@ var _ = Describe("Disk eligibility", func() {
 		ctx                  context.Context
 		ctrl                 *gomock.Controller
 		operatorsMock        *operators.MockAPI
+		mockOSImages         *versions.MockOSImages
 		cluster              common.Cluster
 		infraEnv             *common.InfraEnv
 		host                 models.Host
@@ -125,10 +127,14 @@ var _ = Describe("Disk eligibility", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
-
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, mockProviderRegistry)
+		mockOSImages = versions.NewMockOSImages(ctrl)
+		mockOSImages.EXPECT().GetOpenshiftVersionForInfraEnv(gomock.Any()).
+			DoAndReturn(func(infraEnv *common.InfraEnv) string {
+				return infraEnv.OpenshiftVersion
+			}).AnyTimes()
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, mockProviderRegistry, mockOSImages)
 
 		bigEnoughSize = conversions.GbToBytes(minDiskSizeGb) + 1
 		tooSmallSize = conversions.GbToBytes(minDiskSizeGb) - 1
@@ -903,7 +909,7 @@ var _ = Describe("hardware_validator", func() {
 	BeforeEach(func() {
 		var cfg ValidatorCfg
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(logrus.New(), cfg, nil, nil)
+		hwvalidator = NewValidator(logrus.New(), cfg, nil, nil, nil)
 		id1 := strfmt.UUID(uuid.New().String())
 		id2 := strfmt.UUID(uuid.New().String())
 		id3 := strfmt.UUID(uuid.New().String())
@@ -1219,7 +1225,7 @@ var _ = Describe("Cluster host requirements", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
 
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, nil)
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -1686,7 +1692,7 @@ var _ = Describe("Preflight host requirements", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
 
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, nil)
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock, nil, nil)
 	})
 
 	AfterEach(func() {

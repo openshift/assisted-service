@@ -3256,7 +3256,7 @@ var _ = Describe("IsValidCandidate", func() {
 		hwValidatorCfg := createValidatorCfg()
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators, nil)
+		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators, nil, nil)
 		mockProviderRegistry := registry.NewMockProviderRegistry(ctrl)
 		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeBaremetal), gomock.Any()).Return(true, nil).AnyTimes()
 		mockProviderRegistry.EXPECT().IsHostSupported(commontesting.EqPlatformType(models.PlatformTypeVsphere), gomock.Any()).Return(false, nil).AnyTimes()

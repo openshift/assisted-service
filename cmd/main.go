@@ -282,6 +282,7 @@ func startKubeAPIControllers(
 	bm bminventory.InstallerInternals,
 	crdEventsHandler controllers.CRDEventsHandler,
 	osImages versions.OSImages,
+	osImageResolver versions.OsImageResolver,
 	versionHandler versions.Handler,
 	releaseHandler oc.Release,
 	clusterApi cluster.API,
@@ -315,6 +316,7 @@ func startKubeAPIControllers(
 		ImageServiceBaseURL: Options.BMConfig.ImageServiceBaseURL,
 		AuthType:            Options.Auth.AuthType,
 		OsImages:            osImages,
+		OsImageResolver:     osImageResolver,
 		PullSecretHandler:   controllers.NewPullSecretHandler(c, r, bm),
 		InsecureIPXEURLs:    generateInsecureIPXEURLs,
 		ImageServiceEnabled: Options.EnableImageService,
@@ -541,9 +543,16 @@ func main() {
 		db,
 	)
 	failOnError(err, "failed to create Versions handlers")
+	osImageResolver := versions.NewOsImageResolver(
+		log.WithField("pkg", "versions"),
+		releaseHandler,
+		versionHandler,
+		osImages,
+		Options.ReleaseImageMirror,
+	)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"), Options.StaticNetworkConfig)
-	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler)
+	ignitionBuilder, err := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder, releaseHandler, versionHandler, osImages)
 	failOnError(err, "failed to create ignition builder")
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder, providerRegistry)
 
@@ -558,11 +567,11 @@ func main() {
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler, usageManager)
 	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
-	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager, providerRegistry)
+	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager, providerRegistry, osImages)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	Options.InstructionConfig.HostFSMountDir = hostFSMountDir
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
-		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImages, Options.EnableKubeAPI)
+		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler, osImageResolver, Options.EnableKubeAPI)
 
 	publicRegistries := map[string]bool{}
 	validations.ParsePublicRegistries(publicRegistries, Options.ValidationsConfig.PublicRegistries)
@@ -741,7 +750,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
+		lead, pullSecretValidator, versionHandler, osImages, osImageResolver, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
 		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker, disconnectedIgnitionGenerator)
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"), db, metricsManager)
 
@@ -801,7 +810,7 @@ func main() {
 		go startPPROF(log)
 	}
 
-	go startKubeAPIControllers(ctrlMgr, log, bm, crdEventsHandler, osImages, versionHandler, releaseHandler, clusterApi, hostApi, manifestsApi, generateInsecureIPXEURLs, sys)
+	go startKubeAPIControllers(ctrlMgr, log, bm, crdEventsHandler, osImages, osImageResolver, versionHandler, releaseHandler, clusterApi, hostApi, manifestsApi, generateInsecureIPXEURLs, sys)
 
 	// Interrupt servers on SIGINT/SIGTERM
 	stop := make(chan os.Signal, 1)

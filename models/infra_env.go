@@ -88,7 +88,7 @@ type InfraEnv struct {
 	// A comma-separated list of NTP sources (name or IP) to be used as the only NTP configuration for hosts in this infra-env.
 	NtpSources string `json:"ntp_sources,omitempty"`
 
-	// Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+	// Version of the OS image (either the RHCOS version or the OpenShift version).
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
 	// org id

@@ -2,9 +2,7 @@ package subsystem
 
 import (
 	"context"
-	"fmt"
 	"os"
-	"strings"
 
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
@@ -27,14 +25,6 @@ var _ = Describe("Disconnected Cluster", func() {
 	})
 
 	It("registers disconnected cluster and bound infraenv with rendezvous IP", func() {
-		majorMinor := func(version string) string {
-			parts := strings.Split(strings.TrimSpace(version), ".")
-			if len(parts) >= 2 && parts[0] != "" && parts[1] != "" {
-				return fmt.Sprintf("%s.%s", parts[0], parts[1])
-			}
-			return version
-		}
-
 		By("Creating a disconnected cluster via the dedicated endpoint")
 		clusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterDisconnectedCluster(ctx, &installer.V2RegisterDisconnectedClusterParams{
 			NewClusterParams: &models.DisconnectedClusterCreateParams{
@@ -87,7 +77,7 @@ var _ = Describe("Disconnected Cluster", func() {
 		Expect(infraEnv.ClusterID).To(Equal(clusterID))
 		Expect(swag.StringValue(infraEnv.RendezvousIP)).To(Equal("192.168.1.100"))
 		Expect(common.ImageTypeValue(infraEnv.Type)).To(Equal(models.ImageTypeDisconnectedIso))
-		Expect(majorMinor(infraEnv.OpenshiftVersion)).To(Equal(majorMinor(openshiftVersion)))
+		Expect(infraEnv.OpenshiftVersion).To(Equal(rhcosVersion))
 		Expect(infraEnv.CPUArchitecture).To(Equal("x86_64"))
 		Expect(infraEnv.SSHAuthorizedKey).To(Equal(utils_test.SshPublicKey))
 		Expect(infraEnv.PullSecretSet).To(BeTrue())

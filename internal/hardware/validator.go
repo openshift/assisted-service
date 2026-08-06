@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/samber/lo"
@@ -55,7 +56,7 @@ type Validator interface {
 	GetPreflightInfraEnvHardwareRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.PreflightHardwareRequirements, error)
 }
 
-func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API, reg registry.ProviderRegistry) Validator {
+func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API, reg registry.ProviderRegistry, osImages versions.OSImages) Validator {
 	diskEligibilityMatchers := []*regexp.Regexp{
 		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
@@ -76,6 +77,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 		diskEligibilityMatchers: diskEligibilityMatchers,
 		edgeWorkersProductList:  strings.Split(strings.ToLower(strings.ReplaceAll(cfg.EdgeWorkerProductNames, " ", "")), ","),
 		providerRegistry:        reg,
+		osImages:                osImages,
 	}
 }
 
@@ -96,6 +98,7 @@ type validator struct {
 	diskEligibilityMatchers []*regexp.Regexp
 	edgeWorkersProductList  []string
 	providerRegistry        registry.ProviderRegistry
+	osImages                versions.OSImages
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
@@ -133,11 +136,11 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 		if common.IsDay2Cluster(cluster) {
 			// infer Openshift version from the infraEnv is case of day2
 			// because cluster.OpenshiftVersion will be empty
-			clusterVersion = infraEnv.OpenshiftVersion
+			clusterVersion = v.osImages.GetOpenshiftVersionForInfraEnv(infraEnv)
 		}
 	} else {
 		requirements, err = v.GetInfraEnvHostRequirements(ctx, infraEnv)
-		clusterVersion = infraEnv.OpenshiftVersion
+		clusterVersion = v.osImages.GetOpenshiftVersionForInfraEnv(infraEnv)
 	}
 	if err != nil {
 		return nil, err
@@ -518,7 +521,7 @@ func (v *validator) isEdgeWorker(host *models.Host) bool {
 }
 
 func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *common.InfraEnv, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
-	requirements, err := v.getOCPRequirementsForVersion(infraEnv.OpenshiftVersion)
+	requirements, err := v.getOCPRequirementsForVersion(v.osImages.GetOpenshiftVersionForInfraEnv(infraEnv))
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
 	}
@@ -551,7 +554,7 @@ func (v *validator) getClusterPreflightOCPRequirements(cluster *common.Cluster) 
 }
 
 func (v *validator) getInfraEnvPreflightOCPRequirements(infraEnv *common.InfraEnv) (*models.HostTypeHardwareRequirementsWrapper, error) {
-	requirements, err := v.getOCPRequirementsForVersion(infraEnv.OpenshiftVersion)
+	requirements, err := v.getOCPRequirementsForVersion(v.osImages.GetOpenshiftVersionForInfraEnv(infraEnv))
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,7 @@ var _ = Describe("isInstallationDiskSpeedCheckSuccessful", func() {
 		}
 		v = &validator{
 			log:         common.GetTestLog(),
-			hwValidator: hardware.NewValidator(common.GetTestLog(), hardware.ValidatorCfg{}, nil, nil),
+			hwValidator: hardware.NewValidator(common.GetTestLog(), hardware.ValidatorCfg{}, nil, nil, nil),
 		}
 	})
 
