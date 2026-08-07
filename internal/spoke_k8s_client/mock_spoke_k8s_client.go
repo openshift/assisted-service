@@ -46,6 +46,25 @@ func (m *MockSpokeK8sClient) EXPECT() *MockSpokeK8sClientMockRecorder {
 	return m.recorder
 }
 
+// Apply mocks base method.
+func (m *MockSpokeK8sClient) Apply(ctx context.Context, obj runtime.ApplyConfiguration, opts ...client.ApplyOption) error {
+	m.ctrl.T.Helper()
+	varargs := []any{ctx, obj}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "Apply", varargs...)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Apply indicates an expected call of Apply.
+func (mr *MockSpokeK8sClientMockRecorder) Apply(ctx, obj any, opts ...any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]any{ctx, obj}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Apply", reflect.TypeOf((*MockSpokeK8sClient)(nil).Apply), varargs...)
+}
+
 // ApproveCsr mocks base method.
 func (m *MockSpokeK8sClient) ApproveCsr(ctx context.Context, csr *v1.CertificateSigningRequest) error {
 	m.ctrl.T.Helper()
