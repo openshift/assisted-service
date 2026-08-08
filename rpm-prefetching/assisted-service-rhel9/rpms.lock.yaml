@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.33.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.36.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2862117
-    checksum: sha256:496fef2e04b8891c1d1ab284e74a6a254bbc06ed1373b640d9978c0ab17c61c2
+    size: 2864573
+    checksum: sha256:aa680c8c0622822ce53d2ffdc3341d3083d897f6c1f8102e8a0729b6376f0d3e
     name: kernel-headers
-    evr: 5.14.0-687.33.1.el9_8
-    sourcerpm: kernel-5.14.0-687.33.1.el9_8.src.rpm
+    evr: 5.14.0-687.36.1.el9_8
+    sourcerpm: kernel-5.14.0-687.36.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -921,27 +921,27 @@ arches:
     name: make
     evr: 1:4.3-8.el9
     sourcerpm: make-4.3-8.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-1.54.3-3.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-1.54.3-4.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 2335607
-    checksum: sha256:84fd55eea57e5e80764e2641932df02933a3531f6fa4fb0b84d02c4d461fff09
+    size: 2335936
+    checksum: sha256:c388d27b971275b3eb3ed5dd48808f21525de9c7970914e847f0f997d85347ff
     name: NetworkManager
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-3.el9_8.noarch.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-4.el9_8.noarch.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 22632
-    checksum: sha256:634fce63690d0308154f41f981236d9388e35cb0584dcf2a1e41a57aac7cb94c
+    size: 22564
+    checksum: sha256:840ec917ea5d87dfe7a1f9ff10a0f22ddb3f2a1d9e29b163a150b8456f67f727
     name: NetworkManager-config-server
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-3.el9_8.aarch64.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-4.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 1973150
-    checksum: sha256:c72f20d69e06b5f40f757bf7a978557b78597ca77d25995fb77cfb04254651c2
+    size: 1973738
+    checksum: sha256:183e7cadd069029e884dce16a9e1c23c62e7e4ae81af63356ac896dc476124b1
     name: NetworkManager-libnm
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/n/ncurses-6.2-12.20210508.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 414136
@@ -1184,13 +1184,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.33.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.36.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2886025
-    checksum: sha256:a661ec3af814fe3b7f1b98f65e8b5ddf86b92a16bda045f3b91a5ccb09580651
+    size: 2888373
+    checksum: sha256:d85604148f93687cd6093797aaff2b557e197a326430d09b28aeae2c8d3923ee
     name: kernel-headers
-    evr: 5.14.0-687.33.1.el9_8
-    sourcerpm: kernel-5.14.0-687.33.1.el9_8.src.rpm
+    evr: 5.14.0-687.36.1.el9_8
+    sourcerpm: kernel-5.14.0-687.36.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -2010,27 +2010,27 @@ arches:
     name: make
     evr: 1:4.3-8.el9
     sourcerpm: make-4.3-8.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-1.54.3-3.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-1.54.3-4.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 2606827
-    checksum: sha256:043431b4c54b44367d52c4e7fdf1e3221ca2caf6dd892d3255a8abb0f1e5fedb
+    size: 2606903
+    checksum: sha256:f43b1c215bf04a40bcd006695209805c593bb06cf088a64c18bd1e6e8312c749
     name: NetworkManager
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-3.el9_8.noarch.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-4.el9_8.noarch.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 22632
-    checksum: sha256:634fce63690d0308154f41f981236d9388e35cb0584dcf2a1e41a57aac7cb94c
+    size: 22564
+    checksum: sha256:840ec917ea5d87dfe7a1f9ff10a0f22ddb3f2a1d9e29b163a150b8456f67f727
     name: NetworkManager-config-server
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-3.el9_8.ppc64le.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-4.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 2049542
-    checksum: sha256:01d0012b072301ddb9106dd2901615d5c3d8fe3d5757ddb5d203c6a8a3ef7706
+    size: 2049426
+    checksum: sha256:2002a27dd612935800cc1bb0bed259d0e2fc6c14d33165c8ea66d0beee3bd38c
     name: NetworkManager-libnm
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/n/ncurses-6.2-12.20210508.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 422717
@@ -2280,13 +2280,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.33.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.36.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2892125
-    checksum: sha256:91098ae8dbf5d13324d73fabe8c5b6236c7dd0709f7269ef8b75d6f57d0a8af3
+    size: 2894625
+    checksum: sha256:f77cd5c090bfe49a2af0dd41d85dd0b6523ed79e367d443dfc747b3ad5f70ca0
     name: kernel-headers
-    evr: 5.14.0-687.33.1.el9_8
-    sourcerpm: kernel-5.14.0-687.33.1.el9_8.src.rpm
+    evr: 5.14.0-687.36.1.el9_8
+    sourcerpm: kernel-5.14.0-687.36.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -3099,27 +3099,27 @@ arches:
     name: make
     evr: 1:4.3-8.el9
     sourcerpm: make-4.3-8.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-1.54.3-3.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-1.54.3-4.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 2322309
-    checksum: sha256:6fef52ec0de5add2b1edd5ed71bd1bb94b117b187bdd75267a9cef0cd9680029
+    size: 2322115
+    checksum: sha256:bfe40a729319145802a4a1e16e9e51a1b242b4245186282f0ad9fd3241cd2d24
     name: NetworkManager
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-3.el9_8.noarch.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-4.el9_8.noarch.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 22632
-    checksum: sha256:634fce63690d0308154f41f981236d9388e35cb0584dcf2a1e41a57aac7cb94c
+    size: 22564
+    checksum: sha256:840ec917ea5d87dfe7a1f9ff10a0f22ddb3f2a1d9e29b163a150b8456f67f727
     name: NetworkManager-config-server
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-3.el9_8.s390x.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-4.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 1979833
-    checksum: sha256:1d409317cf816abf47ce257f107639b73baf2104a468c76176d9f7b43e3a3b6f
+    size: 1978800
+    checksum: sha256:8db69fd8686faae9c0cab0863ba67709b308448ad0d35f70eb9d0dd4d300b22a
     name: NetworkManager-libnm
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/n/ncurses-6.2-12.20210508.el9.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 417044
@@ -3369,13 +3369,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.33.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.36.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2901405
-    checksum: sha256:b2fad6a2fcb1a77e633a3f368301bdaab11a7b7347e7bbada815f0a0626d7695
+    size: 2903853
+    checksum: sha256:aa8f8d4579635787d6dda7323d472de1f2f630f97d694ebf5e0208791b76555c
     name: kernel-headers
-    evr: 5.14.0-687.33.1.el9_8
-    sourcerpm: kernel-5.14.0-687.33.1.el9_8.src.rpm
+    evr: 5.14.0-687.36.1.el9_8
+    sourcerpm: kernel-5.14.0-687.36.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
@@ -4174,27 +4174,27 @@ arches:
     name: make
     evr: 1:4.3-8.el9
     sourcerpm: make-4.3-8.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-1.54.3-3.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-1.54.3-4.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 2498826
-    checksum: sha256:23082f285656253384593a73f35386ba9fd17f5f827615c1b74c2b364b187a22
+    size: 2498103
+    checksum: sha256:34dbc7a8bcfd6cbb4a1728020df7b033ef2538d5043c0941908dd69428b690f5
     name: NetworkManager
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-3.el9_8.noarch.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-config-server-1.54.3-4.el9_8.noarch.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 22632
-    checksum: sha256:634fce63690d0308154f41f981236d9388e35cb0584dcf2a1e41a57aac7cb94c
+    size: 22564
+    checksum: sha256:840ec917ea5d87dfe7a1f9ff10a0f22ddb3f2a1d9e29b163a150b8456f67f727
     name: NetworkManager-config-server
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-3.el9_8.x86_64.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/NetworkManager-libnm-1.54.3-4.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 2001470
-    checksum: sha256:3d5f363450ee76b9f90fac539c1f6f2cc669ca3207f93e48f75e05b8f2040445
+    size: 1996981
+    checksum: sha256:bb9acb34a06ca0111c28fcac6fb098d32e5d587e53af23fc914bc985cfb60476
     name: NetworkManager-libnm
-    evr: 1:1.54.3-3.el9_8
-    sourcerpm: NetworkManager-1.54.3-3.el9_8.src.rpm
+    evr: 1:1.54.3-4.el9_8
+    sourcerpm: NetworkManager-1.54.3-4.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/n/ncurses-6.2-12.20210508.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 416252
