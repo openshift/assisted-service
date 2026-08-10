@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+	"github.com/thoas/go-funk"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
@@ -671,6 +672,22 @@ func FindInterfaceByIPString(ipAddress string, interfaces []*models.Interface) (
 
 func IsLoadBalancerUserManaged(c *common.Cluster) bool {
 	return c != nil && c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged
+}
+
+// TargetLoadBalancerType computes the effective load balancer type for validation
+// purposes, given the existing cluster state and what is being requested in params.
+// cluster may be nil when there is no existing cluster (e.g. during registration).
+// clusterParams is the create or update params struct, from which the LoadBalancer
+// field is read if present; it may be nil.
+func TargetLoadBalancerType(cluster *common.Cluster, clusterParams interface{}) string {
+	result := models.LoadBalancerTypeClusterManaged
+	if IsLoadBalancerUserManaged(cluster) {
+		result = models.LoadBalancerTypeUserManaged
+	}
+	if lb := DerefClusterLoadBalancer(funk.Get(clusterParams, "LoadBalancer")); lb != nil {
+		result = lb.Type
+	}
+	return result
 }
 
 // IsNicBelongsAnyMachineNetwork is a helper function to find a nic within the machine networks.

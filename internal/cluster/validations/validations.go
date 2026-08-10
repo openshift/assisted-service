@@ -226,7 +226,8 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.LoadBalancer = params.LoadBalancer
 	targetConfiguration.OpenshiftVersion = swag.StringValue(params.OpenshiftVersion)
 	targetConfiguration.PrimaryIPStack = primaryIPStack
-	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+	targetLBType := network.TargetLoadBalancerType(&targetConfiguration, nil)
+	return validateVIPAddresses(ipV6Supported, targetConfiguration, targetLBType)
 }
 
 func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdateParams, vipDhcpAllocation bool) error {
@@ -341,7 +342,8 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	}
 
 	targetConfiguration.PrimaryIPStack = primaryIPStack
-	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+	targetLBType := network.TargetLoadBalancerType(cluster, params)
+	return validateVIPAddresses(ipV6Supported, targetConfiguration, targetLBType)
 }
 
 func validateVIPIP(ip, vipType string, index int) error {
@@ -552,7 +554,7 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 	return allAddresses, nil
 }
 
-func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster) error {
+func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster, targetLBType string) error {
 	var allAddresses []*string
 	var multiErr error
 	var err error
@@ -581,7 +583,7 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 		return err
 	}
 
-	err = ValidateDualStackNetworks(targetConfiguration, false, false, targetConfiguration.OpenshiftVersion)
+	err = ValidateDualStackNetworks(targetConfiguration, false, targetLBType, targetConfiguration.OpenshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -669,11 +671,10 @@ func ValidateVIPsWereNotSetDhcpMode(apiVips []*models.APIVip, ingressVips []*mod
 	return nil
 }
 
-func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, alreadyUserManagedLoadBalancer bool, openshiftVersion string) error {
+func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool, targetLoadBalancerType string, openshiftVersion string) error {
 	var machineNetworks []*models.MachineNetwork
 	var serviceNetworks []*models.ServiceNetwork
 	var clusterNetworks []*models.ClusterNetwork
-	var clusterLoadBalancer *models.LoadBalancer
 	var err error
 	var ipv4, ipv6 bool
 	reqDualStack := false
@@ -681,16 +682,6 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 	machineNetworks = network.DerefMachineNetworks(funk.Get(clusterParams, "MachineNetworks"))
 	serviceNetworks = network.DerefServiceNetworks(funk.Get(clusterParams, "ServiceNetworks"))
 	clusterNetworks = network.DerefClusterNetworks(funk.Get(clusterParams, "ClusterNetworks"))
-	clusterLoadBalancer = network.DerefClusterLoadBalancer(funk.Get(clusterParams, "LoadBalancer"))
-
-	// Extract OpenShift version for version-aware validation
-	var targetLoadBalancerType string = models.LoadBalancerTypeClusterManaged
-	if alreadyUserManagedLoadBalancer {
-		targetLoadBalancerType = models.LoadBalancerTypeUserManaged
-	}
-	if clusterLoadBalancer != nil {
-		targetLoadBalancerType = clusterLoadBalancer.Type
-	}
 
 	ipv4, ipv6, err = network.GetAddressFamilies(machineNetworks)
 	if err != nil {
