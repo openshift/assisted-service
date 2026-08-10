@@ -4153,7 +4153,7 @@ var _ = Describe("Refresh Host", func() {
 					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
-					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDRs."},
+					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to any machine network CIDR"},
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},

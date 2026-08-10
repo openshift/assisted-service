@@ -5258,6 +5258,21 @@ var _ = Describe("cluster", func() {
 					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster cannot contain multiple Machine Networks")
 				})
 
+				It("Multiple machine networks allowed for single-stack cluster with user-managed networking", func() {
+					Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(map[string]interface{}{
+						"user_managed_networking": true,
+						"platform_type":           models.PlatformTypeNone,
+					}).Error).ShouldNot(HaveOccurred())
+					mockSuccess(1)
+					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.V2ClusterUpdateParams{
+							MachineNetworks: []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}},
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewV2UpdateClusterCreated()))
+				})
+
 				It("Override networks - additional cluster subnet", func() {
 					mockSuccess(1)
 					reply := bm.V2UpdateCluster(ctx, installer.V2UpdateClusterParams{
@@ -17671,6 +17686,26 @@ var _ = Describe("RegisterCluster", func() {
 
 				Expect(responseCluster.APIVips).To(ContainElement(apiVips[0]))
 				Expect(responseCluster.IngressVips).To(ContainElement(ingressVIPs[0]))
+			})
+
+			It("when registering cluster with user-managed networking and multiple machine networks", func() {
+				reply := bm.V2RegisterCluster(ctx, installer.V2RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						OpenshiftVersion:      swag.String(common.MinimumVersionForUserManagedLoadBalancerFeature),
+						CPUArchitecture:       common.X86CPUArchitecture,
+						UserManagedNetworking: swag.Bool(true),
+						Platform: &models.Platform{
+							Type: models.PlatformTypeNone.Pointer(),
+						},
+						MachineNetworks: []*models.MachineNetwork{
+							{Cidr: "192.168.127.0/24"},
+							{Cidr: "192.168.128.0/24"},
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewV2RegisterClusterCreated()))
+				actual := reply.(*installer.V2RegisterClusterCreated)
+				Expect(actual.Payload.MachineNetworks).To(HaveLen(2))
 			})
 		})
 
