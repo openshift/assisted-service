@@ -2,7 +2,7 @@ module github.com/openshift/assisted-service/api
 
 go 1.26.0
 
-toolchain go1.26.2
+toolchain go1.26.5
 
 require (
 	github.com/openshift/assisted-service/models v0.0.0
