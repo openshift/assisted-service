@@ -13,6 +13,12 @@ import (
 //
 // Compatibility level 1: Stable within a major release for a minimum of 12 months or 3 minor releases (whichever is longer).
 // +openshift:compatibility-gen:level=1
+// +openshift:api-approved.openshift.io=https://github.com/openshift/api/pull/470
+// +openshift:file-pattern=cvoRunLevel=0000_10,operatorName=config-operator,operatorOrdering=01
+// +kubebuilder:object:root=true
+// +kubebuilder:resource:path=ingresses,scope=Cluster
+// +kubebuilder:subresource:status
+// +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
 type Ingress struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -21,7 +27,6 @@ type Ingress struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	// spec holds user settable values for configuration
-	// +kubebuilder:validation:Required
 	// +required
 	Spec IngressSpec `json:"spec"`
 	// status holds observed values from the cluster. They may not be overridden.
@@ -38,6 +43,7 @@ type IngressSpec struct {
 	// default ingresscontroller domain will follow this pattern: "*.<domain>".
 	//
 	// Once set, changing domain is not currently supported.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="domain is immutable once set"
 	Domain string `json:"domain"`
 
 	// appsDomain is an optional domain to use instead of the one specified
@@ -58,10 +64,12 @@ type IngressSpec struct {
 	// To determine the set of configurable Routes, look at namespace and name of entries in the
 	// .status.componentRoutes list, where participating operators write the status of
 	// configurable routes.
+	// A maximum of 250 component routes may be configured.
 	// +optional
 	// +listType=map
 	// +listMapKey=namespace
 	// +listMapKey=name
+	// +kubebuilder:validation:MaxItems=250
 	ComponentRoutes []ComponentRouteSpec `json:"componentRoutes,omitempty"`
 
 	// requiredHSTSPolicies specifies HSTS policies that are required to be set on newly created  or updated routes
@@ -144,8 +152,8 @@ type AWSIngressSpec struct {
 	//     https://docs.aws.amazon.com/AmazonECS/latest/developerguide/load-balancer-types.html#nlb
 	// +unionDiscriminator
 	// +kubebuilder:validation:Enum:=NLB;Classic
-	// +kubebuilder:validation:Required
-	Type AWSLBType `json:"type,omitempty"`
+	// +required
+	Type AWSLBType `json:"type"`
 }
 
 type AWSLBType string
@@ -158,26 +166,34 @@ const (
 	Classic AWSLBType = "Classic"
 )
 
+// LabelValue is the value part of a Kubernetes label.
+// A label value must be either empty or 1-63 characters, consisting of
+// alphanumeric characters, '-', '_', or '.', starting and ending with
+// an alphanumeric character.
+// +kubebuilder:validation:MaxLength=63
+// +kubebuilder:validation:XValidation:rule="!format.labelValue().validate(self).hasValue()",message="label values must be valid Kubernetes label values (at most 63 characters, alphanumeric, '-', '_', or '.', must start and end with alphanumeric)"
+type LabelValue string
+
 // ConsumingUser is an alias for string which we add validation to. Currently only service accounts are supported.
 // +kubebuilder:validation:Pattern="^system:serviceaccount:[a-z0-9]([-a-z0-9]*[a-z0-9])?:[a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 // +kubebuilder:validation:MinLength=1
 // +kubebuilder:validation:MaxLength=512
 type ConsumingUser string
 
-// Hostname is an alias for hostname string validation.
-//
-// The left operand of the | is the original kubebuilder hostname validation format, which is incorrect because it
-// allows upper case letters, disallows hyphen or number in the TLD, and allows labels to start/end in non-alphanumeric
-// characters.  See https://bugzilla.redhat.com/show_bug.cgi?id=2039256.
-// ^([a-zA-Z0-9\p{S}\p{L}]((-?[a-zA-Z0-9\p{S}\p{L}]{0,62})?)|([a-zA-Z0-9\p{S}\p{L}](([a-zA-Z0-9-\p{S}\p{L}]{0,61}[a-zA-Z0-9\p{S}\p{L}])?)(\.)){1,}([a-zA-Z\p{L}]){2,63})$
-//
-// The right operand of the | is a new pattern that mimics the current API route admission validation on hostname,
-// except that it allows hostnames longer than the maximum length:
-// ^(([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})[\.]){0,}([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})$
-//
-// Both operand patterns are made available so that modifications on ingress spec can still happen after an invalid hostname
-// was saved via validation by the incorrect left operand of the | operator.
-//
+// Hostname is a host name as defined by RFC-1123.
+// + ---
+// + The left operand of the | is the original kubebuilder hostname validation format, which is incorrect because it
+// + allows upper case letters, disallows hyphen or number in the TLD, and allows labels to start/end in non-alphanumeric
+// + characters.  See https://bugzilla.redhat.com/show_bug.cgi?id=2039256.
+// + ^([a-zA-Z0-9\p{S}\p{L}]((-?[a-zA-Z0-9\p{S}\p{L}]{0,62})?)|([a-zA-Z0-9\p{S}\p{L}](([a-zA-Z0-9-\p{S}\p{L}]{0,61}[a-zA-Z0-9\p{S}\p{L}])?)(\.)){1,}([a-zA-Z\p{L}]){2,63})$
+// +
+// + The right operand of the | is a new pattern that mimics the current API route admission validation on hostname,
+// + except that it allows hostnames longer than the maximum length:
+// + ^(([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})[\.]){0,}([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})$
+// +
+// + Both operand patterns are made available so that modifications on ingress spec can still happen after an invalid hostname
+// + was saved via validation by the incorrect left operand of the | operator.
+// +
 // +kubebuilder:validation:Pattern=`^([a-zA-Z0-9\p{S}\p{L}]((-?[a-zA-Z0-9\p{S}\p{L}]{0,62})?)|([a-zA-Z0-9\p{S}\p{L}](([a-zA-Z0-9-\p{S}\p{L}]{0,61}[a-zA-Z0-9\p{S}\p{L}])?)(\.)){1,}([a-zA-Z\p{L}]){2,63})$|^(([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})[\.]){0,}([a-z0-9][-a-z0-9]{0,61}[a-z0-9]|[a-z0-9]{1,63})$`
 type Hostname string
 
@@ -217,7 +233,6 @@ type ComponentRouteSpec struct {
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Required
 	// +required
 	Namespace string `json:"namespace"`
 
@@ -227,12 +242,10 @@ type ComponentRouteSpec struct {
 	// entry in the list of status.componentRoutes if the route is to be customized.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:Required
 	// +required
 	Name string `json:"name"`
 
 	// hostname is the hostname that should be used by the route.
-	// +kubebuilder:validation:Required
 	// +required
 	Hostname Hostname `json:"hostname"`
 
@@ -242,6 +255,32 @@ type ComponentRouteSpec struct {
 	// the Secret specification for a serving certificate will not be needed.
 	// +optional
 	ServingCertKeyPairSecret SecretNameReference `json:"servingCertKeyPairSecret"`
+
+	// labels defines additional labels to be applied to the route created
+	// for the component. These labels are used by the IngressController to
+	// determine which routes it should manage. Changing labels may cause the
+	// route to be reassigned to a different IngressController.
+	// When omitted, no additional labels are applied to the component route.
+	// When specified, labels must contain at least one entry, up to a maximum of 8.
+	// Label keys must be valid qualified names, consisting of a name segment and
+	// an optional prefix separated by a slash (/). The name segment must be at most
+	// 63 characters in length and must consist only of alphanumeric characters,
+	// dashes (-), underscores (_), and dots (.), and must start and end with
+	// alphanumeric characters. The prefix, if specified, must be a DNS subdomain:
+	// at most 253 characters in length, consisting of dot-separated segments where
+	// each segment starts and ends with an alphanumeric character.
+	// Label values must be either empty or 1-63 characters, consisting of
+	// alphanumeric characters, dashes (-), underscores (_), or dots (.),
+	// starting and ending with an alphanumeric character.
+	// Keys with the "kubernetes.io/", "k8s.io/", and "openshift.io/" prefixes are reserved and may not be used.
+	// +openshift:enable:FeatureGate=IngressComponentRouteLabels
+	// +optional
+	// +mapType=granular
+	// +kubebuilder:validation:MinProperties=1
+	// +kubebuilder:validation:MaxProperties=8
+	// +kubebuilder:validation:XValidation:rule="self.all(key, !format.qualifiedName().validate(key).hasValue())",message="label keys must be valid qualified names, consisting of an optional DNS subdomain prefix of up to 253 characters followed by a slash and a name segment of 1-63 characters, that consists only of alphanumeric characters, dashes, underscores, and dots, and must start and end with an alphanumeric character"
+	// +kubebuilder:validation:XValidation:rule="self.all(key, !key.startsWith('kubernetes.io/') && !key.startsWith('k8s.io/') && !key.startsWith('openshift.io/'))",message="kubernetes.io/, k8s.io/, and openshift.io/ prefixed label keys are reserved and may not be used"
+	Labels map[string]LabelValue `json:"labels,omitempty"`
 }
 
 // ComponentRouteStatus contains information allowing configuration of a route's hostname and serving certificate.
@@ -254,7 +293,6 @@ type ComponentRouteStatus struct {
 	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Required
 	// +required
 	Namespace string `json:"namespace"`
 
@@ -265,12 +303,10 @@ type ComponentRouteStatus struct {
 	// entry in the list of spec.componentRoutes if the route is to be customized.
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=256
-	// +kubebuilder:validation:Required
 	// +required
 	Name string `json:"name"`
 
 	// defaultHostname is the hostname of this route prior to customization.
-	// +kubebuilder:validation:Required
 	// +required
 	DefaultHostname Hostname `json:"defaultHostname"`
 
@@ -304,7 +340,6 @@ type ComponentRouteStatus struct {
 
 	// relatedObjects is a list of resources which are useful when debugging or inspecting how spec.componentRoutes is applied.
 	// +kubebuilder:validation:MinItems=1
-	// +kubebuilder:validation:Required
 	// +required
 	RelatedObjects []ObjectReference `json:"relatedObjects"`
 }
