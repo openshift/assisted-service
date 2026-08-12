@@ -390,6 +390,7 @@ spec:
     storage:
       luks:
         - name: root
+          label: luks-root
           device: /dev/disk/by-partlabel/root
           clevis:
             tpm2: true
@@ -414,6 +415,7 @@ spec:
     storage:
       luks:
         - name: root
+          label: luks-root
           device: /dev/disk/by-partlabel/root
           clevis:
             tang:
