@@ -1351,6 +1351,22 @@ var _ = Describe("newImageServiceService", func() {
 	})
 })
 
+var _ = Describe("networkPolicyDefaultEgress", func() {
+	It("allows same-namespace egress on operator component ports", func() {
+		var sameNamespacePorts []int32
+		for _, rule := range networkPolicyDefaultEgress() {
+			if len(rule.To) == 1 && rule.To[0].PodSelector != nil && rule.To[0].NamespaceSelector == nil && rule.To[0].IPBlock == nil {
+				for _, port := range rule.Ports {
+					sameNamespacePorts = append(sameNamespacePorts, port.Port.IntVal)
+				}
+			}
+		}
+		Expect(sameNamespacePorts).To(ConsistOf(
+			int32(8090), int32(8091), int32(8080), int32(8081), int32(5432), int32(9443),
+		))
+	})
+})
+
 var _ = Describe("newImageServiceRoute", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig

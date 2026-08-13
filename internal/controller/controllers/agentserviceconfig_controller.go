@@ -898,6 +898,7 @@ func newWebhookNetworkPolicy(ctx context.Context, log logrus.FieldLogger, asc AS
 }
 
 func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
+	webhookPort := intstr.FromInt(9443)
 	return []netv1.NetworkPolicyEgressRule{
 		{
 			To: []netv1.NetworkPolicyPeer{{
@@ -908,6 +909,19 @@ func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
 			Ports: []netv1.NetworkPolicyPort{
 				{Protocol: ptr.To(corev1.ProtocolUDP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
 				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
+			},
+		},
+		{
+			To: []netv1.NetworkPolicyPeer{
+				{PodSelector: &metav1.LabelSelector{}},
+			},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &servicePort},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &serviceHTTPPort},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerPort},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerHTTPPort},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &databasePort},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &webhookPort},
 			},
 		},
 		{

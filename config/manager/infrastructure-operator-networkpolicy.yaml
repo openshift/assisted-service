@@ -38,6 +38,22 @@ spec:
           port: 5353
         - protocol: TCP
           port: 5353
+    # Same-namespace operator components
+    - to:
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8090
+        - protocol: TCP
+          port: 8091
+        - protocol: TCP
+          port: 8080
+        - protocol: TCP
+          port: 8081
+        - protocol: TCP
+          port: 5432
+        - protocol: TCP
+          port: 9443
     # Kubernetes API
     - to:
         - ipBlock:
