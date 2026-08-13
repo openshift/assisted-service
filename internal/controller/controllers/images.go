@@ -69,7 +69,7 @@ func MustGatherImages() string {
 }
 
 func getEnvVar(key, def string) string {
-	if value, ok := os.LookupEnv(key); ok {
+	if value, ok := os.LookupEnv(key); ok && value != "" {
 		return value
 	}
 	return def
