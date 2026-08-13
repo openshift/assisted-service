@@ -225,22 +225,66 @@ function install_opm() {
   curl -L --retry 5 --connect-timeout 30 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.7/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
 }
 
+function release_image_digest() {
+  case "${1}" in
+    *@sha256:*) echo "${1##*@}" ;;
+    *) return 1 ;;
+  esac
+}
+
+# Returns 0 when the release payload manifest is already present at the destination repo.
+function registry_release_image_exists() {
+  authfile="${1}"
+  dest_mirror_repo="${2}"
+  release_digest="${3}"
+  local image="${dest_mirror_repo}@${release_digest}"
+  local rc=0
+
+  set +e
+  if [ -n "${authfile}" ] && [ -f "${authfile}" ]; then
+    oc image info -a "${authfile}" "${image}" >/dev/null 2>&1
+  else
+    oc image info "${image}" >/dev/null 2>&1
+  fi
+  rc=$?
+  set -e
+  [ "${rc}" -eq 0 ]
+}
+
 function ocp_mirror_release() {
-  pull_secret_file="${1}"
+  authfile="${1}"
   source_image="${2}"
   dest_mirror_repo="${3}"
-  local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-3}"
-  local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-30}"
+  local release_digest=""
+  local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-5}"
+  local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-60}"
+  local max_per_registry="${OCP_MIRROR_RELEASE_MAX_PER_REGISTRY:-2}"
   local attempt=1
   local output_file=""
   local rc=0
+  local mirror_ok=0
   # Disable tracing around mirror I/O: xtrace would otherwise print registry
   # hostnames and image refs from argv and captured output into CI logs.
   local was_xtrace=false
   [[ $- == *x* ]] && was_xtrace=true
 
+  if ! release_digest=$(release_image_digest "${source_image}"); then
+    echo "Release mirror failed: could not determine digest from source image" >&2
+    return 1
+  fi
+
+  if registry_release_image_exists "${authfile}" "${dest_mirror_repo}" "${release_digest}"; then
+    echo "Release image ${release_digest} already present at ${dest_mirror_repo}, skipping mirror"
+    return 0
+  fi
+
   while [ "${attempt}" -le "${max_attempts}" ]; do
-    echo "Release mirror attempt ${attempt}/${max_attempts}"
+    if registry_release_image_exists "${authfile}" "${dest_mirror_repo}" "${release_digest}"; then
+      echo "Release image ${release_digest} is now present at ${dest_mirror_repo}, skipping remaining mirror attempts"
+      return 0
+    fi
+
+    echo "Release mirror attempt ${attempt}/${max_attempts} (max-per-registry=${max_per_registry})"
     if ! output_file=$(mktemp); then
       echo "Release mirror failed: could not create temporary log file" >&2
       return 1
@@ -248,21 +292,38 @@ function ocp_mirror_release() {
 
     set +x
     # Keep set -e safe: a failing oc must not abort before we can inspect/retry.
+    # Limit concurrent registry uploads: parallel blob PATCHes to the local registry
+    # have been observed to trigger HTTP/2 CANCEL / unexpected EOF under load.
     rc=0
-    oc adm -a "${pull_secret_file}" release mirror \
+    oc adm -a "${authfile}" release mirror \
            --from="${source_image}" \
            --to="${dest_mirror_repo}" \
+           --max-per-registry="${max_per_registry}" \
            >"${output_file}" 2>&1 || rc=$?
     ${was_xtrace} && set -x
 
+    mirror_ok=0
     if [ "${rc}" -eq 0 ]; then
-      rm -f "${output_file}"
-      echo "Release mirror succeeded (attempt ${attempt}/${max_attempts})"
-      return 0
+      mirror_command_succeeded "${output_file}" || mirror_ok=$?
+      if [ "${mirror_ok}" -eq 0 ] && registry_release_image_exists "${authfile}" "${dest_mirror_repo}" "${release_digest}"; then
+        rm -f "${output_file}"
+        echo "Release mirror succeeded (attempt ${attempt}/${max_attempts})"
+        return 0
+      fi
+      if [ "${mirror_ok}" -eq 0 ]; then
+        echo "Release mirror finished without errors but ${dest_mirror_repo}@${release_digest} is not present in the registry" >&2
+      fi
+      rc=1
     fi
 
     echo "Release mirror failed (attempt ${attempt}/${max_attempts}, exit=${rc}), log follows:" >&2
     cat "${output_file}" >&2 || true
+
+    if registry_release_image_exists "${authfile}" "${dest_mirror_repo}" "${release_digest}"; then
+      rm -f "${output_file}"
+      echo "Release image ${release_digest} is present at ${dest_mirror_repo} after a failed attempt, continuing"
+      return 0
+    fi
 
     if [ "${attempt}" -ge "${max_attempts}" ] || ! transient_registry_error_file "${output_file}"; then
       rm -f "${output_file}"
