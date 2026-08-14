@@ -1366,16 +1366,19 @@ var _ = Describe("networkPolicyImageServiceEgress", func() {
 
 	It("allows same-namespace egress to assisted-service for ISO generation", func() {
 		var sameNamespacePorts []int32
+		var labels map[string]string
 		for _, rule := range networkPolicyImageServiceEgress() {
-			if len(rule.To) != 1 || rule.To[0].PodSelector == nil {
+			if len(rule.To) != 1 || rule.To[0].PodSelector == nil || len(rule.To[0].PodSelector.MatchLabels) == 0 {
 				continue
 			}
+			labels = rule.To[0].PodSelector.MatchLabels
 			for _, port := range rule.Ports {
 				if port.Port != nil {
 					sameNamespacePorts = append(sameNamespacePorts, port.Port.IntVal)
 				}
 			}
 		}
+		Expect(labels).To(HaveKeyWithValue("app", serviceName))
 		Expect(sameNamespacePorts).To(ConsistOf(int32(servicePort.IntValue())), "image-service must reach assisted-service API")
 	})
 

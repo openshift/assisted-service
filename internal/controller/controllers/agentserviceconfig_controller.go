@@ -945,7 +945,11 @@ func networkPolicyImageServiceEgress() []netv1.NetworkPolicyEgressRule {
 			},
 		},
 		netv1.NetworkPolicyEgressRule{
-			To:    []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}},
+			To: []netv1.NetworkPolicyPeer{{
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": serviceName},
+				},
+			}},
 			Ports: []netv1.NetworkPolicyPort{
 				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: int32(servicePort.IntValue())}},
 			},
