@@ -223,7 +223,6 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift_cli() {
-  full_cmd="update-ca-trust;$*"
   local -a podman_args=(
     run -it --net host --rm
     --entrypoint /bin/bash
@@ -234,14 +233,44 @@ function hypershift_cli() {
   if [[ -n "${AUTHFILE:-}" && -f "${AUTHFILE}" ]]; then
     podman_args+=(--authfile "${AUTHFILE}")
   fi
-  # EXTRA_HYPERSHIFT_CLI_MOUNTS is intentionally unquoted: callers pass multiple -v mounts.
-  # shellcheck disable=SC2206
-  local -a extra_mounts=( ${EXTRA_HYPERSHIFT_CLI_MOUNTS} )
-  podman "${podman_args[@]}" "${extra_mounts[@]}" "${HYPERSHIFT_IMAGE}" -c "${full_cmd}"
+
+  local -a extra_mounts=()
+  read -ra mounts_array <<< "${EXTRA_HYPERSHIFT_CLI_MOUNTS:-}"
+  for m in "${mounts_array[@]}"; do
+    if [[ ! "${m}" =~ ^-v$|^--volume=|^/ ]]; then
+      echo "Invalid mount format: ${m}" >&2
+      return 1
+    fi
+    extra_mounts+=("${m}")
+  done
+
+  local -a cmd_args=("$@")
+  
+  if [[ "${cmd_args[1]}" == "install" ]]; then
+    read -ra install_flags <<< "${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
+    for flag in "${install_flags[@]}"; do
+      if [[ ! "${flag}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${flag}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
+        echo "Invalid install flag format: ${flag}" >&2
+        return 1
+      fi
+      cmd_args+=("${flag}")
+    done
+  elif [[ "${cmd_args[1]}" == "create" ]]; then
+    read -ra create_cmds <<< "${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
+    for cmd in "${create_cmds[@]}"; do
+      if [[ ! "${cmd}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${cmd}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
+        echo "Invalid create command format: ${cmd}" >&2
+        return 1
+      fi
+      cmd_args+=("${cmd}")
+    done
+  fi
+
+  podman "${podman_args[@]}" "${extra_mounts[@]}" "${HYPERSHIFT_IMAGE}" -c 'update-ca-trust && "$@"' -- "${cmd_args[@]}"
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift_cli hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
+hypershift_cli hypershift install --hypershift-image "${HYPERSHIFT_IMAGE}" --namespace hypershift
 if [ "${DISCONNECTED}" = "true" ]; then
   # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent and the machine config operator image (registry override flag)
   oc patch deploy/operator -n hypershift --type=strategic \
@@ -275,7 +304,7 @@ hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --b
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND \
-  $EXTRA_HYPERSHIFT_CREATE_COMMANDS
+
 
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
