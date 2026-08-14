@@ -230,7 +230,46 @@ function discover_os_image_stream_sources_from_release_json() {
   authfile="${2}"
 
   oc adm -a "${authfile}" release info "${release_image}" -o json | \
-    jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | map(split("@")[0]) | unique | .[]'
+	jq -r '[.. | strings | select(test("^quay.io/openshift-release-dev/ocp-v[0-9]+\\.[0-9]+-art-dev@sha256:"))] | map(split("@")[0]) | unique | .[]'
+}
+
+# Unique quay.io art-dev repositories referenced by a release payload.
+# OCP 4.x uses ocp-v4.0-art-dev; OCP 5.x uses ocp-v5.0-art-dev (and may still
+# reference v4 for OSImageStream / hard-coded images).
+function discover_release_art_dev_sources() {
+  release_image="${1}"
+  authfile="${2}"
+  shift 2
+  local mco_image=""
+
+  {
+    printf '%s\n' "$@"
+    discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}" || true
+    if mco_image=$(oc adm -a "${authfile}" release info "${release_image}" --image-for machine-config-operator 2>/dev/null); then
+      image_repo_from_pullspec "${mco_image}"
+    fi
+  } | sed '/^$/d' | sort -u
+}
+
+# Emit YAML list entries suitable for HyperShift --image-content-sources and for
+# ImageDigestMirrorSet / ImageContentSourcePolicy digest-mirror lists.
+function art_dev_image_content_source_entries() {
+  release_image="${1}"
+  authfile="${2}"
+  mirror_registry="${3}"
+  shift 3
+  local source repo_suffix
+
+  while IFS= read -r source; do
+    [ -n "${source}" ] || continue
+    repo_suffix="${source#quay.io/}"
+    cat << EOF
+- mirrors:
+  - ${mirror_registry}
+  - ${mirror_registry}/${repo_suffix}
+  source: ${source}
+EOF
+  done < <(discover_release_art_dev_sources "${release_image}" "${authfile}" "$@")
 }
 
 # Discover OSImageStream source repositories for registries.conf. The MCO helper
