@@ -67,6 +67,9 @@ fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
     install_oc_mirrorv2
+    export AUTHFILE="${XDG_RUNTIME_DIR}/containers/auth.json"
+    mkdir -p "$(dirname "${AUTHFILE}")"
+    merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
     # Disconnected hypershift requires:
     export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # 1. pull secret in hypershift namespace for the hypershift operator
@@ -75,13 +78,14 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
     # 2. mirrored hypershift operator image to local mirror registry
     HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${HYPERSHIFT_IMAGE}):hypershift"
-    oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
+    run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
     # 3. mirrored CAPI provider agent image to local mirror registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
-      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${PROVIDER_IMAGE}):capi"
-      oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
+      provider_repo=$(get_image_repository_only "${PROVIDER_IMAGE}")
+      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/${provider_repo}:capi"
+      run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
   
@@ -98,7 +102,7 @@ mirror:
   - name: ${RELEASE_IMAGE_HCP_OVERRIDE}
   - name: ${CAPI_IMAGE}
 EOM
-    oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace file://$PWD/mirror docker://"${OCP_MIRROR_REGISTRY}" --v2
+    run_mirror_command_with_retry oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace "file://${PWD}/mirror" docker://"${OCP_MIRROR_REGISTRY}" --v2
 
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
@@ -219,8 +223,21 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift_cli() {
-  full_cmd="update-ca-trust;$@"
-  podman run -it --net host --rm --entrypoint /bin/bash -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $EXTRA_HYPERSHIFT_CLI_MOUNTS $HYPERSHIFT_IMAGE -c "$full_cmd"
+  full_cmd="update-ca-trust;$*"
+  local -a podman_args=(
+    run -it --net host --rm
+    --entrypoint /bin/bash
+    -v "${KUBECONFIG}:/root/.kube/config"
+    -v "${ASSISTED_PULLSECRET_JSON}:${ASSISTED_PULLSECRET_JSON}"
+    -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub
+  )
+  if [[ -n "${AUTHFILE:-}" && -f "${AUTHFILE}" ]]; then
+    podman_args+=(--authfile "${AUTHFILE}")
+  fi
+  # EXTRA_HYPERSHIFT_CLI_MOUNTS is intentionally unquoted: callers pass multiple -v mounts.
+  # shellcheck disable=SC2206
+  local -a extra_mounts=( ${EXTRA_HYPERSHIFT_CLI_MOUNTS} )
+  podman "${podman_args[@]}" "${extra_mounts[@]}" "${HYPERSHIFT_IMAGE}" -c "${full_cmd}"
 }
 
 echo "Installing HyperShift using upstream image"
