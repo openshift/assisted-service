@@ -854,7 +854,7 @@ func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, a
 					},
 				},
 			},
-			Egress: networkPolicyDefaultEgress(),
+			Egress: networkPolicyImageServiceEgress(),
 		}
 		return nil
 	}
@@ -899,34 +899,81 @@ func newWebhookNetworkPolicy(ctx context.Context, log logrus.FieldLogger, asc AS
 
 func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
 	return []netv1.NetworkPolicyEgressRule{
-		{
-			To: []netv1.NetworkPolicyPeer{{
-				NamespaceSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"kubernetes.io/metadata.name": "openshift-dns"},
-				},
-			}},
-			Ports: []netv1.NetworkPolicyPort{
-				{Protocol: ptr.To(corev1.ProtocolUDP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
-				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
+		networkPolicyDNSEgressRule(),
+		networkPolicyKubernetesAPIEgressRule(),
+		networkPolicyHTTPSEgressRule(),
+	}
+}
+
+func networkPolicyImageServiceEgress() []netv1.NetworkPolicyEgressRule {
+	return append(
+		networkPolicyDefaultEgress(),
+		networkPolicyHTTPEgressRule(),
+		networkPolicySameNamespaceEgressRule(int32(servicePort.IntValue())),
+	)
+}
+
+func networkPolicySameNamespaceEgressRule(ports ...int32) netv1.NetworkPolicyEgressRule {
+	npPorts := make([]netv1.NetworkPolicyPort, 0, len(ports))
+	for _, port := range ports {
+		npPorts = append(npPorts, netv1.NetworkPolicyPort{
+			Protocol: ptr.To(corev1.ProtocolTCP),
+			Port:     &intstr.IntOrString{Type: intstr.Int, IntVal: port},
+		})
+	}
+	return netv1.NetworkPolicyEgressRule{
+		To:    []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}},
+		Ports: npPorts,
+	}
+}
+
+func networkPolicyDNSEgressRule() netv1.NetworkPolicyEgressRule {
+	return netv1.NetworkPolicyEgressRule{
+		To: []netv1.NetworkPolicyPeer{{
+			NamespaceSelector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"kubernetes.io/metadata.name": "openshift-dns"},
 			},
+		}},
+		Ports: []netv1.NetworkPolicyPort{
+			{Protocol: ptr.To(corev1.ProtocolUDP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
+			{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5353}},
 		},
-		{
-			To: []netv1.NetworkPolicyPeer{
-				{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0"}},
-				{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
-			},
-			Ports: []netv1.NetworkPolicyPort{
-				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 6443}},
-			},
+	}
+}
+
+func networkPolicyKubernetesAPIEgressRule() netv1.NetworkPolicyEgressRule {
+	return netv1.NetworkPolicyEgressRule{
+		To: []netv1.NetworkPolicyPeer{
+			{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0"}},
+			{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
 		},
-		{
-			To: []netv1.NetworkPolicyPeer{
-				{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
-				{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
-			},
-			Ports: []netv1.NetworkPolicyPort{
-				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}},
-			},
+		Ports: []netv1.NetworkPolicyPort{
+			{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 6443}},
+		},
+	}
+}
+
+func networkPolicyHTTPSEgressRule() netv1.NetworkPolicyEgressRule {
+	return netv1.NetworkPolicyEgressRule{
+		To: []netv1.NetworkPolicyPeer{
+			{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+			{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+		},
+		Ports: []netv1.NetworkPolicyPort{
+			{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}},
+		},
+	}
+}
+
+// Disconnected deployments often serve RHCOS ISOs from plain HTTP mirrors configured in osImages.
+func networkPolicyHTTPEgressRule() netv1.NetworkPolicyEgressRule {
+	return netv1.NetworkPolicyEgressRule{
+		To: []netv1.NetworkPolicyPeer{
+			{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+			{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+		},
+		Ports: []netv1.NetworkPolicyPort{
+			{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 80}},
 		},
 	}
 }
