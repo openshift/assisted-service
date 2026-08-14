@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -351,7 +352,8 @@ func GetIgnitionEndpoint(cluster *common.Cluster, host *models.Host) (string, er
 		net.JoinHostPort(common.GetAPIHostname(cluster), fmt.Sprint(constants.InsecureMCSPort)),
 		poolName)
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
-		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
+		normalizedURL := pkgvalidations.NormalizeHTTPURL(*cluster.IgnitionEndpoint.URL)
+		url, err := url.Parse(normalizedURL)
 		if err != nil {
 			return "", err
 		}
