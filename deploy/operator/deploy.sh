@@ -36,7 +36,7 @@ function setup_disconnected_parameters() {
     merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
 
     ocp_mirror_release \
-        "${PULL_SECRET_FILE}" \
+        "${AUTHFILE}" \
         "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
         "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 }

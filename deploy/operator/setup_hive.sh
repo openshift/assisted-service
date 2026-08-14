@@ -139,7 +139,7 @@ function from_upstream() {
 
     if [ "${DISCONNECTED}" = "true" ]; then
         export IMG="${LOCAL_REGISTRY}/localimages/hive:latest"
-        oc image mirror \
+        run_mirror_command_with_retry oc image mirror \
             -a ${AUTHFILE} \
             ${HIVE_IMAGE} \
             ${IMG}
