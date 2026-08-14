@@ -47,29 +47,28 @@ function run_mirror_command_with_retry() {
     echo "Mirror attempt ${attempt}/${attempts}: ${cmd_name}"
 
     set +x
-    set +o pipefail
-    "$@" 2>&1 | tee "${log_file}"
-    rc=${PIPESTATUS[0]}
-    if ${was_pipefail}; then
-      set -o pipefail
-    else
-      set +o pipefail
-    fi
+    "$@" > "${log_file}" 2>&1
+    rc=$?
     ${was_xtrace} && set -x
 
     success_rc=0
     mirror_command_succeeded "${log_file}" || success_rc=$?
-    rm -f "${log_file}"
 
     if [[ "${rc}" -eq 0 && "${success_rc}" -eq 0 ]]; then
       echo "Mirror attempt ${attempt}/${attempts}: ${cmd_name} succeeded"
+      rm -f "${log_file}"
       return 0
     fi
 
     echo "Mirror failed (exit=${rc}), waiting ${interval}s before retry..."
     if [[ "${attempt}" -lt "${attempts}" ]]; then
       sleep "${interval}"
+    else
+      if [[ -n "${ARTIFACT_DIR:-}" ]]; then
+        cp "${log_file}" "${ARTIFACT_DIR}/mirror_failed_${cmd_name}_${attempt}.log"
+      fi
     fi
+    rm -f "${log_file}"
   done
 
   return 1
@@ -257,6 +256,10 @@ function ocp_mirror_release() {
   dest_mirror_repo="${3}"
   local release_digest=""
   local max_attempts="${OCP_MIRROR_RELEASE_RETRIES:-5}"
+  if ! [[ "${max_attempts}" =~ ^[1-9][0-9]*$ ]]; then
+    echo "OCP_MIRROR_RELEASE_RETRIES must be a positive integer" >&2
+    return 1
+  fi
   local retry_delay="${OCP_MIRROR_RELEASE_RETRY_DELAY:-60}"
   local max_per_registry="${OCP_MIRROR_RELEASE_MAX_PER_REGISTRY:-2}"
   local attempt=1
@@ -316,8 +319,11 @@ function ocp_mirror_release() {
       rc=1
     fi
 
-    echo "Release mirror failed (attempt ${attempt}/${max_attempts}, exit=${rc}), log follows:" >&2
-    cat "${output_file}" >&2 || true
+    echo "Release mirror failed (attempt ${attempt}/${max_attempts}, exit=${rc})." >&2
+    if [[ -n "${ARTIFACT_DIR:-}" ]]; then
+      cp "${output_file}" "${ARTIFACT_DIR}/ocp_mirror_release_failed_${attempt}.log"
+      echo "Complete log saved to ${ARTIFACT_DIR}/ocp_mirror_release_failed_${attempt}.log" >&2
+    fi
 
     if registry_release_image_exists "${authfile}" "${dest_mirror_repo}" "${release_digest}"; then
       rm -f "${output_file}"
@@ -405,7 +411,7 @@ function discover_release_art_dev_sources() {
 
   {
     printf '%s\n' "$@"
-    discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}" || true
+    discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
     if mco_image=$(oc adm -a "${authfile}" release info "${release_image}" --image-for machine-config-operator 2>/dev/null); then
       image_repo_from_pullspec "${mco_image}"
     fi
