@@ -1351,6 +1351,39 @@ var _ = Describe("newImageServiceService", func() {
 	})
 })
 
+var _ = Describe("networkPolicyImageServiceEgress", func() {
+	It("allows HTTP egress for disconnected RHCOS ISO mirrors", func() {
+		var httpPorts []int32
+		for _, rule := range networkPolicyImageServiceEgress() {
+			for _, port := range rule.Ports {
+				if port.Port != nil && port.Port.IntVal == 80 {
+					httpPorts = append(httpPorts, port.Port.IntVal)
+				}
+			}
+		}
+		Expect(httpPorts).To(ConsistOf(int32(80)), "image-service must reach HTTP OS image mirrors")
+	})
+
+	It("allows same-namespace egress to assisted-service for ISO generation", func() {
+		var sameNamespacePorts []int32
+		for _, rule := range networkPolicyImageServiceEgress() {
+			if len(rule.To) != 1 || rule.To[0].PodSelector == nil {
+				continue
+			}
+			for _, port := range rule.Ports {
+				if port.Port != nil {
+					sameNamespacePorts = append(sameNamespacePorts, port.Port.IntVal)
+				}
+			}
+		}
+		Expect(sameNamespacePorts).To(ConsistOf(int32(servicePort.IntValue())), "image-service must reach assisted-service API")
+	})
+
+	It("includes the default operator egress rules", func() {
+		Expect(networkPolicyImageServiceEgress()).To(HaveLen(len(networkPolicyDefaultEgress()) + 2))
+	})
+})
+
 var _ = Describe("newImageServiceRoute", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig
