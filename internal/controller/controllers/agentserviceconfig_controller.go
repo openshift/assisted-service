@@ -818,7 +818,15 @@ func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger
 					},
 				},
 			},
-			Egress: networkPolicyDefaultEgress(),
+			Egress: append(networkPolicyDefaultEgress(), netv1.NetworkPolicyEgressRule{
+				To: []netv1.NetworkPolicyPeer{
+					{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+					{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+				},
+				Ports: []netv1.NetworkPolicyPort{
+					{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
+				},
+			}),
 		}
 		return nil
 	}
@@ -854,7 +862,7 @@ func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, a
 					},
 				},
 			},
-			Egress: networkPolicyDefaultEgress(),
+			Egress: networkPolicyImageServiceEgress(),
 		}
 		return nil
 	}
@@ -929,6 +937,33 @@ func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
 			},
 		},
 	}
+}
+
+// Disconnected deployments often serve RHCOS ISOs from plain HTTP mirrors configured in osImages.
+func networkPolicyImageServiceEgress() []netv1.NetworkPolicyEgressRule {
+	return append(
+		networkPolicyDefaultEgress(),
+		netv1.NetworkPolicyEgressRule{
+			To: []netv1.NetworkPolicyPeer{
+				{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+				{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+			},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 80}},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
+			},
+		},
+		netv1.NetworkPolicyEgressRule{
+			To: []netv1.NetworkPolicyPeer{{
+				PodSelector: &metav1.LabelSelector{
+					MatchLabels: map[string]string{"app": serviceName},
+				},
+			}},
+			Ports: []netv1.NetworkPolicyPort{
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: int32(servicePort.IntValue())}},
+			},
+		},
+	)
 }
 
 func newServiceMonitor(ctx context.Context, log logrus.FieldLogger, asc ASC) (client.Object, controllerutil.MutateFn, error) {
