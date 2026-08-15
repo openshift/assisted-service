@@ -1366,9 +1366,10 @@ var _ = Describe("networkPolicyImageServiceEgress", func() {
 
 	It("allows same-namespace egress to assisted-service for ISO generation", func() {
 		var sameNamespacePorts []int32
+		var sameNamespaceProtocols []corev1.Protocol
 		var labels map[string]string
 		for _, rule := range networkPolicyImageServiceEgress() {
-			if len(rule.To) != 1 || rule.To[0].PodSelector == nil || len(rule.To[0].PodSelector.MatchLabels) == 0 {
+			if len(rule.To) != 1 || rule.To[0].PodSelector == nil || rule.To[0].NamespaceSelector != nil || len(rule.To[0].PodSelector.MatchLabels) == 0 {
 				continue
 			}
 			labels = rule.To[0].PodSelector.MatchLabels
@@ -1376,10 +1377,14 @@ var _ = Describe("networkPolicyImageServiceEgress", func() {
 				if port.Port != nil {
 					sameNamespacePorts = append(sameNamespacePorts, port.Port.IntVal)
 				}
+				if port.Protocol != nil {
+					sameNamespaceProtocols = append(sameNamespaceProtocols, *port.Protocol)
+				}
 			}
 		}
 		Expect(labels).To(HaveKeyWithValue("app", serviceName))
 		Expect(sameNamespacePorts).To(ConsistOf(int32(servicePort.IntValue())), "image-service must reach assisted-service API")
+		Expect(sameNamespaceProtocols).To(ConsistOf(corev1.ProtocolTCP), "image-service must reach assisted-service API using TCP")
 	})
 
 	It("includes the default operator egress rules", func() {

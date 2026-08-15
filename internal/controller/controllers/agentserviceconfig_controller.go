@@ -818,7 +818,15 @@ func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger
 					},
 				},
 			},
-			Egress: networkPolicyDefaultEgress(),
+			Egress: append(networkPolicyDefaultEgress(), netv1.NetworkPolicyEgressRule{
+				To: []netv1.NetworkPolicyPeer{
+					{IPBlock: &netv1.IPBlock{CIDR: "0.0.0.0/0", Except: []string{"169.254.169.254/32"}}},
+					{IPBlock: &netv1.IPBlock{CIDR: "::/0"}},
+				},
+				Ports: []netv1.NetworkPolicyPort{
+					{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
+				},
+			}),
 		}
 		return nil
 	}
@@ -926,7 +934,6 @@ func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
 			},
 			Ports: []netv1.NetworkPolicyPort{
 				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}},
-				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
 			},
 		},
 	}
@@ -943,6 +950,7 @@ func networkPolicyImageServiceEgress() []netv1.NetworkPolicyEgressRule {
 			},
 			Ports: []netv1.NetworkPolicyPort{
 				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 80}},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
 			},
 		},
 		netv1.NetworkPolicyEgressRule{
