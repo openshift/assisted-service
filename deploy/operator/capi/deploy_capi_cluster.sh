@@ -236,12 +236,28 @@ function hypershift_cli() {
 
   local -a extra_mounts=()
   read -ra mounts_array <<< "${EXTRA_HYPERSHIFT_CLI_MOUNTS:-}"
-  for m in "${mounts_array[@]}"; do
-    if [[ ! "${m}" =~ ^-v$|^--volume=|^/ ]]; then
-      echo "Invalid mount format: ${m}" >&2
+  local i=0
+  while [[ $i -lt ${#mounts_array[@]} ]]; do
+    local m="${mounts_array[$i]}"
+    if [[ "${m}" == "--volume" || "${m}" == "-v" ]]; then
+      if [[ $((i+1)) -ge ${#mounts_array[@]} ]]; then
+        echo "Invalid mount format" >&2
+        return 1
+      fi
+      local next_m="${mounts_array[$((i+1))]}"
+      if [[ ! "${next_m}" =~ ^/ ]]; then
+        echo "Invalid mount format" >&2
+        return 1
+      fi
+      extra_mounts+=("${m}" "${next_m}")
+      i=$((i+2))
+    elif [[ "${m}" =~ ^--volume=|^/ ]]; then
+      extra_mounts+=("${m}")
+      i=$((i+1))
+    else
+      echo "Invalid mount format" >&2
       return 1
     fi
-    extra_mounts+=("${m}")
   done
 
   local -a cmd_args=("$@")
@@ -250,7 +266,7 @@ function hypershift_cli() {
     read -ra install_flags <<< "${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
     for flag in "${install_flags[@]}"; do
       if [[ ! "${flag}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${flag}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
-        echo "Invalid install flag format: ${flag}" >&2
+        echo "Invalid install flag format" >&2
         return 1
       fi
       cmd_args+=("${flag}")
@@ -259,7 +275,7 @@ function hypershift_cli() {
     read -ra create_cmds <<< "${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
     for cmd in "${create_cmds[@]}"; do
       if [[ ! "${cmd}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${cmd}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
-        echo "Invalid create command format: ${cmd}" >&2
+        echo "Invalid create command format" >&2
         return 1
       fi
       cmd_args+=("${cmd}")
