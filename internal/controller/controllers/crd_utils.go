@@ -149,7 +149,9 @@ func (u *CRDUtils) updateExistingAgentCR(ctx context.Context, log logrus.FieldLo
 
 	//Reset spec
 	p := client.MergeFrom(host.DeepCopy())
+	existingNodeLabels := host.Spec.NodeLabels
 	host.Spec = aiv1beta1.AgentSpec{}
+	host.Spec.NodeLabels = existingNodeLabels
 	if cluster != nil && cluster.KubeKeyNamespace != "" {
 		host.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{
 			Name:      cluster.KubeKeyName,

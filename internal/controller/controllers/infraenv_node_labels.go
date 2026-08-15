@@ -70,6 +70,7 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 
 	previouslyInherited := getInheritedKeys(agent)
 	modified := false
+	actuallyInherited := make(map[string]string)
 
 	// Remove previously inherited labels that are no longer in the desired set
 	for _, key := range previouslyInherited {
@@ -87,13 +88,20 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 		if !exists {
 			currentNodeLabels[key] = value
 			modified = true
+			actuallyInherited[key] = value
 		} else if existingValue != value {
 			if isInheritedKey(previouslyInherited, key) {
 				currentNodeLabels[key] = value
 				modified = true
+				actuallyInherited[key] = value
 			} else {
-				log.Warnf("InfraEnv label %q=%q conflicts with user-set nodeLabel %q=%q on Agent %s/%s; keeping user value",
-					key, value, key, existingValue, agent.Namespace, agent.Name)
+				log.Warnf("InfraEnv label key %q conflicts with user-set nodeLabel on Agent %s/%s; keeping user value",
+					key, agent.Namespace, agent.Name)
+			}
+		} else {
+			// Value matches — track as inherited if it was previously inherited
+			if isInheritedKey(previouslyInherited, key) {
+				actuallyInherited[key] = value
 			}
 		}
 	}
@@ -102,8 +110,8 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 		agent.Spec.NodeLabels = currentNodeLabels
 	}
 
-	// Update the tracking annotation
-	newInheritedAnnotation := buildInheritedAnnotation(desiredInherited)
+	// Update the tracking annotation with only controller-owned keys
+	newInheritedAnnotation := buildInheritedAnnotation(actuallyInherited)
 	annotationModified := setInheritedAnnotation(agent, newInheritedAnnotation)
 
 	return modified || annotationModified

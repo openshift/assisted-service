@@ -113,7 +113,8 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("user-site-b"))
-			Expect(modified).To(BeTrue()) // tracking annotation was set
+			Expect(modified).To(BeFalse())
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(InheritedNodeLabelsAnnotation))
 		})
 
 		It("updates inherited labels when InfraEnv value changes", func() {
