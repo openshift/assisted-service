@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source ${__dir}/common.sh
-source ${__dir}/utils.sh
+source "${__dir}/common.sh"
+source "${__dir}/utils.sh"
+source "${__dir}/mirror_utils.sh"
 
 set -o xtrace
 
