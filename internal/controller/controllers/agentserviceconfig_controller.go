@@ -926,6 +926,7 @@ func networkPolicyDefaultEgress() []netv1.NetworkPolicyEgressRule {
 			},
 			Ports: []netv1.NetworkPolicyPort{
 				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 443}},
+				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 5000}},
 			},
 		},
 	}
