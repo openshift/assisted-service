@@ -96,6 +96,7 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;patch
 
 func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
@@ -123,6 +124,10 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 
 	if err := r.ensureFinalizer(ctx, log, infraEnv); err != nil {
 		return ctrl.Result{}, err
+	}
+
+	if err := r.reconcileNodeLabelPropagation(ctx, log, infraEnv); err != nil {
+		log.WithError(err).Error("failed to reconcile node label propagation")
 	}
 
 	return r.reconcileInfraEnv(ctx, log, infraEnv)
@@ -451,6 +456,34 @@ func (r *InfraEnvReconciler) reconcileInfraEnv(ctx context.Context, log logrus.F
 		return ctrl.Result{Requeue: requeue}, nil
 	}
 	return r.updateInfraEnvStatus(ctx, log, infraEnv, cluster)
+}
+
+// reconcileNodeLabelPropagation lists all Agents belonging to this InfraEnv and
+// propagates designated node labels from the InfraEnv to each Agent's spec.nodeLabels.
+// This ensures that label changes on the InfraEnv are continuously reflected on all
+// associated Agents, not only at Agent creation time.
+func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) error {
+	agents := &aiv1beta1.AgentList{}
+	if err := r.List(ctx, agents, client.InNamespace(infraEnv.Namespace),
+		client.MatchingLabels{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}); err != nil {
+		return errors.Wrapf(err, "failed to list Agents for InfraEnv %s/%s", infraEnv.Namespace, infraEnv.Name)
+	}
+
+	for i := range agents.Items {
+		agent := &agents.Items[i]
+		patch := client.MergeFrom(agent.DeepCopy())
+
+		if PropagateInfraEnvNodeLabels(log, infraEnv, agent) {
+			if err := r.Patch(ctx, agent, patch); err != nil {
+				log.WithError(err).Errorf("failed to patch Agent %s/%s with propagated node labels",
+					agent.Namespace, agent.Name)
+				return err
+			}
+			log.Infof("propagated node labels to Agent %s/%s", agent.Namespace, agent.Name)
+		}
+	}
+
+	return nil
 }
 
 func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
