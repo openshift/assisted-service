@@ -66,6 +66,8 @@ const (
 	EnableIronicAgentAnnotation            = "infraenv." + aiv1beta1.Group + "/enable-ironic-agent"
 	ironicAgentImageOverrideAnnotation     = "infraenv." + aiv1beta1.Group + "/ironic-agent-image-override"
 	infraEnvIPFamilyAnnotation             = "infraenv." + aiv1beta1.Group + "/ip-family"
+	PropagateNodeLabelsAnnotation          = "infraenv." + aiv1beta1.Group + "/propagate-node-labels"
+	InheritedNodeLabelsAnnotation          = "agent." + aiv1beta1.Group + "/inherited-node-labels"
 	ipv4Family                             = "v4"
 	ipv6Family                             = "v6"
 )
