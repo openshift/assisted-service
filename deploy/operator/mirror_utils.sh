@@ -105,7 +105,7 @@ function mirror_package() {
   local_registry_index_tag="${local_registry}/olm-index/${local_index_name}"
   local_registry_image_tag="${local_registry}/olm"
 
-  opm index prune \
+  run_mirror_command_with_retry opm index prune \
         --from-index "${remote_index}" \
         --packages "${package}" \
         --tag "${local_registry_index_tag}"
