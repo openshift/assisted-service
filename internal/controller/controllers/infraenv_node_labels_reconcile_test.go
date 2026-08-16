@@ -200,18 +200,20 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			agent := getAgent("agent-1")
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", "nyc"))
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "us-east-1a"))
+			rvAfterFirst := agent.ResourceVersion
 
 			// Fetch fresh copy for second reconcile (to match what the controller would see)
 			freshInfraEnv := &aiv1beta1.InfraEnv{}
 			Expect(c.Get(ctx, types.NamespacedName{Name: infraEnv.Name, Namespace: infraEnv.Namespace}, freshInfraEnv)).To(Succeed())
 
-			// Second reconciliation should be a no-op
+			// Second reconciliation should be a no-op — no patch issued
 			err = ir.reconcileNodeLabelPropagation(ctx, ir.Log, freshInfraEnv)
 			Expect(err).To(BeNil())
 
 			agent = getAgent("agent-1")
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", "nyc"))
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "us-east-1a"))
+			Expect(agent.ResourceVersion).To(Equal(rvAfterFirst), "Agent should not be patched on second reconciliation")
 		})
 
 		It("handles adding new keys to propagation list", func() {

@@ -127,7 +127,8 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 	}
 
 	if err := r.reconcileNodeLabelPropagation(ctx, log, infraEnv); err != nil {
-		log.WithError(err).Error("failed to reconcile node label propagation")
+		log.WithError(err).Error("failed to reconcile node label propagation, will retry")
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterPerRecoverableError}, nil
 	}
 
 	return r.reconcileInfraEnv(ctx, log, infraEnv)
@@ -469,6 +470,7 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 		return errors.Wrapf(err, "failed to list Agents for InfraEnv %s/%s", infraEnv.Namespace, infraEnv.Name)
 	}
 
+	var patchErrors []error
 	for i := range agents.Items {
 		agent := &agents.Items[i]
 		patch := client.MergeFrom(agent.DeepCopy())
@@ -477,12 +479,16 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 			if err := r.Patch(ctx, agent, patch); err != nil {
 				log.WithError(err).Errorf("failed to patch Agent %s/%s with propagated node labels",
 					agent.Namespace, agent.Name)
-				return err
+				patchErrors = append(patchErrors, err)
+				continue
 			}
 			log.Infof("propagated node labels to Agent %s/%s", agent.Namespace, agent.Name)
 		}
 	}
 
+	if len(patchErrors) > 0 {
+		return errors.Errorf("failed to patch %d Agent(s) during node label propagation", len(patchErrors))
+	}
 	return nil
 }
 
