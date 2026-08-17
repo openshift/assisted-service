@@ -1351,6 +1351,39 @@ var _ = Describe("newImageServiceService", func() {
 	})
 })
 
+var _ = Describe("newImageServiceNetworkPolicy", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ascc ASC
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+		ascc = initASC(ascr, asc)
+	})
+
+	It("should include same-namespace egress to assisted-service on port 8090", func() {
+		obj, mutateFn, err := newImageServiceNetworkPolicy(ctx, log, ascc)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mutateFn()).To(Succeed())
+
+		np := obj.(*netv1.NetworkPolicy)
+		var sameNamespaceEgressPorts []int32
+		for _, rule := range np.Spec.Egress {
+			if len(rule.To) == 1 && rule.To[0].PodSelector != nil && rule.To[0].NamespaceSelector == nil && rule.To[0].IPBlock == nil {
+				for _, port := range rule.Ports {
+					sameNamespaceEgressPorts = append(sameNamespaceEgressPorts, port.Port.IntVal)
+				}
+			}
+		}
+		Expect(sameNamespaceEgressPorts).To(ContainElement(int32(8090)))
+	})
+})
+
 var _ = Describe("newImageServiceRoute", func() {
 	var (
 		asc  *aiv1beta1.AgentServiceConfig
