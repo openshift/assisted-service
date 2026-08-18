@@ -719,6 +719,14 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Expect(IsFeatureAvailable(feature, "4.15", swag.String(arch))).To(BeTrue())
 			Expect(IsFeatureAvailable(feature, "4.16", swag.String(arch))).To(BeTrue())
 		})
+
+		It("Test Cilium not supported on 4.22 and later", func() {
+			feature := models.FeatureSupportLevelIDCILIUMNETWORKTYPE
+			arch := "DoesNotMatter"
+			Expect(IsFeatureAvailable(feature, "4.21", swag.String(arch))).To(BeTrue())
+			Expect(IsFeatureAvailable(feature, "4.22", swag.String(arch))).To(BeFalse())
+			Expect(IsFeatureAvailable(feature, "4.23", swag.String(arch))).To(BeFalse())
+		})
 	})
 
 	Context("GetCpuArchitectureSupportList", func() {
@@ -1511,11 +1519,15 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					err := ValidateActiveFeatures(log, cluster, nil, nil)
 					Expect(err).ShouldNot(HaveOccurred())
 				},
-				Entry("SDN Active with Openshift < 4.15", "4.14.3", models.ClusterNetworkTypeOpenShiftSDN),
-				Entry("OVN Active with Openshift < 4.15", "4.14.3", models.ClusterNetworkTypeOVNKubernetes),
-				Entry("OVN Active with Openshift = 4.15", "4.15.2", models.ClusterNetworkTypeOVNKubernetes),
-				Entry("OVN Active with Openshift > 4.15", "4.18.9", models.ClusterNetworkTypeOVNKubernetes),
-			)
+			Entry("SDN Active with Openshift < 4.15", "4.14.3", models.ClusterNetworkTypeOpenShiftSDN),
+			Entry("OVN Active with Openshift < 4.15", "4.14.3", models.ClusterNetworkTypeOVNKubernetes),
+			Entry("OVN Active with Openshift = 4.15", "4.15.2", models.ClusterNetworkTypeOVNKubernetes),
+			Entry("OVN Active with Openshift > 4.15", "4.18.9", models.ClusterNetworkTypeOVNKubernetes),
+			Entry("Cilium Active with Openshift 4.21", "4.21.0", models.ClusterNetworkTypeCilium),
+			Entry("Cilium Active with Openshift < 4.22", "4.21.5", models.ClusterNetworkTypeCilium),
+			Entry("OVN Active with Openshift 4.22", "4.22.0", models.ClusterNetworkTypeOVNKubernetes),
+			Entry("OVN Active with Openshift > 4.22", "4.23.1", models.ClusterNetworkTypeOVNKubernetes),
+		)
 
 			DescribeTable(
 				"Invalid Network Type and OpenShift version",
@@ -1530,9 +1542,12 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 					Expect(err).Should(HaveOccurred())
 					Expect(err.Error()).To(Equal(expectedErrorMessage))
 				},
-				Entry("SDN Active with Openshift 4.15", "4.15.3", models.ClusterNetworkTypeOpenShiftSDN, "Openshift version 4.15.3 is not supported for OpenShiftSDN NetworkType"),
-				Entry("SDN Active with Openshift > 4.15", "4.18.3", models.ClusterNetworkTypeOpenShiftSDN, "Openshift version 4.18.3 is not supported for OpenShiftSDN NetworkType"),
-			)
+			Entry("SDN Active with Openshift 4.15", "4.15.3", models.ClusterNetworkTypeOpenShiftSDN, "Openshift version 4.15.3 is not supported for OpenShiftSDN NetworkType"),
+			Entry("SDN Active with Openshift > 4.15", "4.18.3", models.ClusterNetworkTypeOpenShiftSDN, "Openshift version 4.18.3 is not supported for OpenShiftSDN NetworkType"),
+			Entry("Cilium Active with Openshift 4.22", "4.22.0", models.ClusterNetworkTypeCilium, "Cilium CNI is not supported on OpenShift 4.22.0 (version 4.22 and later are not supported)"),
+			Entry("Cilium Active with Openshift > 4.22", "4.23.1", models.ClusterNetworkTypeCilium, "Cilium CNI is not supported on OpenShift 4.23.1 (version 4.22 and later are not supported)"),
+			Entry("Cilium Active with Openshift 4.22 patch", "4.22.3", models.ClusterNetworkTypeCilium, "Cilium CNI is not supported on OpenShift 4.22.3 (version 4.22 and later are not supported)"),
+		)
 
 		})
 	})
@@ -1655,12 +1670,24 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 	)
 
 	Context("Test Third-Party CNI Features", func() {
-		It("all third-party CNIs return Supported", func() {
+		It("all third-party CNIs return Supported when no version filter", func() {
 			filters := SupportLevelFilters{}
 			Expect(GetSupportLevel(models.FeatureSupportLevelIDCILIUMNETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
 			Expect(GetSupportLevel(models.FeatureSupportLevelIDCALICONETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
 			Expect(GetSupportLevel(models.FeatureSupportLevelIDCISCOACINETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
 			Expect(GetSupportLevel(models.FeatureSupportLevelIDNONENETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+		})
+
+		It("Cilium supported on versions before 4.22", func() {
+			filters := SupportLevelFilters{OpenshiftVersion: "4.21"}
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCILIUMNETWORKTYPE, filters)).To(Equal(models.SupportLevelSupported))
+		})
+
+		It("Cilium unavailable on version 4.22 and later", func() {
+			filters := SupportLevelFilters{OpenshiftVersion: "4.22"}
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCILIUMNETWORKTYPE, filters)).To(Equal(models.SupportLevelUnavailable))
+			filters.OpenshiftVersion = "4.23"
+			Expect(GetSupportLevel(models.FeatureSupportLevelIDCILIUMNETWORKTYPE, filters)).To(Equal(models.SupportLevelUnavailable))
 		})
 
 		DescribeTable("test CNI incompatibilities - each CNI is incompatible with others",
