@@ -1215,6 +1215,60 @@ var _ = Describe("ValidateClusterUpdateVIPAddresses - partial network updates", 
 	})
 })
 
+var _ = Describe("ValidateDualStackNetworks", func() {
+	machineNetworks := []*models.MachineNetwork{
+		{Cidr: "10.32.96.0/20"},
+		{Cidr: "172.16.10.0/24"},
+	}
+
+	It("rejects multiple machine networks for single-stack non-arbiter clusters", func() {
+		err := ValidateDualStackNetworks(
+			&models.V2ClusterUpdateParams{MachineNetworks: machineNetworks},
+			false,
+			false,
+			"4.20.0",
+			false,
+		)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(Equal("Single-stack cluster cannot contain multiple Machine Networks"))
+	})
+
+	It("allows multiple machine networks for single-stack arbiter clusters", func() {
+		err := ValidateDualStackNetworks(
+			&models.V2ClusterUpdateParams{MachineNetworks: machineNetworks},
+			false,
+			false,
+			"4.20.0",
+			true,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("allows multiple machine networks for user-managed load balancer without arbiter topology", func() {
+		err := ValidateDualStackNetworks(
+			&models.V2ClusterUpdateParams{MachineNetworks: machineNetworks},
+			false,
+			true,
+			"4.20.0",
+			false,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("allows a single machine network for non-arbiter clusters", func() {
+		err := ValidateDualStackNetworks(
+			&models.V2ClusterUpdateParams{
+				MachineNetworks: []*models.MachineNetwork{{Cidr: "10.32.96.0/20"}},
+			},
+			false,
+			false,
+			"4.20.0",
+			false,
+		)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")
