@@ -169,6 +169,10 @@ func (a *AgentValidatingAdmissionHook) validateCreate(admissionSpec *admissionv1
 		}
 	}
 
+	if resp := validateAgentNamespaceRefs(contextLogger, newObject, admissionSpec.Namespace); resp != nil {
+		return resp
+	}
+
 	contextLogger.Info("Successful validation")
 	return &admissionv1.AdmissionResponse{
 		Allowed: true,
@@ -226,6 +230,10 @@ func (a *AgentValidatingAdmissionHook) validateUpdate(admissionSpec *admissionv1
 		}
 	}
 
+	if resp := validateAgentNamespaceRefs(contextLogger, newObject, admissionSpec.Namespace); resp != nil {
+		return resp
+	}
+
 	if !areClusterRefsEqual(oldObject.Spec.ClusterDeploymentName, newObject.Spec.ClusterDeploymentName) {
 		if !isClusterRefChangeAllowed(newObject.Spec.ClusterDeploymentName, newObject.Status.DebugInfo.State, newObject.Status.Kind) {
 			// Fail validation only if the Cluster Deployment is changed to a different cluster or if the host is not day-2
@@ -266,4 +274,34 @@ func isClusterRefChangeAllowed(clusterRef *v1beta1.ClusterReference, currentStat
 	}
 
 	return hostKind == models.HostKindAddToExistingClusterHost && clusterRef == nil
+}
+
+func validateAgentNamespaceRefs(contextLogger *log.Entry, agent *v1beta1.Agent, agentNamespace string) *admissionv1.AdmissionResponse {
+	if ref := agent.Spec.ClusterDeploymentName; ref != nil {
+		if ref.Namespace != "" && ref.Namespace != agentNamespace {
+			message := "Spec.ClusterDeploymentName.Namespace must match the Agent namespace"
+			contextLogger.Infof("Failed validation: %v", message)
+			return &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+					Message: message,
+				},
+			}
+		}
+	}
+	if ref := agent.Spec.IgnitionEndpointTokenReference; ref != nil {
+		if ref.Namespace != "" && ref.Namespace != agentNamespace {
+			message := "Spec.IgnitionEndpointTokenReference.Namespace must match the Agent namespace"
+			contextLogger.Infof("Failed validation: %v", message)
+			return &admissionv1.AdmissionResponse{
+				Allowed: false,
+				Result: &metav1.Status{
+					Status: metav1.StatusFailure, Code: http.StatusBadRequest, Reason: metav1.StatusReasonBadRequest,
+					Message: message,
+				},
+			}
+		}
+	}
+	return nil
 }
