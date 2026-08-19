@@ -290,7 +290,7 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("handles label keys with slashes and dots", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{
-					"app.kubernetes.io/part-of":  "my-app",
+					"app.kubernetes.io/part-of": "my-app",
 					"node.openshift.io/os_id":   "rhcos",
 					"failure-domain.beta/zone":  "us-east-1a",
 				},

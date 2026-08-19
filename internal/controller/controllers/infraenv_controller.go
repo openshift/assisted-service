@@ -96,7 +96,6 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=nmstateconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;patch
 
 func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	ctx := addRequestIdIfNeeded(origCtx)
