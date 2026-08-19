@@ -262,4 +262,4 @@ replace (
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
 
-replace golang.org/x/crypto => github.com/openshift-sustaining/crypto v0.33.0-sec.4
+replace golang.org/x/crypto => golang.org/x/crypto v0.23.0
