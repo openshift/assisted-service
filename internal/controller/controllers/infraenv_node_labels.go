@@ -58,13 +58,21 @@ func parseCommaSeparatedKeys(value string) []string {
 // getPropagationKeys reads the propagate-node-labels annotation from InfraEnv and returns
 // the list of label keys that should be propagated to Agent.spec.nodeLabels.
 func getPropagationKeys(infraEnv *aiv1beta1.InfraEnv) []string {
-	return parseCommaSeparatedKeys(infraEnv.GetAnnotations()[propagateNodeLabelsAnnotation])
+	annotations := infraEnv.GetAnnotations()
+	if annotations == nil {
+		return nil
+	}
+	return parseCommaSeparatedKeys(annotations[propagateNodeLabelsAnnotation])
 }
 
 // getInheritedKeys reads the inheritedNodeLabelsAnnotation from the Agent and returns
 // the list of label keys that were inherited from InfraEnv.
 func getInheritedKeys(agent *aiv1beta1.Agent) []string {
-	return parseCommaSeparatedKeys(agent.GetAnnotations()[inheritedNodeLabelsAnnotation])
+	annotations := agent.GetAnnotations()
+	if annotations == nil {
+		return nil
+	}
+	return parseCommaSeparatedKeys(annotations[inheritedNodeLabelsAnnotation])
 }
 
 // reconcileAgentNodeLabels merges inherited labels into Agent.spec.nodeLabels, preserving
