@@ -474,7 +474,7 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 		agent := &agents.Items[i]
 		patch := client.MergeFrom(agent.DeepCopy())
 
-		if PropagateInfraEnvNodeLabels(log, infraEnv, agent) {
+		if propagateInfraEnvNodeLabels(log, infraEnv, agent) {
 			if err := r.Patch(ctx, agent, patch); err != nil {
 				log.WithError(err).Errorf("failed to patch Agent %s/%s with propagated node labels",
 					agent.Namespace, agent.Name)

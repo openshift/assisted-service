@@ -246,11 +246,11 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("propagates labels with empty string values", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "", "zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", ""))
@@ -260,16 +260,16 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("handles duplicate keys in propagation annotation", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone,site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone,site"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
 			Expect(agent.Spec.NodeLabels["zone"]).To(Equal("zone-1"))
-			inherited := agent.GetAnnotations()[InheritedNodeLabelsAnnotation]
+			inherited := agent.GetAnnotations()[inheritedNodeLabelsAnnotation]
 			Expect(strings.Count(inherited, "site")).To(Equal(1), "inherited annotation should not contain duplicate keys")
 		})
 
@@ -277,11 +277,11 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 			longKey := strings.Repeat("a", 253)
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{longKey: "value"},
-				map[string]string{PropagateNodeLabelsAnnotation: longKey},
+				map[string]string{propagateNodeLabelsAnnotation: longKey},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue(longKey, "value"))
@@ -294,11 +294,11 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 					"node.openshift.io/os_id":   "rhcos",
 					"failure-domain.beta/zone":  "us-east-1a",
 				},
-				map[string]string{PropagateNodeLabelsAnnotation: "app.kubernetes.io/part-of,node.openshift.io/os_id,failure-domain.beta/zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "app.kubernetes.io/part-of,node.openshift.io/os_id,failure-domain.beta/zone"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["app.kubernetes.io/part-of"]).To(Equal("my-app"))
@@ -309,14 +309,14 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("self-heals when inherited annotation exists but nodeLabels are missing", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			agent := newAgentForLabels(
 				nil,
-				map[string]string{InheritedNodeLabelsAnnotation: "site,zone"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site,zone"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
@@ -326,11 +326,11 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("handles InfraEnv with nil labels map but propagation annotation set", func() {
 			infraEnv := newInfraEnvForLabels(
 				nil,
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeFalse())
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
@@ -339,11 +339,11 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("handles annotation value with only commas", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: ",,,,"},
+				map[string]string{propagateNodeLabelsAnnotation: ",,,,"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeFalse())
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
@@ -352,19 +352,19 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 		It("removes inherited label when key is removed from InfraEnv labels but still in propagation list", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{InheritedNodeLabelsAnnotation: "site,zone"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site,zone"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("site"))
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "zone-1"))
-			inherited := agent.GetAnnotations()[InheritedNodeLabelsAnnotation]
+			inherited := agent.GetAnnotations()[inheritedNodeLabelsAnnotation]
 			Expect(inherited).To(Equal("zone"))
 		})
 	})

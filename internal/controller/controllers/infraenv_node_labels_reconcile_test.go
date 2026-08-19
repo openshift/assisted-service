@@ -77,7 +77,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("propagates labels to all Agents belonging to InfraEnv", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			createAgent("agent-1", nil, nil)
 			createAgent("agent-2", nil, nil)
@@ -97,7 +97,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("updates labels when InfraEnv label values change", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -121,7 +121,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("removes inherited labels when propagation annotation is removed", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -132,7 +132,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", "nyc"))
 
 			// Remove the propagation annotation
-			delete(infraEnv.Annotations, PropagateNodeLabelsAnnotation)
+			delete(infraEnv.Annotations, propagateNodeLabelsAnnotation)
 			Expect(c.Update(ctx, infraEnv)).To(Succeed())
 
 			err = ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
@@ -140,13 +140,13 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 
 			agent = getAgent("agent-1")
 			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("site"))
-			Expect(agent.GetAnnotations()).NotTo(HaveKey(InheritedNodeLabelsAnnotation))
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
 
 		It("does not modify Agents from different InfraEnvs", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-in-scope", nil, nil)
 
@@ -175,7 +175,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("preserves user-set labels on conflict", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-1", map[string]string{"site": "user-custom-site"}, nil)
 
@@ -189,7 +189,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("is idempotent on repeated reconciliation", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -219,7 +219,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("handles adding new keys to propagation list", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a", "region": "us-east"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -231,7 +231,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("zone"))
 
 			// Expand propagation list
-			infraEnv.Annotations[PropagateNodeLabelsAnnotation] = "site,zone,region"
+			infraEnv.Annotations[propagateNodeLabelsAnnotation] = "site,zone,region"
 			Expect(c.Update(ctx, infraEnv)).To(Succeed())
 
 			err = ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
@@ -246,7 +246,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("handles shrinking the propagation list", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a", "region": "us-east"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone,region"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone,region"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -257,7 +257,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			Expect(agent.Spec.NodeLabels).To(HaveLen(3))
 
 			// Shrink propagation list
-			infraEnv.Annotations[PropagateNodeLabelsAnnotation] = "site"
+			infraEnv.Annotations[propagateNodeLabelsAnnotation] = "site"
 			Expect(c.Update(ctx, infraEnv)).To(Succeed())
 
 			err = ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
@@ -272,7 +272,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("handles many agents efficiently", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			for i := 0; i < 10; i++ {
 				id := strfmt.UUID(uuid.New().String())
@@ -309,7 +309,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("does not overwrite after user takes ownership of previously inherited label", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -322,7 +322,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 
 			// User manually overrides the label on the Agent
 			agent.Spec.NodeLabels["site"] = "user-override"
-			delete(agent.GetAnnotations(), InheritedNodeLabelsAnnotation)
+			delete(agent.GetAnnotations(), inheritedNodeLabelsAnnotation)
 			Expect(c.Update(ctx, agent)).To(Succeed())
 
 			// Second reconcile: should NOT overwrite user's value
@@ -336,12 +336,12 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("handles stale inherited annotation from a different InfraEnv", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			// Agent has a stale inherited annotation with a key this InfraEnv doesn't propagate
 			createAgent("agent-1",
 				map[string]string{"region": "eu-west", "site": "old-site"},
-				map[string]string{InheritedNodeLabelsAnnotation: "region,site"},
+				map[string]string{inheritedNodeLabelsAnnotation: "region,site"},
 			)
 
 			err := ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
@@ -357,7 +357,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("handles last-write-wins on sequential reconciliations with different states", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -372,7 +372,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			// Simulate a different state: labels changed, propagation list shrunk
 			infraEnv.Labels["site"] = "chicago"
 			delete(infraEnv.Labels, "zone")
-			infraEnv.Annotations[PropagateNodeLabelsAnnotation] = "site"
+			infraEnv.Annotations[propagateNodeLabelsAnnotation] = "site"
 			Expect(c.Update(ctx, infraEnv)).To(Succeed())
 
 			// Second reconcile with new state
@@ -387,7 +387,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 		It("cleanly removes all inherited labels leaving nodeLabels empty", func() {
 			infraEnv = createInfraEnv(
 				map[string]string{"site": "nyc", "zone": "us-east-1a", "region": "us-east", "rack": "r42", "building": "dc-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone,region,rack,building"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone,region,rack,building"},
 			)
 			createAgent("agent-1", nil, nil)
 
@@ -399,7 +399,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			Expect(agent.Spec.NodeLabels).To(HaveLen(5))
 
 			// Remove propagation annotation entirely
-			delete(infraEnv.Annotations, PropagateNodeLabelsAnnotation)
+			delete(infraEnv.Annotations, propagateNodeLabelsAnnotation)
 			Expect(c.Update(ctx, infraEnv)).To(Succeed())
 
 			// Second reconcile: all inherited labels removed
@@ -408,7 +408,7 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 
 			agent = getAgent("agent-1")
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
-			Expect(agent.GetAnnotations()).NotTo(HaveKey(InheritedNodeLabelsAnnotation))
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
 	})
 })
