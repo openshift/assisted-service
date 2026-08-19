@@ -8,7 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-var _ = Describe("PropagateInfraEnvNodeLabels", func() {
+var _ = Describe("propagateInfraEnvNodeLabels", func() {
 	var log logrus.FieldLogger
 
 	BeforeEach(func() {
@@ -23,7 +23,7 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeFalse())
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
@@ -36,15 +36,15 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "site-a", "custom": "keep-me"},
-				map[string]string{InheritedNodeLabelsAnnotation: "site"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("site"))
 			Expect(agent.Spec.NodeLabels["custom"]).To(Equal("keep-me"))
-			Expect(agent.GetAnnotations()).NotTo(HaveKey(InheritedNodeLabelsAnnotation))
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
 	})
 
@@ -52,11 +52,11 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("does not propagate any labels", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: ""},
+				map[string]string{propagateNodeLabelsAnnotation: ""},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeFalse())
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
@@ -67,18 +67,18 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("propagates only designated labels to Agent.spec.nodeLabels", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1", "internal": "do-not-propagate"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", "site-a"))
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "zone-1"))
 			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("internal"))
 
-			inherited := agent.GetAnnotations()[InheritedNodeLabelsAnnotation]
+			inherited := agent.GetAnnotations()[inheritedNodeLabelsAnnotation]
 			Expect(inherited).To(ContainSubstring("site"))
 			Expect(inherited).To(ContainSubstring("zone"))
 		})
@@ -86,14 +86,14 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("preserves existing user-set nodeLabels", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"custom-label": "user-value"},
 				nil,
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
@@ -103,31 +103,31 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("does not overwrite user-set labels on conflict", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "user-site-b"},
 				nil,
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("user-site-b"))
 			Expect(modified).To(BeFalse())
-			Expect(agent.GetAnnotations()).NotTo(HaveKey(InheritedNodeLabelsAnnotation))
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
 
 		It("updates inherited labels when InfraEnv value changes", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-b"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{InheritedNodeLabelsAnnotation: "site"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-b"))
@@ -136,14 +136,14 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("removes labels dropped from propagation list", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{InheritedNodeLabelsAnnotation: "site,zone"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site,zone"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", "site-a"))
@@ -153,11 +153,11 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("skips label keys not present on InfraEnv", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,missing-key"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,missing-key"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
@@ -167,11 +167,11 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("handles whitespace in annotation values", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1"},
-				map[string]string{PropagateNodeLabelsAnnotation: " site , zone "},
+				map[string]string{propagateNodeLabelsAnnotation: " site , zone "},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
@@ -181,14 +181,14 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("is idempotent when no changes needed", func() {
 			infraEnv := newInfraEnvForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1", "region": "us-east"},
-				map[string]string{PropagateNodeLabelsAnnotation: "site,zone,region"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone,region"},
 			)
 			agent := newAgentForLabels(
 				map[string]string{"site": "site-a", "zone": "zone-1", "region": "us-east"},
-				map[string]string{InheritedNodeLabelsAnnotation: "region,site,zone"},
+				map[string]string{inheritedNodeLabelsAnnotation: "region,site,zone"},
 			)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeFalse())
 			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
@@ -203,11 +203,11 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 					"topology.kubernetes.io/region": "us-east-1",
 					"site":                          "nyc-dc1",
 				},
-				map[string]string{PropagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,topology.kubernetes.io/region,site"},
+				map[string]string{propagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,topology.kubernetes.io/region,site"},
 			)
 			agent := newAgentForLabels(nil, nil)
 
-			modified := PropagateInfraEnvNodeLabels(log, infraEnv, agent)
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
 
 			Expect(modified).To(BeTrue())
 			Expect(agent.Spec.NodeLabels["topology.kubernetes.io/zone"]).To(Equal("us-east-1a"))
@@ -220,18 +220,18 @@ var _ = Describe("PropagateInfraEnvNodeLabels", func() {
 		It("propagates different labels from different InfraEnvs to different agents", func() {
 			infraEnvA := newInfraEnvForLabels(
 				map[string]string{"topology.kubernetes.io/zone": "zone-a", "site": "site-a"},
-				map[string]string{PropagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,site"},
+				map[string]string{propagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,site"},
 			)
 			infraEnvB := newInfraEnvForLabels(
 				map[string]string{"topology.kubernetes.io/zone": "zone-b", "site": "site-b"},
-				map[string]string{PropagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,site"},
+				map[string]string{propagateNodeLabelsAnnotation: "topology.kubernetes.io/zone,site"},
 			)
 
 			agentA := newAgentForLabels(nil, nil)
 			agentB := newAgentForLabels(nil, nil)
 
-			PropagateInfraEnvNodeLabels(log, infraEnvA, agentA)
-			PropagateInfraEnvNodeLabels(log, infraEnvB, agentB)
+			propagateInfraEnvNodeLabels(log, infraEnvA, agentA)
+			propagateInfraEnvNodeLabels(log, infraEnvB, agentB)
 
 			Expect(agentA.Spec.NodeLabels["site"]).To(Equal("site-a"))
 			Expect(agentA.Spec.NodeLabels["topology.kubernetes.io/zone"]).To(Equal("zone-a"))
@@ -248,27 +248,27 @@ var _ = Describe("getPropagationKeys", func() {
 	})
 
 	It("returns nil for empty annotation", func() {
-		infraEnv := newInfraEnvForLabels(nil, map[string]string{PropagateNodeLabelsAnnotation: ""})
+		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: ""})
 		Expect(getPropagationKeys(infraEnv)).To(BeNil())
 	})
 
 	It("returns nil for whitespace-only annotation", func() {
-		infraEnv := newInfraEnvForLabels(nil, map[string]string{PropagateNodeLabelsAnnotation: "  "})
+		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: "  "})
 		Expect(getPropagationKeys(infraEnv)).To(BeNil())
 	})
 
 	It("parses a single key", func() {
-		infraEnv := newInfraEnvForLabels(nil, map[string]string{PropagateNodeLabelsAnnotation: "site"})
+		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: "site"})
 		Expect(getPropagationKeys(infraEnv)).To(Equal([]string{"site"}))
 	})
 
 	It("parses multiple keys with whitespace", func() {
-		infraEnv := newInfraEnvForLabels(nil, map[string]string{PropagateNodeLabelsAnnotation: " site , zone , region "})
+		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: " site , zone , region "})
 		Expect(getPropagationKeys(infraEnv)).To(Equal([]string{"site", "zone", "region"}))
 	})
 
 	It("handles trailing comma", func() {
-		infraEnv := newInfraEnvForLabels(nil, map[string]string{PropagateNodeLabelsAnnotation: "site,zone,"})
+		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: "site,zone,"})
 		Expect(getPropagationKeys(infraEnv)).To(Equal([]string{"site", "zone"}))
 	})
 })

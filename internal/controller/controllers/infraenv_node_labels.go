@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"slices"
 	"sort"
 	"strings"
 
@@ -8,13 +9,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// PropagateInfraEnvNodeLabels copies designated labels from an InfraEnv into an Agent's
+// propagateInfraEnvNodeLabels copies designated labels from an InfraEnv into an Agent's
 // spec.nodeLabels, following the same pattern as InfraEnv.spec.agentLabels → Agent metadata.
-// The propagation is opt-in via the PropagateNodeLabelsAnnotation on InfraEnv, which contains
+// The propagation is opt-in via the propagateNodeLabelsAnnotation on InfraEnv, which contains
 // a comma-separated list of label keys to propagate.
 //
 // Returns true if any change was made to agent.Spec.NodeLabels.
-func PropagateInfraEnvNodeLabels(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, agent *aiv1beta1.Agent) bool {
+func propagateInfraEnvNodeLabels(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, agent *aiv1beta1.Agent) bool {
 	propagateKeys := getPropagationKeys(infraEnv)
 	if len(propagateKeys) == 0 {
 		return removeAllInheritedNodeLabels(agent)
@@ -35,32 +36,39 @@ func PropagateInfraEnvNodeLabels(log logrus.FieldLogger, infraEnv *aiv1beta1.Inf
 	return reconcileAgentNodeLabels(log, agent, desiredInherited)
 }
 
-// getPropagationKeys reads the propagate-node-labels annotation from InfraEnv and returns
-// the list of label keys that should be propagated to Agent.spec.nodeLabels.
-func getPropagationKeys(infraEnv *aiv1beta1.InfraEnv) []string {
-	annotations := infraEnv.GetAnnotations()
-	if annotations == nil {
+// parseCommaSeparatedKeys splits a comma-separated annotation value into trimmed,
+// non-empty keys. Returns nil for empty or whitespace-only input.
+func parseCommaSeparatedKeys(value string) []string {
+	if strings.TrimSpace(value) == "" {
 		return nil
 	}
-
-	value, exists := annotations[PropagateNodeLabelsAnnotation]
-	if !exists || strings.TrimSpace(value) == "" {
-		return nil
-	}
-
 	rawKeys := strings.Split(value, ",")
 	keys := make([]string, 0, len(rawKeys))
 	for _, k := range rawKeys {
-		trimmed := strings.TrimSpace(k)
-		if trimmed != "" {
+		if trimmed := strings.TrimSpace(k); trimmed != "" {
 			keys = append(keys, trimmed)
 		}
+	}
+	if len(keys) == 0 {
+		return nil
 	}
 	return keys
 }
 
+// getPropagationKeys reads the propagate-node-labels annotation from InfraEnv and returns
+// the list of label keys that should be propagated to Agent.spec.nodeLabels.
+func getPropagationKeys(infraEnv *aiv1beta1.InfraEnv) []string {
+	return parseCommaSeparatedKeys(infraEnv.GetAnnotations()[propagateNodeLabelsAnnotation])
+}
+
+// getInheritedKeys reads the inheritedNodeLabelsAnnotation from the Agent and returns
+// the list of label keys that were inherited from InfraEnv.
+func getInheritedKeys(agent *aiv1beta1.Agent) []string {
+	return parseCommaSeparatedKeys(agent.GetAnnotations()[inheritedNodeLabelsAnnotation])
+}
+
 // reconcileAgentNodeLabels merges inherited labels into Agent.spec.nodeLabels, preserving
-// user-set labels. Tracks inherited keys via the InheritedNodeLabelsAnnotation on the Agent.
+// user-set labels. Tracks inherited keys via the inheritedNodeLabelsAnnotation on the Agent.
 // Returns true if the agent was modified.
 func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, desiredInherited map[string]string) bool {
 	currentNodeLabels := agent.Spec.NodeLabels
@@ -70,7 +78,7 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 
 	previouslyInherited := getInheritedKeys(agent)
 	modified := false
-	actuallyInherited := make(map[string]string)
+	var actuallyInherited []string
 
 	// Remove previously inherited labels that are no longer in the desired set
 	for _, key := range previouslyInherited {
@@ -88,20 +96,19 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 		if !exists {
 			currentNodeLabels[key] = value
 			modified = true
-			actuallyInherited[key] = value
+			actuallyInherited = append(actuallyInherited, key)
 		} else if existingValue != value {
-			if isInheritedKey(previouslyInherited, key) {
+			if slices.Contains(previouslyInherited, key) {
 				currentNodeLabels[key] = value
 				modified = true
-				actuallyInherited[key] = value
+				actuallyInherited = append(actuallyInherited, key)
 			} else {
 				log.Warnf("InfraEnv label key %q conflicts with user-set nodeLabel on Agent %s/%s; keeping user value",
 					key, agent.Namespace, agent.Name)
 			}
 		} else {
-			// Value matches — track as inherited if it was previously inherited
-			if isInheritedKey(previouslyInherited, key) {
-				actuallyInherited[key] = value
+			if slices.Contains(previouslyInherited, key) {
+				actuallyInherited = append(actuallyInherited, key)
 			}
 		}
 	}
@@ -110,7 +117,6 @@ func reconcileAgentNodeLabels(log logrus.FieldLogger, agent *aiv1beta1.Agent, de
 		agent.Spec.NodeLabels = currentNodeLabels
 	}
 
-	// Update the tracking annotation with only controller-owned keys
 	newInheritedAnnotation := buildInheritedAnnotation(actuallyInherited)
 	annotationModified := setInheritedAnnotation(agent, newInheritedAnnotation)
 
@@ -146,49 +152,12 @@ func removeAllInheritedNodeLabels(agent *aiv1beta1.Agent) bool {
 	return modified || annotationModified
 }
 
-// getInheritedKeys reads the InheritedNodeLabelsAnnotation from the Agent and returns
-// the list of label keys that were inherited from InfraEnv.
-func getInheritedKeys(agent *aiv1beta1.Agent) []string {
-	annotations := agent.GetAnnotations()
-	if annotations == nil {
-		return nil
-	}
-
-	value, exists := annotations[InheritedNodeLabelsAnnotation]
-	if !exists || strings.TrimSpace(value) == "" {
-		return nil
-	}
-
-	rawKeys := strings.Split(value, ",")
-	keys := make([]string, 0, len(rawKeys))
-	for _, k := range rawKeys {
-		trimmed := strings.TrimSpace(k)
-		if trimmed != "" {
-			keys = append(keys, trimmed)
-		}
-	}
-	return keys
-}
-
-func isInheritedKey(inheritedKeys []string, key string) bool {
-	for _, k := range inheritedKeys {
-		if k == key {
-			return true
-		}
-	}
-	return false
-}
-
-func buildInheritedAnnotation(desiredInherited map[string]string) string {
-	if len(desiredInherited) == 0 {
+func buildInheritedAnnotation(inherited []string) string {
+	if len(inherited) == 0 {
 		return ""
 	}
-	keys := make([]string, 0, len(desiredInherited))
-	for k := range desiredInherited {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-	return strings.Join(keys, ",")
+	sort.Strings(inherited)
+	return strings.Join(inherited, ",")
 }
 
 func setInheritedAnnotation(agent *aiv1beta1.Agent, value string) bool {
@@ -197,7 +166,7 @@ func setInheritedAnnotation(agent *aiv1beta1.Agent, value string) bool {
 		annotations = make(map[string]string)
 	}
 
-	existing, exists := annotations[InheritedNodeLabelsAnnotation]
+	existing, exists := annotations[inheritedNodeLabelsAnnotation]
 	if exists && existing == value {
 		return false
 	}
@@ -206,9 +175,9 @@ func setInheritedAnnotation(agent *aiv1beta1.Agent, value string) bool {
 		if !exists {
 			return false
 		}
-		delete(annotations, InheritedNodeLabelsAnnotation)
+		delete(annotations, inheritedNodeLabelsAnnotation)
 	} else {
-		annotations[InheritedNodeLabelsAnnotation] = value
+		annotations[inheritedNodeLabelsAnnotation] = value
 	}
 	agent.SetAnnotations(annotations)
 	return true
