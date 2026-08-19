@@ -214,9 +214,9 @@ spec:
     version: 9.8.20260428-0
   - cpuArchitecture: ppc64le
     openshiftVersion: '5.0'
-    url: https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-ppc64le-live-iso.ppc64le.iso
+    url: https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.0.0-ec.6/rhcos-5.0.0-ec.6-ppc64le-live-iso.ppc64le.iso
     version: 9.8.20260428-0
   - cpuArchitecture: s390x
     openshiftVersion: '5.0'
-    url: https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-s390x-live-iso.s390x.iso
+    url: https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.0.0-ec.6/rhcos-5.0.0-ec.6-s390x-live-iso.s390x.iso
     version: 9.8.20260428-0
