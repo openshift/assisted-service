@@ -114,6 +114,19 @@ var _ = Describe("URL building", func() {
 	})
 
 	It("successfully builds all boot artifact URLs", func() {
+		rhcosVersion := "410.84.202201251210-0"
+		osImage := models.OsImage{CPUArchitecture: &arch, OpenshiftVersion: &version, Version: &rhcosVersion}
+		bootArtifacts, err := GetBootArtifactURLs(baseURL, id, &osImage, false)
+		Expect(err).To(BeNil())
+
+		scheme := "https"
+		host := "image-service.example.com"
+		checkURL(bootArtifacts.KernelURL, scheme, host, "/v3/boot-artifacts/kernel", rhcosVersion, arch)
+		checkURL(bootArtifacts.RootFSURL, scheme, host, "/v3/boot-artifacts/rootfs", rhcosVersion, arch)
+		checkURL(bootArtifacts.InitrdURL, scheme, host, fmt.Sprintf("/v3/images/%s/pxe-initrd", id), rhcosVersion, arch)
+	})
+
+	It("falls back to OpenShift version when RHCOS version is unavailable", func() {
 		osImage := models.OsImage{CPUArchitecture: &arch, OpenshiftVersion: &version}
 		bootArtifacts, err := GetBootArtifactURLs(baseURL, id, &osImage, false)
 		Expect(err).To(BeNil())

@@ -9342,7 +9342,7 @@ func init() {
           "type": "string"
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string"
         },
         "org_id": {
@@ -9458,7 +9458,7 @@ func init() {
           "x-nullable": true
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string"
         },
         "proxy": {
@@ -9529,7 +9529,7 @@ func init() {
           "x-nullable": true
         },
         "openshift_version": {
-          "description": "Version of the OS image",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string",
           "x-nullable": true
         },
@@ -21109,7 +21109,7 @@ func init() {
           "type": "string"
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string"
         },
         "org_id": {
@@ -21227,7 +21227,7 @@ func init() {
           "x-nullable": true
         },
         "openshift_version": {
-          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string"
         },
         "proxy": {
@@ -21299,7 +21299,7 @@ func init() {
           "x-nullable": true
         },
         "openshift_version": {
-          "description": "Version of the OS image",
+          "description": "Version of the OS image (either the RHCOS version or the OpenShift version).",
           "type": "string",
           "x-nullable": true
         },

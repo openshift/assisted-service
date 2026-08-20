@@ -78,7 +78,7 @@ type InstructionConfig struct {
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler eventsapi.Handler,
-	versionHandler versions.Handler, osImages versions.OSImages, kubeApiEnabled bool) *InstructionManager {
+	versionHandler versions.Handler, osImageResolver versions.OsImageResolver, kubeApiEnabled bool) *InstructionManager {
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler, instructionConfig.EnableSkipMcoReboot, !kubeApiEnabled)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentInventoryMaxSize, instructionConfig.AgentInventoryDiskMinSize)
@@ -94,7 +94,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	domainNameResolutionCmd := NewDomainNameResolutionCmd(log, instructionConfig.AgentImage, versionHandler, db)
 	noopCmd := NewNoopCmd()
 	upgradeAgentCmd := NewUpgradeAgentCmd(instructionConfig.AgentImage)
-	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, osImages, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir)
+	downloadBootArtifactsCmd := NewDownloadBootArtifactsCmd(log, instructionConfig.ImageServiceBaseURL, instructionConfig.AuthType, osImageResolver, db, instructionConfig.ImageExpirationTime, instructionConfig.HostFSMountDir)
 	rebootForReclaimCmd := NewRebootForReclaimCmd(log, instructionConfig.HostFSMountDir)
 	verifyVipsCmd := newVerifyVipsCmd(log, db)
 

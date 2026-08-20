@@ -85,17 +85,3 @@ func (mr *MockHandlerMockRecorder) GetReleaseImageByURL(ctx, url, pullSecret any
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImageByURL", reflect.TypeOf((*MockHandler)(nil).GetReleaseImageByURL), ctx, url, pullSecret)
 }
-
-// ValidateReleaseImageForRHCOS mocks base method.
-func (m *MockHandler) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateReleaseImageForRHCOS", rhcosVersion, cpuArch)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ValidateReleaseImageForRHCOS indicates an expected call of ValidateReleaseImageForRHCOS.
-func (mr *MockHandlerMockRecorder) ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateReleaseImageForRHCOS", reflect.TypeOf((*MockHandler)(nil).ValidateReleaseImageForRHCOS), rhcosVersion, cpuArch)
-}

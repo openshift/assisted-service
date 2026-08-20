@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -77,7 +78,13 @@ func ShortImageURL(baseURL string, prefix ShortImageURLPrefix, token, version, a
 }
 
 func GetBootArtifactURLs(baseURL, imageID string, osImage *models.OsImage, insecure bool) (*BootArtifactURLs, error) {
-	version := *osImage.OpenshiftVersion
+	version, err := versions.OsImageVersion(osImage)
+	if err != nil {
+		return nil, err
+	}
+	if osImage.CPUArchitecture == nil {
+		return nil, errors.Errorf("OS image entry '%+v' missing CPUArchitecture field", osImage)
+	}
 	arch := *osImage.CPUArchitecture
 	kernelUrl, err := KernelURL(baseURL, version, arch, insecure)
 	if err != nil {
