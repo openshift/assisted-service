@@ -92,6 +92,8 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 			},
 		}
 
+		propagateInfraEnvNodeLabels(log, infraEnvCR, host)
+
 		if cluster != nil && cluster.KubeKeyNamespace != "" {
 			host.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{
 				Name:      cluster.KubeKeyName,
@@ -169,6 +171,7 @@ func (u *CRDUtils) updateExistingAgentCR(ctx context.Context, log logrus.FieldLo
 			UID:        infraEnvCR.UID,
 		},
 	}
+	propagateInfraEnvNodeLabels(log, infraEnvCR, host)
 	if err := patch.IfNeeded(ctx, u.client, host, p, log); err != nil {
 		return err
 	}
