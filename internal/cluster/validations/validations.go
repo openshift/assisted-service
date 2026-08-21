@@ -35,17 +35,10 @@ const (
 	clusterNameRegex                = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
 	CloudOpenShiftCom               = "cloud.openshift.com"
-	sshPublicKeyRegex               = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
 	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
 	IgnitionImageSizePadding = 256 * 1024
 )
-
-var regexpSshPublicKey *regexp.Regexp
-
-func init() {
-	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
-}
 
 // ValidateClusterNameFormat validates specified cluster name format
 func ValidateClusterNameFormat(name string, platform string) error {
@@ -85,19 +78,12 @@ func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
 }
 
 func ValidateSSHPublicKey(sshPublicKeys string) error {
-	if regexpSshPublicKey == nil {
-		return errors.New("Can't parse SSH keys.")
-	}
-
 	for _, sshPublicKey := range strings.Split(sshPublicKeys, "\n") {
 		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		keyBytes := []byte(sshPublicKey)
-		isMatched := regexpSshPublicKey.Match(keyBytes)
-		if !isMatched {
-			return errors.Errorf(
-				"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
-				sshPublicKey)
-		} else if _, _, _, _, err := ssh.ParseAuthorizedKey(keyBytes); err != nil {
+		if sshPublicKey == "" {
+			continue
+		}
+		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshPublicKey)); err != nil {
 			return errors.Wrapf(err, "Malformed SSH key: %s", sshPublicKey)
 		}
 	}
