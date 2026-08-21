@@ -125,6 +125,11 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 		return ctrl.Result{}, err
 	}
 
+	if err := r.reconcileNodeLabelPropagation(ctx, log, infraEnv); err != nil {
+		log.WithError(err).Error("failed to reconcile node label propagation, will retry")
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterPerRecoverableError}, nil
+	}
+
 	return r.reconcileInfraEnv(ctx, log, infraEnv)
 }
 
@@ -451,6 +456,39 @@ func (r *InfraEnvReconciler) reconcileInfraEnv(ctx context.Context, log logrus.F
 		return ctrl.Result{Requeue: requeue}, nil
 	}
 	return r.updateInfraEnvStatus(ctx, log, infraEnv, cluster)
+}
+
+// reconcileNodeLabelPropagation lists all Agents belonging to this InfraEnv and
+// propagates designated node labels from the InfraEnv to each Agent's spec.nodeLabels.
+// This ensures that label changes on the InfraEnv are continuously reflected on all
+// associated Agents, not only at Agent creation time.
+func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) error {
+	agents := &aiv1beta1.AgentList{}
+	if err := r.List(ctx, agents, client.InNamespace(infraEnv.Namespace),
+		client.MatchingLabels{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}); err != nil {
+		return errors.Wrapf(err, "failed to list Agents for InfraEnv %s/%s", infraEnv.Namespace, infraEnv.Name)
+	}
+
+	var patchErrors []error
+	for i := range agents.Items {
+		agent := &agents.Items[i]
+		patch := client.MergeFrom(agent.DeepCopy())
+
+		if propagateInfraEnvNodeLabels(log, infraEnv, agent) {
+			if err := r.Patch(ctx, agent, patch); err != nil {
+				log.WithError(err).Errorf("failed to patch Agent %s/%s with propagated node labels",
+					agent.Namespace, agent.Name)
+				patchErrors = append(patchErrors, err)
+				continue
+			}
+			log.Infof("propagated node labels to Agent %s/%s", agent.Namespace, agent.Name)
+		}
+	}
+
+	if len(patchErrors) > 0 {
+		return errors.Errorf("failed to patch %d Agent(s) during node label propagation", len(patchErrors))
+	}
+	return nil
 }
 
 func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
