@@ -264,6 +264,12 @@ spec:
                   (i.e. OSImageVersion should equal to an OpenshiftVersion in OSImages list).
                   Note: OSImageVersion can't be specified along with ClusterRef while creating an InfraEnv.
                 type: string
+              osStream:
+                description: |-
+                  OSStream is the OS stream to use when generating the InfraEnv (e.g. rhel-9, rhel-10).
+                  If unset and ClusterRef is set, the cluster's OS stream is used.
+                  Note: OSStream can't be specified along with ClusterRef while creating an InfraEnv.
+                type: string
               proxy:
                 description: |-
                   Proxy defines the proxy settings for agents and clusters that use the InfraEnv. If

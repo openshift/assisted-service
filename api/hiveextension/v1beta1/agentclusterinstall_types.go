@@ -236,6 +236,11 @@ type AgentClusterInstallSpec struct {
 	// LoadBalancer defines the load balancer used by the cluster for ingress traffic.
 	// +optional
 	LoadBalancer *LoadBalancer `json:"loadBalancer,omitempty"`
+
+	// OSStream is the OS stream to use for this cluster (e.g. rhel-9, rhel-10).
+	// If unset, the default OS stream for the OpenShift version is used.
+	// +optional
+	OSStream string `json:"osStream,omitempty"`
 }
 
 // IgnitionEndpoint stores the data to of the custom ignition endpoint.

@@ -1116,6 +1116,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 	// Trim key before comparing as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
+	updateString(clusterInstall.Spec.OSStream, cluster.OsStream, &params.OsStream)
 
 	if len(clusterInstall.Spec.NTPSources) > 0 {
 		ntpSources := strings.Join(clusterInstall.Spec.NTPSources, ",")
@@ -1554,6 +1555,7 @@ func CreateClusterParams(clusterDeployment *hivev1.ClusterDeployment, clusterIns
 		SchedulableMasters:    swag.Bool(clusterInstall.Spec.MastersSchedulable),
 		ControlPlaneCount:     swag.Int64(int64(clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents)),
 		OcpReleaseImage:       *releaseImage.URL,
+		OsStream:              clusterInstall.Spec.OSStream,
 	}
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {

@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -76,8 +77,27 @@ func ShortImageURL(baseURL string, prefix ShortImageURLPrefix, token, version, a
 	return buildURL(baseURL, path, false, map[string]string{})
 }
 
+// OsImageVersion returns the version string to use in image-service URLs.
+// Prefers the RHCOS build ID so multiple OS streams for the same OpenShift
+// version can be disambiguated.
+func OsImageVersion(osImage *models.OsImage) (string, error) {
+	if osImage == nil {
+		return "", errors.New("OS image is nil")
+	}
+	if v := swag.StringValue(osImage.Version); v != "" {
+		return v, nil
+	}
+	if v := swag.StringValue(osImage.OpenshiftVersion); v != "" {
+		return v, nil
+	}
+	return "", errors.Errorf("OS image entry '%+v' missing Version and OpenshiftVersion fields", osImage)
+}
+
 func GetBootArtifactURLs(baseURL, imageID string, osImage *models.OsImage, insecure bool) (*BootArtifactURLs, error) {
-	version := *osImage.OpenshiftVersion
+	version, err := OsImageVersion(osImage)
+	if err != nil {
+		return nil, err
+	}
 	arch := *osImage.CPUArchitecture
 	kernelUrl, err := KernelURL(baseURL, version, arch, insecure)
 	if err != nil {
