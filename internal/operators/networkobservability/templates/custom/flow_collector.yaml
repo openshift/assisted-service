@@ -1,0 +1,16 @@
+{{ if and .Config .Config.CreateFlowCollector }}
+apiVersion: flows.netobserv.io/v1beta2
+kind: FlowCollector
+metadata:
+  name: cluster
+  namespace: netobserv
+spec:
+  agent:
+    type: eBPF
+    ebpf:
+      sampling: {{ .Config.Sampling }}
+  loki:
+    enabled: false
+  exporters: []
+{{ end }}
+
