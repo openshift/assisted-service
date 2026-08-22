@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.39.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.41.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2866853
-    checksum: sha256:fb3b89778b21461f4f4610fbb3068e7a62d0b250cc7f5c243acfe50015aff179
+    size: 2872021
+    checksum: sha256:badc73a635a0552aa4d86eeaba804ccbbe811065e4fbbf3531fe1f9cf646fcd9
     name: kernel-headers
-    evr: 5.14.0-687.39.1.el9_8
-    sourcerpm: kernel-5.14.0-687.39.1.el9_8.src.rpm
+    evr: 5.14.0-687.41.1.el9_8
+    sourcerpm: kernel-5.14.0-687.41.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -865,20 +865,6 @@ arches:
     name: openssl
     evr: 1:3.5.5-6.el9_8
     sourcerpm: openssl-3.5.5-6.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssl-fips-provider-3.0.7-11.el9_8.aarch64.rpm
-    repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 14220
-    checksum: sha256:158193d2f965db318148ec76e9347b530ac1f5379d849012c0a04d3c50cda478
-    name: openssl-fips-provider
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssl-fips-provider-so-3.0.7-11.el9_8.aarch64.rpm
-    repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 529340
-    checksum: sha256:22374a51f8a529dcfcf3b3ebbb2095103e0e811a28953535e5a62e26d1233301
-    name: openssl-fips-provider-so
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssl-libs-3.5.5-6.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 2290581
@@ -1030,13 +1016,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.39.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.41.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2890621
-    checksum: sha256:0214763708cdc25b5a92387531ba51bca96f3094e30dc919d40813ba2c70f653
+    size: 2895853
+    checksum: sha256:77cd0483c762c111190ae1b006ec02cb176aba064c1846f733c7edf859eed410
     name: kernel-headers
-    evr: 5.14.0-687.39.1.el9_8
-    sourcerpm: kernel-5.14.0-687.39.1.el9_8.src.rpm
+    evr: 5.14.0-687.41.1.el9_8
+    sourcerpm: kernel-5.14.0-687.41.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -1793,20 +1779,6 @@ arches:
     name: openssl
     evr: 1:3.5.5-6.el9_8
     sourcerpm: openssl-3.5.5-6.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssl-fips-provider-3.0.7-11.el9_8.ppc64le.rpm
-    repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 14245
-    checksum: sha256:edbc6b74ad3ad2b54a2481da28f468b98b021132391e6691218f7cb0733b790a
-    name: openssl-fips-provider
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssl-fips-provider-so-3.0.7-11.el9_8.ppc64le.rpm
-    repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 583707
-    checksum: sha256:2961c20585a313054dcb6aaad5f10bdaa3b675839a530d0a79fbe71c942a3c22
-    name: openssl-fips-provider-so
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssl-libs-3.5.5-6.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 2553440
@@ -1965,13 +1937,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.39.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.41.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2896829
-    checksum: sha256:d709861af2dce7bface9aa0106f30694a80600ef047e627b4b4bcf0e79aea3c5
+    size: 2902017
+    checksum: sha256:5078b1c5b552c0f2f738e8aae65d87bac7d3060f4eaa028d3d6c31b69603b292
     name: kernel-headers
-    evr: 5.14.0-687.39.1.el9_8
-    sourcerpm: kernel-5.14.0-687.39.1.el9_8.src.rpm
+    evr: 5.14.0-687.41.1.el9_8
+    sourcerpm: kernel-5.14.0-687.41.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -2728,20 +2700,6 @@ arches:
     name: openssl
     evr: 1:3.5.5-6.el9_8
     sourcerpm: openssl-3.5.5-6.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssl-fips-provider-3.0.7-11.el9_8.s390x.rpm
-    repoid: rhel-9-for-s390x-baseos-rpms
-    size: 14236
-    checksum: sha256:54be1c06222de4835a90b6c56cdf8310891726a8a362c5d027772d91770df142
-    name: openssl-fips-provider
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssl-fips-provider-so-3.0.7-11.el9_8.s390x.rpm
-    repoid: rhel-9-for-s390x-baseos-rpms
-    size: 319647
-    checksum: sha256:3a865d8d32325c3ad20c65b5e821e0847d100780dd7e6447f9c204be5a36ef9f
-    name: openssl-fips-provider-so
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssl-libs-3.5.5-6.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 2028396
@@ -2900,13 +2858,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.39.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.41.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2906125
-    checksum: sha256:978a5d84f2c2e74a7ec915f71eea4dd5fb3a72a15fe9aea192cc47be32e7f671
+    size: 2911313
+    checksum: sha256:7fab4963bb2f80e238051586a6df2b0ffea787daf7ef59659ba8d0fa3648f46e
     name: kernel-headers
-    evr: 5.14.0-687.39.1.el9_8
-    sourcerpm: kernel-5.14.0-687.39.1.el9_8.src.rpm
+    evr: 5.14.0-687.41.1.el9_8
+    sourcerpm: kernel-5.14.0-687.41.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
@@ -3642,20 +3600,6 @@ arches:
     name: openssl
     evr: 1:3.5.5-6.el9_8
     sourcerpm: openssl-3.5.5-6.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssl-fips-provider-3.0.7-11.el9_8.x86_64.rpm
-    repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 14256
-    checksum: sha256:c00860e9c5a1d90488aa2eb65fe41f62926b38c6b3669d331a8b97e4a60223ac
-    name: openssl-fips-provider
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssl-fips-provider-so-3.0.7-11.el9_8.x86_64.rpm
-    repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 595008
-    checksum: sha256:60d36ad3a67d6b00e67bb0a19c0902fbb2ecdd873cf7f280a3039d04a092790c
-    name: openssl-fips-provider-so
-    evr: 3.0.7-11.el9_8
-    sourcerpm: openssl-fips-provider-3.0.7-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssl-libs-3.5.5-6.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 2427181
