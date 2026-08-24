@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
@@ -239,6 +241,133 @@ var _ = Describe("propagateInfraEnvNodeLabels", func() {
 			Expect(agentB.Spec.NodeLabels["topology.kubernetes.io/zone"]).To(Equal("zone-b"))
 		})
 	})
+
+	Context("corner cases and edge conditions", func() {
+		It("propagates labels with empty string values", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{"site": "", "zone": "zone-1"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("site", ""))
+			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "zone-1"))
+		})
+
+		It("handles duplicate keys in propagation annotation", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{"site": "site-a", "zone": "zone-1"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone,site"},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
+			Expect(agent.Spec.NodeLabels["zone"]).To(Equal("zone-1"))
+			inherited := agent.GetAnnotations()[inheritedNodeLabelsAnnotation]
+			Expect(strings.Count(inherited, "site")).To(Equal(1), "inherited annotation should not contain duplicate keys")
+		})
+
+		It("handles long label keys (253 chars)", func() {
+			longKey := strings.Repeat("a", 253)
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{longKey: "value"},
+				map[string]string{propagateNodeLabelsAnnotation: longKey},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue(longKey, "value"))
+		})
+
+		It("handles label keys with slashes and dots", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{
+					"app.kubernetes.io/part-of": "my-app",
+					"node.openshift.io/os_id":   "rhcos",
+					"failure-domain.beta/zone":  "us-east-1a",
+				},
+				map[string]string{propagateNodeLabelsAnnotation: "app.kubernetes.io/part-of,node.openshift.io/os_id,failure-domain.beta/zone"},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels["app.kubernetes.io/part-of"]).To(Equal("my-app"))
+			Expect(agent.Spec.NodeLabels["node.openshift.io/os_id"]).To(Equal("rhcos"))
+			Expect(agent.Spec.NodeLabels["failure-domain.beta/zone"]).To(Equal("us-east-1a"))
+		})
+
+		It("self-heals when inherited annotation exists but nodeLabels are missing", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{"site": "site-a", "zone": "zone-1"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
+			)
+			agent := newAgentForLabels(
+				nil,
+				map[string]string{inheritedNodeLabelsAnnotation: "site,zone"},
+			)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels["site"]).To(Equal("site-a"))
+			Expect(agent.Spec.NodeLabels["zone"]).To(Equal("zone-1"))
+		})
+
+		It("handles InfraEnv with nil labels map but propagation annotation set", func() {
+			infraEnv := newInfraEnvForLabels(
+				nil,
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeFalse())
+			Expect(agent.Spec.NodeLabels).To(BeEmpty())
+		})
+
+		It("handles annotation value with only commas", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{"site": "site-a"},
+				map[string]string{propagateNodeLabelsAnnotation: ",,,,"},
+			)
+			agent := newAgentForLabels(nil, nil)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeFalse())
+			Expect(agent.Spec.NodeLabels).To(BeEmpty())
+		})
+
+		It("removes inherited label when key is removed from InfraEnv labels but still in propagation list", func() {
+			infraEnv := newInfraEnvForLabels(
+				map[string]string{"zone": "zone-1"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
+			)
+			agent := newAgentForLabels(
+				map[string]string{"site": "site-a", "zone": "zone-1"},
+				map[string]string{inheritedNodeLabelsAnnotation: "site,zone"},
+			)
+
+			modified := propagateInfraEnvNodeLabels(log, infraEnv, agent)
+
+			Expect(modified).To(BeTrue())
+			Expect(agent.Spec.NodeLabels).NotTo(HaveKey("site"))
+			Expect(agent.Spec.NodeLabels).To(HaveKeyWithValue("zone", "zone-1"))
+			inherited := agent.GetAnnotations()[inheritedNodeLabelsAnnotation]
+			Expect(inherited).To(Equal("zone"))
+		})
+	})
 })
 
 var _ = Describe("getPropagationKeys", func() {
@@ -270,6 +399,30 @@ var _ = Describe("getPropagationKeys", func() {
 	It("handles trailing comma", func() {
 		infraEnv := newInfraEnvForLabels(nil, map[string]string{propagateNodeLabelsAnnotation: "site,zone,"})
 		Expect(getPropagationKeys(infraEnv)).To(Equal([]string{"site", "zone"}))
+	})
+})
+
+var _ = Describe("parseCommaSeparatedKeys", func() {
+	It("returns nil for empty string", func() {
+		Expect(parseCommaSeparatedKeys("")).To(BeNil())
+	})
+
+	It("returns nil for only commas", func() {
+		Expect(parseCommaSeparatedKeys(",,,,")).To(BeNil())
+	})
+
+	It("returns nil for commas with whitespace", func() {
+		Expect(parseCommaSeparatedKeys(" , , , ")).To(BeNil())
+	})
+
+	It("handles keys containing slashes and dots", func() {
+		result := parseCommaSeparatedKeys("app.kubernetes.io/name,topology.kubernetes.io/zone")
+		Expect(result).To(Equal([]string{"app.kubernetes.io/name", "topology.kubernetes.io/zone"}))
+	})
+
+	It("deduplicates implicitly via caller but returns raw list", func() {
+		result := parseCommaSeparatedKeys("site,zone,site")
+		Expect(result).To(Equal([]string{"site", "zone", "site"}))
 	})
 })
 
