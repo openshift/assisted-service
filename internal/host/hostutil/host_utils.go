@@ -19,7 +19,6 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
-	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
 	"github.com/sirupsen/logrus"
@@ -374,8 +373,7 @@ func GetIgnitionEndpointAndCert(cluster *common.Cluster, host *models.Host, logg
 
 	// Use custom ignition endpoint if provided
 	if cluster.IgnitionEndpoint != nil && cluster.IgnitionEndpoint.URL != nil {
-		normalizedURL := pkgvalidations.NormalizeHTTPURL(*cluster.IgnitionEndpoint.URL)
-		url, err := url.Parse(normalizedURL)
+		url, err := url.Parse(*cluster.IgnitionEndpoint.URL)
 		if err != nil {
 			return "", nil, err
 		}
