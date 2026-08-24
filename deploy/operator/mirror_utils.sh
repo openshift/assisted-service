@@ -342,6 +342,8 @@ function ocp_mirror_release() {
     sleep "${retry_delay}"
     attempt=$((attempt + 1))
   done
+
+  return 1
 }
 
 function transient_registry_error_file() {
