@@ -47,8 +47,8 @@ function run_mirror_command_with_retry() {
     echo "Mirror attempt ${attempt}/${attempts}: ${cmd_name}"
 
     set +x
-    "$@" > "${log_file}" 2>&1
-    rc=$?
+    rc=0
+    "$@" > "${log_file}" 2>&1 || rc=$?
     ${was_xtrace} && set -x
 
     success_rc=0
