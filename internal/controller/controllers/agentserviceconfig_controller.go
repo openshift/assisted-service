@@ -807,7 +807,7 @@ func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": serviceName},
 			},
-			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress, netv1.PolicyTypeEgress},
+			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress},
 			Ingress: []netv1.NetworkPolicyIngressRule{
 				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
 				{
@@ -818,7 +818,6 @@ func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger
 					},
 				},
 			},
-			Egress: networkPolicyDefaultEgress(),
 		}
 		return nil
 	}
@@ -840,23 +839,11 @@ func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, a
 		}
 		addAppLabel(imageServiceName, &np.ObjectMeta)
 
-		egress := networkPolicyDefaultEgress()
-		egress = append(egress, netv1.NetworkPolicyEgressRule{
-			To: []netv1.NetworkPolicyPeer{
-				{PodSelector: &metav1.LabelSelector{
-					MatchLabels: map[string]string{"app": serviceName},
-				}},
-			},
-			Ports: []netv1.NetworkPolicyPort{
-				{Protocol: ptr.To(corev1.ProtocolTCP), Port: &servicePort},
-			},
-		})
-
 		np.Spec = netv1.NetworkPolicySpec{
 			PodSelector: metav1.LabelSelector{
 				MatchLabels: map[string]string{"app": imageServiceName},
 			},
-			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress, netv1.PolicyTypeEgress},
+			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress},
 			Ingress: []netv1.NetworkPolicyIngressRule{
 				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
 				{
@@ -866,7 +853,6 @@ func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, a
 					},
 				},
 			},
-			Egress: egress,
 		}
 		return nil
 	}
