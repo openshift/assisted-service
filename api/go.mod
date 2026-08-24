@@ -101,3 +101,5 @@ replace (
 )
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+
+replace github.com/moby/spdystream => github.com/moby/spdystream v0.5.1
