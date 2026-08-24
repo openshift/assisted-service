@@ -509,6 +509,9 @@ func (b *bareMetalInventory) validateRegisterClusterInternalParams(params *insta
 		}
 	}
 
+	if params.NewClusterParams.IgnitionEndpoint != nil && params.NewClusterParams.IgnitionEndpoint.URL != nil {
+		*params.NewClusterParams.IgnitionEndpoint.URL = pkgvalidations.NormalizeHTTPURL(*params.NewClusterParams.IgnitionEndpoint.URL)
+	}
 	if err = b.validateIgnitionEndpoint(params.NewClusterParams.IgnitionEndpoint, log); err != nil {
 		return err
 	}
@@ -2158,6 +2161,9 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
+	if params.ClusterUpdateParams.IgnitionEndpoint != nil && params.ClusterUpdateParams.IgnitionEndpoint.URL != nil {
+		*params.ClusterUpdateParams.IgnitionEndpoint.URL = pkgvalidations.NormalizeHTTPURL(*params.ClusterUpdateParams.IgnitionEndpoint.URL)
+	}
 	if err := b.validateIgnitionEndpoint(params.ClusterUpdateParams.IgnitionEndpoint, log); err != nil {
 		return installer.V2UpdateClusterParams{}, err
 	}
@@ -4703,7 +4709,6 @@ func (b *bareMetalInventory) validateIgnitionEndpoint(ignitionEndpoint *models.I
 	if ignitionEndpoint == nil || ignitionEndpoint.URL == nil {
 		return nil
 	}
-	*ignitionEndpoint.URL = pkgvalidations.NormalizeHTTPURL(*ignitionEndpoint.URL)
 	if err := pkgvalidations.ValidateHTTPFormat(*ignitionEndpoint.URL); err != nil {
 		log.WithError(err).Errorf("Invalid Ignition endpoint URL: %s", *ignitionEndpoint.URL)
 		return common.NewApiError(http.StatusBadRequest, err)

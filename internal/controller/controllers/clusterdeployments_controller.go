@@ -53,7 +53,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
-	pkgvalidations "github.com/openshift/assisted-service/pkg/validations"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -906,7 +905,7 @@ func (r *ClusterDeploymentsReconciler) parseIgnitionEndpoint(ctx context.Context
 	kubeapiIgnitionEndpoint *hiveext.IgnitionEndpoint) (*models.IgnitionEndpoint, error) {
 
 	ignitionEndpoint := &models.IgnitionEndpoint{}
-	ignitionEndpoint.URL = swag.String(pkgvalidations.NormalizeHTTPURL(kubeapiIgnitionEndpoint.Url))
+	ignitionEndpoint.URL = swag.String(kubeapiIgnitionEndpoint.Url)
 
 	caCertificateReference := kubeapiIgnitionEndpoint.CaCertificateReference
 	if caCertificateReference != nil {
