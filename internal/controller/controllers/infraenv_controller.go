@@ -474,6 +474,19 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 		agent := &agents.Items[i]
 		patch := client.MergeFrom(agent.DeepCopy())
 
+		// BMH controller owns nodeLabels for BMH-managed Agents — skip propagation
+		// but clean up any stale inherited annotation
+		if _, hasBMH := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; hasBMH {
+			if clearInheritedAnnotation(agent) {
+				if err := r.Patch(ctx, agent, patch); err != nil {
+					log.WithError(err).Errorf("failed to clear inherited annotation on BMH-managed Agent %s/%s",
+						agent.Namespace, agent.Name)
+					patchErrors = append(patchErrors, err)
+				}
+			}
+			continue
+		}
+
 		if propagateInfraEnvNodeLabels(log, infraEnv, agent) {
 			if err := r.Patch(ctx, agent, patch); err != nil {
 				log.WithError(err).Errorf("failed to patch Agent %s/%s with propagated node labels",

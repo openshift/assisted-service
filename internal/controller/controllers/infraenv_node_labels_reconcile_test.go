@@ -410,5 +410,77 @@ var _ = Describe("reconcileNodeLabelPropagation", func() {
 			Expect(agent.Spec.NodeLabels).To(BeEmpty())
 			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
+
+		It("skips BMH-managed Agents and does not propagate labels", func() {
+			infraEnv = createInfraEnv(
+				map[string]string{"site": "nyc", "zone": "us-east-1a"},
+				map[string]string{propagateNodeLabelsAnnotation: "site,zone"},
+			)
+			// Create a BMH-managed Agent (has AGENT_BMH_LABEL)
+			bmhAgent := &aiv1beta1.Agent{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bmh-agent",
+					Namespace: namespace,
+					Labels: map[string]string{
+						aiv1beta1.InfraEnvNameLabel: "test-infraenv",
+						AGENT_BMH_LABEL:             "my-bmh",
+					},
+				},
+				Spec: aiv1beta1.AgentSpec{
+					NodeLabels: map[string]string{"bmh-label": "bmh-value"},
+				},
+			}
+			Expect(c.Create(ctx, bmhAgent)).To(Succeed())
+
+			// Also create a non-BMH Agent
+			createAgent("regular-agent", nil, nil)
+
+			err := ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
+			Expect(err).To(BeNil())
+
+			// BMH Agent should be untouched
+			agent := getAgent("bmh-agent")
+			Expect(agent.Spec.NodeLabels).To(Equal(map[string]string{"bmh-label": "bmh-value"}))
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
+
+			// Regular Agent should have labels propagated
+			regular := getAgent("regular-agent")
+			Expect(regular.Spec.NodeLabels).To(HaveKeyWithValue("site", "nyc"))
+			Expect(regular.Spec.NodeLabels).To(HaveKeyWithValue("zone", "us-east-1a"))
+		})
+
+		It("cleans up inherited annotation from BMH-managed Agent", func() {
+			infraEnv = createInfraEnv(
+				map[string]string{"site": "nyc"},
+				map[string]string{propagateNodeLabelsAnnotation: "site"},
+			)
+			// Agent that was previously non-BMH (has inherited annotation) but now has a BMH
+			bmhAgent := &aiv1beta1.Agent{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "bmh-agent-stale",
+					Namespace: namespace,
+					Labels: map[string]string{
+						aiv1beta1.InfraEnvNameLabel: "test-infraenv",
+						AGENT_BMH_LABEL:             "my-bmh",
+					},
+					Annotations: map[string]string{
+						inheritedNodeLabelsAnnotation: "site",
+					},
+				},
+				Spec: aiv1beta1.AgentSpec{
+					NodeLabels: map[string]string{"site": "nyc"},
+				},
+			}
+			Expect(c.Create(ctx, bmhAgent)).To(Succeed())
+
+			err := ir.reconcileNodeLabelPropagation(ctx, ir.Log, infraEnv)
+			Expect(err).To(BeNil())
+
+			// Stale inherited annotation should be removed
+			agent := getAgent("bmh-agent-stale")
+			Expect(agent.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
+			// nodeLabels should be untouched (BMH controller owns them)
+			Expect(agent.Spec.NodeLabels).To(Equal(map[string]string{"site": "nyc"}))
+		})
 	})
 })
