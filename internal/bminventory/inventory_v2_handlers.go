@@ -296,6 +296,8 @@ func (b *bareMetalInventory) V2UploadClusterIngressCert(ctx context.Context, par
 		return installer.NewV2UploadClusterIngressCertInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
+	defer resp.Close()
+
 	kubeconfigData, err := io.ReadAll(resp)
 	if err != nil {
 		log.WithError(err).Infof("Failed to convert kubeconfig s3 response to io reader")
