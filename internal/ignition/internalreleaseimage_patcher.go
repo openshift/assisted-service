@@ -119,6 +119,7 @@ func (i *internalReleaseImagePatcher) getManifestContent(ctx context.Context, ma
 	if err != nil {
 		return nil, err
 	}
+	defer respBody.Close()
 	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, err
