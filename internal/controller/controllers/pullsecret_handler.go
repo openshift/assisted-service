@@ -41,7 +41,7 @@ func (ps *pullSecretManager) GetValidPullSecret(ctx context.Context, key types.N
 
 	err = ps.Installer.ValidatePullSecret(make([]string, 0), pullSecret, "", "")
 	if err != nil {
-		return "", errors.Wrap(err, fmt.Sprintf("invalid pull secret data in secret %s %s", key.Name, pullSecret))
+		return "", errors.Wrap(err, fmt.Sprintf("invalid pull secret data in secret %s/%s", key.Namespace, key.Name))
 	}
 	return pullSecret, nil
 }
