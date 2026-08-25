@@ -443,6 +443,7 @@ func (m *Manifests) fetchManifestContent(ctx context.Context, clusterID strfmt.U
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrap(err, fmt.Sprintf("Failed to fetch content from %s for cluster %s", path, clusterID)))
 	}
+	defer respBody.Close()
 	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, m.prepareAndLogError(ctx, http.StatusInternalServerError, errors.Wrap(err, fmt.Sprintf("Failed fetch response body from %s for cluster %s", path, clusterID)))

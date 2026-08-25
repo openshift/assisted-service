@@ -13,7 +13,6 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/google/renameio"
-	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/metrics"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -154,7 +153,7 @@ func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadClos
 		log.Error(err)
 		return nil, 0, err
 	}
-	return ioutils.NewReadCloserWrapper(fp, fp.Close), info.Size(), nil
+	return fp, info.Size(), nil
 }
 
 func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
