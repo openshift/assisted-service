@@ -1100,6 +1100,7 @@ func (g *installerGenerator) getManifestContent(ctx context.Context, manifest st
 	if err != nil {
 		return "", err
 	}
+	defer respBody.Close()
 	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return "", err
@@ -1288,6 +1289,7 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 	if err != nil {
 		return err
 	}
+	defer respBody.Close()
 	content, err := io.ReadAll(respBody)
 	if err != nil {
 		return err
@@ -1416,7 +1418,7 @@ func getBmhRole(bmh *bmh_v1alpha1.BareMetalHost, masterHostnames, arbiterHostnam
 }
 
 // ExtractClusterID gets a local path of a "bootstrap.ign" file and extracts the OpenShift cluster ID
-func ExtractClusterID(reader io.ReadCloser) (string, error) {
+func ExtractClusterID(reader io.Reader) (string, error) {
 	bs, err := io.ReadAll(reader)
 	if err != nil {
 		return "", err
