@@ -1430,6 +1430,8 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 		return "", err
 	}
 
+	defer reader.Close()
+
 	var openshiftClusterID string
 	log.Debug("Extracting Openshift cluster ID from ignition file")
 	openshiftClusterID, err = ignition.ExtractClusterID(reader)
@@ -6225,6 +6227,8 @@ func (b *bareMetalInventory) V2GetHostIgnition(ctx context.Context, params insta
 		log.WithError(err).Errorf("failed to download host %s ignition", params.HostID)
 		return common.GenerateErrorResponder(err)
 	}
+
+	defer respBody.Close()
 
 	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
