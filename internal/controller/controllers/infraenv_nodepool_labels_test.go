@@ -78,7 +78,8 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			}
 			spec["nodeLabels"] = labelsInterface
 		}
-		_ = unstructured.SetNestedField(np.Object, spec, "spec")
+		err := unstructured.SetNestedField(np.Object, spec, "spec")
+		Expect(err).To(BeNil())
 
 		Expect(c.Create(ctx, np)).To(Succeed())
 		return np
@@ -93,6 +94,12 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 		})
 		Expect(c.Get(ctx, types.NamespacedName{Name: name, Namespace: namespace}, np)).To(Succeed())
 		return np
+	}
+
+	getNodePoolLabels := func(np *unstructured.Unstructured) map[string]string {
+		labels, _, err := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+		Expect(err).To(BeNil())
+		return labels
 	}
 
 	Context("no-op cases", func() {
@@ -125,7 +132,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-other")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(BeEmpty())
 		})
 
@@ -141,7 +148,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(BeEmpty())
 		})
 	})
@@ -160,7 +167,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np1 := getNodePool("np-1")
-			labels1, _, _ := unstructured.NestedStringMap(np1.Object, "spec", "nodeLabels")
+			labels1 := getNodePoolLabels(np1)
 			Expect(labels1).To(HaveKeyWithValue("site", "nyc"))
 			Expect(labels1).To(HaveKeyWithValue("zone", "us-east-1a"))
 			Expect(labels1).NotTo(HaveKey("other"))
@@ -168,7 +175,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(np1.GetAnnotations()[inheritedNodeLabelsAnnotation]).To(ContainSubstring("zone"))
 
 			np2 := getNodePool("np-2")
-			labels2, _, _ := unstructured.NestedStringMap(np2.Object, "spec", "nodeLabels")
+			labels2 := getNodePoolLabels(np2)
 			Expect(labels2).To(HaveKeyWithValue("site", "nyc"))
 			Expect(labels2).To(HaveKeyWithValue("zone", "us-east-1a"))
 		})
@@ -185,7 +192,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "nyc"))
 			Expect(labels).NotTo(HaveKey("zone"))
 		})
@@ -204,7 +211,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "nyc"))
 
 			infraEnv.Labels["site"] = "lon"
@@ -212,7 +219,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np = getNodePool("np-1")
-			labels, _, _ = unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels = getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "lon"))
 		})
 
@@ -232,7 +239,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "nyc"))
 			Expect(labels).NotTo(HaveKey("zone"))
 		})
@@ -253,7 +260,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(BeEmpty())
 			Expect(np.GetAnnotations()).NotTo(HaveKey(inheritedNodeLabelsAnnotation))
 		})
@@ -272,7 +279,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "user-value"))
 		})
 
@@ -288,7 +295,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "nyc"))
 			Expect(labels).To(HaveKeyWithValue("custom", "user-label"))
 		})
@@ -309,7 +316,7 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np := getNodePool("np-1")
-			labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+			labels := getNodePoolLabels(np)
 			Expect(labels).To(HaveKeyWithValue("site", "lon"))
 		})
 	})
@@ -352,15 +359,15 @@ var _ = Describe("reconcileNodePoolLabelPropagation", func() {
 			Expect(err).To(BeNil())
 
 			np1 := getNodePool("np-match-1")
-			labels1, _, _ := unstructured.NestedStringMap(np1.Object, "spec", "nodeLabels")
+			labels1 := getNodePoolLabels(np1)
 			Expect(labels1).To(HaveKeyWithValue("site", "nyc"))
 
 			np2 := getNodePool("np-match-2")
-			labels2, _, _ := unstructured.NestedStringMap(np2.Object, "spec", "nodeLabels")
+			labels2 := getNodePoolLabels(np2)
 			Expect(labels2).To(HaveKeyWithValue("site", "nyc"))
 
 			npOther := getNodePool("np-other")
-			labelsOther, _, _ := unstructured.NestedStringMap(npOther.Object, "spec", "nodeLabels")
+			labelsOther := getNodePoolLabels(npOther)
 			Expect(labelsOther).To(BeEmpty())
 		})
 	})

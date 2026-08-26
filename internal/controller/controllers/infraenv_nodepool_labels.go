@@ -63,7 +63,14 @@ func (r *InfraEnvReconciler) reconcileNodePoolLabelPropagation(ctx context.Conte
 		np := &nodePools[i]
 		patch := client.MergeFrom(np.DeepCopy())
 
-		if reconcileNodePoolNodeLabels(log, np, desiredInherited, propagateKeys) {
+		modified, err := reconcileNodePoolNodeLabels(log, np, desiredInherited, propagateKeys)
+		if err != nil {
+			log.WithError(err).Errorf("failed to reconcile labels for NodePool %s/%s",
+				np.GetNamespace(), np.GetName())
+			patchErrors = append(patchErrors, err)
+			continue
+		}
+		if modified {
 			if err := r.Patch(ctx, np, patch); err != nil {
 				log.WithError(err).Errorf("failed to patch NodePool %s/%s with propagated node labels",
 					np.GetNamespace(), np.GetName())
@@ -96,8 +103,11 @@ func listNodePoolsForCluster(ctx context.Context, c client.Client, namespace, ho
 
 	var matched []unstructured.Unstructured
 	for _, np := range npList.Items {
-		clusterName, _, _ := unstructured.NestedString(np.Object, "spec", "clusterName")
-		if clusterName == hostedClusterName {
+		clusterName, found, err := unstructured.NestedString(np.Object, "spec", "clusterName")
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to read spec.clusterName from NodePool %s/%s", np.GetNamespace(), np.GetName())
+		}
+		if found && clusterName == hostedClusterName {
 			matched = append(matched, np)
 		}
 	}
@@ -106,13 +116,16 @@ func listNodePoolsForCluster(ctx context.Context, c client.Client, namespace, ho
 
 // reconcileNodePoolNodeLabels merges inherited labels into a NodePool's spec.nodeLabels,
 // preserving user-set labels. Tracks inherited keys via the inheritedNodeLabelsAnnotation.
-// Returns true if the NodePool was modified.
-func reconcileNodePoolNodeLabels(log logrus.FieldLogger, np *unstructured.Unstructured, desiredInherited map[string]string, propagateKeys []string) bool {
+// Returns true if the NodePool was modified and any error encountered.
+func reconcileNodePoolNodeLabels(log logrus.FieldLogger, np *unstructured.Unstructured, desiredInherited map[string]string, propagateKeys []string) (bool, error) {
 	if len(propagateKeys) == 0 {
 		return removeAllInheritedNodePoolLabels(np)
 	}
 
-	currentNodeLabels := getNodePoolNodeLabels(np)
+	currentNodeLabels, err := getNodePoolNodeLabels(np)
+	if err != nil {
+		return false, err
+	}
 	previouslyInherited := getNodePoolInheritedKeys(np)
 	modified := false
 	var actuallyInherited []string
@@ -149,24 +162,29 @@ func reconcileNodePoolNodeLabels(log logrus.FieldLogger, np *unstructured.Unstru
 	}
 
 	if modified {
-		setNodePoolNodeLabels(np, currentNodeLabels)
+		if err := setNodePoolNodeLabels(np, currentNodeLabels); err != nil {
+			return false, err
+		}
 	}
 
 	newInheritedAnnotation := buildInheritedAnnotation(actuallyInherited)
 	annotationModified := setNodePoolInheritedAnnotation(np, newInheritedAnnotation)
 
-	return modified || annotationModified
+	return modified || annotationModified, nil
 }
 
 // removeAllInheritedNodePoolLabels removes any previously inherited labels from the NodePool
 // when the propagation annotation is removed from InfraEnv.
-func removeAllInheritedNodePoolLabels(np *unstructured.Unstructured) bool {
+func removeAllInheritedNodePoolLabels(np *unstructured.Unstructured) (bool, error) {
 	previouslyInherited := getNodePoolInheritedKeys(np)
 	if len(previouslyInherited) == 0 {
-		return false
+		return false, nil
 	}
 
-	currentNodeLabels := getNodePoolNodeLabels(np)
+	currentNodeLabels, err := getNodePoolNodeLabels(np)
+	if err != nil {
+		return false, err
+	}
 	modified := false
 	for _, key := range previouslyInherited {
 		if _, exists := currentNodeLabels[key]; exists {
@@ -176,33 +194,38 @@ func removeAllInheritedNodePoolLabels(np *unstructured.Unstructured) bool {
 	}
 
 	if modified {
-		setNodePoolNodeLabels(np, currentNodeLabels)
+		if err := setNodePoolNodeLabels(np, currentNodeLabels); err != nil {
+			return false, err
+		}
 	}
 
 	annotationModified := setNodePoolInheritedAnnotation(np, "")
-	return modified || annotationModified
+	return modified || annotationModified, nil
 }
 
 // --- NodePool unstructured helpers ---
 
-func getNodePoolNodeLabels(np *unstructured.Unstructured) map[string]string {
-	labels, _, _ := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
-	if labels == nil {
-		return make(map[string]string)
+func getNodePoolNodeLabels(np *unstructured.Unstructured) (map[string]string, error) {
+	labels, found, err := unstructured.NestedStringMap(np.Object, "spec", "nodeLabels")
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to read spec.nodeLabels from NodePool %s/%s", np.GetNamespace(), np.GetName())
 	}
-	return labels
+	if !found || labels == nil {
+		return make(map[string]string), nil
+	}
+	return labels, nil
 }
 
-func setNodePoolNodeLabels(np *unstructured.Unstructured, labels map[string]string) {
+func setNodePoolNodeLabels(np *unstructured.Unstructured, labels map[string]string) error {
 	if len(labels) == 0 {
 		unstructured.RemoveNestedField(np.Object, "spec", "nodeLabels")
-		return
+		return nil
 	}
 	labelsInterface := make(map[string]interface{}, len(labels))
 	for k, v := range labels {
 		labelsInterface[k] = v
 	}
-	_ = unstructured.SetNestedField(np.Object, labelsInterface, "spec", "nodeLabels")
+	return unstructured.SetNestedField(np.Object, labelsInterface, "spec", "nodeLabels")
 }
 
 func getNodePoolInheritedKeys(np *unstructured.Unstructured) []string {
