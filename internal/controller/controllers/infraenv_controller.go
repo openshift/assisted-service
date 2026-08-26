@@ -130,6 +130,11 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterPerRecoverableError}, nil
 	}
 
+	if err := r.reconcileNodePoolLabelPropagation(ctx, log, infraEnv); err != nil {
+		log.WithError(err).Error("failed to reconcile NodePool node label propagation, will retry")
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterPerRecoverableError}, nil
+	}
+
 	return r.reconcileInfraEnv(ctx, log, infraEnv)
 }
 
