@@ -5255,7 +5255,7 @@ var _ = Describe("cluster", func() {
 							MachineNetworks: []*models.MachineNetwork{{Cidr: "15.15.0.0/21"}, {Cidr: "16.16.0.0/21"}},
 						},
 					})
-					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster cannot contain multiple Machine Networks")
+					verifyApiErrorString(reply, http.StatusBadRequest, "Single-stack cluster with managed load balancer cannot contain multiple Machine Networks")
 				})
 
 				It("Multiple machine networks allowed for single-stack cluster with user-managed networking", func() {
@@ -17847,7 +17847,7 @@ var _ = Describe("RegisterCluster", func() {
 				verifyApiErrorString(
 					reply,
 					http.StatusBadRequest,
-					"Single-stack cluster cannot contain multiple Machine Networks",
+					"Single-stack cluster with managed load balancer cannot contain multiple Machine Networks",
 				)
 			})
 

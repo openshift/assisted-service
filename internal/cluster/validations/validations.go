@@ -732,7 +732,7 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 		}
 	} else {
 		if len(machineNetworks) > 1 && targetLoadBalancerType == models.LoadBalancerTypeClusterManaged {
-			err := errors.Errorf("Single-stack cluster cannot contain multiple Machine Networks")
+			err := errors.Errorf("Single-stack cluster with managed load balancer cannot contain multiple Machine Networks")
 			return err
 		}
 	}
