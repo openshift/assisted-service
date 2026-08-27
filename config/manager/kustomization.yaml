@@ -3,7 +3,7 @@ kind: Kustomization
 images:
 - name: controller
   newName: quay.io/edge-infrastructure/assisted-service
-  newTag: latest
+  newTag: ocm-5.0
 resources:
 - manager.yaml
 - infrastructure-operator-networkpolicy.yaml
