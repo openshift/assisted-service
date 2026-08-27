@@ -467,4 +467,49 @@ var _ = Describe("NewOSImages", func() {
 		_, err = NewOSImages(osImages, imageServiceEnabled)
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("fails when image type is invalid", func() {
+		osImages := models.OsImages{
+			&models.OsImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				OpenshiftVersion: swag.String("4.9"),
+				URL:              swag.String("rhcos_4.9"),
+				Version:          swag.String("version-49.123-0"),
+				Type:             models.ImageType("invalid-type"),
+			},
+		}
+		Expect(validateImages(osImages)).NotTo(Succeed())
+	})
+})
+
+var _ = Describe("GetDisconnectedIsoImages", func() {
+	It("returns only disconnected-iso images", func() {
+		osImages := models.OsImages{
+			&models.OsImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("https://example.com/4.14/4.14.11/image.iso"),
+				Version:          swag.String("version-49.123-0"),
+				Type:             models.ImageTypeDisconnectedIso,
+			},
+			&models.OsImage{
+				CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("https://example.com/4.14/4.14.11/full.iso"),
+				Version:          swag.String("version-49.123-1"),
+				Type:             models.ImageTypeFullIso,
+			},
+			&models.OsImage{
+				CPUArchitecture:  swag.String(common.ARM64CPUArchitecture),
+				OpenshiftVersion: swag.String("4.14"),
+				URL:              swag.String("https://example.com/4.14/4.14.11/image-arm64.iso"),
+				Version:          swag.String("version-49.123-2"),
+				Type:             models.ImageTypeDisconnectedIso,
+			},
+		}
+
+		images, err := NewOSImages(osImages, imageServiceEnabled)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(images.GetDisconnectedIsoImages()).To(HaveLen(2))
+	})
 })

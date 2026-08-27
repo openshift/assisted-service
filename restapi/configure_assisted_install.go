@@ -300,6 +300,9 @@ type VersionsAPI interface {
 	/* V2ListReleaseSources Retrieves openshift release sources configuration. */
 	V2ListReleaseSources(ctx context.Context, params versions.V2ListReleaseSourcesParams) middleware.Responder
 
+	/* V2ListSupportedOfflineOpenshiftVersions Retrieves the list of OpenShift supported offline versions. */
+	V2ListSupportedOfflineOpenshiftVersions(ctx context.Context, params versions.V2ListSupportedOfflineOpenshiftVersionsParams) middleware.Responder
+
 	/* V2ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions. */
 	V2ListSupportedOpenshiftVersions(ctx context.Context, params versions.V2ListSupportedOpenshiftVersionsParams) middleware.Responder
 }
@@ -740,6 +743,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.VersionsAPI.V2ListReleaseSources(ctx, params)
+	})
+	api.VersionsV2ListSupportedOfflineOpenshiftVersionsHandler = versions.V2ListSupportedOfflineOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOfflineOpenshiftVersionsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.VersionsAPI.V2ListSupportedOfflineOpenshiftVersions(ctx, params)
 	})
 	api.VersionsV2ListSupportedOpenshiftVersionsHandler = versions.V2ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.V2ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
