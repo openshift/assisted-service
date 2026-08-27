@@ -675,7 +675,9 @@ func (b *bareMetalInventory) validateRegisterClusterInternalPreDefaultValuesSet(
 	if err := validations.ValidateNetworkCIDRs(params.NewClusterParams.MachineNetworks, params.NewClusterParams.ServiceNetworks, params.NewClusterParams.ClusterNetworks); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if err := validations.ValidateDualStackNetworks(params.NewClusterParams, false, false, swag.StringValue(params.NewClusterParams.OpenshiftVersion)); err != nil {
+	createParams := params.NewClusterParams
+	targetLBType := network.TargetLoadBalancerType(nil, createParams)
+	if err := validations.ValidateDualStackNetworks(createParams, false, targetLBType, swag.StringValue(createParams.OpenshiftVersion)); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return nil
@@ -2266,9 +2268,9 @@ func (b *bareMetalInventory) validateUpdateCluster(
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 	alreadyDualStack := network.CheckIfClusterIsDualStack(cluster)
-	alreadyUserManagedLoadBalancer := network.IsLoadBalancerUserManaged(cluster)
+	targetLBType := network.TargetLoadBalancerType(cluster, params.ClusterUpdateParams)
 
-	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, alreadyUserManagedLoadBalancer, cluster.OpenshiftVersion); err != nil {
+	if err = validations.ValidateDualStackNetworks(params.ClusterUpdateParams, alreadyDualStack, targetLBType, cluster.OpenshiftVersion); err != nil {
 		return params, common.NewApiError(http.StatusBadRequest, err)
 	}
 

@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/samber/lo"
+	"github.com/thoas/go-funk"
 	"golang.org/x/sys/unix"
 	"gorm.io/gorm"
 )
@@ -670,7 +671,37 @@ func FindInterfaceByIPString(ipAddress string, interfaces []*models.Interface) (
 }
 
 func IsLoadBalancerUserManaged(c *common.Cluster) bool {
-	return c != nil && c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged
+	return c != nil && (common.IsMultiNodeNonePlatformCluster(c) ||
+		(c.LoadBalancer != nil && c.LoadBalancer.Type == models.LoadBalancerTypeUserManaged))
+}
+
+// TargetLoadBalancerType computes the effective load balancer type for validation
+// purposes, given the existing cluster state and what is being requested in params.
+// cluster may be nil when there is no existing cluster (e.g. during registration).
+// clusterParams is the create or update params struct; it may be nil, in which
+// case only the existing cluster state is considered.
+func TargetLoadBalancerType(cluster *common.Cluster, clusterParams interface{}) string {
+	result := models.LoadBalancerTypeClusterManaged
+	if IsLoadBalancerUserManaged(cluster) {
+		result = models.LoadBalancerTypeUserManaged
+	}
+	if lb := DerefClusterLoadBalancer(funk.Get(clusterParams, "LoadBalancer")); lb != nil {
+		result = lb.Type
+	} else {
+		umnRaw := funk.Get(clusterParams, "UserManagedNetworking")
+		if umnPtr, ok := umnRaw.(*bool); ok && swag.BoolValue(umnPtr) {
+			isSNO := false
+			if cluster != nil {
+				isSNO = common.IsSingleNodeCluster(cluster)
+			} else if haModePtr, ok := funk.Get(clusterParams, "HighAvailabilityMode").(*string); ok {
+				isSNO = swag.StringValue(haModePtr) == models.ClusterCreateParamsHighAvailabilityModeNone
+			}
+			if !isSNO {
+				result = models.LoadBalancerTypeUserManaged
+			}
+		}
+	}
+	return result
 }
 
 // IsNicBelongsAnyMachineNetwork is a helper function to find a nic within the machine networks.
