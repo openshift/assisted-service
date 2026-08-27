@@ -5718,6 +5718,64 @@ func init() {
         }
       }
     },
+    "/v2/offline-openshift-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported offline versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListSupportedOfflineOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Retrieves only the versions that contain the specified substring in their display name.",
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/v2/openshift-versions": {
       "get": {
         "security": [
@@ -17407,6 +17465,64 @@ func init() {
           },
           "500": {
             "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/offline-openshift-versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported offline versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "v2ListSupportedOfflineOpenshiftVersions",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "Retrieves only the versions that contain the specified substring in their display name.",
+            "name": "version",
+            "in": "query"
+          },
+          {
+            "type": "boolean",
+            "description": "If true, returns only the latest version for each minor.",
+            "name": "only_latest",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }

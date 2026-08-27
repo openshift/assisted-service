@@ -20,6 +20,7 @@ type OSImages interface {
 	GetOsImageOrLatest(version, cpuArch, osStream, infraImageType string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
+	GetDisconnectedIsoImages() []*models.OsImage
 }
 
 type osImageList models.OsImages
@@ -279,4 +280,14 @@ func normalizeOSImageCPUArchitecture(osImage *models.OsImage) {
 	if *osImage.CPUArchitecture == common.AARCH64CPUArchitecture {
 		*osImage.CPUArchitecture = common.NormalizeCPUArchitecture(*osImage.CPUArchitecture)
 	}
+}
+
+func (images osImageList) GetDisconnectedIsoImages() []*models.OsImage {
+	var oveImages []*models.OsImage
+	for _, image := range images {
+		if image.Type == models.OsImageTypeDisconnectedIso {
+			oveImages = append(oveImages, image)
+		}
+	}
+	return oveImages
 }
