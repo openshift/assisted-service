@@ -2236,12 +2236,31 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		},
 	}
 
+	postgresEnv := []corev1.EnvVar{
+		newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_DATABASE", "db.name", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_USER", "db.user", databaseName),
+		newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_PASSWORD", "db.password", databaseName),
+	}
+	postgresVolumeMounts := []corev1.VolumeMount{
+		{
+			Name:      "postgresdb",
+			MountPath: "/var/lib/pgsql/data",
+		},
+	}
+	postgresResources := corev1.ResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceCPU:    resource.MustParse("100m"),
+			corev1.ResourceMemory: resource.MustParse("400Mi"),
+		},
+	}
+
 	postgresContainer := corev1.Container{
 		Name:  databaseName,
 		Image: DatabaseImage(),
 		// Use a wrapper script that conditionally enables pg_upgrade only when a version
 		// mismatch is detected. This allows automatic upgrades while avoiding failures
-		// on normal restarts. See docs/dev/postgresql-upgrade.md for details.
+		// on normal restarts. EUS skip-upgrades (PG12 → PG15) are handled by hop init
+		// containers. See docs/dev/postgresql-upgrade.md for details.
 		Command: []string{"/bin/bash", "-c"},
 		Args:    []string{PostgresStartupScript},
 		Ports: []corev1.ContainerPort{
@@ -2251,23 +2270,9 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Env: []corev1.EnvVar{
-			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_DATABASE", "db.name", databaseName),
-			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_USER", "db.user", databaseName),
-			newSecretEnvVar(asc.Object.GetAnnotations(), "POSTGRESQL_PASSWORD", "db.password", databaseName),
-		},
-		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "postgresdb",
-				MountPath: "/var/lib/pgsql/data",
-			},
-		},
-		Resources: corev1.ResourceRequirements{
-			Requests: corev1.ResourceList{
-				corev1.ResourceCPU:    resource.MustParse("100m"),
-				corev1.ResourceMemory: resource.MustParse("400Mi"),
-			},
-		},
+		Env:          postgresEnv,
+		VolumeMounts: postgresVolumeMounts,
+		Resources:    postgresResources,
 	}
 
 	if asc.spec.MirrorRegistryRef != nil {
@@ -2397,6 +2402,7 @@ func newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, a
 		setAnnotation(meta, mirrorConfigHashAnnotation, mirrorConfigHash)
 		setAnnotation(meta, userConfigHashAnnotation, userConfigHash)
 
+		deployment.Spec.Template.Spec.InitContainers = postgresUpgradeInitContainers(postgresEnv, postgresVolumeMounts, postgresResources)
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
