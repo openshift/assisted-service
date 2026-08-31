@@ -154,10 +154,12 @@ To upgrade to a new PostgreSQL version:
 
 1. Update `internal/controller/controllers/images.go` with the new image
 2. Add the previous image as a hop in `postgres_upgrade.go` (`postgresUpgradePath`) if customers can skip to the new version from an older EUS
-3. Update `deploy/olm-catalog/manifests/assisted-service-operator.clusterserviceversion.yaml`:
-   - Update `DATABASE_IMAGE` env var
-   - Add `DATABASE_IMAGE_PG<prev>` env vars for intermediate hops
-   - Update `relatedImages` section (current image plus every hop image)
+3. Update operator packaging so `hack/generate.sh generate_bundle` keeps the hop images:
+   - `config/manager/manager.yaml`: `DATABASE_IMAGE` plus `DATABASE_IMAGE_PG<prev>` env vars
+   - `config/manifests/bases/assisted-service-operator.clusterserviceversion.yaml`: same env vars and `relatedImages`
+   - `config/manifests/bundle-overrides/related-images-patch.yaml`: current image plus every hop image
+     (operator-sdk drops `relatedImages`; this patch is what verify-generated-code checks)
+   - Then regenerate the catalog CSV (`deploy/olm-catalog/manifests/assisted-service-operator.clusterserviceversion.yaml`)
 4. Update backplane-operator:
    - `hack/bundle-automation/config.yaml` - image mapping
    - `pkg/templates/charts/toggle/assisted-service/values.yaml`
