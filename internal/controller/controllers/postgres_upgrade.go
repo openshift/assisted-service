@@ -35,10 +35,12 @@ func postgresUpgradePath() []postgresUpgradeHop {
 
 var postgresVersionFromImage = regexp.MustCompile(`postgresql-(\d+)`)
 
+// DatabaseImagePG13 is the PostgreSQL 13 hop image used to upgrade PG12 data.
 func DatabaseImagePG13() string {
 	return getEnvVar(databaseImagePG13Env, defaultDatabaseImagePG13)
 }
 
+// DatabaseImagePG15 is the PostgreSQL 15 hop image used to upgrade PG13 data.
 func DatabaseImagePG15() string {
 	return getEnvVar(databaseImagePG15Env, defaultDatabaseImagePG15)
 }
@@ -47,6 +49,7 @@ func (h postgresUpgradeHop) image() string {
 	return getEnvVar(h.envVar, h.defaultImage)
 }
 
+// parsePostgresMajorVersion extracts N from a postgresql-N image reference.
 func parsePostgresMajorVersion(image string) (int, bool) {
 	m := postgresVersionFromImage.FindStringSubmatch(image)
 	if len(m) < 2 {
@@ -75,6 +78,8 @@ func databaseImageMajorVersion() (int, bool) {
 	return 0, false
 }
 
+// postgresHopsBeforeTarget returns sclorg hop images older than DATABASE_IMAGE
+// so EUS skip-upgrades can walk 12 → 13 → 15 → 16.
 func postgresHopsBeforeTarget() []postgresUpgradeHop {
 	targetVer, ok := databaseImageMajorVersion()
 	if !ok {
@@ -93,6 +98,8 @@ func postgresHopsBeforeTarget() []postgresUpgradeHop {
 	return hops
 }
 
+// postgresUpgradeInitContainers builds one-shot init containers that run each
+// hop in postgresHopsBeforeTarget against the postgres PVC, then exit.
 func postgresUpgradeInitContainers(env []corev1.EnvVar, mounts []corev1.VolumeMount, resources corev1.ResourceRequirements) []corev1.Container {
 	hops := postgresHopsBeforeTarget()
 	init := make([]corev1.Container, 0, len(hops))

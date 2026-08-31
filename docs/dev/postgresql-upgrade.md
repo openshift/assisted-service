@@ -181,7 +181,7 @@ This ensures the old pod releases the PVC before the new pod starts, preventing 
 
 The sclorg container still validates that each hop's source data matches `POSTGRESQL_PREV_VERSION`. If data is older than the first hop we ship (currently PG12 via `postgresql-13-c9s`), the hop init container fails with:
 
-```
+```text
 this hop image can only upgrade from 12, not '<version>'.
 An earlier hop init container is missing from the upgrade path.
 ```
