@@ -19,6 +19,7 @@ import (
 // +kubebuilder:resource:path=infrastructures,scope=Cluster
 // +kubebuilder:subresource:status
 // +kubebuilder:metadata:annotations=release.openshift.io/bootstrap-required=true
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=MutableTopology,rule="!has(self.spec.controlPlaneTopology) || (has(oldSelf.spec.controlPlaneTopology) && self.spec.controlPlaneTopology == oldSelf.spec.controlPlaneTopology) || (has(self.status.controlPlaneTopology) && self.spec.controlPlaneTopology == self.status.controlPlaneTopology) || (has(self.status.controlPlaneTopology) && self.status.controlPlaneTopology == 'SingleReplica' && self.spec.controlPlaneTopology == 'HighlyAvailable')",message="spec.controlPlaneTopology must match status.controlPlaneTopology or be set to HighlyAvailable when status.controlPlaneTopology is SingleReplica"
 type Infrastructure struct {
 	metav1.TypeMeta `json:",inline"`
 
@@ -55,6 +56,21 @@ type InfrastructureSpec struct {
 	// platformSpec holds desired information specific to the underlying
 	// infrastructure provider.
 	PlatformSpec PlatformSpec `json:"platformSpec,omitempty"`
+
+	// controlPlaneTopology expresses the desired topology configuration for control nodes.
+	//
+	// When status.controlPlaneTopology is 'SingleReplica' and spec.controlPlaneTopology is set to 'HighlyAvailable',
+	// a transition will be triggered to reconfigure the cluster from SingleReplica to HighlyAvailable.
+	//
+	// When left blank or status.controlPlaneTopology and spec.controlPlaneTopology are the same value,
+	// no changes are required and no transitions will be triggered.
+	//
+	// This value may be set to match status.controlPlaneTopology regardless of the current value.
+	//
+	// +openshift:enable:FeatureGate=MutableTopology
+	// +kubebuilder:validation:Enum=HighlyAvailable;SingleReplica
+	// +optional
+	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology,omitempty"`
 }
 
 // InfrastructureStatus describes the infrastructure the cluster is leveraging.
@@ -102,11 +118,11 @@ type InfrastructureStatus struct {
 	// and the operators should not configure the operand for highly-available operation
 	// The 'External' mode indicates that the control plane is hosted externally to the cluster and that
 	// its components are not visible within the cluster.
+	// The 'HighlyAvailableArbiter' mode indicates that the control plane will consist of 2 control-plane nodes
+	// that run conventional services and 1 smaller sized arbiter node that runs a bare minimum of services to maintain quorum.
 	// +kubebuilder:default=HighlyAvailable
-	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=HighlyAvailableArbiter,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;SingleReplica;DualReplica;External
-	// +openshift:validation:FeatureGateAwareEnum:requiredFeatureGate=HighlyAvailableArbiter;DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate="",enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;External
+	// +openshift:validation:FeatureGateAwareEnum:featureGate=DualReplica,enum=HighlyAvailable;HighlyAvailableArbiter;SingleReplica;DualReplica;External
 	// +optional
 	ControlPlaneTopology TopologyMode `json:"controlPlaneTopology"`
 
@@ -192,6 +208,21 @@ type DNSRecordsType string
 const (
 	DNSRecordsTypeExternal DNSRecordsType = "External"
 	DNSRecordsTypeInternal DNSRecordsType = "Internal"
+)
+
+// VIPManagementType defines which mechanism manages the API and Ingress
+// VIPs on an on-premise cluster.
+// +kubebuilder:validation:Enum=Keepalived;BGP
+// +enum
+type VIPManagementType string
+
+const (
+	// VIPManagementTypeKeepalived means the VIPs are managed by the default
+	// keepalived/VRRP mechanism.
+	VIPManagementTypeKeepalived VIPManagementType = "Keepalived"
+	// VIPManagementTypeBGP means the VIPs are advertised via BGP by kube-vip
+	// (Routing Table Mode) and frr-k8s running as static pods.
+	VIPManagementTypeBGP VIPManagementType = "BGP"
 )
 
 // PlatformType is a specific supported infrastructure provider.
@@ -295,16 +326,18 @@ type ExternalPlatformSpec struct {
 // PlatformSpec holds the desired state specific to the underlying infrastructure provider
 // of the current cluster. Since these are used at spec-level for the underlying cluster, it
 // is supposed that only one of the spec structs is set.
-// +kubebuilder:validation:XValidation:rule="!has(oldSelf.vsphere) && has(self.vsphere) ? size(self.vsphere.vcenters) < 2 : true",message="vcenters can have at most 1 item when configured post-install"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate="",rule="!has(oldSelf.vsphere) && has(self.vsphere) ? (has(self.vsphere.vcenters) && size(self.vsphere.vcenters) < 2) : true",message="vcenters can have at most 1 item when configured post-install"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereMultiVCenterDay2,rule="oldSelf.?vsphere.vcenters.hasValue() ? self.?vsphere.vcenters.hasValue() : true",message="vcenters is required once set and cannot be removed"
 type PlatformSpec struct {
 	// type is the underlying infrastructure provider for the cluster. This
 	// value controls whether infrastructure automation such as service load
 	// balancers, dynamic volume provisioning, machine creation and deletion, and
 	// other integrations are enabled. If None, no infrastructure automation is
 	// enabled. Allowed values are "AWS", "Azure", "BareMetal", "GCP", "Libvirt",
-	// "OpenStack", "VSphere", "oVirt", "KubeVirt", "EquinixMetal", "PowerVS",
-	// "AlibabaCloud", "Nutanix" and "None". Individual components may not support all platforms,
-	// and must handle unrecognized platforms as None if they do not support that platform.
+	// "OpenStack", "VSphere", "oVirt", "IBMCloud", "KubeVirt", "EquinixMetal",
+	// "PowerVS", "AlibabaCloud", "Nutanix", "External", and "None". Individual
+	// components may not support all platforms, and must handle unrecognized
+	// platforms as None if they do not support that platform.
 	//
 	// +unionDiscriminator
 	Type PlatformType `json:"type"`
@@ -642,7 +675,6 @@ type AzurePlatformStatus struct {
 	//
 	// +default={"dnsType": "PlatformDefault"}
 	// +kubebuilder:default={"dnsType": "PlatformDefault"}
-	// +openshift:enable:FeatureGate=AzureClusterHostedDNSInstall
 	// +optional
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
 
@@ -699,74 +731,43 @@ const (
 	AzureStackCloud AzureCloudEnvironment = "AzureStackCloud"
 )
 
+// Start: TOMBSTONE
+
 // GCPServiceEndpointName is the name of the GCP Service Endpoint.
 // +kubebuilder:validation:Enum=Compute;Container;CloudResourceManager;DNS;File;IAM;IAMCredentials;OAuth;ServiceUsage;Storage;STS
-type GCPServiceEndpointName string
-
-const (
-	// GCPServiceEndpointNameCompute is the name used for the GCP Compute Service endpoint.
-	GCPServiceEndpointNameCompute GCPServiceEndpointName = "Compute"
-
-	// GCPServiceEndpointNameContainer is the name used for the GCP Container Service endpoint.
-	GCPServiceEndpointNameContainer GCPServiceEndpointName = "Container"
-
-	// GCPServiceEndpointNameCloudResource is the name used for the GCP Resource Manager Service endpoint.
-	GCPServiceEndpointNameCloudResource GCPServiceEndpointName = "CloudResourceManager"
-
-	// GCPServiceEndpointNameDNS is the name used for the GCP DNS Service endpoint.
-	GCPServiceEndpointNameDNS GCPServiceEndpointName = "DNS"
-
-	// GCPServiceEndpointNameFile is the name used for the GCP File Service endpoint.
-	GCPServiceEndpointNameFile GCPServiceEndpointName = "File"
-
-	// GCPServiceEndpointNameIAM is the name used for the GCP IAM Service endpoint.
-	GCPServiceEndpointNameIAM GCPServiceEndpointName = "IAM"
-
-	// GCPServiceEndpointNameIAMCredentials is the name used for the GCP IAM Credentials Service endpoint.
-	GCPServiceEndpointNameIAMCredentials GCPServiceEndpointName = "IAMCredentials"
-
-	// GCPServiceEndpointNameOAuth is the name used for the GCP OAuth2 Service endpoint.
-	GCPServiceEndpointNameOAuth GCPServiceEndpointName = "OAuth"
-
-	// GCPServiceEndpointNameServiceUsage is the name used for the GCP Service Usage Service endpoint.
-	GCPServiceEndpointNameServiceUsage GCPServiceEndpointName = "ServiceUsage"
-
-	// GCPServiceEndpointNameStorage is the name used for the GCP Storage Service endpoint.
-	GCPServiceEndpointNameStorage GCPServiceEndpointName = "Storage"
-
-	// GCPServiceEndpointNameSTS is the name used for the GCP STS Service endpoint.
-	GCPServiceEndpointNameSTS GCPServiceEndpointName = "STS"
-)
+//type GCPServiceEndpointName string
 
 // GCPServiceEndpoint store the configuration of a custom url to
 // override existing defaults of GCP Services.
-type GCPServiceEndpoint struct {
-	// name is the name of the GCP service whose endpoint is being overridden.
-	// This must be provided and cannot be empty.
-	//
-	// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
-	// Storage, and TagManager.
-	//
-	// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
-	// Service will be directed to the endpoint specified in the url field.
-	//
-	// +required
-	Name GCPServiceEndpointName `json:"name"`
+// type GCPServiceEndpoint struct {
+// name is the name of the GCP service whose endpoint is being overridden.
+// This must be provided and cannot be empty.
+//
+// Allowed values are Compute, Container, CloudResourceManager, DNS, File, IAM, ServiceUsage,
+// Storage, and TagManager.
+//
+// As an example, when setting the name to Compute all requests made by the caller to the GCP Compute
+// Service will be directed to the endpoint specified in the url field.
+//
+// +required
+// Name GCPServiceEndpointName `json:"name"`
 
-	// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
-	// in the name field.
-	// url is required, must use the scheme https, must not be more than 253 characters in length,
-	// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
-	//
-	// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
-	//
-	// +required
-	// +kubebuilder:validation:MaxLength=253
-	// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
-	// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
-	// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
-	URL string `json:"url"`
-}
+// url is a fully qualified URI that overrides the default endpoint for a client using the GCP service specified
+// in the name field.
+// url is required, must use the scheme https, must not be more than 253 characters in length,
+// and must be a valid URL according to Go's net/url package (https://pkg.go.dev/net/url#URL)
+//
+// An example of a valid endpoint that overrides the Compute Service: "https://compute-myendpoint1.p.googleapis.com"
+//
+// +required
+// +kubebuilder:validation:MaxLength=253
+// +kubebuilder:validation:XValidation:rule="isURL(self)",message="must be a valid URL"
+// +kubebuilder:validation:XValidation:rule="isURL(self) ? (url(self).getScheme() == \"https\") : true",message="scheme must be https"
+// +kubebuilder:validation:XValidation:rule="url(self).getEscapedPath() == \"\" || url(self).getEscapedPath() == \"/\"",message="url must consist only of a scheme and domain. The url path must be empty."
+// URL string `json:"url"`
+//}
+
+// End: TOMBSTONE
 
 // GCPPlatformSpec holds the desired state of the Google Cloud Platform infrastructure provider.
 // This only includes fields that can be modified in the cluster.
@@ -817,23 +818,25 @@ type GCPPlatformStatus struct {
 	//
 	// +default={"dnsType": "PlatformDefault"}
 	// +kubebuilder:default={"dnsType": "PlatformDefault"}
-	// +openshift:enable:FeatureGate=GCPClusterHostedDNSInstall
 	// +optional
 	// +nullable
 	CloudLoadBalancerConfig *CloudLoadBalancerConfig `json:"cloudLoadBalancerConfig,omitempty"`
 
+	// This field was introduced and removed under tech preview.
 	// serviceEndpoints specifies endpoints that override the default endpoints
 	// used when creating clients to interact with GCP services.
 	// When not specified, the default endpoint for the GCP region will be used.
 	// Only 1 endpoint override is permitted for each GCP service.
 	// The maximum number of endpoint overrides allowed is 11.
+	// To avoid conflicts with serialisation, this field name may never be used again.
+	// Tombstone the field as a reminder.
 	// +listType=map
 	// +listMapKey=name
 	// +kubebuilder:validation:MaxItems=11
 	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, x.name == y.name))",message="only 1 endpoint override is permitted per GCP service name"
 	// +optional
 	// +openshift:enable:FeatureGate=GCPCustomAPIEndpointsInstall
-	ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
+	// ServiceEndpoints []GCPServiceEndpoint `json:"serviceEndpoints,omitempty"`
 }
 
 // GCPResourceLabel is a label to apply to GCP resources created for the cluster.
@@ -1085,6 +1088,21 @@ type BareMetalPlatformStatus struct {
 	// +kubebuilder:default={"type": "OpenShiftManagedDefault"}
 	// +optional
 	LoadBalancer *BareMetalPlatformLoadBalancer `json:"loadBalancer,omitempty"`
+
+	// vipManagement indicates which VIP management mechanism is active
+	// on this cluster.
+	// Allowed values are `Keepalived`, `BGP`, and omitted.
+	// Once set to a non-empty value, this field is immutable.
+	// When set to `BGP`, kube-vip (Routing Table Mode) and frr-k8s are
+	// deployed as static pods to advertise VIPs via BGP, replacing the
+	// default keepalived/VRRP mechanism.
+	// When set to `Keepalived`, the default keepalived-based VIP
+	// management is used.
+	// When omitted, the default keepalived-based VIP management is used.
+	// +kubebuilder:validation:XValidation:rule="oldSelf == '' || self == oldSelf",message="vipManagement is immutable once set"
+	// +openshift:enable:FeatureGate=BGPBasedVIPManagement
+	// +optional
+	VIPManagement VIPManagementType `json:"vipManagement,omitempty"`
 
 	// dnsRecordsType determines whether records for api, api-int, and ingress
 	// are provided by the internal DNS service or externally.
@@ -1435,6 +1453,9 @@ type VSpherePlatformFailureDomainSpec struct {
 	ZoneAffinity *VSphereFailureDomainZoneAffinity `json:"zoneAffinity,omitempty"`
 
 	// server is the fully-qualified domain name or the IP address of the vCenter server.
+	// This must match the server field of an entry in the vcenters list.
+	// The match is case-sensitive; the value must be specified exactly as it appears in the vcenters entry.
+	// The value must be between 1 and 255 characters long.
 	// +required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:MaxLength=255
@@ -1669,27 +1690,32 @@ type VSpherePlatformNodeNetworking struct {
 // use these fields for configuration.
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.apiServerInternalIPs) || has(self.apiServerInternalIPs)",message="apiServerInternalIPs list is required once set"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.ingressIPs) || has(self.ingressIPs)",message="ingressIPs list is required once set"
-// +kubebuilder:validation:XValidation:rule="!has(oldSelf.vcenters) && has(self.vcenters) ? size(self.vcenters) < 2 : true",message="vcenters can have at most 1 item when configured post-install"
+// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereMultiVCenterDay2,rule="!has(self.failureDomains) || size(self.failureDomains) == 0 || (has(self.vcenters) && self.failureDomains.all(fd, self.vcenters.exists(vc, vc.server == fd.server)))",message="all failure domains must have a corresponding vCenter entry"
 type VSpherePlatformSpec struct {
 	// vcenters holds the connection details for services to communicate with vCenter.
-	// Currently, only a single vCenter is supported, but in tech preview 3 vCenters are supported.
+	// Up to 3 vCenters are supported.
 	// Once the cluster has been installed, you are unable to change the current number of defined
-	// vCenters except in the case where the cluster has been upgraded from a version of OpenShift
-	// where the vsphere platform spec was not present.  You may make modifications to the existing
+	// vCenters except when 1.) the cluster has been upgraded from a version of OpenShift
+	// where the vsphere platform spec was not present or 2.) in TechPreview you are able to add and
+	// remove vCenters but may not remove all vCenters.  You may make modifications to the existing
 	// vCenters that are defined in the vcenters list in order to match with any added or modified
 	// failure domains.
 	// ---
 	// + If VCenters is not defined use the existing cloud-config configmap defined
 	// + in openshift-config.
-	// +kubebuilder:validation:MinItems=0
+	// +kubebuilder:validation:MinItems=1
 	// +kubebuilder:validation:MaxItems=3
-	// +kubebuilder:validation:XValidation:rule="size(self) != size(oldSelf) ? size(oldSelf) == 0 && size(self) < 2 : true",message="vcenters cannot be added or removed once set"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate="",rule="size(self) != size(oldSelf) ? size(oldSelf) == 0 && size(self) < 2 : true",message="vcenters cannot be added or removed once set"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereMultiVCenterDay2,rule="size(self) >= size(oldSelf) ? oldSelf.all(x, self.exists(y, y.server == x.server)) : true",message="Cannot add and remove vCenters at the same time"
+	// +openshift:validation:FeatureGateAwareXValidation:featureGate=VSphereMultiVCenterDay2,rule="size(self) < size(oldSelf) ? self.all(x, oldSelf.exists(y, y.server == x.server)) : true",message="Cannot add and remove vCenters at the same time"
+	// +kubebuilder:validation:XValidation:rule="self.all(x, self.exists_one(y, y.server == x.server))",message="vcenters must have unique server values"
 	// +listType=atomic
 	// +optional
 	VCenters []VSpherePlatformVCenterSpec `json:"vcenters,omitempty"`
 
 	// failureDomains contains the definition of region, zone and the vCenter topology.
 	// If this is omitted failure domains (regions and zones) will not be used.
+	// Each failure domain's server must match the server field of an entry in the vcenters list.
 	// +listType=map
 	// +listMapKey=name
 	// +optional
