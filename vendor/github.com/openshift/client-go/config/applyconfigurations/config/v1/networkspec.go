@@ -2,17 +2,49 @@
 
 package v1
 
-// NetworkSpecApplyConfiguration represents an declarative configuration of the NetworkSpec type for use
+// NetworkSpecApplyConfiguration represents a declarative configuration of the NetworkSpec type for use
 // with apply.
+//
+// NetworkSpec is the desired network configuration.
+// As a general rule, this SHOULD NOT be read directly. Instead, you should
+// consume the NetworkStatus, as it indicates the currently deployed configuration.
+// Currently, most spec fields are immutable after installation. Please view the individual ones for further details on each.
 type NetworkSpecApplyConfiguration struct {
-	ClusterNetwork       []ClusterNetworkEntryApplyConfiguration `json:"clusterNetwork,omitempty"`
-	ServiceNetwork       []string                                `json:"serviceNetwork,omitempty"`
-	NetworkType          *string                                 `json:"networkType,omitempty"`
-	ExternalIP           *ExternalIPConfigApplyConfiguration     `json:"externalIP,omitempty"`
-	ServiceNodePortRange *string                                 `json:"serviceNodePortRange,omitempty"`
+	// IP address pool to use for pod IPs.
+	// This field is immutable after installation.
+	ClusterNetwork []ClusterNetworkEntryApplyConfiguration `json:"clusterNetwork,omitempty"`
+	// IP address pool for services.
+	// Currently, we only support a single entry here.
+	// This field is immutable after installation.
+	ServiceNetwork []string `json:"serviceNetwork,omitempty"`
+	// networkType is the plugin that is to be deployed (e.g. OVNKubernetes).
+	// This should match a value that the cluster-network-operator understands,
+	// or else no networking will be installed.
+	// Currently supported values are:
+	// - OVNKubernetes
+	// This field is immutable after installation.
+	NetworkType *string `json:"networkType,omitempty"`
+	// externalIP defines configuration for controllers that
+	// affect Service.ExternalIP. If nil, then ExternalIP is
+	// not allowed to be set.
+	ExternalIP *ExternalIPConfigApplyConfiguration `json:"externalIP,omitempty"`
+	// The port range allowed for Services of type NodePort.
+	// If not specified, the default of 30000-32767 will be used.
+	// Such Services without a NodePort specified will have one
+	// automatically allocated from this range.
+	// This parameter can be updated after the cluster is
+	// installed.
+	ServiceNodePortRange *string `json:"serviceNodePortRange,omitempty"`
+	// networkDiagnostics defines network diagnostics configuration.
+	//
+	// Takes precedence over spec.disableNetworkDiagnostics in network.operator.openshift.io.
+	// If networkDiagnostics is not specified or is empty,
+	// and the spec.disableNetworkDiagnostics flag in network.operator.openshift.io is set to true,
+	// the network diagnostics feature will be disabled.
+	NetworkDiagnostics *NetworkDiagnosticsApplyConfiguration `json:"networkDiagnostics,omitempty"`
 }
 
-// NetworkSpecApplyConfiguration constructs an declarative configuration of the NetworkSpec type for use with
+// NetworkSpecApplyConfiguration constructs a declarative configuration of the NetworkSpec type for use with
 // apply.
 func NetworkSpec() *NetworkSpecApplyConfiguration {
 	return &NetworkSpecApplyConfiguration{}
@@ -62,5 +94,13 @@ func (b *NetworkSpecApplyConfiguration) WithExternalIP(value *ExternalIPConfigAp
 // If called multiple times, the ServiceNodePortRange field is set to the value of the last call.
 func (b *NetworkSpecApplyConfiguration) WithServiceNodePortRange(value string) *NetworkSpecApplyConfiguration {
 	b.ServiceNodePortRange = &value
+	return b
+}
+
+// WithNetworkDiagnostics sets the NetworkDiagnostics field in the declarative configuration to the given value
+// and returns the receiver, so that objects can be built by chaining "With" function invocations.
+// If called multiple times, the NetworkDiagnostics field is set to the value of the last call.
+func (b *NetworkSpecApplyConfiguration) WithNetworkDiagnostics(value *NetworkDiagnosticsApplyConfiguration) *NetworkSpecApplyConfiguration {
+	b.NetworkDiagnostics = value
 	return b
 }

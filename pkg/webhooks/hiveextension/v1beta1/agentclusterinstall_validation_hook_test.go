@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
-func createDecoder() *admission.Decoder {
+func createDecoder() admission.Decoder {
 	scheme := runtime.NewScheme()
 	err := hiveext.AddToScheme(scheme)
 	Expect(err).To(BeNil())

@@ -23,11 +23,11 @@ const (
 
 // AgentValidatingAdmissionHook is a struct that is used to reference what code should be run by the generic-admission-server.
 type AgentValidatingAdmissionHook struct {
-	decoder *admission.Decoder
+	decoder admission.Decoder
 }
 
 // NewAgentValidatingAdmissionHook constructs a new NewAgentValidatingAdmissionHook
-func NewAgentValidatingAdmissionHook(decoder *admission.Decoder) *AgentValidatingAdmissionHook {
+func NewAgentValidatingAdmissionHook(decoder admission.Decoder) *AgentValidatingAdmissionHook {
 	return &AgentValidatingAdmissionHook{decoder: decoder}
 }
 

@@ -3323,7 +3323,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 			Expect(err).To(BeNil())
-			Expect(result.Requeue).To(BeTrue())
+			Expect(result.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 			Expect(result.RequeueAfter).To(BeNumerically(">", 0))
 
 			updatedHost := &bmh_v1alpha1.BareMetalHost{}
@@ -4252,7 +4252,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 				innerResult, err := res.Result()
 				// After a successful drain, the BMH is configured for cleaning and
 				// the flow waits for the BMH to reach StateDeleting before proceeding.
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusSuccess))
@@ -4271,7 +4271,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 				innerResult, err := res.Result()
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusInProgress))
@@ -4284,7 +4284,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 
 				res := bmhr.handleBMHFinalizer(ctx, bmhr.Log, bmh, agent)
 				innerResult, err := res.Result()
-				Expect(innerResult.Requeue).To(BeFalse())
+				Expect(innerResult.Requeue).To(BeFalse()) //nolint:staticcheck // Deprecated but require more changes
 				Expect(err).To(HaveOccurred())
 
 				annotations := bmh.GetAnnotations()
@@ -4301,7 +4301,7 @@ var _ = Describe("handleBMHFinalizer", func() {
 				innerResult, err := res.Result()
 				// After drain timeout, the BMH is configured for cleaning and
 				// the flow waits for the BMH to reach StateDeleting before proceeding.
-				Expect(innerResult.Requeue).To(BeTrue())
+				Expect(innerResult.Requeue).To(BeTrue()) //nolint:staticcheck // Deprecated but require more changes
 				Expect(err).NotTo(HaveOccurred())
 
 				Expect(bmh.GetAnnotations()).To(HaveKeyWithValue(BMH_NODE_DRAIN_STATUS_ANNOTATION, drainStatusTimeout))
@@ -4505,3 +4505,513 @@ func newAgentWithClusterReference(name string, namespace string, ipv4address str
 	agent.ObjectMeta.CreationTimestamp.Time = creationTime
 	return agent
 }
+
+var _ = Describe("reconcileBMHStaleProvisioning", func() {
+	var (
+		c                     client.Client
+		bmhr                  *BMACReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		mockInstallerInternal *bminventory.MockInstallerInternals
+		host                  *bmh_v1alpha1.BareMetalHost
+		agent                 *aiv1beta1.Agent
+	)
+
+	BeforeEach(func() {
+		schemes := GetKubeClientSchemes()
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).
+			WithStatusSubresource(&bmh_v1alpha1.BareMetalHost{}).Build()
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+		bmhr = &BMACReconciler{
+			Client:                              c,
+			APIReader:                           c,
+			Scheme:                              scheme.Scheme,
+			Log:                                 common.GetTestLog(),
+			spokeClient:                         fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
+			ConvergedFlowEnabled:                false,
+			PauseProvisionedBMHs:                true,
+			StaleProvisioningRemediationEnabled: true,
+			Installer:                           mockInstallerInternal,
+		}
+
+		host = newBMH("test-bmh", &bmh_v1alpha1.BareMetalHostSpec{
+			BootMACAddress: "AA-BB-CC-DD-EE-FF",
+		})
+		host.ObjectMeta.Annotations = make(map[string]string)
+
+		agentSpec := aiv1beta1.AgentSpec{Approved: true}
+		agent = newAgent("test-agent", testNamespace, agentSpec)
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	Describe("isStaleProvisioning helper", func() {
+		It("returns true when agent is Done and BMH is in Provisioning (day 1)", func() {
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			Expect(isStaleProvisioning(agent, host)).To(BeTrue())
+		})
+
+		It("returns false when agent is not Done (day 1)", func() {
+			agent.Status.Progress.CurrentStage = models.HostStageRebooting
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			Expect(isStaleProvisioning(agent, host)).To(BeFalse())
+		})
+
+		It("returns false when BMH is not in Provisioning (day 1)", func() {
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			Expect(isStaleProvisioning(agent, host)).To(BeFalse())
+		})
+
+		// day 2 cases: detection must use DebugInfo.State, not CurrentStage, to avoid
+		// a false-positive race window between HostStageDone and Ironic reporting back.
+		It("returns false for day 2 host when stage is Done but state is not AddedToExistingCluster", func() {
+			agent.Status.Kind = models.HostKindAddToExistingClusterHost
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			agent.Status.DebugInfo.State = models.HostStatusInstalled // agent controller hasn't synced yet
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			Expect(isStaleProvisioning(agent, host)).To(BeFalse())
+		})
+
+		It("returns true for day 2 host when state is AddedToExistingCluster and BMH is in Provisioning", func() {
+			agent.Status.Kind = models.HostKindAddToExistingClusterHost
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			agent.Status.DebugInfo.State = models.HostStatusAddedToExistingCluster
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			Expect(isStaleProvisioning(agent, host)).To(BeTrue())
+		})
+
+		It("returns false for day 2 host when BMH has already moved past Provisioning", func() {
+			agent.Status.Kind = models.HostKindAddToExistingClusterHost
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			agent.Status.DebugInfo.State = models.HostStatusAddedToExistingCluster
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			Expect(isStaleProvisioning(agent, host)).To(BeFalse())
+		})
+	})
+
+	Describe("prechecks", func() {
+		var clusterDeployment *hivev1.ClusterDeployment
+
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			clusterDeployment = &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cd",
+					Namespace: testNamespace,
+				},
+				Spec: hivev1.ClusterDeploymentSpec{
+					Installed: true,
+				},
+			}
+			Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{
+				Name:      clusterDeployment.Name,
+				Namespace: clusterDeployment.Namespace,
+			}
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+		})
+
+		It("is a no-op when stale provisioning remediation is disabled", func() {
+			bmhr.StaleProvisioningRemediationEnabled = false
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("is a no-op when converged flow is disabled", func() {
+			bmhr.ConvergedFlowEnabled = false
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("is a no-op when agent is nil", func() {
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, nil)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("is a no-op when cluster is not yet installed", func() {
+			clusterDeployment.Spec.Installed = false
+			Expect(c.Update(ctx, clusterDeployment)).To(Succeed())
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("is a no-op when agent stage is not Done", func() {
+			agent.Status.Progress.CurrentStage = models.HostStageRebooting
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("is a no-op when BMH is not in StateProvisioning", func() {
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("is a no-op when detach annotation is already set by another actor", func() {
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "some-other-controller"
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION]).To(Equal("some-other-controller"))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("cleans up marker and force-detach when agent is removed mid-remediation", func() {
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, nil)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("cleans up marker and force-detach when agent is unbound mid-remediation", func() {
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			// Simulate unbound agent: no ClusterDeploymentName
+			agent.Spec.ClusterDeploymentName = nil
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("cleans up marker and force-detach when converged flow disabled mid-remediation", func() {
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			bmhr.ConvergedFlowEnabled = false
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("cleans up marker and force-detach when stale provisioning remediation disabled mid-remediation", func() {
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			bmhr.StaleProvisioningRemediationEnabled = false
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+	})
+
+	Describe("Phase 1 — detection", func() {
+		var clusterDeployment *hivev1.ClusterDeployment
+
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			clusterDeployment = &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cd",
+					Namespace: testNamespace,
+				},
+				Spec: hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, clusterDeployment)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{
+				Name:      clusterDeployment.Name,
+				Namespace: clusterDeployment.Namespace,
+			}
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+		})
+
+		It("sets marker and force-detach annotation, blocks pipeline (day 1)", func() {
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			Expect(host.ObjectMeta.Annotations).To(HaveKeyWithValue(BMH_STALE_PROVISIONING_ANNOTATION, staleProvisioningRemediating))
+			detachJson, err := json.Marshal(bmh_v1alpha1.DetachedAnnotationArguments{Force: true})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(host.ObjectMeta.Annotations).To(HaveKeyWithValue(BMH_DETACHED_ANNOTATION, string(detachJson)))
+		})
+
+		It("sets marker and force-detach annotation for day 2 (already-installed cluster)", func() {
+			// day 2: Spec.Installed is already true; detection requires HostStatusAddedToExistingCluster
+			agent.Status.Kind = models.HostKindAddToExistingClusterHost
+			agent.Status.DebugInfo.State = models.HostStatusAddedToExistingCluster
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			Expect(host.ObjectMeta.Annotations).To(HaveKeyWithValue(BMH_STALE_PROVISIONING_ANNOTATION, staleProvisioningRemediating))
+		})
+	})
+
+	Describe("Phase 2 — waiting for BMO to detach", func() {
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			host.Status.OperationalStatus = "" // not yet detached
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			// Need a ClusterDeployment for the precheck
+			cd := &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cd", Namespace: testNamespace},
+				Spec:       hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, cd)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace}
+		})
+
+		It("blocks the pipeline while OperationalStatus is not detached (marker=remediating)", func() {
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			// Marker and detach annotation unchanged
+			Expect(host.ObjectMeta.Annotations).To(HaveKeyWithValue(BMH_STALE_PROVISIONING_ANNOTATION, staleProvisioningRemediating))
+			Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+	})
+
+	Describe("Phase 3 — apply status correction", func() {
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			host.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			cd := &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cd", Namespace: testNamespace},
+				Spec:       hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, cd)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace}
+			// Phase 3 calls r.Status().Patch(), so the BMH must exist in the fake client.
+			Expect(c.Create(ctx, host)).To(Succeed())
+		})
+
+		It("patches live status to provisioned directly, keeps detach annotation for Phase 4", func() {
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			// Status patched via r.Status().Patch() on a deep copy — verify the
+			// persisted object has the corrected state.
+			persisted := &bmh_v1alpha1.BareMetalHost{}
+			Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: host.Namespace}, persisted)).To(Succeed())
+			Expect(persisted.Status.Provisioning.State).To(Equal(bmh_v1alpha1.StateProvisioned))
+			// No BMH_STATUS_ANNOTATION used.
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STATUS_ANNOTATION))
+			// Detach annotation still present; Phase 4 will remove it on the next reconcile.
+			Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+			// Marker unchanged — still "remediating"; Phase 4 removes it.
+			Expect(host.ObjectMeta.Annotations).To(HaveKeyWithValue(BMH_STALE_PROVISIONING_ANNOTATION, staleProvisioningRemediating))
+		})
+	})
+
+	Describe("Phase 4 — re-attach BMO and complete remediation", func() {
+		// State: Phase 3 patched the live status to StateProvisioned. The BMH has exited
+		// StateProvisioning (isStaleProvisioning == false), the force-detach annotation is still
+		// present (marker = "remediating"), and we now remove it to let BMO re-import the host.
+		// This is intentionally a separate reconcile from Phase 3 to avoid coupling a status
+		// subresource write and a metadata write in the same reconcile loop.
+		var setupCD = func() {
+			cd := &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cd", Namespace: testNamespace},
+				Spec:       hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, cd)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace}
+		}
+
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			// Status has been patched — BMH is no longer in StateProvisioning.
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+		})
+
+		It("removes force-detach annotation and waits when OperationalStatus is still detached", func() {
+			host.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+			// Marker stays until OperationalStatus clears.
+			Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+
+		It("removes all annotations when OperationalStatus is already clear", func() {
+			host.Status.OperationalStatus = ""
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("completes remediation after waiting for OperationalStatus to clear", func() {
+			// Simulate second reconcile after Phase 4 waited: detach annotation already
+			// removed, OperationalStatus now cleared by BMO.
+			delete(host.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+			host.Status.OperationalStatus = ""
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+	})
+
+	Describe("external resolution — BMH exits StateProvisioning without our remediation", func() {
+		// These cases cover BMH reaching a non-Provisioning state via an external actor
+		// (e.g. Ironic eventually reporting back) while our marker is present.
+		var setupCD = func() {
+			cd := &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cd", Namespace: testNamespace},
+				Spec:       hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, cd)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace}
+		}
+
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			host.Status.OperationalStatus = ""
+		})
+
+		It("cleans up marker when resolved externally during phases 1-3 (marker=remediating)", func() {
+			detachArg := bmh_v1alpha1.DetachedAnnotationArguments{Force: true}
+			detachJson, err := json.Marshal(detachArg)
+			Expect(err).NotTo(HaveOccurred())
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = string(detachJson)
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("cleans up marker when force-detach was already consumed by BMO before external resolution", func() {
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			// detach annotation absent: BMO already consumed it
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{}))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			Expect(host.ObjectMeta.Annotations).NotTo(HaveKey(BMH_DETACHED_ANNOTATION))
+		})
+
+		It("waits for OperationalStatus to clear when externally resolved but still detached", func() {
+			// External actor resolved the BMH state, but OperationalStatus is still
+			// "detached" — wait for BMO to finish before removing the marker.
+			host.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
+			host.ObjectMeta.Annotations[BMH_STALE_PROVISIONING_ANNOTATION] = staleProvisioningRemediating
+			setupCD()
+			result := bmhr.reconcileBMHStaleProvisioning(ctx, bmhr.Log, host, agent)
+			Expect(result).To(Equal(reconcileComplete{stop: true}))
+			Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+	})
+
+	Describe("pipeline ordering", func() {
+		var (
+			infraEnv *aiv1beta1.InfraEnv
+		)
+
+		BeforeEach(func() {
+			bmhr.ConvergedFlowEnabled = true
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{})
+			infraEnv.Status = aiv1beta1.InfraEnvStatus{
+				ISODownloadURL: "http://example.com/image.iso",
+				CreatedTime:    &metav1.Time{Time: time.Now()},
+			}
+			Expect(c.Create(ctx, infraEnv)).To(Succeed())
+
+			host.ObjectMeta.Labels = map[string]string{
+				BMH_INFRA_ENV_LABEL: infraEnv.Name,
+			}
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioning
+			Expect(c.Create(ctx, host)).To(Succeed())
+
+			macStr := "AA-BB-CC-DD-EE-FF"
+			host.Spec.BootMACAddress = macStr
+			agent.Status.Inventory = aiv1beta1.HostInventory{
+				Interfaces: []aiv1beta1.HostInterface{{MacAddress: macStr}},
+			}
+			agent.Status.Progress.CurrentStage = models.HostStageDone
+
+			cd := &hivev1.ClusterDeployment{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-cd", Namespace: testNamespace},
+				Spec:       hivev1.ClusterDeploymentSpec{Installed: true},
+			}
+			Expect(c.Create(ctx, cd)).To(Succeed())
+			agent.Spec.ClusterDeploymentName = &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace}
+			Expect(c.Create(ctx, agent)).To(Succeed())
+		})
+
+		It("stale provisioning blocks handlePauseAndDetachBMHAnnotations during Phase 1", func() {
+			_, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+			Expect(err).To(BeNil())
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(Succeed())
+
+			// Stale provisioning handler set force-detach
+			Expect(updatedHost.Annotations).To(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+			detachVal := updatedHost.Annotations[BMH_DETACHED_ANNOTATION]
+			var args bmh_v1alpha1.DetachedAnnotationArguments
+			Expect(json.Unmarshal([]byte(detachVal), &args)).To(Succeed())
+			Expect(args.Force).To(BeTrue())
+			// handlePauseAndDetachBMHAnnotations must NOT have overwritten it with "assisted-service-controller"
+			Expect(detachVal).NotTo(Equal("assisted-service-controller"))
+		})
+
+		It("normal flow resumes after remediation completes", func() {
+			// Simulate post-remediation state: BMH is now Provisioned, marker cleaned up
+			host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+			host.Status.OperationalStatus = bmh_v1alpha1.OperationalStatusDetached
+			Expect(c.Status().Update(ctx, host)).To(Succeed())
+
+			// The Reconcile may error in later stages (e.g. MCS cert lookup), but
+			// the deferred BMH patch ensures annotations are persisted regardless.
+			bmhr.Reconcile(ctx, newBMHRequest(host)) //nolint:errcheck
+
+			updatedHost := &bmh_v1alpha1.BareMetalHost{}
+			Expect(c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)).To(Succeed())
+
+			// handlePauseAndDetachBMHAnnotations ran and set the standard detach value
+			Expect(updatedHost.Annotations).To(HaveKeyWithValue(BMH_DETACHED_ANNOTATION, "assisted-service-controller"))
+			Expect(updatedHost.Annotations).NotTo(HaveKey(BMH_STALE_PROVISIONING_ANNOTATION))
+		})
+	})
+})
