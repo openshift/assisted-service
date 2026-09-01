@@ -2016,17 +2016,17 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			var newSyncStatus corev1.ConditionStatus
 
 			for _, condition := range oldAgent.Status.Conditions {
-				if condition.Reason == string(aiv1beta1.SpecSyncedCondition) {
+				if condition.Type == aiv1beta1.SpecSyncedCondition {
 					oldSyncStatus = condition.Status
 				}
 			}
 			for _, condition := range newAgent.Status.Conditions {
-				if condition.Reason == string(aiv1beta1.SpecSyncedCondition) {
+				if condition.Type == aiv1beta1.SpecSyncedCondition {
 					newSyncStatus = condition.Status
 				}
 			}
 
-			return oldSyncStatus != newSyncStatus
+			return oldSyncStatus != newSyncStatus || oldAgent.Spec.Approved != newAgent.Spec.Approved
 		},
 	})
 
