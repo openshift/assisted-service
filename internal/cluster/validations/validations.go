@@ -63,7 +63,7 @@ var allowedSSHAuthorizedKeyOptions = map[string]struct{}{
 	"no-pty":              {},
 	"no-touch-required":   {},
 	"no-user-rc":          {},
-	"no-X11-forwarding":   {},
+	"no-x11-forwarding":   {},
 	"permitlisten":        {},
 	"permitopen":          {},
 	"port-forwarding":     {},
@@ -73,7 +73,7 @@ var allowedSSHAuthorizedKeyOptions = map[string]struct{}{
 	"tunnel":              {},
 	"user-rc":             {},
 	"verify-required":     {},
-	"X11-forwarding":      {},
+	"x11-forwarding":      {},
 }
 
 // ValidateClusterNameFormat validates specified cluster name format
@@ -143,7 +143,7 @@ func ValidateSSHPublicKey(sshPublicKeys string) error {
 func sshAuthorizedKeyOptionsAllowed(options []string) bool {
 	for _, opt := range options {
 		name, _, _ := strings.Cut(opt, "=")
-		if _, ok := allowedSSHAuthorizedKeyOptions[name]; !ok {
+		if _, ok := allowedSSHAuthorizedKeyOptions[strings.ToLower(name)]; !ok {
 			return false
 		}
 	}

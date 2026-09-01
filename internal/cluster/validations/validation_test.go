@@ -230,6 +230,10 @@ var _ = Describe("SSH Key validation", func() {
 		err := ValidateSSHPublicKey(`from="192.0.2.1,192.0.2.2" ` + validSSHPublicKey)
 		Expect(err).Should(BeNil())
 	})
+	It("valid ssh key with case-insensitive authorized_keys options", func() {
+		err := ValidateSSHPublicKey(`FROM="192.0.2.1,192.0.2.2",No-PTY ` + validSSHPublicKey)
+		Expect(err).Should(BeNil())
+	})
 	It("valid ssh key with command option containing key type text", func() {
 		err := ValidateSSHPublicKey(`command="echo ssh-rsa " ` + validSSHPublicKey)
 		Expect(err).Should(BeNil())
