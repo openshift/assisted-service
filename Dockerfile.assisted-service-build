@@ -39,6 +39,7 @@ COPY --from=registry.k8s.io/kustomize/kustomize:v5.7.1 /app/kustomize /usr/bin/
 
 RUN dnf install -y --enablerepo=crb \
         openssl openssl-devel postgresql nmstate-devel sqlite gcc genisoimage git libvirt-client libvirt-devel java make && \
+    update-crypto-policies --set DEFAULT:PQ && \
     dnf clean all
 
 # Git checks if the user that owns the files on the filesystem match the
