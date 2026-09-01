@@ -35,10 +35,46 @@ const (
 	clusterNameRegex                = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
 	CloudOpenShiftCom               = "cloud.openshift.com"
+	// sshPublicKeyRegex matches a supported public-key line (OCPBUGSM-13814).
+	// Known authorized_keys options are stripped before matching so prefixes
+	// such as from= are accepted (MGMT-25133) while junk prefixes are not.
+	sshPublicKeyRegex = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
 	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
 	IgnitionImageSizePadding = 256 * 1024
 )
+
+var regexpSshPublicKey *regexp.Regexp
+
+func init() {
+	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
+}
+
+// allowedSSHAuthorizedKeyOptions are sshd(8) authorized_keys option keywords.
+var allowedSSHAuthorizedKeyOptions = map[string]struct{}{
+	"agent-forwarding":    {},
+	"cert-authority":      {},
+	"command":             {},
+	"environment":         {},
+	"expiry-time":         {},
+	"from":                {},
+	"no-agent-forwarding": {},
+	"no-port-forwarding":  {},
+	"no-pty":              {},
+	"no-touch-required":   {},
+	"no-user-rc":          {},
+	"no-X11-forwarding":   {},
+	"permitlisten":        {},
+	"permitopen":          {},
+	"port-forwarding":     {},
+	"principals":          {},
+	"pty":                 {},
+	"restrict":            {},
+	"tunnel":              {},
+	"user-rc":             {},
+	"verify-required":     {},
+	"X11-forwarding":      {},
+}
 
 // ValidateClusterNameFormat validates specified cluster name format
 func ValidateClusterNameFormat(name string, platform string) error {
@@ -78,17 +114,51 @@ func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
 }
 
 func ValidateSSHPublicKey(sshPublicKeys string) error {
+	if regexpSshPublicKey == nil {
+		return errors.New("Can't parse SSH keys.")
+	}
+
 	for _, sshPublicKey := range strings.Split(sshPublicKeys, "\n") {
 		sshPublicKey = strings.TrimSpace(sshPublicKey)
 		if sshPublicKey == "" {
 			continue
 		}
-		if _, _, _, _, err := ssh.ParseAuthorizedKey([]byte(sshPublicKey)); err != nil {
+
+		pub, _, options, _, err := ssh.ParseAuthorizedKey([]byte(sshPublicKey))
+		if err != nil {
 			return errors.Wrapf(err, "Malformed SSH key: %s", sshPublicKey)
+		}
+
+		keyForRegex := sshKeyLineForTypeRegex(sshPublicKey, pub, options)
+		if !regexpSshPublicKey.Match([]byte(keyForRegex)) {
+			return errors.Errorf(
+				"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
+				sshPublicKey)
 		}
 	}
 
 	return nil
+}
+
+func sshAuthorizedKeyOptionsAllowed(options []string) bool {
+	for _, opt := range options {
+		name, _, _ := strings.Cut(opt, "=")
+		if _, ok := allowedSSHAuthorizedKeyOptions[name]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func sshKeyLineForTypeRegex(sshPublicKey string, pub ssh.PublicKey, options []string) string {
+	if len(options) == 0 || !sshAuthorizedKeyOptionsAllowed(options) {
+		return sshPublicKey
+	}
+	prefix := pub.Type() + " "
+	if idx := strings.Index(sshPublicKey, prefix); idx >= 0 {
+		return sshPublicKey[idx:]
+	}
+	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub)))
 }
 
 func ValidatePEMCertificateBundle(bundle string) error {
