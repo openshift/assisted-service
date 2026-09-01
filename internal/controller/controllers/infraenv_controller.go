@@ -210,6 +210,9 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if infraEnv.Spec.OSImageVersion != "" && infraEnv.Spec.OSImageVersion != internalInfraEnv.OpenshiftVersion {
 		updateParams.InfraEnvUpdateParams.OpenshiftVersion = &infraEnv.Spec.OSImageVersion
 	}
+	if infraEnv.Spec.OSStream != "" && infraEnv.Spec.OSStream != internalInfraEnv.OsStream {
+		updateParams.InfraEnvUpdateParams.OsStream = &infraEnv.Spec.OSStream
+	}
 
 	pullSecretKey := getPullSecretKey(infraEnv.Namespace, infraEnv.Spec.PullSecretRef)
 	pullSecret, err := r.PullSecretHandler.GetValidPullSecret(ctx, pullSecretKey)
@@ -504,7 +507,7 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 	return nil
 }
 
-func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion string) installer.RegisterInfraEnvParams {
+func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion, osStream string) installer.RegisterInfraEnvParams {
 	createParams := installer.RegisterInfraEnvParams{
 		InfraenvCreateParams: &models.InfraEnvCreateParams{
 			Name:                         &infraEnv.Name,
@@ -515,6 +518,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 			CPUArchitecture:              infraEnv.Spec.CpuArchitecture,
 			ClusterID:                    clusterID,
 			OpenshiftVersion:             openshiftVersion,
+			OsStream:                     osStream,
 			AdditionalTrustBundle:        infraEnv.Spec.AdditionalTrustBundle,
 			NetworkDiscoveryDelaySeconds: infraEnv.Spec.NetworkDiscoveryDelaySeconds,
 		},
@@ -546,7 +550,7 @@ func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageTy
 // Priority is given to the OSImageVersion specified in the InfraEnv
 // If there's a cluster reference, return cluster's OpenshiftVersion
 // If OsImageVersion is specified, return value or fallback to latest if missing from ASC
-func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (string, error) {
+func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster, osStream string) (string, error) {
 	osImageVersion := infraEnv.Spec.OSImageVersion
 
 	if cluster != nil && osImageVersion == "" {
@@ -558,7 +562,7 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 		return "", nil
 	}
 
-	if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture); err != nil {
+	if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture, osStream); err != nil {
 		msg := "Specified OSImageVersion is missing from AgentServiceConfig"
 		log.WithError(err).Error(msg)
 		return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
@@ -566,10 +570,22 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 	return osImageVersion, nil
 }
 
+// getOSStream returns the OS stream for the InfraEnv. Priority is given to Spec.OSStream;
+// if empty and a cluster is referenced, the cluster's OsStream is used.
+func (r *InfraEnvReconciler) getOSStream(infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) string {
+	osStream := infraEnv.Spec.OSStream
+	if cluster != nil && osStream == "" {
+		osStream = cluster.OsStream
+	}
+
+	return osStream
+}
+
 func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.FieldLogger, key *types.NamespacedName,
 	infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
 
-	osImageVersion, err := r.getOSImageVersion(log, infraEnv, cluster)
+	osStream := r.getOSStream(infraEnv, cluster)
+	osImageVersion, err := r.getOSImageVersion(log, infraEnv, cluster, osStream)
 	if err != nil {
 		log.WithError(err).Error("failed to get OS image version")
 		return nil, err
@@ -586,7 +602,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 		clusterID = cluster.ID
 	}
 	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
-	createParams := CreateInfraEnvParams(infraEnv, imageType, pullSecret, clusterID, osImageVersion)
+	createParams := CreateInfraEnvParams(infraEnv, imageType, pullSecret, clusterID, osImageVersion, osStream)
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
@@ -758,7 +774,7 @@ func (r *InfraEnvReconciler) setBootArtifactURLs(log logrus.FieldLogger, infraEn
 	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var err error
 	var osImage *models.OsImage
-	if osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture); err != nil {
+	if osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture, internalInfraEnv.OsStream); err != nil {
 		return err
 	}
 	if bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs); err != nil {
