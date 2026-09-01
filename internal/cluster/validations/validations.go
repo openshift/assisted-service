@@ -154,10 +154,6 @@ func sshKeyLineForTypeRegex(sshPublicKey string, pub ssh.PublicKey, options []st
 	if len(options) == 0 || !sshAuthorizedKeyOptionsAllowed(options) {
 		return sshPublicKey
 	}
-	prefix := pub.Type() + " "
-	if idx := strings.Index(sshPublicKey, prefix); idx >= 0 {
-		return sshPublicKey[idx:]
-	}
 	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub)))
 }
 
