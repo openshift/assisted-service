@@ -50,30 +50,31 @@ func init() {
 	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
 }
 
-// allowedSSHAuthorizedKeyOptions are sshd(8) authorized_keys option keywords.
-var allowedSSHAuthorizedKeyOptions = map[string]struct{}{
-	"agent-forwarding":    {},
-	"cert-authority":      {},
-	"command":             {},
-	"environment":         {},
-	"expiry-time":         {},
-	"from":                {},
-	"no-agent-forwarding": {},
-	"no-port-forwarding":  {},
-	"no-pty":              {},
-	"no-touch-required":   {},
-	"no-user-rc":          {},
-	"no-x11-forwarding":   {},
-	"permitlisten":        {},
-	"permitopen":          {},
-	"port-forwarding":     {},
-	"principals":          {},
-	"pty":                 {},
-	"restrict":            {},
-	"tunnel":              {},
-	"user-rc":             {},
-	"verify-required":     {},
-	"x11-forwarding":      {},
+// allowedSSHAuthorizedKeyOptions maps sshd(8) authorized_keys option keywords
+// (lowercase) to whether the option requires a value.
+var allowedSSHAuthorizedKeyOptions = map[string]bool{
+	"agent-forwarding":    false,
+	"cert-authority":      false,
+	"command":             true,
+	"environment":         true,
+	"expiry-time":         true,
+	"from":                true,
+	"no-agent-forwarding": false,
+	"no-port-forwarding":  false,
+	"no-pty":              false,
+	"no-touch-required":   false,
+	"no-user-rc":          false,
+	"no-x11-forwarding":   false,
+	"permitlisten":        true,
+	"permitopen":          true,
+	"port-forwarding":     false,
+	"principals":          true,
+	"pty":                 false,
+	"restrict":            false,
+	"tunnel":              true,
+	"user-rc":             false,
+	"verify-required":     false,
+	"x11-forwarding":      false,
 }
 
 // ValidateClusterNameFormat validates specified cluster name format
@@ -142,8 +143,12 @@ func ValidateSSHPublicKey(sshPublicKeys string) error {
 
 func sshAuthorizedKeyOptionsAllowed(options []string) bool {
 	for _, opt := range options {
-		name, _, _ := strings.Cut(opt, "=")
-		if _, ok := allowedSSHAuthorizedKeyOptions[strings.ToLower(name)]; !ok {
+		name, _, hasValue := strings.Cut(opt, "=")
+		requiresValue, ok := allowedSSHAuthorizedKeyOptions[strings.ToLower(name)]
+		if !ok {
+			return false
+		}
+		if requiresValue != hasValue {
 			return false
 		}
 	}

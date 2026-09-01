@@ -257,6 +257,24 @@ var _ = Describe("SSH Key validation", func() {
 		err := ValidateSSHPublicKey(`from="192.0.2.1" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItruncated`)
 		Expect(err).ShouldNot(BeNil())
 	})
+	It("bare command option without a value is rejected", func() {
+		err := ValidateSSHPublicKey(`command ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`COMMAND ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("bare from option without a value is rejected", func() {
+		err := ValidateSSHPublicKey(`from ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`FROM ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("flag option with a value is rejected", func() {
+		err := ValidateSSHPublicKey(`no-pty=true ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`No-PTY=true ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+	})
 })
 
 type mockOCMAuthentication struct {
