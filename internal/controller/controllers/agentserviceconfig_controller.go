@@ -809,12 +809,27 @@ func newAssistedServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger
 			},
 			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress},
 			Ingress: []netv1.NetworkPolicyIngressRule{
-				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
 				{
+					From: []netv1.NetworkPolicyPeer{
+						{PodSelector: &metav1.LabelSelector{}},
+						{NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"network.openshift.io/policy-group": "ingress"},
+						}},
+					},
 					Ports: []netv1.NetworkPolicyPort{
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &servicePort},
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &serviceHTTPPort},
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 9443}},
+					},
+				},
+				{
+					From: []netv1.NetworkPolicyPeer{
+						{NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"network.openshift.io/policy-group": "monitoring"},
+						}},
+					},
+					Ports: []netv1.NetworkPolicyPort{
+						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &servicePort},
 					},
 				},
 			},
@@ -845,8 +860,13 @@ func newImageServiceNetworkPolicy(ctx context.Context, log logrus.FieldLogger, a
 			},
 			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress},
 			Ingress: []netv1.NetworkPolicyIngressRule{
-				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
 				{
+					From: []netv1.NetworkPolicyPeer{
+						{PodSelector: &metav1.LabelSelector{}},
+						{NamespaceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"network.openshift.io/policy-group": "ingress"},
+						}},
+					},
 					Ports: []netv1.NetworkPolicyPort{
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerPort},
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &imageHandlerHTTPPort},
@@ -880,7 +900,6 @@ func newWebhookNetworkPolicy(ctx context.Context, log logrus.FieldLogger, asc AS
 			},
 			PolicyTypes: []netv1.PolicyType{netv1.PolicyTypeIngress, netv1.PolicyTypeEgress},
 			Ingress: []netv1.NetworkPolicyIngressRule{
-				{From: []netv1.NetworkPolicyPeer{{PodSelector: &metav1.LabelSelector{}}}},
 				{
 					Ports: []netv1.NetworkPolicyPort{
 						{Protocol: ptr.To(corev1.ProtocolTCP), Port: &intstr.IntOrString{Type: intstr.Int, IntVal: 9443}},
