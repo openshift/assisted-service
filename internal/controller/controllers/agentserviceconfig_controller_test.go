@@ -1375,6 +1375,31 @@ var _ = Describe("newAssistedServiceNetworkPolicy", func() {
 		Expect(np.Spec.PolicyTypes).To(Equal([]netv1.PolicyType{netv1.PolicyTypeIngress}))
 		Expect(np.Spec.Egress).To(BeEmpty())
 	})
+
+	It("should restrict ingress to same-namespace, openshift-ingress, and monitoring", func() {
+		obj, mutateFn, err := newAssistedServiceNetworkPolicy(ctx, log, ascc)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mutateFn()).To(Succeed())
+
+		np := obj.(*netv1.NetworkPolicy)
+		Expect(np.Spec.Ingress).To(HaveLen(2))
+
+		rule := np.Spec.Ingress[0]
+		Expect(rule.From).To(HaveLen(2))
+		Expect(rule.From[0].PodSelector).ToNot(BeNil())
+		Expect(rule.From[0].NamespaceSelector).To(BeNil())
+		Expect(rule.From[1].NamespaceSelector).ToNot(BeNil())
+		Expect(rule.From[1].PodSelector).To(BeNil())
+		Expect(rule.From[1].NamespaceSelector.MatchLabels).To(HaveKeyWithValue("network.openshift.io/policy-group", "ingress"))
+		Expect(rule.Ports).To(HaveLen(3))
+
+		monRule := np.Spec.Ingress[1]
+		Expect(monRule.From).To(HaveLen(1))
+		Expect(monRule.From[0].NamespaceSelector).ToNot(BeNil())
+		Expect(monRule.From[0].PodSelector).To(BeNil())
+		Expect(monRule.From[0].NamespaceSelector.MatchLabels).To(HaveKeyWithValue("network.openshift.io/policy-group", "monitoring"))
+		Expect(monRule.Ports).To(HaveLen(1))
+	})
 })
 
 var _ = Describe("newImageServiceNetworkPolicy", func() {
@@ -1400,6 +1425,52 @@ var _ = Describe("newImageServiceNetworkPolicy", func() {
 		np := obj.(*netv1.NetworkPolicy)
 		Expect(np.Spec.PolicyTypes).To(Equal([]netv1.PolicyType{netv1.PolicyTypeIngress}))
 		Expect(np.Spec.Egress).To(BeEmpty())
+	})
+
+	It("should restrict ingress to same-namespace and openshift-ingress only", func() {
+		obj, mutateFn, err := newImageServiceNetworkPolicy(ctx, log, ascc)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mutateFn()).To(Succeed())
+
+		np := obj.(*netv1.NetworkPolicy)
+		Expect(np.Spec.Ingress).To(HaveLen(1))
+		rule := np.Spec.Ingress[0]
+		Expect(rule.From).To(HaveLen(2))
+		Expect(rule.From[0].PodSelector).ToNot(BeNil())
+		Expect(rule.From[0].NamespaceSelector).To(BeNil())
+		Expect(rule.From[1].NamespaceSelector).ToNot(BeNil())
+		Expect(rule.From[1].PodSelector).To(BeNil())
+		Expect(rule.From[1].NamespaceSelector.MatchLabels).To(HaveKeyWithValue("network.openshift.io/policy-group", "ingress"))
+		Expect(rule.Ports).To(HaveLen(2))
+	})
+})
+
+var _ = Describe("newWebhookNetworkPolicy", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ascc ASC
+		ctx  = context.Background()
+		log  = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+		ascc = initASC(ascr, asc)
+	})
+
+	It("should allow ingress on port 9443 from any source for kube-apiserver webhook calls", func() {
+		obj, mutateFn, err := newWebhookNetworkPolicy(ctx, log, ascc)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(mutateFn()).To(Succeed())
+
+		np := obj.(*netv1.NetworkPolicy)
+		Expect(np.Spec.Ingress).To(HaveLen(1))
+		rule := np.Spec.Ingress[0]
+		Expect(rule.From).To(BeEmpty())
+		Expect(rule.Ports).To(HaveLen(1))
+		Expect(rule.Ports[0].Port.IntVal).To(Equal(int32(9443)))
 	})
 })
 
