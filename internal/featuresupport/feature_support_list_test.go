@@ -146,8 +146,8 @@ var _ = Describe("GetFeatureSupportList API", func() {
 				nutanixFeature := findFeatureByID(features, models.FeatureSupportLevelIDNUTANIXINTEGRATION)
 				Expect(nutanixFeature).To(BeNil())
 
-				// Should have 50 features when platform is specified
-				Expect(len(features)).To(Equal(50))
+				// Should have 51 features when platform is specified
+				Expect(len(features)).To(Equal(51))
 			}
 		})
 	})
@@ -165,8 +165,8 @@ var _ = Describe("GetFeatureSupportList API", func() {
 			ociFeature := findFeatureByID(features, models.FeatureSupportLevelIDEXTERNALPLATFORMOCI)
 			Expect(ociFeature).To(BeNil())
 
-			// Should have 50 features when platform is specified
-			Expect(len(features)).To(Equal(50))
+			// Should have 51 features when platform is specified
+			Expect(len(features)).To(Equal(51))
 		})
 
 		It("should include external platform features when no platform is specified", func() {
@@ -180,8 +180,8 @@ var _ = Describe("GetFeatureSupportList API", func() {
 			ociFeature := findFeatureByID(features, models.FeatureSupportLevelIDEXTERNALPLATFORMOCI)
 			Expect(ociFeature).ToNot(BeNil())
 
-			// Should have 55 features when no platform is specified
-			Expect(len(features)).To(Equal(55))
+			// Should have 56 features when no platform is specified
+			Expect(len(features)).To(Equal(56))
 		})
 	})
 
