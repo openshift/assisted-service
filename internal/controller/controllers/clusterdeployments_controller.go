@@ -618,6 +618,7 @@ func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Contex
 	if err != nil {
 		return nil, err
 	}
+	defer respBody.Close()
 	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, err
@@ -646,6 +647,7 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx conte
 	if err != nil {
 		return nil, err
 	}
+	defer respBody.Close()
 	respBytes, err := io.ReadAll(respBody)
 	if err != nil {
 		return nil, err
