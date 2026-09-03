@@ -92,7 +92,7 @@
     {
         "openshift_version": "4.16",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.16/4.16.51/rhcos-4.16.51-x86_64-live.x86_64.iso",
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.16/4.16.70/rhcos-4.16.70-x86_64-live.x86_64.iso",
         "version": "416.94.202510081640-0"
     },
     {
@@ -116,8 +116,8 @@
     {
         "openshift_version": "4.17",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.17/4.17.42/rhcos-4.17.42-x86_64-live.x86_64.iso",
-        "version": "417.94.202507291008-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.17/4.17.57/rhcos-4.17.57-x86_64-live.x86_64.iso",
+        "version": "417.94.202601272318-0"
     },
     {
         "openshift_version": "4.17",
@@ -164,8 +164,8 @@
     {
         "openshift_version": "4.19",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.23/rhcos-4.19.23-x86_64-live-iso.x86_64.iso",
-        "version": "9.6.20260112-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.45/rhcos-4.19.45-x86_64-live-iso.x86_64.iso",
+        "version": "9.6.20260616-0"
     },
     {
         "openshift_version": "4.19",
@@ -188,8 +188,8 @@
     {
         "openshift_version": "4.20",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.20/4.20.13/rhcos-4.20.13-x86_64-live-iso.x86_64.iso",
-        "version": "9.6.20260112-0"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.20/4.20.36/rhcos-4.20.36-x86_64-live-iso.x86_64.iso",
+        "version": "9.6.20260818-0"
     },
     {
         "openshift_version": "4.20",
@@ -212,8 +212,8 @@
     {
         "openshift_version": "4.21",
         "cpu_architecture": "x86_64",
-        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.21/4.21.0/rhcos-4.21.0-x86_64-live-iso.x86_64.iso",
-        "version": "9.6.20251212-1"
+        "url": "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.21/4.21.31/rhcos-4.21.31-x86_64-live-iso.x86_64.iso",
+        "version": "9.6.20260616-0"
     },
     {
         "openshift_version": "4.21",
