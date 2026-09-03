@@ -1116,6 +1116,7 @@ func (m *Manager) createClusterDataFiles(ctx context.Context, c *common.Cluster,
 			log.WithError(err).Errorf("failed to download file %s from cluster while building log: %s", path, *c.ID)
 			continue
 		}
+		defer response.Close()
 		fileContent, err := io.ReadAll(response)
 		if err != nil {
 			log.WithError(err).Errorf("failed to read file data %s (%d) from cluster while building log: %s", path, numberOfBytes, *c.ID)
