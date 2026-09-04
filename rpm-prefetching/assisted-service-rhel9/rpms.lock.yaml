@@ -4,13 +4,13 @@ lockfileVendor: redhat
 arches:
 - arch: aarch64
   packages:
-  - url: https://cdn.redhat.com/content/dist/layered/rhel9/aarch64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel9/aarch64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.aarch64.rpm
     repoid: rhocp-4.17-for-rhel-9-aarch64-rpms
-    size: 55793255
-    checksum: sha256:344b732ccd0ee9ec68fab30d8ed7ba33cdb93bf8400e0b16f0c59b8d81f42d6e
+    size: 55820612
+    checksum: sha256:1e9f3d9e55ae5ebdd98dca66c7cc588d558db8fb6146871acffbc4031cdbf95b
     name: openshift-clients
-    evr: 4.17.0-202602172042.p2.gd76df14.assembly.stream.el9
-    sourcerpm: openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.src.rpm
+    evr: 4.17.0-202608201812.p2.g7189593.assembly.stream.el9
+    sourcerpm: openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/c/containers-common-5.8-1.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 170106
@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.42.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.44.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2874189
-    checksum: sha256:4eaed7563988ff556b2c52e8e90195f42dadeaae5c5c7e849af2d3f5a87afdd0
+    size: 2878589
+    checksum: sha256:87eed21015538c9fade652055715872c8a1d7fc5d38df349a3c44e6f27530804
     name: kernel-headers
-    evr: 5.14.0-687.42.1.el9_8
-    sourcerpm: kernel-5.14.0-687.42.1.el9_8.src.rpm
+    evr: 5.14.0-687.44.1.el9_8
+    sourcerpm: kernel-5.14.0-687.44.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -1086,13 +1086,13 @@ arches:
   module_metadata: []
 - arch: ppc64le
   packages:
-  - url: https://cdn.redhat.com/content/dist/layered/rhel9/ppc64le/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel9/ppc64le/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.ppc64le.rpm
     repoid: rhocp-4.17-for-rhel-9-ppc64le-rpms
-    size: 52725327
-    checksum: sha256:11e4d56c2f9d0aa25b9396f7b7e99cbb3603cc7138ffefe25d838db9dfe8d103
+    size: 52734857
+    checksum: sha256:87452818084cf2b5725b3c40482e4c2c6c6cddbf0f7208b8bc326c69ec2be819
     name: openshift-clients
-    evr: 4.17.0-202602172042.p2.gd76df14.assembly.stream.el9
-    sourcerpm: openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.src.rpm
+    evr: 4.17.0-202608201812.p2.g7189593.assembly.stream.el9
+    sourcerpm: openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/c/containers-common-5.8-1.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 170148
@@ -1184,13 +1184,13 @@ arches:
     name: glibc-devel
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.42.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.44.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2898017
-    checksum: sha256:57297ffdb162abd9cd49914972a2d43bda711f9d4ead2a90cfc9331f93daf0cf
+    size: 2902293
+    checksum: sha256:0784f765e44b42d297bc6cbcdaa2e9a8970b7d1e909d0e2aa87c75f8c65197c3
     name: kernel-headers
-    evr: 5.14.0-687.42.1.el9_8
-    sourcerpm: kernel-5.14.0-687.42.1.el9_8.src.rpm
+    evr: 5.14.0-687.44.1.el9_8
+    sourcerpm: kernel-5.14.0-687.44.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -2175,13 +2175,13 @@ arches:
   module_metadata: []
 - arch: s390x
   packages:
-  - url: https://cdn.redhat.com/content/dist/layered/rhel9/s390x/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel9/s390x/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.s390x.rpm
     repoid: rhocp-4.17-for-rhel-9-s390x-rpms
-    size: 54478397
-    checksum: sha256:b4a2852617fe443b7beeb5e1c2111be2681a343f535a0e97c8fc8d50e276d790
+    size: 54662542
+    checksum: sha256:32230cd6aea54f413d9370750dfac38ae6aa8df4b105fdb93e33f9186f445bd2
     name: openshift-clients
-    evr: 4.17.0-202602172042.p2.gd76df14.assembly.stream.el9
-    sourcerpm: openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.src.rpm
+    evr: 4.17.0-202608201812.p2.g7189593.assembly.stream.el9
+    sourcerpm: openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/c/containers-common-5.8-1.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 170120
@@ -2280,13 +2280,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.42.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.44.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2904169
-    checksum: sha256:1ea7397bda094b9a2848af9b91e46731863b4e7e820c9c1fffa9e7a4fa07672d
+    size: 2908493
+    checksum: sha256:e2b6ad52e6746e5a0311be5cdd15298888d1f5af72088b724db7303657c08b72
     name: kernel-headers
-    evr: 5.14.0-687.42.1.el9_8
-    sourcerpm: kernel-5.14.0-687.42.1.el9_8.src.rpm
+    evr: 5.14.0-687.44.1.el9_8
+    sourcerpm: kernel-5.14.0-687.44.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -3264,13 +3264,13 @@ arches:
   module_metadata: []
 - arch: x86_64
   packages:
-  - url: https://cdn.redhat.com/content/dist/layered/rhel9/x86_64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/layered/rhel9/x86_64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.x86_64.rpm
     repoid: rhocp-4.17-for-rhel-9-x86_64-rpms
-    size: 56615513
-    checksum: sha256:f573e715ba59da1cf792363764eb5455d1562f58b3bbd77a99cab2a34d4c8126
+    size: 56585091
+    checksum: sha256:668f2228a7dd23bc03968f8381ef54ee5071eabe0269a4110ddf496108728f6f
     name: openshift-clients
-    evr: 4.17.0-202602172042.p2.gd76df14.assembly.stream.el9
-    sourcerpm: openshift-clients-4.17.0-202602172042.p2.gd76df14.assembly.stream.el9.src.rpm
+    evr: 4.17.0-202608201812.p2.g7189593.assembly.stream.el9
+    sourcerpm: openshift-clients-4.17.0-202608201812.p2.g7189593.assembly.stream.el9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/c/containers-common-5.8-1.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 170139
@@ -3369,13 +3369,13 @@ arches:
     name: glibc-headers
     evr: 2.34-231.el9_7.2
     sourcerpm: glibc-2.34-231.el9_7.2.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.42.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.44.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2913473
-    checksum: sha256:6a2a1bdb7d755358f35a283de880abb48b359aedd5fdfcd2da80bbe03541688c
+    size: 2917773
+    checksum: sha256:e97b12ed737d41e2e34db2d3f3659a5f250ef940fcc9c4dd97235009c8706e7f
     name: kernel-headers
-    evr: 5.14.0-687.42.1.el9_8
-    sourcerpm: kernel-5.14.0-687.42.1.el9_8.src.rpm
+    evr: 5.14.0-687.44.1.el9_8
+    sourcerpm: kernel-5.14.0-687.44.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
