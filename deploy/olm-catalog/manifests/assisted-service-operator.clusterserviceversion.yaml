@@ -925,6 +925,12 @@ spec:
                   value: quay.io/edge-infrastructure/assisted-image-service:latest
                 - name: DATABASE_IMAGE
                   value: quay.io/sclorg/postgresql-16-c9s:latest
+                - name: DATABASE_IMAGE_VERSION
+                  value: "16"
+                - name: DATABASE_IMAGE_PG13
+                  value: quay.io/sclorg/postgresql-13-c9s:latest
+                - name: DATABASE_IMAGE_PG15
+                  value: quay.io/sclorg/postgresql-15-c9s:latest
                 - name: AGENT_IMAGE
                   value: quay.io/edge-infrastructure/assisted-installer-agent:latest
                 - name: CONTROLLER_IMAGE
@@ -1065,6 +1071,10 @@ spec:
     name: image-service
   - image: quay.io/sclorg/postgresql-16-c9s:latest
     name: postgresql
+  - image: quay.io/sclorg/postgresql-13-c9s:latest
+    name: postgresql-13
+  - image: quay.io/sclorg/postgresql-15-c9s:latest
+    name: postgresql-15
   - image: quay.io/edge-infrastructure/assisted-installer:latest
     name: installer
   - image: quay.io/edge-infrastructure/assisted-installer-agent:latest

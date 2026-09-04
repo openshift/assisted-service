@@ -12,6 +12,10 @@ spec:
       image: quay.io/edge-infrastructure/assisted-image-service:latest
     - name: postgresql
       image: quay.io/sclorg/postgresql-16-c9s:latest
+    - name: postgresql-13
+      image: quay.io/sclorg/postgresql-13-c9s:latest
+    - name: postgresql-15
+      image: quay.io/sclorg/postgresql-15-c9s:latest
     - name: installer
       image: quay.io/edge-infrastructure/assisted-installer:latest
     - name: agent

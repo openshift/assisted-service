@@ -181,6 +181,12 @@ spec:
         value: ${SERVICE_IMAGE}
       - name: DATABASE_IMAGE
         value: ${DATABASE_IMAGE}
+      - name: DATABASE_IMAGE_VERSION
+        value: ${DATABASE_IMAGE_VERSION}
+      - name: DATABASE_IMAGE_PG13
+        value: ${DATABASE_IMAGE_PG13}
+      - name: DATABASE_IMAGE_PG15
+        value: ${DATABASE_IMAGE_PG15}
       - name: AGENT_IMAGE
         value: ${AGENT_IMAGE}
       - name: CONTROLLER_IMAGE
