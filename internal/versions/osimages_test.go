@@ -3,6 +3,7 @@ package versions
 import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
@@ -90,39 +91,39 @@ var _ = Describe("GetOsImage", func() {
 		})
 
 		It("fails for an unsupported version", func() {
-			image, err := images.GetOsImage("unsupported", common.TestDefaultConfig.CPUArchitecture, "")
+			image, err := images.GetOsImage("unsupported", common.TestDefaultConfig.CPUArchitecture, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).Should(BeNil())
 		})
 
 		It("fails for an unsupported cpuArchitecture", func() {
-			image, err := images.GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported", "")
+			image, err := images.GetOsImage(common.TestDefaultConfig.OpenShiftVersion, "unsupported", "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).Should(BeNil())
 			Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
 		})
 
 		It("empty architecture fallback to default", func() {
-			image, err := images.GetOsImage("4.9", "", "")
+			image, err := images.GetOsImage("4.9", "", "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.CPUArchitecture).To(HaveValue(Equal(common.DefaultCPUArchitecture)))
 		})
 
 		It("multiarch returns error", func() {
-			image, err := images.GetOsImage("4.11", common.MultiCPUArchitecture, "")
+			image, err := images.GetOsImage("4.11", common.MultiCPUArchitecture, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).Should(BeNil())
 			Expect(err.Error()).To(ContainSubstring("isn't specified in OS images list"))
 		})
 
 		It("fetch OS image by major.minor", func() {
-			image, err := images.GetOsImage("4.9", common.DefaultCPUArchitecture, "")
+			image, err := images.GetOsImage("4.9", common.DefaultCPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.OpenshiftVersion).To(HaveValue(Equal("4.9")))
 		})
 
 		It("With normalizing the CPU architecture", func() {
-			image, err := images.GetOsImage("4.9", common.AARCH64CPUArchitecture, "")
+			image, err := images.GetOsImage("4.9", common.AARCH64CPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.Version).To(HaveValue(Equal("version-49.123-0_arm64")))
 			Expect(*image.CPUArchitecture).To(Equal(common.ARM64CPUArchitecture))
@@ -133,7 +134,7 @@ var _ = Describe("GetOsImage", func() {
 				architectures := images.GetCPUArchitectures(version)
 
 				for _, architecture := range architectures {
-					image, err := images.GetOsImage(version, architecture, "")
+					image, err := images.GetOsImage(version, architecture, "", "")
 					Expect(err).ShouldNot(HaveOccurred())
 
 					for _, rhcos := range defaultOsImages {
@@ -168,13 +169,13 @@ var _ = Describe("GetOsImage", func() {
 		})
 
 		It("finds latest patch version by X.Y when given X.Y.Z", func() {
-			image, err := images.GetOsImage("4.10.1", common.DefaultCPUArchitecture, "")
+			image, err := images.GetOsImage("4.10.1", common.DefaultCPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.OpenshiftVersion).To(HaveValue(Equal("4.10.10")))
 		})
 
 		It("finds latest patch version by X.Y when given X.Y", func() {
-			image, err := images.GetOsImage("4.10", common.DefaultCPUArchitecture, "")
+			image, err := images.GetOsImage("4.10", common.DefaultCPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(image.OpenshiftVersion).To(HaveValue(Equal("4.10.10")))
 		})
@@ -209,21 +210,21 @@ var _ = Describe("GetOsImage", func() {
 		})
 
 		It("returns the default stream when osStream is empty", func() {
-			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "")
+			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(image.OsStream)).To(Equal("rhel-9"))
 			Expect(swag.StringValue(image.Version)).To(Equal("9.6.20260101-0"))
 		})
 
 		It("returns the requested stream", func() {
-			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "rhel-10")
+			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "rhel-10", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(image.OsStream)).To(Equal("rhel-10"))
 			Expect(swag.StringValue(image.Version)).To(Equal("10.0.20260101-0"))
 		})
 
 		It("fails for an unknown stream", func() {
-			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "rhel-11")
+			image, err := images.GetOsImage("4.22", common.X86CPUArchitecture, "rhel-11", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).To(BeNil())
 			Expect(err.Error()).To(ContainSubstring("OS stream"))
@@ -235,7 +236,7 @@ var _ = Describe("GetOsImage", func() {
 			imgs, err := NewOSImages(noDefault, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "")
+			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).To(BeNil())
 			Expect(err.Error()).To(ContainSubstring("No default OS stream"))
@@ -247,7 +248,7 @@ var _ = Describe("GetOsImage", func() {
 			imgs, err := NewOSImages(multiDefault, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "")
+			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "", "")
 			Expect(err).Should(HaveOccurred())
 			Expect(image).To(BeNil())
 			Expect(err.Error()).To(ContainSubstring("Multiple default OS streams"))
@@ -271,10 +272,110 @@ var _ = Describe("GetOsImage", func() {
 			imgs, err := NewOSImages(legacy, imageServiceEnabled)
 			Expect(err).ShouldNot(HaveOccurred())
 
-			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "")
+			image, err := imgs.GetOsImage("4.22", common.X86CPUArchitecture, "", "")
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(image.URL)).To(Equal("rhcos-a"))
 		})
+	})
+
+	Context("with online and disconnected catalog entries", func() {
+		const ocpVersion = "4.21"
+		const regularRHCOSVersion = "9.6.20260616-0"
+		const disconnectedRHCOSVersion = "9.6.20251212-1"
+
+		dualCatalogImages := func() models.OsImages {
+			// Disconnected entry is listed first to catch first-match regressions.
+			return models.OsImages{
+				{
+					OpenshiftVersion: swag.String(ocpVersion),
+					CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+					URL:              swag.String("rhcos-disconnected"),
+					Version:          swag.String(disconnectedRHCOSVersion),
+					Type:             string(models.ImageTypeDisconnectedIso),
+				},
+				{
+					OpenshiftVersion: swag.String(ocpVersion),
+					CPUArchitecture:  swag.String(common.X86CPUArchitecture),
+					URL:              swag.String("rhcos-regular"),
+					Version:          swag.String(regularRHCOSVersion),
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			var err error
+			images, err = NewOSImages(dualCatalogImages(), imageServiceEnabled)
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("selects the regular catalog entry for minimal-iso InfraEnv", func() {
+			image, err := images.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeMinimalIso))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(image.Version)).To(Equal(regularRHCOSVersion))
+			Expect(image.Type).To(BeEmpty())
+		})
+
+		It("selects the regular catalog entry for full-iso InfraEnv", func() {
+			image, err := images.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeFullIso))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(image.Version)).To(Equal(regularRHCOSVersion))
+		})
+
+		It("selects the regular catalog entry when infra image type is unset", func() {
+			image, err := images.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", "")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(image.Version)).To(Equal(regularRHCOSVersion))
+		})
+
+		It("selects the disconnected catalog entry for disconnected-iso InfraEnv", func() {
+			image, err := images.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeDisconnectedIso))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(image.Version)).To(Equal(disconnectedRHCOSVersion))
+			Expect(image.Type).To(Equal(string(models.ImageTypeDisconnectedIso)))
+		})
+
+		It("fails when only disconnected catalog entry exists and online ISO is requested", func() {
+			disconnectedOnly := models.OsImages{dualCatalogImages()[0]}
+			imgs, err := NewOSImages(disconnectedOnly, imageServiceEnabled)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			image, err := imgs.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeMinimalIso))
+			Expect(err).Should(HaveOccurred())
+			Expect(image).To(BeNil())
+		})
+
+		It("fails when only regular catalog entry exists and disconnected ISO is requested", func() {
+			regularOnly := models.OsImages{dualCatalogImages()[1]}
+			imgs, err := NewOSImages(regularOnly, imageServiceEnabled)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			image, err := imgs.GetOsImage(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeDisconnectedIso))
+			Expect(err).Should(HaveOccurred())
+			Expect(image).To(BeNil())
+		})
+
+		It("GetOsImageOrLatest passes infra image type through to catalog selection", func() {
+			image, err := images.GetOsImageOrLatest(ocpVersion, common.X86CPUArchitecture, "", string(models.ImageTypeDisconnectedIso))
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(swag.StringValue(image.Version)).To(Equal(disconnectedRHCOSVersion))
+		})
+	})
+
+	Context("imageEntryMatchesInfraImageType", func() {
+		disconnected := string(models.ImageTypeDisconnectedIso)
+
+		DescribeTable("matches OS image entries by InfraEnv image type",
+			func(imageEntryType, infraImageType string, want bool) {
+				Expect(imageEntryMatchesInfraImageType(imageEntryType, infraImageType)).To(Equal(want),
+					"imageEntryMatchesInfraImageType(%q, %q)", imageEntryType, infraImageType)
+			},
+			Entry("online OS image entry for minimal-iso InfraEnv", "", string(models.ImageTypeMinimalIso), true),
+			Entry("online OS image entry for full-iso InfraEnv", "", string(models.ImageTypeFullIso), true),
+			Entry("online OS image entry for unset InfraEnv image type", "", "", true),
+			Entry("disconnected OS image entry for minimal-iso InfraEnv", disconnected, string(models.ImageTypeMinimalIso), false),
+			Entry("disconnected OS image entry for disconnected-iso InfraEnv", disconnected, disconnected, true),
+			Entry("online OS image entry for disconnected-iso InfraEnv", "", disconnected, false),
+		)
 	})
 })
 
@@ -283,7 +384,7 @@ var _ = Describe("GetLatestOsImage", func() {
 		images, err := NewOSImages(defaultOsImages[0:1], imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture, "")
+		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture, "", "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
@@ -293,7 +394,7 @@ var _ = Describe("GetLatestOsImage", func() {
 		images, err := NewOSImages(defaultOsImages, imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture, "")
+		osImage, err := images.GetLatestOsImage(common.TestDefaultConfig.CPUArchitecture, "", "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(*osImage.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*osImage.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
@@ -303,7 +404,7 @@ var _ = Describe("GetLatestOsImage", func() {
 		images, err := NewOSImages(defaultOsImages, imageServiceEnabled)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		osImage, err := images.GetLatestOsImage(common.MultiCPUArchitecture, "")
+		osImage, err := images.GetLatestOsImage(common.MultiCPUArchitecture, "", "")
 		Expect(err).Should(HaveOccurred())
 		Expect(osImage).Should(BeNil())
 		Expect(err.Error()).To(ContainSubstring("No OS images are available"))
@@ -322,33 +423,33 @@ var _ = Describe("GetOsImageOrLatest", func() {
 	})
 
 	It("successfully gets an OS image with a valid openshift version and cpu architecture", func() {
-		image, err := images.GetOsImageOrLatest("4.9", common.TestDefaultConfig.CPUArchitecture, "")
+		image, err := images.GetOsImageOrLatest("4.9", common.TestDefaultConfig.CPUArchitecture, "", "")
 		Expect(err).To(BeNil())
 		Expect(*image.OpenshiftVersion).Should(Equal("4.9"))
 		Expect(*image.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
 	It("successfully gets the latest OS image with a valid cpu architecture", func() {
-		image, err := images.GetOsImageOrLatest("", common.TestDefaultConfig.CPUArchitecture, "")
+		image, err := images.GetOsImageOrLatest("", common.TestDefaultConfig.CPUArchitecture, "", "")
 		Expect(err).To(BeNil())
 		Expect(*image.OpenshiftVersion).Should(Equal("4.11.1"))
 		Expect(*image.CPUArchitecture).Should(Equal(common.TestDefaultConfig.CPUArchitecture))
 	})
 
 	It("fails to get OS images for invalid cpu architecture and valid openshift version", func() {
-		image, err := images.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866", "")
+		image, err := images.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866", "", "")
 		Expect(err).ToNot(BeNil())
 		Expect(image).Should(BeNil())
 	})
 
 	It("fails to get OS images for invalid cpu architecture and invalid openshift version", func() {
-		image, err := images.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866", "")
+		image, err := images.GetOsImageOrLatest(common.TestDefaultConfig.OpenShiftVersion, "x866", "", "")
 		Expect(err).ToNot(BeNil())
 		Expect(image).Should(BeNil())
 	})
 
 	It("fails to get OS images for invalid cpu architecture and no openshift version", func() {
-		image, err := images.GetOsImageOrLatest("", "x866", "")
+		image, err := images.GetOsImageOrLatest("", "x866", "", "")
 		Expect(err).ToNot(BeNil())
 		Expect(image).Should(BeNil())
 	})

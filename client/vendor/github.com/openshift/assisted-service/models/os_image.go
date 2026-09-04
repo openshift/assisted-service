@@ -36,6 +36,10 @@ type OsImage struct {
 	// The OS stream of this image (e.g. rhel-9, rhel-10).
 	OsStream *string `json:"os_stream,omitempty"`
 
+	// The type of the image. If set to 'disconnected-iso' tags the image as a disconnected ISO image.
+	// Enum: [disconnected-iso]
+	Type string `json:"type,omitempty"`
+
 	// The base OS image used for the discovery iso.
 	// Required: true
 	URL *string `json:"url"`
@@ -54,6 +58,10 @@ func (m *OsImage) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -126,6 +134,45 @@ func (m *OsImage) validateCPUArchitecture(formats strfmt.Registry) error {
 func (m *OsImage) validateOpenshiftVersion(formats strfmt.Registry) error {
 
 	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var osImageTypeTypePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["disconnected-iso"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		osImageTypeTypePropEnum = append(osImageTypeTypePropEnum, v)
+	}
+}
+
+const (
+
+	// OsImageTypeDisconnectedIso captures enum value "disconnected-iso"
+	OsImageTypeDisconnectedIso string = "disconnected-iso"
+)
+
+// prop value enum
+func (m *OsImage) validateTypeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, osImageTypeTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *OsImage) validateType(formats strfmt.Registry) error {
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateTypeEnum("type", "body", m.Type); err != nil {
 		return err
 	}
 

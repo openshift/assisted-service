@@ -116,7 +116,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
 		mockOSImages.EXPECT().GetOpenshiftVersions().Return([]string{"4.8"}).AnyTimes()
-		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -1204,7 +1204,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, kubeKey *types.NamespacedName, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration, params installer.RegisterInfraEnvParams) {
 				Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(osImageVersion))
 			}).Return(backendInfraEnv, nil)
-		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(osImageVersion)}, nil).AnyTimes()
+		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(osImageVersion)}, nil).AnyTimes()
 
 		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -1223,7 +1223,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, gorm.ErrRecordNotFound).AnyTimes()
+		mockOSImages.EXPECT().GetOsImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, gorm.ErrRecordNotFound).AnyTimes()
 
 		result, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -1364,7 +1364,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(params.InfraenvCreateParams.OpenshiftVersion).To(Equal(osImageVersion))
 				Expect(params.InfraenvCreateParams.OsStream).To(Equal("rhel-9"))
 			}).Return(backendInfraEnv, nil)
-		mockOSImages.EXPECT().GetOsImage(osImageVersion, gomock.Any(), "rhel-9").Return(&models.OsImage{
+		mockOSImages.EXPECT().GetOsImage(osImageVersion, gomock.Any(), "rhel-9", gomock.Any()).Return(&models.OsImage{
 			CPUArchitecture:  swag.String(infraEnvArch),
 			OpenshiftVersion: swag.String(osImageVersion),
 		}, nil).Times(1)
@@ -1649,7 +1649,7 @@ var _ = Describe("infraEnv reconcile with image service disabled", func() {
 		eventURL = fmt.Sprintf("%s/api/assisted-install/v2/events?infra_env_id=%s", ir.ServiceBaseURL, sId)
 		Expect(c.Create(ctx, pullSecret)).To(BeNil())
 		mockOSImages.EXPECT().GetOpenshiftVersions().Return([]string{"4.8"}).AnyTimes()
-		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
+		mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.OsImage{CPUArchitecture: swag.String(infraEnvArch), OpenshiftVersion: swag.String(ocpVersion)}, nil).AnyTimes()
 	})
 
 	AfterEach(func() {

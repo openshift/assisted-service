@@ -616,7 +616,7 @@ func (b *bareMetalInventory) validateOsImageForCluster(openshiftVersion, cpuArch
 	if !b.EnableImageService {
 		return nil
 	}
-	osImage, err := b.osImages.GetOsImage(openshiftVersion, cpuArchitecture, osStream)
+	osImage, err := b.osImages.GetOsImage(openshiftVersion, cpuArchitecture, osStream, "")
 	if err != nil || osImage.URL == nil {
 		return errors.Errorf("No OS images are available for version (%s), CPU architecture (%s) and os stream (%s)", openshiftVersion, cpuArchitecture, osStream)
 	}
@@ -1302,7 +1302,7 @@ func (b *bareMetalInventory) updateExternalImageInfo(ctx context.Context, infraE
 	updates["type"] = imageType
 	infraEnv.Type = common.ImageTypePtr(imageType)
 
-	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream)
+	osImage, err := b.osImages.GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream, string(common.ImageTypeValue(infraEnv.Type)))
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -5264,7 +5264,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 			osStream = cluster.OsStream
 		}
 
-		openshiftVersion, err = b.getOsImageOpenshiftVersion(openshiftVersion, params.InfraenvCreateParams.CPUArchitecture, osStream)
+		openshiftVersion, err = b.getOsImageOpenshiftVersion(openshiftVersion, params.InfraenvCreateParams.CPUArchitecture, osStream, string(params.InfraenvCreateParams.ImageType))
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -5413,11 +5413,11 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 	return b.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: *infraEnv.ID})
 }
 
-func (b *bareMetalInventory) getOsImageOpenshiftVersion(openshiftVersion, cpuArch, osStream string) (string, error) {
+func (b *bareMetalInventory) getOsImageOpenshiftVersion(openshiftVersion, cpuArch, osStream, imageType string) (string, error) {
 	if !b.EnableImageService {
 		return openshiftVersion, nil
 	}
-	osImage, err := b.osImages.GetOsImageOrLatest(openshiftVersion, cpuArch, osStream)
+	osImage, err := b.osImages.GetOsImageOrLatest(openshiftVersion, cpuArch, osStream, imageType)
 	if err != nil {
 		return "", err
 	}
@@ -5706,7 +5706,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 			osStream = *params.InfraEnvUpdateParams.OsStream
 		}
 
-		_, err = b.getOsImageOpenshiftVersion(openshiftVersion, infraEnv.CPUArchitecture, osStream)
+		_, err = b.getOsImageOpenshiftVersion(openshiftVersion, infraEnv.CPUArchitecture, osStream, string(targetImageType))
 		if err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
