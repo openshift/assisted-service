@@ -561,8 +561,8 @@ func (r *InfraEnvReconciler) getOSImageVersion(log logrus.FieldLogger, infraEnv 
 	if osImageVersion == "" || !r.ImageServiceEnabled {
 		return "", nil
 	}
-
-	if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture, osStream); err != nil {
+	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
+	if _, err := r.OsImages.GetOsImage(osImageVersion, infraEnv.Spec.CpuArchitecture, osStream, string(imageType)); err != nil {
 		msg := "Specified OSImageVersion is missing from AgentServiceConfig"
 		log.WithError(err).Error(msg)
 		return "", common.NewApiError(http.StatusNotFound, errors.New(msg))
@@ -774,7 +774,7 @@ func (r *InfraEnvReconciler) setBootArtifactURLs(log logrus.FieldLogger, infraEn
 	var bootArtifactURLs *imageservice.BootArtifactURLs
 	var err error
 	var osImage *models.OsImage
-	if osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture, internalInfraEnv.OsStream); err != nil {
+	if osImage, err = r.OsImages.GetOsImageOrLatest(internalInfraEnv.OpenshiftVersion, internalInfraEnv.CPUArchitecture, internalInfraEnv.OsStream, ""); err != nil {
 		return err
 	}
 	if bootArtifactURLs, err = imageservice.GetBootArtifactURLs(r.ImageServiceBaseURL, internalInfraEnv.ID.String(), osImage, r.InsecureIPXEURLs); err != nil {
