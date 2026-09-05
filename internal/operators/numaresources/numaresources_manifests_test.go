@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("NUMA Resources manifests", func() {
@@ -31,6 +32,17 @@ var _ = Describe("NUMA Resources manifests", func() {
 		Expect(openshiftManifests).To(HaveKey("50_numaresources_subscription.yaml"))
 		Expect(openshiftManifests).To(HaveKey("50_numaresources_prometheus-role.yaml"))
 		Expect(openshiftManifests).To(HaveKey("50_numaresources_prometheus-rolebinding.yaml"))
-		Expect(customManifests).To(ContainSubstring("numaresources"))
+		// The NUMAResourcesOperator is a singleton; its validating webhook requires
+		// the kind/name to be exactly these values or the apply is rejected, so
+		// assert the parsed values rather than substrings.
+		var cr struct {
+			Kind     string `json:"kind"`
+			Metadata struct {
+				Name string `json:"name"`
+			} `json:"metadata"`
+		}
+		Expect(yaml.Unmarshal(customManifests, &cr)).To(Succeed())
+		Expect(cr.Kind).To(Equal("NUMAResourcesOperator"))
+		Expect(cr.Metadata.Name).To(Equal("numaresourcesoperator"))
 	})
 })
