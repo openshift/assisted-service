@@ -320,7 +320,7 @@ var _ = Describe("instruction_manager", func() {
 			checkStep(models.HostStatusUnbindingPendingUserAction, nil)
 		})
 		It("reclaiming", func() {
-			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+			mockOSImages.EXPECT().GetOsImageOrLatest(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 			checkStep(models.HostStatusReclaiming, []models.StepType{
 				models.StepTypeDownloadBootArtifacts,
 			})

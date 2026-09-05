@@ -15,9 +15,9 @@ import (
 
 //go:generate mockgen --build_flags=--mod=mod -package versions -destination mock_osimages.go -self_package github.com/openshift/assisted-service/internal/versions . OSImages
 type OSImages interface {
-	GetOsImage(openshiftVersion, cpuArchitecture, osStream string) (*models.OsImage, error)
-	GetLatestOsImage(cpuArchitecture, osStream string) (*models.OsImage, error)
-	GetOsImageOrLatest(version, cpuArch, osStream string) (*models.OsImage, error)
+	GetOsImage(openshiftVersion, cpuArchitecture, osStream, infraImageType string) (*models.OsImage, error)
+	GetLatestOsImage(cpuArchitecture, osStream, infraImageType string) (*models.OsImage, error)
+	GetOsImageOrLatest(version, cpuArch, osStream, infraImageType string) (*models.OsImage, error)
 	GetCPUArchitectures(openshiftVersion string) []string
 	GetOpenshiftVersions() []string
 }
@@ -62,7 +62,7 @@ func validateOSImage(osImage *models.OsImage) error {
 }
 
 // Returns the OsImage entity matching the given OpenShift version, CPU architecture and optional OS stream.
-func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture, osStream string) (*models.OsImage, error) {
+func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture, osStream, osImageType string) (*models.OsImage, error) {
 	cpuArchitecture = common.NormalizeCPUArchitecture(cpuArchitecture)
 
 	if cpuArchitecture == "" {
@@ -81,7 +81,8 @@ func (images osImageList) GetOsImage(openshiftVersion, cpuArchitecture, osStream
 		return nil, errors.Errorf("The requested CPU architecture (%s) isn't specified in OS images list", cpuArchitecture)
 	}
 
-	candidates := findVersionCandidates(archImages, openshiftVersion)
+	filteredByImageType := filterByInfraImageType(archImages, osImageType)
+	candidates := findVersionCandidates(filteredByImageType, openshiftVersion)
 	if len(candidates) == 0 {
 		return nil, errors.Errorf(
 			"The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list",
@@ -137,6 +138,21 @@ func findVersionCandidates(archImages []*models.OsImage, openshiftVersion string
 	}).([]*models.OsImage)
 }
 
+func filterByInfraImageType(images []*models.OsImage, infraImageType string) []*models.OsImage {
+	return funk.Filter(images, func(img *models.OsImage) bool {
+		return imageEntryMatchesInfraImageType(img.Type, infraImageType)
+	}).([]*models.OsImage)
+}
+
+func imageEntryMatchesInfraImageType(imageEntryType string, infraImageType string) bool {
+	if infraImageType == string(models.ImageTypeDisconnectedIso) {
+		// Disconnected InfraEnv → only disconnected OS image entries
+		return imageEntryType == string(models.ImageTypeDisconnectedIso)
+	}
+	// Online InfraEnv → OS image entries with empty type only
+	return imageEntryType != string(models.ImageTypeDisconnectedIso)
+}
+
 func selectByOsStream(candidates []*models.OsImage, osStream, openshiftVersion, cpuArchitecture string) (*models.OsImage, error) {
 	if osStream != "" {
 		match := funk.Find(candidates, func(osImage *models.OsImage) bool {
@@ -182,11 +198,11 @@ func selectByOsStream(candidates []*models.OsImage, osStream, openshiftVersion, 
 }
 
 // Returns the latest OSImage entity for a specified CPU architecture and optional OS stream
-func (images osImageList) GetLatestOsImage(cpuArchitecture, osStream string) (*models.OsImage, error) {
+func (images osImageList) GetLatestOsImage(cpuArchitecture, osStream, infraImageType string) (*models.OsImage, error) {
 	var latest *models.OsImage
 	openshiftVersions := images.GetOpenshiftVersions()
 	for _, k := range openshiftVersions {
-		osImage, err := images.GetOsImage(k, cpuArchitecture, osStream)
+		osImage, err := images.GetOsImage(k, cpuArchitecture, osStream, infraImageType)
 		if err != nil {
 			continue
 		}
@@ -206,16 +222,16 @@ func (images osImageList) GetLatestOsImage(cpuArchitecture, osStream string) (*m
 	return latest, nil
 }
 
-func (images osImageList) GetOsImageOrLatest(version, cpuArch, osStream string) (*models.OsImage, error) {
+func (images osImageList) GetOsImageOrLatest(version, cpuArch, osStream, imageType string) (*models.OsImage, error) {
 	var osImage *models.OsImage
 	var err error
 	if version != "" {
-		osImage, err = images.GetOsImage(version, cpuArch, osStream)
+		osImage, err = images.GetOsImage(version, cpuArch, osStream, imageType)
 		if err != nil {
 			return nil, errors.Wrapf(err, "No OS image for Openshift version (%s), CPU architecture (%s) and OS stream (%s)", version, cpuArch, osStream)
 		}
 	} else {
-		osImage, err = images.GetLatestOsImage(cpuArch, osStream)
+		osImage, err = images.GetLatestOsImage(cpuArch, osStream, imageType)
 		if err != nil {
 			return nil, errors.Wrapf(err, "Failed to get latest OS image for CPU architecture (%s) and OS stream (%s)", cpuArch, osStream)
 		}
