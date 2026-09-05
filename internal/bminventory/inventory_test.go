@@ -11994,12 +11994,12 @@ var _ = Describe("DownloadMinimalInitrd", func() {
 		verifyApiError(response, http.StatusNotFound)
 	})
 
-	It("returns no content without network customizations", func() {
+	It("returns network sysctl tuning without network customizations", func() {
 		infraEnv := createInfraEnv(models.ImageTypeFullIso)
 		Expect(db.Create(&infraEnv).Error).NotTo(HaveOccurred())
 		params := installer.DownloadMinimalInitrdParams{InfraEnvID: id}
 		response := bm.DownloadMinimalInitrd(ctx, params)
-		Expect(response).Should(BeAssignableToTypeOf(&installer.DownloadMinimalInitrdNoContent{}))
+		Expect(response).Should(BeAssignableToTypeOf(&installer.DownloadMinimalInitrdOK{}))
 	})
 
 	It("returns non-empty archive when full ISO is requested", func() {
