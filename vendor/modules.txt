@@ -512,8 +512,8 @@ github.com/kelseyhightower/envconfig
 # github.com/kennygrant/sanitize v1.2.4
 ## explicit
 github.com/kennygrant/sanitize
-# github.com/klauspost/compress v1.18.2
-## explicit; go 1.23
+# github.com/klauspost/compress v1.18.7
+## explicit; go 1.24
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
 github.com/klauspost/compress/fse
@@ -571,12 +571,12 @@ github.com/mitchellh/mapstructure
 # github.com/moby/docker-image-spec v1.3.1
 ## explicit; go 1.18
 github.com/moby/docker-image-spec/specs-go/v1
-# github.com/moby/go-archive v0.2.0
-## explicit; go 1.23.0
+# github.com/moby/go-archive v0.3.0
+## explicit; go 1.25
 github.com/moby/go-archive
 github.com/moby/go-archive/compression
 github.com/moby/go-archive/tarheader
-# github.com/moby/patternmatcher v0.6.0
+# github.com/moby/patternmatcher v0.6.1
 ## explicit; go 1.19
 github.com/moby/patternmatcher
 github.com/moby/patternmatcher/ignorefile
@@ -584,11 +584,11 @@ github.com/moby/patternmatcher/ignorefile
 ## explicit; go 1.13
 github.com/moby/spdystream
 github.com/moby/spdystream/spdy
-# github.com/moby/sys/sequential v0.6.0
-## explicit; go 1.17
+# github.com/moby/sys/sequential v0.7.0
+## explicit; go 1.24.0
 github.com/moby/sys/sequential
-# github.com/moby/sys/user v0.4.0
-## explicit; go 1.17
+# github.com/moby/sys/user v0.4.1
+## explicit; go 1.18
 github.com/moby/sys/user
 # github.com/moby/sys/userns v0.1.0
 ## explicit; go 1.21
@@ -1007,8 +1007,8 @@ github.com/shirou/gopsutil/v4/internal/common
 github.com/shirou/gopsutil/v4/mem
 github.com/shirou/gopsutil/v4/net
 github.com/shirou/gopsutil/v4/process
-# github.com/sirupsen/logrus v1.9.3
-## explicit; go 1.13
+# github.com/sirupsen/logrus v1.9.4
+## explicit; go 1.17
 github.com/sirupsen/logrus
 github.com/sirupsen/logrus/hooks/test
 # github.com/skratchdot/open-golang v0.0.0-20200116055534-eef842397966
