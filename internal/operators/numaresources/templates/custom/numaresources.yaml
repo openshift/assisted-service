@@ -1,7 +1,10 @@
 apiVersion: nodetopology.openshift.io/v1
 kind: NUMAResourcesOperator
 metadata:
-  name: {{ .Operator.Name }}
+  # The NUMAResourcesOperator is a singleton whose validating webhook requires
+  # the name to be exactly "numaresourcesoperator"; any other name (e.g. the
+  # operator's internal name "numaresources") is rejected on apply.
+  name: numaresourcesoperator
 spec:
   nodeGroups:
   - machineConfigPoolSelector:
