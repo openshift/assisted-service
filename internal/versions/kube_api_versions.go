@@ -110,6 +110,10 @@ func (h *kubeAPIVersionsHandler) GetReleaseImageByURL(ctx context.Context, url, 
 	return h.addReleaseImage(url, pullSecret)
 }
 
+func (h *kubeAPIVersionsHandler) GetReleaseImageForCluster(ctx context.Context, cluster *common.Cluster, cpuArchitecture string) (*models.ReleaseImage, error) {
+	return getReleaseImageForCluster(ctx, h, cluster, cpuArchitecture)
+}
+
 // Finds a release image from the cache that matches the specified version and architecture in the following
 // priority:
 // 1. Exact CPU Architecture & OpenShift x.y.z version match
@@ -278,7 +282,7 @@ func extractHost(destination string) string {
 }
 
 func GetReleaseImageHost(cluster *common.Cluster, versionHandler Handler) (string, error) {
-	releaseImage, err := versionHandler.GetReleaseImage(context.Background(), cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+	releaseImage, err := versionHandler.GetReleaseImageForCluster(context.Background(), cluster, cluster.CPUArchitecture)
 	if err != nil {
 		return "", err
 	}

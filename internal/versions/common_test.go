@@ -1,6 +1,7 @@
 package versions
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -9,6 +10,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	"go.uber.org/mock/gomock"
 )
 
 var _ = Describe("NewHandler", func() {
@@ -192,5 +195,66 @@ var _ = Describe("validateReleaseImageForRHCOS", func() {
 		err := validateReleaseImageForRHCOS(log, "9.9.9-chocobomb", common.PowerCPUArchitecture, releaseImages)
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring(fmt.Sprintf("There are no OCP versions available in release images for arch %s", common.PowerCPUArchitecture)))
+	})
+})
+
+var _ = Describe("getReleaseImageForCluster", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockHandler  *MockHandler
+		ctx          = context.Background()
+		releaseImage *models.ReleaseImage
+		cluster      *common.Cluster
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockHandler = NewMockHandler(ctrl)
+		releaseImage = common.TestDefaultConfig.ReleaseImage
+		cluster = &common.Cluster{
+			PullSecret: "fake-pull-secret",
+			Cluster: models.Cluster{
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
+			},
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("looks up by URL when OcpReleaseImage is set", func() {
+		cluster.OcpReleaseImage = "registry.mirror.example.com/ocp/release:4.18"
+		mockHandler.EXPECT().GetReleaseImageByURL(ctx, cluster.OcpReleaseImage, cluster.PullSecret).Return(releaseImage, nil).Times(1)
+
+		got, err := getReleaseImageForCluster(ctx, mockHandler, cluster, common.ARM64CPUArchitecture)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(got).To(Equal(releaseImage))
+	})
+
+	It("looks up by version and architecture when OcpReleaseImage is empty", func() {
+		mockHandler.EXPECT().GetReleaseImage(ctx, cluster.OpenshiftVersion, common.ARM64CPUArchitecture, cluster.PullSecret).Return(releaseImage, nil).Times(1)
+
+		got, err := getReleaseImageForCluster(ctx, mockHandler, cluster, common.ARM64CPUArchitecture)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(got).To(Equal(releaseImage))
+	})
+
+	It("uses the cluster CPU architecture when none is provided", func() {
+		mockHandler.EXPECT().GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret).Return(releaseImage, nil).Times(1)
+
+		got, err := getReleaseImageForCluster(ctx, mockHandler, cluster, "")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(got).To(Equal(releaseImage))
+	})
+
+	It("propagates lookup errors", func() {
+		expected := errors.New("release image not found")
+		mockHandler.EXPECT().GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret).Return(nil, expected).Times(1)
+
+		got, err := getReleaseImageForCluster(ctx, mockHandler, cluster, "")
+		Expect(err).To(MatchError(expected))
+		Expect(got).To(BeNil())
 	})
 })
