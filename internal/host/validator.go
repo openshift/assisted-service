@@ -1011,14 +1011,58 @@ func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validation
 	}
 	if !allImagesValid(imageStatuses) {
 		images, err := v.getFailedImagesNames(c.host)
-		if err == nil {
+		if err != nil {
+			return ValidationError, "Validation error"
+		}
+
+		mustGatherURLs, err := v.getMustGatherImageURLs(c)
+		if err != nil {
+			v.log.Error("Could not classify failed container images as must-gather or critical")
+			return ValidationFailure, "Failed to classify failed container images as must-gather or critical"
+		}
+
+		criticalFailures := make([]string, 0)
+		mustGatherFailures := make([]string, 0)
+		for _, img := range images {
+			if mustGatherURLs[img] {
+				mustGatherFailures = append(mustGatherFailures, img)
+			} else {
+				criticalFailures = append(criticalFailures, img)
+			}
+		}
+
+		if len(criticalFailures) > 0 {
 			return ValidationFailure, fmt.Sprintf("Failed to fetch container images needed for installation from %s. "+
 				"This may be due to a network hiccup. Retry to install again. If this problem persists, "+
-				"check your network settings to make sure you’re not blocked.", strings.Join(images, ","))
+				"check your network settings to make sure you’re not blocked.", strings.Join(criticalFailures, ","))
 		}
-		return ValidationError, "Validation error"
+
+		if len(mustGatherFailures) > 0 {
+			v.log.Warn("Must-gather image(s) could not be pulled. Installation will proceed without them.")
+			return ValidationSuccess, fmt.Sprintf(
+				"All required container images were pulled successfully. "+
+					"Warning: must-gather image could not be fetched (%s). "+
+					"This does not affect installation, but must-gather data collection may be unavailable. "+
+					"Installation is proceeding.", strings.Join(mustGatherFailures, ","))
+		}
 	}
 	return ValidationSuccess, "All required container images were either pulled successfully or no attempt was made to pull them"
+}
+
+func (v *validator) getMustGatherImageURLs(c *validationContext) (map[string]bool, error) {
+	result := make(map[string]bool)
+	if c.cluster == nil {
+		return result, nil
+	}
+	mustGatherImages, err := v.versionHandler.GetMustGatherImages(
+		c.cluster.OpenshiftVersion, c.cluster.CPUArchitecture, c.cluster.PullSecret)
+	if err != nil {
+		return nil, err
+	}
+	for _, img := range mustGatherImages {
+		result[img] = true
+	}
+	return result, nil
 }
 
 func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
