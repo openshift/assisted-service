@@ -2,7 +2,7 @@ module github.com/openshift/assisted-service
 
 go 1.25.0
 
-toolchain go1.25.9
+toolchain go1.25.11
 
 require (
 	github.com/IBM/netaddr v1.5.0
