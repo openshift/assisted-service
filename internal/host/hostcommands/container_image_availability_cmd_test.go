@@ -59,7 +59,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step", func() {
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), cluster.OcpReleaseImage, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 
@@ -79,7 +79,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_release_image_failure", func() {
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), cluster.OcpReleaseImage, gomock.Any()).Return(nil, errors.New("err")).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).To(HaveOccurred())
@@ -87,7 +87,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_get_mco_failure", func() {
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), cluster.OcpReleaseImage, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
@@ -96,7 +96,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	It("get_step_get_must_gather_failure", func() {
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), cluster.OcpReleaseImage, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
@@ -133,7 +133,7 @@ var _ = Describe("get images", func() {
 	It("get_step_get_all_images", func() {
 		cluster.OcpReleaseImage = common.TestDefaultConfig.ReleaseImageUrl
 		mco := "image-mco"
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), cluster.OcpReleaseImage, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mco, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherVersion, nil).Times(1)
 		release := common.TestDefaultConfig.ReleaseImageUrl
@@ -161,8 +161,7 @@ var _ = Describe("get images", func() {
 
 		mcoImage := "registry.mirror.example.com:5000/openshift-release-dev/ocp-v4.0-art-dev@sha256:abc123"
 
-		// Expect GetReleaseImageByURL to be called with the cluster's OcpReleaseImage
-		mockVersions.EXPECT().GetReleaseImageByURL(gomock.Any(), mirroredReleaseImageURL, cluster.PullSecret).Return(mirroredReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), cluster.CPUArchitecture).Return(mirroredReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), mirroredReleaseImageURL, gomock.Any(), cluster.PullSecret).Return(mcoImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret).Return(defaultMustGatherVersion, nil).Times(1)
 

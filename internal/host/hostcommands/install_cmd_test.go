@@ -82,7 +82,7 @@ var _ = Describe("installcmd", func() {
 	})
 
 	mockGetReleaseImage := func(times int) {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(times)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(times)
 	}
 
 	mockImages := func(times int) {
@@ -448,7 +448,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockEvents = eventsapi.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).AnyTimes()
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).AnyTimes()
 		mockImages()
 	})
 
@@ -580,7 +580,7 @@ var _ = Describe("installcmd arguments", func() {
 		BeforeEach(func() {
 			noReleaseMock = oc.NewMockRelease(ctrl)
 			noReleaseVersions = versions.NewMockHandler(ctrl)
-			noReleaseVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("release image not found")).AnyTimes()
+			noReleaseVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("release image not found")).AnyTimes()
 
 			var inventory models.Inventory
 			Expect(json.Unmarshal([]byte(host.Inventory), &inventory)).ToNot(HaveOccurred())
