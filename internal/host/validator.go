@@ -89,19 +89,22 @@ func (inventoryCache InventoryCache) GetOrUnmarshal(host *models.Host) (inventor
 }
 
 type validationContext struct {
-	host                    *models.Host
-	cluster                 *common.Cluster
-	infraEnv                *common.InfraEnv
-	inventory               *models.Inventory
-	db                      *gorm.DB
-	inventoryCache          InventoryCache
-	clusterHostRequirements *models.ClusterHostRequirements
-	minCPUCoresRequirement  int64
-	minRAMMibRequirement    int64
-	kubeApiEnabled          bool
-	softTimeoutsEnabled     bool
-	objectHandler           s3wrapper.API
-	ctx                     context.Context
+	host                            *models.Host
+	cluster                         *common.Cluster
+	infraEnv                        *common.InfraEnv
+	inventory                       *models.Inventory
+	db                              *gorm.DB
+	inventoryCache                  InventoryCache
+	clusterHostRequirements         *models.ClusterHostRequirements
+	minCPUCoresRequirement          int64
+	minRAMMibRequirement            int64
+	kubeApiEnabled                  bool
+	softTimeoutsEnabled             bool
+	objectHandler                   s3wrapper.API
+	ctx                             context.Context
+	mustGatherImageURLs             map[string]bool
+	mustGatherImagesLookupAttempted bool
+	mustGatherImagesErr             error
 }
 
 type validationCondition func(context *validationContext) (ValidationStatus, string)
@@ -1010,32 +1013,75 @@ func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validation
 		return ValidationError, "Validation error"
 	}
 	if !allImagesValid(imageStatuses) {
-		images, err := v.getFailedImagesNames(c.host)
-		if err == nil {
+		criticalFailures, mustGatherFailures, err := v.classifyFailedImages(c, imageStatuses)
+		if err != nil {
+			v.log.Error("Could not classify failed container images as must-gather or critical")
+			return ValidationFailure, "Failed to classify failed container images as must-gather or critical"
+		}
+
+		if len(criticalFailures) > 0 {
 			return ValidationFailure, fmt.Sprintf("Failed to fetch container images needed for installation from %s. "+
 				"This may be due to a network hiccup. Retry to install again. If this problem persists, "+
-				"check your network settings to make sure you’re not blocked.", strings.Join(images, ","))
+				"check your network settings to make sure you’re not blocked.", strings.Join(criticalFailures, ","))
 		}
-		return ValidationError, "Validation error"
+
+		if len(mustGatherFailures) > 0 {
+			v.log.Warn("Must-gather image(s) could not be pulled. Installation will proceed without them.")
+			return ValidationSuccess, fmt.Sprintf(
+				"All required container images were pulled successfully. "+
+					"Warning: must-gather image could not be fetched (%s). "+
+					"This does not affect installation, but must-gather data collection may be unavailable. "+
+					"Installation is proceeding.", strings.Join(mustGatherFailures, ","))
+		}
 	}
 	return ValidationSuccess, "All required container images were either pulled successfully or no attempt was made to pull them"
 }
 
-func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
-	imageStatuses, err := common.UnmarshalImageStatuses(host.ImagesStatus)
-	if err != nil {
-		return nil, err
+func (v *validator) getMustGatherImageURLs(c *validationContext) (map[string]bool, error) {
+	if c.mustGatherImagesLookupAttempted {
+		return c.mustGatherImageURLs, c.mustGatherImagesErr
 	}
 
-	imageNames := make([]string, 0)
+	c.mustGatherImagesLookupAttempted = true
+	c.mustGatherImageURLs = make(map[string]bool)
+	result := make(map[string]bool)
+	if c.cluster == nil {
+		c.mustGatherImageURLs = result
+		return c.mustGatherImageURLs, nil
+	}
+	mustGatherImages, err := v.versionHandler.GetMustGatherImages(
+		c.cluster.OpenshiftVersion, c.cluster.CPUArchitecture, c.cluster.PullSecret)
+	if err != nil {
+		c.mustGatherImagesErr = err
+		return nil, err
+	}
+	for _, img := range mustGatherImages {
+		result[img] = true
+	}
+	c.mustGatherImageURLs = result
+	return result, nil
+}
 
+func (v *validator) classifyFailedImages(c *validationContext, imageStatuses common.ImageStatuses) ([]string, []string, error) {
+	mustGatherURLs, err := v.getMustGatherImageURLs(c)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	criticalFailures := make([]string, 0)
+	mustGatherFailures := make([]string, 0)
 	for _, imageStatus := range imageStatuses {
-		if isInvalidImageStatus(imageStatus) {
-			imageNames = append(imageNames, imageStatus.Name)
+		if !isInvalidImageStatus(imageStatus) {
+			continue
+		}
+		if mustGatherURLs[imageStatus.Name] {
+			mustGatherFailures = append(mustGatherFailures, imageStatus.Name)
+		} else {
+			criticalFailures = append(criticalFailures, imageStatus.Name)
 		}
 	}
 
-	return imageNames, nil
+	return criticalFailures, mustGatherFailures, nil
 }
 
 func isInvalidImageStatus(imageStatus *models.ContainerImageAvailability) bool {
