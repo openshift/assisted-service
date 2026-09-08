@@ -281,6 +281,10 @@ data:
     $(registry_config "$(get_image_without_tag ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_without_tag ${ironic_agent_image})" "${LOCAL_REGISTRY}/$(get_image_repository_only ${OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE})")
+    $(registry_configs_for_os_image_stream_sources "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" "${AUTHFILE:-${PULL_SECRET_FILE}}" "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" \
+      "$(get_image_without_tag ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" \
+      "$(get_image_without_tag ${cli_image})" \
+      "$(get_image_without_tag ${ironic_agent_image})")
     $(
       if kubectl get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
         for row in $(kubectl get imagedigestmirrorset -o json |

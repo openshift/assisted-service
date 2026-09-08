@@ -145,7 +145,17 @@ function wait_for_condition() {
     wait_for_resource "${object}" "${namespace}"
 
     echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
-    oc wait -n "${namespace}" --for="${condition}"  "${object}" --timeout="${timeout}" --selector "${selector}" -o json
+    if ! oc wait -n "${namespace}" --for="${condition}"  "${object}" --timeout="${timeout}" --selector "${selector}" -o json; then
+        echo "ERROR: timed out waiting for (${object}) on namespace (${namespace}) to become (${condition})"
+        oc get "${object}" -n "${namespace}" \
+            -o 'custom-columns=NAME:.metadata.name,CONDITIONS:.status.conditions[*].type' \
+            2>/dev/null || true
+        oc get events -n "${namespace}" --sort-by='.lastTimestamp' 2>/dev/null | tail -15 || true
+        if [ "${ASSISTED_DEBUG_WAIT_FAILURES:-false}" = "true" ]; then
+            oc get "${object}" -n "${namespace}" -o yaml
+        fi
+        exit 1
+    fi
 }
 
 function wait_for_object_amount() {
@@ -196,6 +206,8 @@ function wait_for_resource() {
     object="$1"
     namespace="$2"
     selector="${3:-}"
+    local errexit_was_on=0
+    [[ $- == *e* ]] && errexit_was_on=1
     set +e
 
     counter=1
@@ -205,12 +217,18 @@ function wait_for_resource() {
       if [[ "${counter}" -eq 150 ]]; # 2 minutes 
       then
         echo "$(date --rfc-3339=seconds) ERROR: failed Waiting for ${object} on namespace ${namespace}"
-        oc get ${object}  --namespace="${namespace}" -o json
+        oc get "${object}" --namespace="${namespace}" \
+            -o 'custom-columns=NAME:.metadata.name' 2>/dev/null || true
+        if [ "${ASSISTED_DEBUG_WAIT_FAILURES:-false}" = "true" ]; then
+            oc get "${object}" --namespace="${namespace}" -o json
+        fi
+        (( errexit_was_on )) && set -e
         exit 1
         break 
       fi
       ((counter++)) && sleep 2
     done
+    (( errexit_was_on )) && set -e
 }
 
 function get_image_without_tag() {
