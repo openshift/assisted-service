@@ -476,7 +476,24 @@ func (feature *CiliumNetworkTypeFeature) GetName() string {
 }
 
 func (feature *CiliumNetworkTypeFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelSupported, ""
+	if feature.hasValidOpenshiftVersion(filters.OpenshiftVersion) {
+		return models.SupportLevelSupported, ""
+	}
+	return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
+}
+
+func (feature *CiliumNetworkTypeFeature) Validate(cluster *common.Cluster, updateParams interface{}) error {
+	if cluster == nil {
+		return nil
+	}
+	if feature.hasValidOpenshiftVersion(cluster.OpenshiftVersion) {
+		return nil
+	}
+	return fmt.Errorf("Cilium CNI is not supported on OpenShift %s (version 4.22 and later are not supported)", cluster.OpenshiftVersion)
+}
+
+func (feature *CiliumNetworkTypeFeature) hasValidOpenshiftVersion(openshiftVersion string) bool {
+	return openshiftVersionLessThan("4.22", openshiftVersion)
 }
 
 func (feature *CiliumNetworkTypeFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
