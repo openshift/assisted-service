@@ -120,6 +120,15 @@
       "contents": { "source": "data:,{{.IPv6_CONF}}" }
     },
     {
+      "overwrite": true,
+      "path": "/etc/sysctl.d/99-assisted-network.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:text/plain;charset=utf-8;base64,{{.NetworkSysctlConfig}}" }
+    },
+    {
         "overwrite": true,
         "path": "/root/.docker/config.json",
         "mode": 420,

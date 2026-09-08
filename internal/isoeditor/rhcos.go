@@ -32,11 +32,11 @@ func (i *ClusterProxyInfo) Empty() bool {
 }
 
 func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, scriptContent, serviceContent string) ([]byte, error) {
-	if len(netFiles) == 0 && clusterProxyInfo.Empty() {
-		return nil, nil
-	}
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
+	if err := addNetworkSysctlTuningToArchive(w); err != nil {
+		return nil, err
+	}
 	if len(netFiles) > 0 {
 		for _, file := range netFiles {
 			err := addFileToArchive(w, filepath.Join("/etc/assisted/network", file.FilePath), file.FileContents, 0o600)
@@ -89,6 +89,21 @@ func RamdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData,
 	}
 
 	return compressedBuffer.Bytes(), nil
+}
+
+func addNetworkSysctlTuningToArchive(w *cpio.Writer) error {
+	scriptPath := "/usr/local/bin/assisted-network-sysctl.sh"
+	if err := addFileToArchive(w, scriptPath, constants.NetworkSysctlTuningScript, 0o755); err != nil {
+		return err
+	}
+
+	servicePath := "/etc/systemd/system/assisted-network-sysctl.service"
+	if err := addFileToArchive(w, servicePath, constants.NetworkSysctlTuningService, 0o644); err != nil {
+		return err
+	}
+
+	serviceLink := "/etc/systemd/system/initrd.target.wants/assisted-network-sysctl.service"
+	return addFileToArchive(w, serviceLink, servicePath, cpio.ModeSymlink|0o777)
 }
 
 func formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
