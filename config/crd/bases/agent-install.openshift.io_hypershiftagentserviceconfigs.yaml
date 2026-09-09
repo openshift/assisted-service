@@ -717,7 +717,7 @@ spec:
               mirrorRegistryRef:
                 description: |-
                   MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration
-                  In case no configuration is need, this field will be nil. ConfigMap must contain to entries:
+                  In case no configuration is needed, this field will be nil. ConfigMap must contain two entries:
                   ca-bundle.crt - hold the contents of mirror registry certificate/s
                   registries.conf - holds the content of registries.conf file configured with mirror registries
                 properties:
