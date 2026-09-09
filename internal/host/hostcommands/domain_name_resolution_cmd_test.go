@@ -52,7 +52,7 @@ var _ = Describe("domainNameResolution", func() {
 	It("happy flow", func() {
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, Name: name, BaseDNSDomain: baseDNSDomain}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{URL: swag.String("quay.io/release")}, nil)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(&models.ReleaseImage{URL: swag.String("quay.io/release")}, nil)
 		stepReply, stepErr = dCmd.GetSteps(ctx, &host)
 		Expect(stepReply).ToNot(BeNil())
 		Expect(stepReply[0].StepType).To(Equal(models.StepTypeDomainResolution))

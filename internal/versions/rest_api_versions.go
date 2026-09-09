@@ -101,6 +101,10 @@ func (h *restAPIVersionsHandler) GetReleaseImageByURL(_ context.Context, url, _ 
 	return &releaseImage, nil
 }
 
+func (h *restAPIVersionsHandler) GetReleaseImageForCluster(ctx context.Context, cluster *common.Cluster, cpuArchitecture string) (*models.ReleaseImage, error) {
+	return getReleaseImageForCluster(ctx, h, cluster, cpuArchitecture)
+}
+
 // GetMustGatherImages retrieves the must-gather images for a specified OpenShift version and CPU architecture.
 // If the configuration does not include a must-gather image for the given version and architecture,
 // the function attempts to locate a matching release image. It then uses the 'oc' CLI tool to find and add the corresponding

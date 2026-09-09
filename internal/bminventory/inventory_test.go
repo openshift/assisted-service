@@ -471,7 +471,7 @@ func getDefaultClusterCreateParams() *models.ClusterCreateParams {
 
 func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockInstallConfigGenerator, mockVersions *versions.MockHandler) {
 	if mockGenerator != nil {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), false).Return(nil).Times(1)
 	}
 }
@@ -5799,7 +5799,7 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.ARM64CPUArchitecture, gomock.Any()).Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.DefaultCPUArchitecture, gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 			mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), *armRelease.URL, *common.TestDefaultConfig.ReleaseImage.URL, false).Return(nil).Times(1)
 
@@ -5861,7 +5861,7 @@ var _ = Describe("cluster", func() {
 				URL: swag.String("quay.io/openshift-release-dev/ocp-release:4.6.16-aarch64"),
 			}
 			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
-			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.ARM64CPUArchitecture, gomock.Any()).Return(armRelease, nil).Times(1)
+			mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), common.ARM64CPUArchitecture).Return(armRelease, nil).Times(1)
 			mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), common.DefaultCPUArchitecture, gomock.Any()).Return(nil, errors.Errorf("Dummy")).Times(1)
 
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -14642,7 +14642,28 @@ var _ = Describe("Install Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, inventory, db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(common.TestDefaultConfig.ReleaseImage, nil)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(common.TestDefaultConfig.ReleaseImage, nil)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+
+		res := bm.V2InstallHost(ctx, params)
+		Expect(res).Should(BeAssignableToTypeOf(installer.NewV2InstallHostAccepted()))
+	})
+
+	It("uses the cluster OcpReleaseImage URL when installing to the rootfs", func() {
+		ocpReleaseImage := "registry.mirror.example.com/ocp/release:4.18"
+		Expect(db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ocp_release_image", ocpReleaseImage).Error).ToNot(HaveOccurred())
+		params := installer.V2InstallHostParams{
+			HTTPRequest: request,
+			InfraEnvID:  infraEnvId,
+			HostID:      hostID,
+		}
+		inventory := `{"boot": {"device_type": "persistent"}}`
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, inventory, db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(common.TestDefaultConfig.ReleaseImage, nil)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
@@ -14661,7 +14682,7 @@ var _ = Describe("Install Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvId, clusterID, inventory, db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(nil, fmt.Errorf("failed to find release image"))
 
 		res := bm.V2InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
@@ -14756,7 +14777,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 			eventstest.WithClusterIdMatcher(clusterID.String())))
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(common.TestDefaultConfig.ReleaseImage, nil)
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(common.TestDefaultConfig.ReleaseImage, nil)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
@@ -14770,7 +14791,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, infraEnvID, clusterID, inventory, db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(nil, fmt.Errorf("failed to find release image"))
 
 		Expect(bm.InstallSingleDay2HostInternal(ctx, clusterID, infraEnvID, hostId)).ToNot(Succeed())
 	})
@@ -14791,7 +14812,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 			eventstest.WithClusterIdMatcher(clusterID.String())))
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), common.TestDefaultConfig.OpenShiftVersion, "x86_64", fakePullSecret).Return(nil, fmt.Errorf("failed to find release image"))
+		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), "x86_64").Return(nil, fmt.Errorf("failed to find release image"))
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)

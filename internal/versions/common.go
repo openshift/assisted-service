@@ -24,6 +24,7 @@ import (
 type Handler interface {
 	GetReleaseImage(ctx context.Context, openshiftVersion, cpuArchitecture, pullSecret string) (*models.ReleaseImage, error)
 	GetReleaseImageByURL(ctx context.Context, url, pullSecret string) (*models.ReleaseImage, error)
+	GetReleaseImageForCluster(ctx context.Context, cluster *common.Cluster, cpuArchitecture string) (*models.ReleaseImage, error)
 	GetMustGatherImages(openshiftVersion, cpuArchitecture, pullSecret string) (MustGatherVersion, error)
 	ValidateReleaseImageForRHCOS(rhcosVersion, cpuArch string) error
 }
@@ -197,6 +198,21 @@ func ParseReleaseImages(
 			releaseImage.CPUArchitectures = []string{*releaseImage.CPUArchitecture}
 		}
 	})
+}
+
+// getReleaseImageForCluster returns the release image associated with a cluster.
+// If cluster.OcpReleaseImage is set, the image is resolved by URL so that custom
+// or mirrored release images are used instead of a version/architecture lookup.
+// cpuArchitecture is used only when OcpReleaseImage is empty; if it is also
+// empty, cluster.CPUArchitecture is used.
+func getReleaseImageForCluster(ctx context.Context, h Handler, cluster *common.Cluster, cpuArchitecture string) (*models.ReleaseImage, error) {
+	if cluster.OcpReleaseImage != "" {
+		return h.GetReleaseImageByURL(ctx, cluster.OcpReleaseImage, cluster.PullSecret)
+	}
+	if cpuArchitecture == "" {
+		cpuArchitecture = cluster.CPUArchitecture
+	}
+	return h.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArchitecture, cluster.PullSecret)
 }
 
 func normalizeReleaseImageCPUArchitecture(releaseImage *models.ReleaseImage) {

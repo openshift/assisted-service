@@ -1633,7 +1633,7 @@ func (b *bareMetalInventory) validateReleaseImageForDay2HostInstall(ctx context.
 		cpuArch = infraEnv.CPUArchitecture
 	}
 
-	_, err = b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
+	_, err = b.versionsHandler.GetReleaseImageForCluster(ctx, cluster, cpuArch)
 	if err != nil {
 		// For imported clusters with no ImageSetRef, the release image may not be
 		// available. The install command can use the CoreOS image from the worker
@@ -1999,7 +1999,7 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
 	}
 
-	releaseImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
+	releaseImage, err := b.versionsHandler.GetReleaseImageForCluster(ctx, &cluster, cluster.CPUArchitecture)
 	if err != nil {
 		msg := fmt.Sprintf("failed to get OpenshiftVersion for cluster %s with openshift version %s", cluster.ID, cluster.OpenshiftVersion)
 		log.WithError(err).Error(msg)
@@ -2008,6 +2008,8 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 
 	installerReleaseImageOverride := ""
 	if isBaremetalBinaryFromAnotherReleaseImageRequired(cluster.CPUArchitecture, cluster.OpenshiftVersion) {
+		// Intentionally look up by version/architecture rather than OcpReleaseImage:
+		// this override needs the default-arch release image, not the cluster's image.
 		defaultArchImage, err := b.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, common.DefaultCPUArchitecture, cluster.PullSecret)
 		if err != nil {
 			msg := fmt.Sprintf("failed to get image for installer image override "+
