@@ -881,11 +881,30 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 	return buildReply(nil)
 }
 
+// machineExistsForBMH checks whether Machine API owns the BMH on the spoke.
+// A hub BMH may be pre-existing and managed by an external hardware manager,
+// so its presence alone is not enough to delegate CSR approval.
+func machineExistsForBMH(ctx context.Context, spokeClient spoke_k8s_client.SpokeK8sClient, bmhName string) (bool, error) {
+	machines := &machinev1beta1.MachineList{}
+	if err := spokeClient.List(ctx, machines, client.InNamespace(OPENSHIFT_MACHINE_API_NAMESPACE)); err != nil {
+		return false, err
+	}
+
+	bmhReference := fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, bmhName)
+	for i := range machines.Items {
+		if machines.Items[i].GetAnnotations()[BMH_ANNOTATION] == bmhReference {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // CSRs should be approved in the following cases:
 // * Agent belongs to a none platform cluster
 // * Agent belongs to baremetal cluster without MAPI capability
 // * No BMH exists for agent
-func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host) (bool, error) {
+// * A BMH exists but no Machine API Machine owns it on the spoke
+func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host, spokeClient spoke_k8s_client.SpokeK8sClient) (bool, error) {
 	if funk.Contains([]models.HostStage{models.HostStageRebooting, models.HostStageJoined}, h.Progress.CurrentStage) ||
 		swag.StringValue(h.Status) == models.HostStatusInstallingPendingUserAction {
 		cd, err := getClusterDeploymentFromAgent(ctx, r.Client, agent)
@@ -910,11 +929,19 @@ func (r *AgentReconciler) shouldApproveCSRsForAgent(ctx context.Context, agent *
 			return true, nil
 		}
 
-		bmhExists, err := r.bmhExists(ctx, agent)
+		bmh, err := r.getBMH(ctx, agent)
 		if err != nil {
 			return false, err
 		}
-		return !bmhExists, nil
+		if bmh == nil {
+			return true, nil
+		}
+
+		machineExists, err := machineExistsForBMH(ctx, spokeClient, bmh.Name)
+		if err != nil {
+			return false, err
+		}
+		return !machineExists, nil
 	}
 	return false, nil
 }
@@ -1028,7 +1055,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 					r.Log.WithError(err).Errorf("Agent %s/%s: Failed to create spoke client", agent.Namespace, agent.Name)
 					return ctrl.Result{}, err
 				}
-				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h); err != nil {
+				if shouldAutoApproveCSRs, err = r.shouldApproveCSRsForAgent(ctx, agent, h, spokeClient); err != nil {
 					log.WithError(err).Errorf("Failed to determine if agent %s/%s is rebooting and belongs to none platform cluster or has an associated BMH", agent.Namespace, agent.Name)
 					ret = ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}
 					return ret, nil

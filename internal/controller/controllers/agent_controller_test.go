@@ -596,6 +596,17 @@ var _ = Describe("agent reconcile", func() {
 				}
 				Expect(c.Create(ctx, adminKubeconfigSecret)).To(Succeed())
 			}
+			expectMachineForBMH := func(mockClient *spoke_k8s_client.MockSpokeK8sClient) {
+				mockClient.EXPECT().List(gomock.Any(), gomock.AssignableToTypeOf(&machinev1beta1.MachineList{}), gomock.Any()).DoAndReturn(
+					func(_ context.Context, list client.ObjectList, _ ...client.ListOption) error {
+						list.(*machinev1beta1.MachineList).Items = []machinev1beta1.Machine{{
+							ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{
+								BMH_ANNOTATION: fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, "my-bmh"),
+							}},
+						}}
+						return nil
+					})
+			}
 
 			It("day2 - no node found", func() {
 				commonHost.NodeLabels = marshalLabels(map[string]string{
@@ -647,6 +658,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				expectMachineForBMH(mockClient)
 				node := &corev1.Node{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -695,6 +707,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				expectMachineForBMH(mockClient)
 				node := &corev1.Node{
 					TypeMeta: metav1.TypeMeta{},
 					ObjectMeta: metav1.ObjectMeta{
@@ -744,6 +757,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				expectMachineForBMH(mockClient)
 				node := &corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-name",
@@ -789,6 +803,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				expectMachineForBMH(mockClient)
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(nil, k8serrors.NewNotFound(schema.GroupResource{Group: "v1", Resource: "Node"}, commonHost.RequestedHostname)).Times(1)
 				result, err := hr.Reconcile(ctx, newHostRequest(host))
 				Expect(err).To(BeNil())
@@ -818,6 +833,7 @@ var _ = Describe("agent reconcile", func() {
 				createKubeconfigSecret(clusterDeployment.Name)
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil).AnyTimes()
+				expectMachineForBMH(mockClient)
 				node := &corev1.Node{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "my-name",
@@ -3300,6 +3316,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 		getNodeCount                   int
 		isDay1Host                     bool
 		bmhExists                      bool
+		spokeMachineExists             bool
 		getDBCluster                   bool
 		baremetalWithoutMapiCapability bool
 	}{
@@ -3360,6 +3377,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           true,
+			spokeMachineExists:  true,
 		},
 		{
 			name:         "Do not auto approve CSR for ready matching node and UserManagedNetworking is false and BMH exists - should update stage to Done",
@@ -3392,6 +3410,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           true,
+			spokeMachineExists:  true,
 		},
 		{
 			name:         "Auto approve CSR for ready matching node, UserManagedNetworking is false and BMH doesn't exist",
@@ -3466,9 +3485,10 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           true,
+			spokeMachineExists:  true,
 		},
 		{
-			name:         "Do not auto approve CSR for baremetal host with MAPI",
+			name:         "Auto approve CSR for baremetal host with MAPI but no Machine API Machine",
 			createClient: true,
 			hostname:     CommonHostname,
 			node: &corev1.Node{
@@ -3490,7 +3510,8 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 					},
 				},
 			},
-			approveExpected: false,
+			csrs:            serverCsrs(),
+			approveExpected: true,
 			expectedResult: ctrl.Result{
 				RequeueAfter: time.Minute,
 			},
@@ -3577,6 +3598,7 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			updateProgressStage: true,
 			getNodeCount:        1,
 			bmhExists:           true,
+			spokeMachineExists:  true,
 			approvedCSRs: []v1beta1.CSRInfo{
 				{
 					Name:       "test-cluster-aci-client",
@@ -4011,6 +4033,19 @@ VU1eS0RiS/Lz6HwRs2mATNY5FrpZOgdM3cI=
 			if t.createClient {
 				mockClient := spoke_k8s_client.NewMockSpokeK8sClient(mockCtrl)
 				mockClientFactory.EXPECT().CreateFromSecret(gomock.Any(), gomock.Any()).Return(mockClient, nil)
+				if t.bmhExists {
+					mockClient.EXPECT().List(gomock.Any(), gomock.AssignableToTypeOf(&machinev1beta1.MachineList{}), gomock.Any()).DoAndReturn(
+						func(_ context.Context, list client.ObjectList, _ ...client.ListOption) error {
+							if t.spokeMachineExists {
+								list.(*machinev1beta1.MachineList).Items = []machinev1beta1.Machine{{
+									ObjectMeta: metav1.ObjectMeta{Annotations: map[string]string{
+										BMH_ANNOTATION: fmt.Sprintf("%s/%s", OPENSHIFT_MACHINE_API_NAMESPACE, "testBMH"),
+									}},
+								}}
+							}
+							return nil
+						}).MinTimes(1)
+				}
 				mockClient.EXPECT().GetNode(gomock.Any(), gomock.Any()).Return(t.node, t.nodeError).Times(t.getNodeCount)
 				if t.csrs != nil {
 					listCsrsCallCount := 1
