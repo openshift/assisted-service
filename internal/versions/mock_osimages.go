@@ -54,6 +54,20 @@ func (mr *MockOSImagesMockRecorder) GetCPUArchitectures(openshiftVersion any) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPUArchitectures", reflect.TypeOf((*MockOSImages)(nil).GetCPUArchitectures), openshiftVersion)
 }
 
+// GetDisconnectedIsoImages mocks base method.
+func (m *MockOSImages) GetDisconnectedIsoImages() []*models.OsImage {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDisconnectedIsoImages")
+	ret0, _ := ret[0].([]*models.OsImage)
+	return ret0
+}
+
+// GetDisconnectedIsoImages indicates an expected call of GetDisconnectedIsoImages.
+func (mr *MockOSImagesMockRecorder) GetDisconnectedIsoImages() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDisconnectedIsoImages", reflect.TypeOf((*MockOSImages)(nil).GetDisconnectedIsoImages))
+}
+
 // GetLatestOsImage mocks base method.
 func (m *MockOSImages) GetLatestOsImage(cpuArchitecture, osStream string) (*models.OsImage, error) {
 	m.ctrl.T.Helper()

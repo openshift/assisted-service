@@ -36,6 +36,9 @@ type OsImage struct {
 	// The OS stream of this image (e.g. rhel-9, rhel-10).
 	OsStream *string `json:"os_stream,omitempty"`
 
+	// type
+	Type ImageType `json:"type,omitempty"`
+
 	// The base OS image used for the discovery iso.
 	// Required: true
 	URL *string `json:"url"`
@@ -54,6 +57,10 @@ func (m *OsImage) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftVersion(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -132,6 +139,23 @@ func (m *OsImage) validateOpenshiftVersion(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *OsImage) validateType(formats strfmt.Registry) error {
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	if err := m.Type.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("type")
+		}
+		return err
+	}
+
+	return nil
+}
+
 func (m *OsImage) validateURL(formats strfmt.Registry) error {
 
 	if err := validate.Required("url", "body", m.URL); err != nil {
@@ -150,8 +174,31 @@ func (m *OsImage) validateVersion(formats strfmt.Registry) error {
 	return nil
 }
 
-// ContextValidate validates this os image based on context it is used
+// ContextValidate validate this os image based on the context it is used
 func (m *OsImage) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.contextValidateType(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *OsImage) contextValidateType(ctx context.Context, formats strfmt.Registry) error {
+
+	if err := m.Type.ContextValidate(ctx, formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("type")
+		} else if ce, ok := err.(*errors.CompositeError); ok {
+			return ce.ValidateName("type")
+		}
+		return err
+	}
+
 	return nil
 }
 

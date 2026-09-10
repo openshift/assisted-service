@@ -3,6 +3,8 @@ package versions
 import (
 	context "context"
 	"fmt"
+	"net/url"
+	"regexp"
 	"strings"
 
 	middleware "github.com/go-openapi/runtime/middleware"
@@ -296,4 +298,173 @@ func (h *apiHandler) V2ListSupportedOpenshiftVersions(ctx context.Context, param
 
 func (r *apiHandler) V2ListReleaseSources(ctx context.Context, params operations.V2ListReleaseSourcesParams) middleware.Responder {
 	return operations.NewV2ListReleaseSourcesOK().WithPayload(r.releaseSources)
+}
+
+var osImageURLVersionRegex = regexp.MustCompile(`^4\.\d+\.\d+$`)
+
+func getActualOsImageVersion(osImage *models.OsImage) (string, error) {
+	if osImage.OpenshiftVersion == nil {
+		return "", fmt.Errorf("OpenshiftVersion is missing in OsImage")
+	}
+	version := *osImage.OpenshiftVersion
+	if common.GetVersionFormat(version) == common.MajorMinorVersion && osImage.URL != nil {
+		parsedURL, err := url.Parse(*osImage.URL)
+		if err != nil {
+			return version, nil
+		}
+		for _, segment := range strings.Split(parsedURL.Path, "/") {
+			if segment == "" || !osImageURLVersionRegex.MatchString(segment) {
+				continue
+			}
+			return segment, nil
+		}
+	}
+	return version, nil
+}
+
+func filterOsImagesByVersion(osImages []*models.OsImage, versionPattern *string, log logrus.FieldLogger) []*models.OsImage {
+	if versionPattern == nil || *versionPattern == "" {
+		return osImages
+	}
+
+	filterdOsImagesInterface := funk.Filter(osImages, func(osImage *models.OsImage) bool {
+		actualVersion, err := getActualOsImageVersion(osImage)
+		if err != nil {
+			log.WithError(err).Warn("Failed to get actual osImage version")
+			return false
+		}
+		return strings.Contains(actualVersion, *versionPattern)
+	})
+
+	return filterdOsImagesInterface.([]*models.OsImage)
+}
+
+func filterOsImagesByOnlyLatest(osImages []*models.OsImage, onlyLatest *bool, log logrus.FieldLogger) ([]*models.OsImage, error) {
+	if onlyLatest == nil || !*onlyLatest {
+		return osImages, nil
+	}
+
+	majorMinorVersionsSet := map[string]bool{}
+	for _, image := range osImages {
+		actualVersion, err := getActualOsImageVersion(image)
+		if err != nil {
+			log.WithError(err).Warn("Failed to get actual osImage version")
+			continue
+		}
+
+		majorMinorVersion, err := common.GetMajorMinorVersion(actualVersion)
+		if err != nil {
+			log.WithError(err).Debugf("error occurred while trying to get the major.minor version of '%s'", actualVersion)
+			continue
+		}
+
+		majorMinorVersionsSet[*majorMinorVersion] = true
+	}
+
+	var result []*models.OsImage
+	for majorMinorVersion := range majorMinorVersionsSet {
+		latestImages, err := getLatestOsImagesForMajorMinor(osImages, majorMinorVersion, log)
+		if err != nil {
+			return nil, errors.Wrapf(err, "error occurred while trying to get the latest OS images for version: %s", majorMinorVersion)
+		}
+		result = append(result, latestImages...)
+	}
+	return result, nil
+}
+
+func getLatestOsImagesForMajorMinor(osImages []*models.OsImage, majorMinorVersion string, log logrus.FieldLogger) ([]*models.OsImage, error) {
+	var latestImages []*models.OsImage
+	for _, image := range osImages {
+		actualVersion, err := getActualOsImageVersion(image)
+		if err != nil {
+			log.WithError(err).Warn("Failed to get actual osImage version")
+			continue
+		}
+
+		isMajorMinorEqual, err := common.BaseVersionEqual(actualVersion, majorMinorVersion)
+		if err != nil {
+			return nil, err
+		}
+		if !isMajorMinorEqual {
+			continue
+		}
+
+		if latestImages == nil {
+			latestImages = []*models.OsImage{image}
+			continue
+		}
+
+		latestActualVersion, err := getActualOsImageVersion(latestImages[0])
+		if err != nil {
+			return nil, err
+		}
+
+		if actualVersion == latestActualVersion && !funk.Contains(latestImages, image) {
+			latestImages = append(latestImages, image)
+			continue
+		}
+
+		isNewest, err := common.VersionGreaterOrEqual(actualVersion, latestActualVersion)
+		if err != nil {
+			return nil, err
+		}
+
+		if isNewest && actualVersion != latestActualVersion {
+			latestImages = []*models.OsImage{image}
+		}
+	}
+
+	if len(latestImages) == 0 {
+		return nil, errors.Errorf("No OS image found for version '%s'", majorMinorVersion)
+	}
+
+	return latestImages, nil
+}
+
+func getOsImagesAsOpenshiftVersions(osImages []*models.OsImage, log logrus.FieldLogger) models.OpenshiftVersions {
+	openshiftVersions := models.OpenshiftVersions{}
+	for _, osImage := range osImages {
+		displayName, err := getActualOsImageVersion(osImage)
+		if err != nil {
+			log.WithError(err).Warn("Failed to get actual osImage version")
+			continue
+		}
+
+		arch := "x86_64"
+		if osImage.CPUArchitecture != nil {
+			arch = *osImage.CPUArchitecture
+		}
+
+		openshiftVersion, exists := openshiftVersions[displayName]
+		if !exists {
+			openshiftVersion = models.OpenshiftVersion{
+				CPUArchitectures: []string{arch},
+				Default:          false,
+				DisplayName:      swag.String(displayName),
+				SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelProduction),
+			}
+			openshiftVersions[displayName] = openshiftVersion
+		} else {
+			if !funk.Contains(openshiftVersion.CPUArchitectures, arch) {
+				openshiftVersion.CPUArchitectures = append(openshiftVersion.CPUArchitectures, arch)
+			}
+			openshiftVersions[displayName] = openshiftVersion
+		}
+	}
+	return openshiftVersions
+}
+
+func (h *apiHandler) V2ListSupportedOfflineOpenshiftVersions(ctx context.Context, params operations.V2ListSupportedOfflineOpenshiftVersionsParams) middleware.Responder {
+	rawOfflineOpenshiftVersions := h.osImages.GetDisconnectedIsoImages()
+	osImagesByVersionPattern := filterOsImagesByVersion(rawOfflineOpenshiftVersions, params.Version, h.log)
+	osImagesByOnlyLatest, err := filterOsImagesByOnlyLatest(rawOfflineOpenshiftVersions, params.OnlyLatest, h.log)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	// Join the filtered results based on pattern and only_latest
+	osImagesByVersionPattern = funk.Join(osImagesByVersionPattern, osImagesByOnlyLatest, funk.InnerJoin).([]*models.OsImage)
+
+	offlineOpenshiftVersions := getOsImagesAsOpenshiftVersions(osImagesByVersionPattern, h.log)
+
+	return operations.NewV2ListSupportedOfflineOpenshiftVersionsOK().WithPayload(offlineOpenshiftVersions)
 }
