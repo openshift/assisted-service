@@ -90,7 +90,7 @@ var _ = Describe("Validations test", func() {
 		mockHwValidator.EXPECT().IsValidStorageDeviceType(gomock.Any(), gomock.Any(), gomock.Any()).Return(true).AnyTimes()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},

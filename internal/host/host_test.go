@@ -2999,7 +2999,7 @@ var _ = Describe("AutoAssignRole", func() {
 			ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
 		}}
 		Expect(db.Create(cluster).Error).ShouldNot(HaveOccurred())
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
@@ -3284,7 +3284,7 @@ var _ = Describe("IsValidCandidate", func() {
 			false,
 		)
 		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Kind: swag.String(models.ClusterKindCluster)}}).Error).ShouldNot(HaveOccurred())
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
@@ -5251,7 +5251,7 @@ var _ = Describe("disconnection - soft timeouts", func() {
 		mockProviderRegistry = registry.NewMockProviderRegistry(ctrl)
 		mockProviderRegistry.EXPECT().IsHostSupported(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockOperatorManager = operators.NewMockAPI(ctrl)
-		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+		mockOperatorManager.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
 		manager = NewManager(common.GetTestLog(), db, testing.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil,
 			createValidatorCfg(), nil, defaultConfig, nil, mockOperatorManager, mockProviderRegistry, false,
 			nil, nil, true)
