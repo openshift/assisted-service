@@ -25,6 +25,29 @@ type ValidationResult struct {
 	Reasons []string
 }
 
+// HostRequirementsForOperator combines OCP and operator requirements for a host.
+func HostRequirementsForOperator(hostRequirements *models.ClusterHostRequirements, operatorName string, additional *models.ClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
+	if hostRequirements == nil {
+		return additional
+	}
+
+	requirements := &models.ClusterHostRequirementsDetails{}
+	if hostRequirements.Ocp != nil {
+		*requirements = *hostRequirements.Ocp
+	}
+	for _, operatorRequirements := range hostRequirements.Operators {
+		if operatorRequirements != nil && operatorRequirements.OperatorName == operatorName && operatorRequirements.Requirements != nil {
+			requirements.CPUCores += operatorRequirements.Requirements.CPUCores
+			requirements.RAMMib += operatorRequirements.Requirements.RAMMib
+			break
+		}
+	}
+	if additional != nil {
+		requirements.DiskSizeGb = additional.DiskSizeGb
+	}
+	return requirements
+}
+
 // Operator provides generic API of an OLM operator installation plugin
 //
 //go:generate mockgen --build_flags=--mod=mod -package=api -self_package=github.com/openshift/assisted-service/internal/operators/api -destination=mock_operator_api.go . Operator

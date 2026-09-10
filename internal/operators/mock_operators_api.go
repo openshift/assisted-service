@@ -277,16 +277,21 @@ func (mr *MockAPIMockRecorder) ValidateCluster(ctx, cluster any) *gomock.Call {
 }
 
 // ValidateHost mocks base method.
-func (m *MockAPI) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
+func (m *MockAPI) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, requirements ...*models.ClusterHostRequirements) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateHost", ctx, cluster, host)
+	varargs := []any{ctx, cluster, host}
+	for _, a := range requirements {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "ValidateHost", varargs...)
 	ret0, _ := ret[0].([]api.ValidationResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ValidateHost indicates an expected call of ValidateHost.
-func (mr *MockAPIMockRecorder) ValidateHost(ctx, cluster, host any) *gomock.Call {
+func (mr *MockAPIMockRecorder) ValidateHost(ctx, cluster, host any, requirements ...any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockAPI)(nil).ValidateHost), ctx, cluster, host)
+	varargs := append([]any{ctx, cluster, host}, requirements...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockAPI)(nil).ValidateHost), varargs...)
 }

@@ -75,7 +75,7 @@ type API interface {
 	// ValidateCluster validates cluster requirements
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error)
 	// ValidateHost validates host requirements
-	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error)
+	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, requirements ...*models.ClusterHostRequirements) ([]api.ValidationResult, error)
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
 	GenerateManifests(ctx context.Context, cluster *common.Cluster) error
@@ -368,7 +368,7 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 }
 
 // ValidateHost validates host requirements
-func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
+func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host, requirements ...*models.ClusterHostRequirements) ([]api.ValidationResult, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -408,7 +408,11 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 			continue
 		}
 
-		result, err := operator.ValidateHost(ctx, cluster, host, additionalOperatorRequirements)
+		var hostRequirements *models.ClusterHostRequirements
+		if len(requirements) > 0 {
+			hostRequirements = requirements[0]
+		}
+		result, err := operator.ValidateHost(ctx, cluster, host, api.HostRequirementsForOperator(hostRequirements, operator.GetName(), additionalOperatorRequirements))
 		if err != nil {
 			return nil, errors.Wrapf(err, "failed to validate host requirements for operator %s", clusterOperator.Name)
 		}

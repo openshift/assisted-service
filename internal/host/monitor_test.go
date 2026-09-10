@@ -90,7 +90,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockMetricApi.EXPECT().MonitoredHostsDurationMs(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockMetricApi.EXPECT().MonitoredHostsCycleDurationMs(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
@@ -212,7 +212,7 @@ var _ = Describe("TestHostMonitoring - with cluster", func() {
 			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, pr, false, nil, mockVersions, false)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
@@ -430,7 +430,7 @@ var _ = Describe("HostMonitoring - with infra-env", func() {
 			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators, nil, false, nil, mockVersions, false)
 
 		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
-		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOdfRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
