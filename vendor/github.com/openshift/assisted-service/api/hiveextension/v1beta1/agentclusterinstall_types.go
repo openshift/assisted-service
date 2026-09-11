@@ -374,6 +374,7 @@ type Networking struct {
 // MachineNetworkEntry is a single IP address block for node IP blocks.
 type MachineNetworkEntry struct {
 	// CIDR is the IP block address pool for machines within the cluster.
+	// +kubebuilder:validation:MaxLength=43
 	CIDR string `json:"cidr"`
 }
 
