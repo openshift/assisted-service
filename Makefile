@@ -396,7 +396,10 @@ create-ocp-manifests:
 	export HW_REQUIREMENTS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
-ci-deploy-for-subsystem: deploy-test
+ci-deploy-for-subsystem:
+	OS_IMAGES="$$( "$(ROOT_DIR)/hack/ci/prepare_subsystem_os_images.sh" "$(ROOT_DIR)" )" && \
+	export OS_IMAGES && \
+	$(MAKE) deploy-test
 
 deploy-test: _verify_cluster generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
