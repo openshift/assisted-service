@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io"
 	"strings"
 
@@ -15,9 +14,8 @@ import (
 	. "github.com/onsi/gomega"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
-	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
@@ -73,19 +71,17 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 		mockS3Client *s3wrapper.MockAPI
 		cluster      *common.Cluster
 		ctrl         *gomock.Controller
-		manifestsAPI *manifestsapi.MockManifestsAPI
 		iriPatcher   internalReleaseImagePatcher
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		manifestsAPI = manifestsapi.NewMockManifestsAPI(ctrl)
 		cluster = testCluster()
 		cluster.Name = "ostest"
 		cluster.BaseDNSDomain = "test.metalkube.org"
 
-		iriPatcher = NewInternalReleaseImagePatcher(cluster, mockS3Client, manifestsAPI, logrus.New())
+		iriPatcher = NewInternalReleaseImagePatcher(cluster, mockS3Client, logrus.New())
 	})
 
 	AfterEach(func() {
@@ -107,14 +103,22 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 		It("add IRI mirrors to IDMS/ITMS/CS/CC extra manifests", func() {
 			extraManifests := iriSetupExtraManifests(mockS3Client)
 
-			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(),
-				ManifestContains("idms-oc-mirror.yaml", "api-int.ostest.test.metalkube.org:22625", "localhost:22625")).Return(nil, nil)
-			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(),
-				ManifestContains("itms-oc-mirror.yaml", "api-int.ostest.test.metalkube.org:22625", "localhost:22625")).Return(nil, nil)
-			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(),
-				ManifestContains("cc-redhat-operator-index.yaml", "api-int.ostest.test.metalkube.org:22625")).Return(nil, nil)
-			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(),
-				ManifestContains("cs-redhat-operator-index.yaml", "api-int.ostest.test.metalkube.org:22625")).Return(nil, nil)
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(),
+				UploadedContentContains("api-int.ostest.test.metalkube.org:22625", "localhost:22625"),
+				MatchSubstring("idms-oc-mirror.yaml"), SystemManifestMetadata()).Return(nil)
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(),
+				UploadedContentContains("api-int.ostest.test.metalkube.org:22625", "localhost:22625"),
+				MatchSubstring("itms-oc-mirror.yaml"), SystemManifestMetadata()).Return(nil)
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(),
+				UploadedContentContains("api-int.ostest.test.metalkube.org:22625"),
+				MatchSubstring("cc-redhat-operator-index.yaml"), SystemManifestMetadata()).Return(nil)
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(),
+				UploadedContentContains("api-int.ostest.test.metalkube.org:22625"),
+				MatchSubstring("cs-redhat-operator-index.yaml"), SystemManifestMetadata()).Return(nil)
+			// internalreleaseimage.yaml is also marked as system
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(),
+				gomock.Any(),
+				MatchSubstring("internalreleaseimage.yaml"), SystemManifestMetadata()).Return(nil)
 
 			err := iriPatcher.PatchManifests(context.TODO(), extraManifests)
 			Expect(err).NotTo(HaveOccurred())
@@ -122,31 +126,28 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 
 		It("do not add duplicate localhost to IDMS/ITMS when mirrors already contain localhost", func() {
 			extraManifests := iriSetupExtraManifestsWithLocalhost(mockS3Client)
-			var idmsParams, itmsParams *operations.V2UpdateClusterManifestParams
+			var idmsContent, itmsContent []byte
 
-			manifestsAPI.EXPECT().UpdateClusterManifestInternal(context.TODO(), gomock.Any()).
-				DoAndReturn(func(ctx context.Context, params operations.V2UpdateClusterManifestParams) (operations.V2UpdateClusterManifestParams, error) {
-					switch params.UpdateManifestParams.FileName {
-					case "idms-oc-mirror.yaml":
-						p := params
-						idmsParams = &p
-					case "itms-oc-mirror.yaml":
-						p := params
-						itmsParams = &p
+			mockS3Client.EXPECT().UploadWithMetadata(context.TODO(), gomock.Any(), gomock.Any(), SystemManifestMetadata()).
+				DoAndReturn(func(ctx context.Context, data []byte, objectName string, metadata map[string]string) error {
+					if strings.Contains(objectName, "idms-oc-mirror.yaml") {
+						idmsContent = data
+					} else if strings.Contains(objectName, "itms-oc-mirror.yaml") {
+						itmsContent = data
 					}
-					return params, nil
-				}).Times(4)
+					return nil
+				}).Times(5) // 4 patched manifests + internalreleaseimage.yaml
 
 			err := iriPatcher.PatchManifests(context.TODO(), extraManifests)
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(idmsParams).NotTo(BeNil())
-			Expect(idmsLocalhostMirrorCount(*idmsParams)).To(Equal(1), "IDMS should have exactly one localhost mirror when one was already present (no duplicate)")
-			Expect(getManifestContent(*idmsParams)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
+			Expect(idmsContent).NotTo(BeNil())
+			Expect(idmsLocalhostMirrorCountFromBytes(idmsContent)).To(Equal(1), "IDMS should have exactly one localhost mirror when one was already present (no duplicate)")
+			Expect(string(idmsContent)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
 
-			Expect(itmsParams).NotTo(BeNil())
-			Expect(itmsLocalhostMirrorCount(*itmsParams)).To(Equal(1), "ITMS should have exactly one localhost mirror when one was already present (no duplicate)")
-			Expect(getManifestContent(*itmsParams)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
+			Expect(itmsContent).NotTo(BeNil())
+			Expect(itmsLocalhostMirrorCountFromBytes(itmsContent)).To(Equal(1), "ITMS should have exactly one localhost mirror when one was already present (no duplicate)")
+			Expect(string(itmsContent)).To(ContainSubstring("api-int.ostest.test.metalkube.org:22625"))
 		})
 	})
 
@@ -164,43 +165,72 @@ var _ = Describe("InternalReleaseImage resources patching", func() {
 	})
 })
 
-func ManifestContains(manifest string, s ...string) manifestContainsMatcher {
-	return manifestContainsMatcher{
-		manifest: manifest,
-		expected: s,
-	}
+// UploadedContentContains returns a gomock matcher that checks if the uploaded byte content
+// contains all expected substrings.
+func UploadedContentContains(expected ...string) gomock.Matcher {
+	return uploadedContentContainsMatcher{expected: expected}
 }
 
-type manifestContainsMatcher struct {
-	manifest string
+type uploadedContentContainsMatcher struct {
 	expected []string
 }
 
-func (m manifestContainsMatcher) Matches(x any) bool {
-	params, ok := x.(operations.V2UpdateClusterManifestParams)
+func (m uploadedContentContainsMatcher) Matches(x any) bool {
+	data, ok := x.([]byte)
 	if !ok {
 		return false
 	}
-	if params.UpdateManifestParams.Folder != "openshift" {
-		return false
-	}
-	if params.UpdateManifestParams.FileName != m.manifest {
-		return false
-	}
-	data, err := base64.StdEncoding.DecodeString(*params.UpdateManifestParams.UpdatedContent)
-	if err != nil {
-		return false
-	}
-	for _, s := range m.expected {
-		if !strings.Contains(string(data), s) {
+	s := string(data)
+	for _, exp := range m.expected {
+		if !strings.Contains(s, exp) {
 			return false
 		}
 	}
 	return true
 }
 
-func (m manifestContainsMatcher) String() string {
-	return fmt.Sprintf("manifest contains %v", m.expected)
+func (m uploadedContentContainsMatcher) String() string {
+	return "uploaded content contains " + strings.Join(m.expected, ", ")
+}
+
+// SystemManifestMetadata returns a gomock matcher that checks for system manifest metadata.
+func SystemManifestMetadata() gomock.Matcher {
+	return systemManifestMetadataMatcher{}
+}
+
+type systemManifestMetadataMatcher struct{}
+
+func (m systemManifestMetadataMatcher) Matches(x any) bool {
+	metadata, ok := x.(map[string]string)
+	if !ok {
+		return false
+	}
+	return metadata[constants.ManifestSourceAttribute] == constants.ManifestSourceSystemGenerated
+}
+
+func (m systemManifestMetadataMatcher) String() string {
+	return "metadata with system manifest source"
+}
+
+// MatchSubstring returns a gomock matcher for string containment.
+func MatchSubstring(substr string) gomock.Matcher {
+	return containSubstringMatcher{substr: substr}
+}
+
+type containSubstringMatcher struct {
+	substr string
+}
+
+func (m containSubstringMatcher) Matches(x any) bool {
+	s, ok := x.(string)
+	if !ok {
+		return false
+	}
+	return strings.Contains(s, m.substr)
+}
+
+func (m containSubstringMatcher) String() string {
+	return "contains substring " + m.substr
 }
 
 func getRegistriesConf(config *types.Config) string {
@@ -229,16 +259,9 @@ func s3ClientAdd(mockS3Client *s3wrapper.MockAPI, path string, data string) s3wr
 	}
 }
 
-func getManifestContent(params operations.V2UpdateClusterManifestParams) string {
-	data, err := base64.StdEncoding.DecodeString(*params.UpdateManifestParams.UpdatedContent)
-	Expect(err).NotTo(HaveOccurred())
-	return string(data)
-}
-
-func idmsLocalhostMirrorCount(params operations.V2UpdateClusterManifestParams) int {
-	content := getManifestContent(params)
+func idmsLocalhostMirrorCountFromBytes(content []byte) int {
 	var idms configv1.ImageDigestMirrorSet
-	Expect(yaml.Unmarshal([]byte(content), &idms)).NotTo(HaveOccurred())
+	Expect(yaml.Unmarshal(content, &idms)).NotTo(HaveOccurred())
 	count := 0
 	for _, group := range idms.Spec.ImageDigestMirrors {
 		for _, m := range group.Mirrors {
@@ -250,10 +273,9 @@ func idmsLocalhostMirrorCount(params operations.V2UpdateClusterManifestParams) i
 	return count
 }
 
-func itmsLocalhostMirrorCount(params operations.V2UpdateClusterManifestParams) int {
-	content := getManifestContent(params)
+func itmsLocalhostMirrorCountFromBytes(content []byte) int {
 	var itms configv1.ImageTagMirrorSet
-	Expect(yaml.Unmarshal([]byte(content), &itms)).NotTo(HaveOccurred())
+	Expect(yaml.Unmarshal(content, &itms)).NotTo(HaveOccurred())
 	count := 0
 	for _, group := range itms.Spec.ImageTagMirrors {
 		for _, m := range group.Mirrors {
@@ -412,6 +434,7 @@ location = "localhost:22625/rhel9"
 insecure = false`
 
 var manifestIRI = `
+apiVersion: machineconfiguration.openshift.io/v1
 kind: InternalReleaseImage
 metadata:
   name: cluster
