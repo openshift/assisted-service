@@ -135,6 +135,10 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	role := common.GetEffectiveRole(host)
 	areSchedulable := common.ShouldMastersBeSchedulable(&cluster.Cluster)
+	if additionalOperatorRequirements != nil && role == models.HostRoleWorker && inventory.CPU.Count < additionalOperatorRequirements.CPUCores {
+		message := fmt.Sprintf("Logical Volume Manager requires at least %d CPU cores for worker role, found only %d", additionalOperatorRequirements.CPUCores, inventory.CPU.Count)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, nil
+	}
 	minSizeMessage := ""
 	if minDiskSizeGb > 0 {
 		minSizeMessage = fmt.Sprintf(" of %dGB minimum", minDiskSizeGb)

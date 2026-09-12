@@ -370,6 +370,7 @@ var _ = Describe("Lvm Operator", func() {
 			diskCount         int
 			hostCPU           int64
 			hostMem           float32
+			requirements      *models.ClusterHostRequirementsDetails
 		}{
 			{
 				name:              "SNO with sufficient resources, 4.12",
@@ -491,6 +492,18 @@ var _ = Describe("Lvm Operator", func() {
 				hostRole:          models.HostRoleWorker,
 				hostMem:           8*conversions.GiB + float32(lvmMemMB),
 			},
+			{
+				name:              "full version 4.15, Worker, insufficient CPU",
+				hosts:             []*models.Host{masterNode, masterNode, masterNode, workerNode, workerNode},
+				resultMessage:     []string{"Logical Volume Manager requires at least 3 CPU cores for worker role, found only 2"},
+				apiStatus:         api.Failure,
+				diskCount:         2,
+				hostCPU:           2,
+				ControlPlaneCount: common.MinMasterHostsNeededForInstallationInHaMode,
+				hostRole:          models.HostRoleWorker,
+				hostMem:           8*conversions.GiB + float32(lvmMemMB),
+				requirements:      &models.ClusterHostRequirementsDetails{CPUCores: 3},
+			},
 		}
 
 		for i := range hostValidationTests {
@@ -526,7 +539,7 @@ var _ = Describe("Lvm Operator", func() {
 					SchedulableMastersForcedTrue: &schedulableMasters,
 				}}
 
-				res, _ := operator.ValidateHost(ctx, cluster, testHost, nil)
+				res, _ := operator.ValidateHost(ctx, cluster, testHost, test.requirements)
 
 				Expect(test.resultMessage).Should(Equal(res.Reasons))
 				Expect(test.apiStatus).Should(Equal(res.Status))
