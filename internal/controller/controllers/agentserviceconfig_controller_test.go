@@ -2436,6 +2436,25 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		Expect(found.Spec.Template.Spec.Containers[0].Ports[1].ContainerPort).To(Equal(int32(serviceHTTPPort.IntValue())))
 	})
 
+	It("adds postgres hop init containers for EUS skip-upgrades", func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc, route, assistedCM, assistedTrustedCM)
+		ascc = initASC(ascr, asc)
+		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
+
+		found := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+		Expect(found.Spec.Template.Spec.InitContainers).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.InitContainers[0].Name).To(Equal("postgres-upgrade-to-13"))
+		Expect(found.Spec.Template.Spec.InitContainers[0].Image).To(Equal(defaultDatabaseImagePG13))
+		Expect(found.Spec.Template.Spec.InitContainers[1].Name).To(Equal("postgres-upgrade-to-15"))
+		Expect(found.Spec.Template.Spec.InitContainers[1].Image).To(Equal(defaultDatabaseImagePG15))
+		Expect(found.Spec.Template.Spec.Containers[1].Image).To(Equal(defaultDatabaseImage))
+		Expect(found.Spec.Template.Spec.InitContainers[0].VolumeMounts).To(
+			ContainElement(corev1.VolumeMount{Name: "postgresdb", MountPath: "/var/lib/pgsql/data"}),
+		)
+	})
+
 	It("deploys the default image when no base image annotation is present", func() {
 		asc = newASCDefault()
 		ascr = newTestReconciler(asc, route, assistedCM, assistedTrustedCM)
