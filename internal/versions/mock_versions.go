@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -84,6 +85,21 @@ func (m *MockHandler) GetReleaseImageByURL(ctx context.Context, url, pullSecret 
 func (mr *MockHandlerMockRecorder) GetReleaseImageByURL(ctx, url, pullSecret any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImageByURL", reflect.TypeOf((*MockHandler)(nil).GetReleaseImageByURL), ctx, url, pullSecret)
+}
+
+// GetReleaseImageForCluster mocks base method.
+func (m *MockHandler) GetReleaseImageForCluster(ctx context.Context, cluster *common.Cluster, cpuArchitecture string) (*models.ReleaseImage, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetReleaseImageForCluster", ctx, cluster, cpuArchitecture)
+	ret0, _ := ret[0].(*models.ReleaseImage)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetReleaseImageForCluster indicates an expected call of GetReleaseImageForCluster.
+func (mr *MockHandlerMockRecorder) GetReleaseImageForCluster(ctx, cluster, cpuArchitecture any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImageForCluster", reflect.TypeOf((*MockHandler)(nil).GetReleaseImageForCluster), ctx, cluster, cpuArchitecture)
 }
 
 // ValidateReleaseImageForRHCOS mocks base method.

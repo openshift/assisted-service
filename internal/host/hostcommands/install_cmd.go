@@ -158,7 +158,7 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 	// Get release image for host only if it's either not a day-2 host or it's installing to disk
 	var releaseImage *models.ReleaseImage
 	if installToDisk || !isDay2 {
-		releaseImage, err = i.versionsHandler.GetReleaseImage(ctx, cluster.OpenshiftVersion, cpuArch, cluster.PullSecret)
+		releaseImage, err = i.versionsHandler.GetReleaseImageForCluster(ctx, cluster, cpuArch)
 		if err != nil && !isDay2 {
 			return "", err
 		}
