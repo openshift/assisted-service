@@ -10646,6 +10646,13 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "type": {
+          "description": "The type of the image. If set to 'disconnected-iso' tags the image as a disconnected ISO image.",
+          "type": "string",
+          "enum": [
+            "disconnected-iso"
+          ]
+        },
         "url": {
           "description": "The base OS image used for the discovery iso.",
           "type": "string"
@@ -22436,6 +22443,13 @@ func init() {
           "description": "The OS stream of this image (e.g. rhel-9, rhel-10).",
           "type": "string",
           "x-nullable": true
+        },
+        "type": {
+          "description": "The type of the image. If set to 'disconnected-iso' tags the image as a disconnected ISO image.",
+          "type": "string",
+          "enum": [
+            "disconnected-iso"
+          ]
         },
         "url": {
           "description": "The base OS image used for the discovery iso.",

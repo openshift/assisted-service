@@ -61,7 +61,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		infraEnv.OpenshiftVersion = *common.TestDefaultConfig.OsImage.OpenshiftVersion
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(common.TestDefaultConfig.OsImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream, "").Return(common.TestDefaultConfig.OsImage, nil).Times(1)
 
 		rhcosVersion := *common.TestDefaultConfig.OsImage.Version
 		initrdUrl := fmt.Sprintf("%s/images/%s/pxe-initrd?arch=%s&version=%s", imgSvcURL, infraEnvID, infraEnv.CPUArchitecture, rhcosVersion)
@@ -97,7 +97,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 			OsStream:         swag.String("rhel-9"),
 		}
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(osImage, nil).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream, "").Return(osImage, nil).Times(1)
 
 		rhcosVersion := *common.TestDefaultConfig.OsImage.Version
 		initrdUrl := fmt.Sprintf("%s/images/%s/pxe-initrd?arch=%s&version=%s", imgSvcURL, infraEnvID, infraEnv.CPUArchitecture, rhcosVersion)
@@ -128,7 +128,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("The requested OS image for version (%s) and CPU architecture (%s) isn't specified in OS images list", infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture)
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream, "").Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})
@@ -139,7 +139,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("No OS images are available")
-		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream).Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest(infraEnv.OpenshiftVersion, infraEnv.CPUArchitecture, infraEnv.OsStream, "").Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})
@@ -149,7 +149,7 @@ var _ = Describe("downloadBootArtifactsCmd.GetSteps", func() {
 		Expect(db.Create(infraEnv).Error).To(BeNil())
 		downloadCmd = NewDownloadBootArtifactsCmd(common.GetTestLog(), imgSvcURL, auth.TypeNone, mockOSImages, db, time.Duration(9000), hostFSMountDir)
 		versionsErr := errors.Errorf("No OS images are available")
-		mockOSImages.EXPECT().GetOsImageOrLatest("", "", "").Return(nil, versionsErr).Times(1)
+		mockOSImages.EXPECT().GetOsImageOrLatest("", "", "", "").Return(nil, versionsErr).Times(1)
 		_, stepErr := downloadCmd.GetSteps(ctx, &host)
 		Expect(stepErr).ToNot(BeNil())
 	})

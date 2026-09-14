@@ -7682,6 +7682,10 @@ definitions:
         type: boolean
         description: Whether this OS image is the default stream for its OpenShift version and CPU architecture.
         x-nullable: true
+      type:
+        type: string
+        enum: ['disconnected-iso']
+        description: The type of the image. If set to 'disconnected-iso' tags the image as a disconnected ISO image.
 
   os-images:
     type: array
