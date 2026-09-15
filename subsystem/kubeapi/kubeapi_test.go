@@ -5344,8 +5344,20 @@ spec:
 
 	It("ConfigMap delete and recreate triggers re-validation of custom manifests", func() {
 		By("Create SNO cluster with Cilium network type, ConfigMap ref, and hold installation")
+		ciliumBuilder := common.TestVersion().Exact("4.21")
+		ciliumVersion, ok := ciliumBuilder.TryVersion()
+		if !ok {
+			Skip("no OCP 4.21 test version available")
+		}
+		ciliumImageSetName := "openshift-v" + ciliumVersion + "-cilium"
+		imageSetsData[ciliumImageSetName] = ciliumBuilder.ReleaseImageURL()
+		defer delete(imageSetsData, ciliumImageSetName)
+		ciliumImageSetRef := &hivev1.ClusterImageSetReference{Name: ciliumImageSetName}
+		deployClusterImageSetCRD(ctx, kubeClient, ciliumImageSetRef)
+
 		configMapName := "cni-manifests"
 		aciSNOSpec.Networking.NetworkType = models.ClusterNetworkTypeCilium
+		aciSNOSpec.ImageSetRef = ciliumImageSetRef
 		aciSNOSpec.ManifestsConfigMapRefs = []hiveext.ManifestsConfigMapReference{{Name: configMapName}}
 		aciSNOSpec.HoldInstallation = true
 
