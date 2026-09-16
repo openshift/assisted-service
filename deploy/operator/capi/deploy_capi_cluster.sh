@@ -67,6 +67,9 @@ fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
     install_oc_mirrorv2
+    export AUTHFILE="${XDG_RUNTIME_DIR}/containers/auth.json"
+    mkdir -p "$(dirname "${AUTHFILE}")"
+    merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
     # Disconnected hypershift requires:
     export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # 1. pull secret in hypershift namespace for the hypershift operator
@@ -220,7 +223,11 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift_cli() {
   full_cmd="update-ca-trust;$@"
-  podman run -it --net host --rm --entrypoint /bin/bash -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $EXTRA_HYPERSHIFT_CLI_MOUNTS $HYPERSHIFT_IMAGE -c "$full_cmd"
+  authfile_arg=""
+  if [[ -n "${AUTHFILE:-}" && -f "${AUTHFILE}" ]]; then
+    authfile_arg="--authfile ${AUTHFILE}"
+  fi
+  podman run -it --net host --rm ${authfile_arg} --entrypoint /bin/bash -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $EXTRA_HYPERSHIFT_CLI_MOUNTS $HYPERSHIFT_IMAGE -c "$full_cmd"
 }
 
 echo "Installing HyperShift using upstream image"
