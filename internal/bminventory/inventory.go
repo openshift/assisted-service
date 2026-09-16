@@ -228,7 +228,7 @@ type bareMetalInventory struct {
 	gcConfig                      garbagecollector.Config
 	providerRegistry              registry.ProviderRegistry
 	insecureIPXEURLs              bool
-	installerInvoker              string
+	ephemeralService              bool
 	disconnectedIgnitionGenerator *ignition.DisconnectedIgnitionGenerator
 }
 
@@ -263,7 +263,7 @@ func NewBareMetalInventory(
 	gcConfig garbagecollector.Config,
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
-	installerInvoker string,
+	ephemeralService bool,
 	oveIgnitionGenerator *ignition.DisconnectedIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
@@ -297,7 +297,7 @@ func NewBareMetalInventory(
 		gcConfig:                      gcConfig,
 		providerRegistry:              providerRegistry,
 		insecureIPXEURLs:              insecureIPXEURLs,
-		installerInvoker:              installerInvoker,
+		ephemeralService:              ephemeralService,
 		disconnectedIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
@@ -4351,7 +4351,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	case constants.KubeadminPassword:
 		fallthrough
 	case constants.KubeconfigNoIngress:
-		err = clusterPkg.CanDownloadKubeconfigFiles(cluster, fileName, b.installerInvoker)
+		err = clusterPkg.CanDownloadKubeconfigFiles(cluster, fileName, b.ephemeralService)
 	case constants.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
@@ -4434,7 +4434,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	var consoleURL string
 	if operatorscommon.HasOperator(cluster.Cluster.MonitoredOperators, operators.OperatorConsole.Name) {
 		// For the agent-installer, the console URL needs to be available prior to the finalizing stage
-		if b.installerInvoker != "agent-installer" && !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
+		if !b.ephemeralService && !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
 			err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
 			log.WithError(err).Error("Failed to validate if operator is available")
 			return nil, common.NewApiError(http.StatusConflict, err)
@@ -6638,7 +6638,7 @@ func (b *bareMetalInventory) V2DownloadClusterCredentials(ctx context.Context, p
 			respBody, contentLength, err = b.v2DownloadClusterFilesInternal(ctx, fileName, params.ClusterID.String())
 		}
 
-		if err != nil && common.IsNotFoundError(err) && b.installerInvoker == "agent-installer" {
+		if err != nil && common.IsNotFoundError(err) && b.ephemeralService {
 			// For ABI, kubeconfig must be generated here for retrieval prior to cluster installation, only if file not found.
 			// Use a transaction with row-level locking to prevent concurrent generation attempts
 			if agentErr := b.generateAgentInstallerKubeconfigWithLock(ctx, params, fileName); agentErr != nil {
