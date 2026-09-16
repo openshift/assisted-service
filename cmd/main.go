@@ -409,7 +409,7 @@ func startKubeAPIControllers(
 }
 
 func isEphemeralService() bool {
-	return Options.GeneratorConfig.InstallInvoker == "agent-installer"
+	return strings.HasPrefix(Options.GeneratorConfig.InstallInvoker, "agent-installer")
 }
 
 func main() {
