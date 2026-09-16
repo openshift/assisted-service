@@ -142,14 +142,14 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	cpu := requirements.CPUCores
 	if inventory.CPU.Count < cpu {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OpenShift Virtualization. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OpenShift Virtualization on the %s role, requires an additional %d CPU cores (included in the total required for the %s role) but found %d.", role, cpu, role, inventory.CPU.Count)}}, nil
 	}
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
 	if inventory.Memory.UsableBytes < memBytes {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OpenShift Virtualization. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OpenShift Virtualization on the %s role, requires an additional %d MiB (included in the total required for the %s role) but found %d MiB.", role, mem, role, usableMemory)}}, nil
 	}
 
 	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them

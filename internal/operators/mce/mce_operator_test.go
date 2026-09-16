@@ -64,7 +64,7 @@ var _ = Describe("MCE Operator", func() {
 			table.Entry("host with insufficient memory",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{hostWithInsufficientResources}}},
 				hostWithInsufficientResources,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy multicluster engine. Required memory is 16384 MiB but found 8192 MiB"}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy multicluster engine on the worker role, requires an additional 16384 MiB (included in the total required for the worker role) but found 8192 MiB."}},
 			),
 
 			table.Entry("master with sufficient resources",
