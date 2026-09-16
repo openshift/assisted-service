@@ -20007,7 +20007,7 @@ func createInventoryWithImageService(db *gorm.DB, cfg Config, enableImageService
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, "", disconnectedIgnitionGenerator)
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, false, disconnectedIgnitionGenerator)
 
 	if enableImageService {
 		bm.ImageServiceBaseURL = imageServiceBaseURL
