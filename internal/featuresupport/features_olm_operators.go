@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/fenceagentsremediation"
 	"github.com/openshift/assisted-service/internal/operators/kubedescheduler"
 	"github.com/openshift/assisted-service/internal/operators/loki"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
 	"github.com/openshift/assisted-service/internal/operators/nodemaintenance"
 	"github.com/openshift/assisted-service/internal/operators/numaresources"
@@ -1235,6 +1236,40 @@ func (f *MetalLBFeature) getIncompatibleFeatures(string) []models.FeatureSupport
 
 func (f *MetalLBFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
 	if isOperatorActivated("metallb", cluster, clusterUpdateParams) {
+		return activeLevelActive
+	}
+	return activeLevelNotActive
+}
+
+// NetworkObservabilityFeature describes the support for the Network Observability Operator.
+type NetworkObservabilityFeature struct{}
+
+func (f *NetworkObservabilityFeature) New() SupportLevelFeature {
+	return &NetworkObservabilityFeature{}
+}
+
+func (f *NetworkObservabilityFeature) getId() models.FeatureSupportLevelID {
+	return models.FeatureSupportLevelIDNETWORKOBSERVABILITY
+}
+
+func (f *NetworkObservabilityFeature) GetName() string {
+	return networkobservability.FullName
+}
+
+func (f *NetworkObservabilityFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
+	return models.SupportLevelSupported, ""
+}
+
+func (f *NetworkObservabilityFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
+	return []models.ArchitectureSupportLevelID{}
+}
+
+func (f *NetworkObservabilityFeature) getIncompatibleFeatures(string) []models.FeatureSupportLevelID {
+	return []models.FeatureSupportLevelID{}
+}
+
+func (f *NetworkObservabilityFeature) getFeatureActiveLevel(cluster *common.Cluster, _ *models.InfraEnv, clusterUpdateParams *models.V2ClusterUpdateParams, _ *models.InfraEnvUpdateParams) featureActiveLevel {
+	if isOperatorActivated(networkobservability.Name, cluster, clusterUpdateParams) {
 		return activeLevelActive
 	}
 	return activeLevelNotActive

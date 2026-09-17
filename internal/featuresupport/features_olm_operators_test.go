@@ -376,4 +376,64 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 			Entry("on Nutanix", "4.12", common.X86CPUArchitecture, models.PlatformTypeExternal, models.SupportLevelUnavailable),
 		)
 	})
+
+	Context("Test Network Observability feature", func() {
+		feature := models.FeatureSupportLevelIDNETWORKOBSERVABILITY
+
+		It("is available and supported on common architectures", func() {
+			for _, arch := range []string{
+				models.ClusterCPUArchitectureX8664,
+				models.ClusterCPUArchitectureArm64,
+				models.ClusterCPUArchitectureS390x,
+				models.ClusterCPUArchitecturePpc64le,
+			} {
+				Expect(IsFeatureAvailable(feature, "4.14", swag.String(arch))).To(BeTrue(),
+					fmt.Sprintf("Network Observability should be available on %s", arch))
+				Expect(GetSupportLevel(feature, SupportLevelFilters{
+					OpenshiftVersion: "4.14",
+					CPUArchitecture:  swag.String(arch),
+				})).To(Equal(models.SupportLevelSupported),
+					fmt.Sprintf("Network Observability should be supported on %s", arch))
+			}
+		})
+
+		It("is reported as supported in the feature support list", func() {
+			featureSupportLevels := GetFeatureSupportList("4.14", swag.String(models.ClusterCPUArchitectureX8664), nil, nil)
+			found := false
+			for _, f := range featureSupportLevels {
+				if f.FeatureSupportLevelID == feature {
+					found = true
+					Expect(f.SupportLevel).To(Equal(models.SupportLevelSupported))
+					break
+				}
+			}
+			Expect(found).To(BeTrue(), "NETWORK_OBSERVABILITY should appear in the feature support list")
+		})
+
+		It("getFeatureActiveLevel reflects operator selection", func() {
+			networkObservabilityFeature := &NetworkObservabilityFeature{}
+			clusterWithOperator := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: "4.14",
+				MonitoredOperators: []*models.MonitoredOperator{
+					{Name: "network-observability", OperatorType: models.OperatorTypeOlm},
+				},
+			}}
+			Expect(networkObservabilityFeature.getFeatureActiveLevel(&clusterWithOperator, nil, nil, nil)).
+				To(Equal(activeLevelActive))
+
+			clusterWithoutOperator := common.Cluster{Cluster: models.Cluster{
+				OpenshiftVersion: "4.14",
+			}}
+			Expect(networkObservabilityFeature.getFeatureActiveLevel(&clusterWithoutOperator, nil, nil, nil)).
+				To(Equal(activeLevelNotActive))
+
+			params := models.V2ClusterUpdateParams{
+				OlmOperators: []*models.OperatorCreateParams{
+					{Name: "network-observability"},
+				},
+			}
+			Expect(networkObservabilityFeature.getFeatureActiveLevel(&clusterWithoutOperator, nil, &params, nil)).
+				To(Equal(activeLevelActive))
+		})
+	})
 })
