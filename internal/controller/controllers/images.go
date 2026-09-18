@@ -28,6 +28,8 @@ const (
 	serviceImageBaseAnnotation string = "agent-install.openshift.io/service-image-base"
 )
 
+const defaultDatabaseImage = "quay.io/sclorg/postgresql-16-c9s:latest"
+
 func ServiceImage(asc client.Object) string {
 	return serviceImageDefault()
 }
@@ -41,7 +43,7 @@ func ImageServiceImage() string {
 }
 
 func DatabaseImage() string {
-	return getEnvVar("DATABASE_IMAGE", "quay.io/sclorg/postgresql-16-c9s:latest")
+	return getEnvVar("DATABASE_IMAGE", defaultDatabaseImage)
 }
 
 func AgentImage() string {
