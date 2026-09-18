@@ -1086,6 +1086,114 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:dhcp6"]`))
 	})
+	It("iSCSI installation disk - static network configuration uses iBFT instead of DHCP", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
+		infraEnv.StaticNetworkConfig = "something"
+		cluster.ImageInfo.StaticNetworkConfig = "something"
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					}
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["10.56.21.80/25"]
+				}
+			]
+		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:ibft","--copy-network"]`))
+	})
+	It("iSCSI installation disk - static network with IPv6 host address uses iBFT (not dhcp6)", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/25"}}
+		infraEnv.StaticNetworkConfig = "something"
+		cluster.ImageInfo.StaticNetworkConfig = "something"
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "2002:db8::1"
+					}
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s"
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv6_addresses":["2002:db8::1/64"]
+				}
+			]
+		}`, models.DriveTypeISCSI, models.DriveTypeSSD)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:ibft","--copy-network"]`))
+	})
+	It("multipath iSCSI installation disk - static network configuration uses iBFT instead of DHCP", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
+		infraEnv.StaticNetworkConfig = "something"
+		cluster.ImageInfo.StaticNetworkConfig = "something"
+		host.Inventory = fmt.Sprintf(`{
+			"disks":[
+				{
+					"id": "install-id",
+					"drive_type": "%s",
+					"name": "dm-0"
+				},
+				{
+					"id": "other-id",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.80"
+					},
+					"holders": "dm-0"
+				},
+				{
+					"id": "other-id-2",
+					"drive_type": "%s",
+					"iscsi": {
+						"host_ip_address": "10.56.20.81"
+					},
+					"holders": "dm-0"
+				}
+			],
+			"interfaces":[
+				{
+					"mac_address": "01:02:03:04:05:06",
+					"ipv4_addresses":["10.56.20.80/25"]
+				},
+				{
+					"mac_address": "07:08:09:0A:0B:0C",
+					"ipv4_addresses":["10.56.20.81/25"]
+				}
+			]
+		}`, models.DriveTypeMultipath, models.DriveTypeISCSI, models.DriveTypeISCSI)
+		inventory, _ := common.UnmarshalInventory(host.Inventory)
+		args, err := constructHostInstallerArgs(cluster, host, inventory, infraEnv, log)
+		Expect(err).NotTo(HaveOccurred(), fmt.Sprintf("Debug info: Unmarshalled Inventory: %+v, Host's Inventory: %s", inventory, host.Inventory))
+		Expect(args).To(Equal(`["--append-karg","rw","--append-karg","rd.multipath=default","--append-karg","rd.iscsi.firmware=1","--append-karg","ip=01-02-03-04-05-06:ibft","--append-karg","ip=07-08-09-0A-0B-0C:ibft","--copy-network"]`), fmt.Sprintf("Debug info: Actual args returned: %s", args))
+	})
 	It("iSCSI installation disk - IP configuration is not appended if user already added it", func() {
 		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "192.186.10.0/24"}}
 		kargs := `["--append-karg","ip=dhcp"]`
