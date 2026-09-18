@@ -136,7 +136,7 @@ BASE_DOMAIN=${SNO_BASE_DOMAIN_OVERRIDE:-"{{.DNS_DOMAIN}}"}
 CLUSTER_FULL_DOMAIN="${CLUSTER_NAME}.${BASE_DOMAIN}"
 
 export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
-if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
+if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ] || [ "$2" = "dns-change" ]; then
 	export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
 	cp  $BASE_RESOLV_CONF $TMP_FILE
 	chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
