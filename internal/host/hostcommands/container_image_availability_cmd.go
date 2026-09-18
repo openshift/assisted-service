@@ -54,12 +54,13 @@ func (cmd *imageAvailabilityCmd) getImages(ctx context.Context, cluster *common.
 
 	mustGatherImages, err := cmd.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 	if err != nil {
-		return images, err
-	}
-	for key, img := range mustGatherImages {
-		//At the moment, verify only the ocp image
-		if "ocp" == key {
-			images = append(images, img)
+		cmd.log.Warn("Could not determine must-gather image. Installation will proceed without pre-verifying the must-gather image availability.")
+	} else {
+		for key, img := range mustGatherImages {
+			//At the moment, verify only the ocp image
+			if "ocp" == key {
+				images = append(images, img)
+			}
 		}
 	}
 
