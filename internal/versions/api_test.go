@@ -1178,3 +1178,167 @@ var _ = Describe("V2ListReleaseSources", func() {
 		Expect(payload).To(Equal(releaseSources))
 	})
 })
+
+var _ = Describe("V2ListSupportedOfflineOpenshiftVersions", func() {
+	var handler *apiHandler
+
+	offlineOsImage := func(version, url, imageVersion string, arch *string, imageType string) *models.OsImage {
+		image := &models.OsImage{
+			OpenshiftVersion: swag.String(version),
+			URL:              swag.String(url),
+			Version:          swag.String(imageVersion),
+		}
+		if arch != nil {
+			image.CPUArchitecture = arch
+		}
+		if imageType != "" {
+			image.Type = imageType
+		}
+		return image
+	}
+
+	newOfflineHandler := func(images models.OsImages) *apiHandler {
+		osImages, err := NewOSImages(images, true)
+		Expect(err).NotTo(HaveOccurred(), "failed to initialize OS images for offline versions test")
+		return NewAPIHandler(common.GetTestLog(), Versions{}, nil, nil, osImages, nil).(*apiHandler)
+	}
+
+	expectOfflineVersionsOK := func(reply interface{}) models.OpenshiftVersions {
+		Expect(reply).To(BeAssignableToTypeOf(operations.NewV2ListSupportedOfflineOpenshiftVersionsOK()))
+		val, ok := reply.(*operations.V2ListSupportedOfflineOpenshiftVersionsOK)
+		Expect(ok).To(BeTrue(), "expected OK response for offline versions")
+		return val.Payload
+	}
+
+	BeforeEach(func() {
+		disconnectedImages := models.OsImages{
+			offlineOsImage("4.14.10", "https://example.com/4.14/4.14.10/image.iso", "version-1",
+				swag.String(common.X86CPUArchitecture), models.OsImageTypeDisconnectedIso),
+			offlineOsImage("4.14.11", "https://example.com/4.14/4.14.11/image.iso", "version-2",
+				swag.String(common.X86CPUArchitecture), models.OsImageTypeDisconnectedIso),
+			offlineOsImage("4.14.11", "https://example.com/4.14/4.14.11/image-arm64.iso", "version-3",
+				swag.String(common.ARM64CPUArchitecture), models.OsImageTypeDisconnectedIso),
+			offlineOsImage("4.15.1", "https://example.com/4.15/4.15.1/image.iso", "version-4",
+				swag.String(common.X86CPUArchitecture), models.OsImageTypeDisconnectedIso),
+			offlineOsImage("4.15.2", "https://example.com/4.15/4.15.2/image.iso", "version-5",
+				swag.String(common.X86CPUArchitecture), models.OsImageTypeDisconnectedIso),
+			offlineOsImage("4.16.0", "https://example.com/4.16/4.16.0/full.iso", "version-6",
+				swag.String(common.X86CPUArchitecture), ""),
+		}
+
+		handler = newOfflineHandler(disconnectedImages)
+	})
+
+	It("returns all disconnected iso versions when no filters are set", func() {
+		payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+			context.Background(),
+			operations.V2ListSupportedOfflineOpenshiftVersionsParams{},
+		))
+		Expect(payload).To(HaveLen(4))
+		Expect(payload).To(HaveKey("4.14.10"))
+		Expect(payload).To(HaveKey("4.14.11"))
+		Expect(payload).To(HaveKey("4.15.1"))
+		Expect(payload).To(HaveKey("4.15.2"))
+		Expect(payload["4.14.11"].CPUArchitectures).To(ConsistOf(common.X86CPUArchitecture, common.ARM64CPUArchitecture))
+		Expect(payload).NotTo(HaveKey("4.16.0"))
+	})
+
+	Context("filter by version query parameter", func() {
+		It("returns no results when nothing matches", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{Version: swag.String("4.17")},
+			))
+			Expect(payload).To(BeEmpty())
+		})
+
+		It("returns matching versions", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{Version: swag.String("4.14")},
+			))
+			Expect(payload).To(HaveLen(2))
+			Expect(payload).To(HaveKey("4.14.10"))
+			Expect(payload).To(HaveKey("4.14.11"))
+			Expect(payload["4.14.11"].CPUArchitectures).To(ConsistOf(common.X86CPUArchitecture, common.ARM64CPUArchitecture))
+		})
+
+		It("is ignored when nil", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{},
+			))
+			Expect(payload).To(HaveLen(4))
+		})
+	})
+
+	Context("filter by only_latest query parameter", func() {
+		It("returns only the latest version for each minor release", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{OnlyLatest: swag.Bool(true)},
+			))
+			Expect(payload).To(HaveLen(2))
+			Expect(payload).To(HaveKey("4.14.11"))
+			Expect(payload).To(HaveKey("4.15.2"))
+			Expect(payload["4.14.11"].CPUArchitectures).To(ConsistOf(common.X86CPUArchitecture, common.ARM64CPUArchitecture))
+		})
+
+		It("is ignored when false", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{OnlyLatest: swag.Bool(false)},
+			))
+			Expect(payload).To(HaveLen(4))
+		})
+	})
+
+	Context("filter by both version and only_latest query parameters", func() {
+		It("returns the latest matching 4.14 version", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{
+					Version:    swag.String("4.14"),
+					OnlyLatest: swag.Bool(true),
+				},
+			))
+			Expect(payload).To(Equal(models.OpenshiftVersions{
+				"4.14.11": {
+					DisplayName:      swag.String("4.14.11"),
+					CPUArchitectures: []string{common.X86CPUArchitecture, common.ARM64CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelProduction),
+					Default:          false,
+				},
+			}))
+		})
+
+		It("returns the latest matching 4.15 version", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{
+					Version:    swag.String("4.15"),
+					OnlyLatest: swag.Bool(true),
+				},
+			))
+			Expect(payload).To(Equal(models.OpenshiftVersions{
+				"4.15.2": {
+					DisplayName:      swag.String("4.15.2"),
+					CPUArchitectures: []string{common.X86CPUArchitecture},
+					SupportLevel:     swag.String(models.OpenshiftVersionSupportLevelProduction),
+					Default:          false,
+				},
+			}))
+		})
+
+		It("returns no results when version does not match", func() {
+			payload := expectOfflineVersionsOK(handler.V2ListSupportedOfflineOpenshiftVersions(
+				context.Background(),
+				operations.V2ListSupportedOfflineOpenshiftVersionsParams{
+					Version:    swag.String("4.17"),
+					OnlyLatest: swag.Bool(true),
+				},
+			))
+			Expect(payload).To(BeEmpty())
+		})
+	})
+})
