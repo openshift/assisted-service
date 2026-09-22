@@ -1,7 +1,7 @@
 # github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d
 ## explicit; go 1.13
 github.com/asaskevich/govalidator
-# github.com/go-logr/logr v1.3.0
+# github.com/go-logr/logr v1.4.3
 ## explicit; go 1.18
 github.com/go-logr/logr
 github.com/go-logr/logr/slogr
@@ -210,3 +210,4 @@ sigs.k8s.io/yaml
 # golang.org/x/net => golang.org/x/net v0.33.0
 # github.com/golang/glog => github.com/golang/glog v1.2.4
 # golang.org/x/crypto => golang.org/x/crypto v0.52.0
+# google.golang.org/grpc => google.golang.org/grpc v1.82.2
