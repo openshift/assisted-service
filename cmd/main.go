@@ -406,6 +406,10 @@ func startKubeAPIControllers(
 	failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 }
 
+func isEphemeralService() bool {
+	return strings.HasPrefix(Options.GeneratorConfig.InstallInvoker, "agent-installer")
+}
+
 func main() {
 	err := envconfig.Process(common.EnvConfigPrefix, &Options)
 	if err == nil {
@@ -627,7 +631,7 @@ func main() {
 
 	Options.UploaderConfig.AssistedServiceVersion = versions.GetRevision()
 	Options.UploaderConfig.Versions = Options.Versions
-	if Options.GeneratorConfig.InstallInvoker == "agent-installer" {
+	if isEphemeralService() {
 		Options.UploaderConfig.DeploymentType = "ABI"
 	}
 	uploadClient := uploader.NewClient(&Options.UploaderConfig, db, log, ocpClient)
@@ -742,7 +746,7 @@ func main() {
 	bm := bminventory.NewBareMetalInventory(db, notificationStream, log.WithField("pkg", "Inventory"), hostApi, clusterApi, infraEnvApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, usageManager, operatorsManager, authHandler, authzHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, osImages, crdUtils, ignitionBuilder, hwValidator, dnsApi, installConfigBuilder, staticNetworkConfig,
-		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, Options.GeneratorConfig.InstallInvoker, disconnectedIgnitionGenerator)
+		Options.GCConfig, providerRegistry, generateInsecureIPXEURLs, isEphemeralService(), disconnectedIgnitionGenerator)
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"), db, metricsManager)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
@@ -797,7 +801,7 @@ func main() {
 		log.WithField("pkg", "healthcheck"), Options.LivenessValidationTimeout)
 	h = requestid.Middleware(h)
 	h = spec.WithSpecMiddleware(h)
-	if Options.GeneratorConfig.InstallInvoker != "agent-installer" {
+	if !isEphemeralService() {
 		go startPPROF(log)
 	}
 
