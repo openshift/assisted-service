@@ -16,7 +16,7 @@ require (
 
 require (
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
-	github.com/go-logr/logr v1.3.0 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-openapi/analysis v0.21.2 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/jsonpointer v0.19.6 // indirect
@@ -63,3 +63,5 @@ replace (
 replace github.com/golang/glog => github.com/golang/glog v1.2.4
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+
+replace google.golang.org/grpc => google.golang.org/grpc v1.82.2

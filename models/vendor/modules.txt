@@ -89,3 +89,4 @@ gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
 # golang.org/x/crypto => golang.org/x/crypto v0.52.0
+# google.golang.org/grpc => google.golang.org/grpc v1.82.2
