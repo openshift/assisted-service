@@ -1,6 +1,6 @@
 module github.com/openshift/assisted-service
 
-go 1.20
+go 1.21
 
 require (
 	github.com/IBM/netaddr v1.5.0
@@ -111,7 +111,7 @@ require (
 	github.com/liggitt/tabwriter v0.0.0-20181228230101-89fcab3d43de // indirect
 	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
-	github.com/moby/spdystream v0.2.0 // indirect
+	github.com/moby/spdystream v0.5.1 // indirect
 	github.com/monochromegane/go-gitignore v0.0.0-20200626010858-205db1a8cc00 // indirect
 	github.com/openshift/library-go v0.0.0-20231110170715-08d73a9c798b // indirect
 	github.com/peterbourgon/diskv v2.0.1+incompatible // indirect
