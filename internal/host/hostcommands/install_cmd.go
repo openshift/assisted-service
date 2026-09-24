@@ -194,11 +194,12 @@ func (i *installCmd) getFullInstallerCommand(ctx context.Context, cluster *commo
 		var mustGatherMap versions.MustGatherVersion
 		mustGatherMap, err = i.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.CPUArchitecture, cluster.PullSecret)
 		if err != nil {
-			return "", err
-		}
-		request.MustGatherImage, err = i.getMustGatherArgument(mustGatherMap)
-		if err != nil {
-			return "", err
+			i.log.Warn("Could not determine must-gather image. Installation will proceed without a pre-configured must-gather image.")
+		} else {
+			request.MustGatherImage, err = i.getMustGatherArgument(mustGatherMap)
+			if err != nil {
+				i.log.Warn("Could not build must-gather argument. Installation will proceed without it.")
+			}
 		}
 
 		request.OpenshiftVersion = cluster.OpenshiftVersion
