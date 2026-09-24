@@ -267,6 +267,66 @@ var _ = Describe("Disk eligibility", func() {
 		})
 	})
 
+	It("Check iSCSI on a dual-homed host with a default route on every NIC", func() {
+		const (
+			managementIP = "10.238.146.168"
+			iSCSIHostIP  = "172.165.4.111"
+		)
+
+		testDisk.DriveType = models.DriveTypeISCSI
+		testDisk.Name = "sda"
+		cluster.OpenshiftVersion = "4.15.0"
+
+		inventory.Interfaces = []*models.Interface{
+			{Name: "eno5", IPV4Addresses: []string{managementIP + "/24"}},
+			{Name: "eno6", IPV4Addresses: []string{iSCSIHostIP + "/16"}},
+		}
+		inventory.Routes = []*models.Route{
+			{Family: int32(common.IPv4), Interface: "eno6", Gateway: "172.165.0.1", Destination: "0.0.0.0", Metric: 100},
+			{Family: int32(common.IPv4), Interface: "eno5", Gateway: "10.238.146.1", Destination: "0.0.0.0", Metric: 101},
+		}
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: iSCSIHostIP}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil).AnyTimes()
+
+		By("Check iSCSI is eligible while the machine network is unknown and the default route is ambiguous")
+		notEligibleReasons, err := hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check iSCSI is eligible once the machine network shows the cluster claims the other NIC")
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "10.238.146.0/24"}}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(BeEmpty())
+
+		By("Check iSCSI is not eligible when the session really does run over the machine network NIC")
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: managementIP}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongISCSINetworkTemplate, managementIP)))
+
+		By("Check the default route still decides when the host owns exactly one")
+		cluster.MachineNetworks = nil
+		inventory.Routes = inventory.Routes[:1]
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: iSCSIHostIP}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongISCSINetworkTemplate, iSCSIHostIP)))
+
+		By("Check machine networks that are malformed or of another family do not count as known")
+		const iSCSIHostIPv6 = "2001:db8:1::10"
+		inventory.Interfaces[0].IPV6Addresses = []string{iSCSIHostIPv6 + "/64"}
+		inventory.Routes = []*models.Route{
+			{Family: int32(common.IPv6), Interface: "eno5", Gateway: "2001:db8:1::1", Destination: "::", Metric: 100},
+		}
+		cluster.MachineNetworks = []*models.MachineNetwork{{Cidr: "not-a-cidr"}, {Cidr: "10.238.146.0/24"}}
+		testDisk.Iscsi = &models.Iscsi{HostIPAddress: iSCSIHostIPv6}
+		notEligibleReasons, err = hwvalidator.DiskIsEligible(ctx, &testDisk, infraEnv, &cluster, &host, inventory)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(notEligibleReasons).To(ContainElement(fmt.Sprintf(wrongISCSINetworkTemplate, iSCSIHostIPv6)))
+	})
+
 	It("Check if RAID is eligible", func() {
 		testDisk.DriveType = models.DriveTypeRAID
 
@@ -835,6 +895,7 @@ var _ = Describe("Disk eligibility", func() {
 		By("Check iscsiNetworkInterfaceNotFound deduplication")
 		testDisk.InstallationEligibility.NotEligibleReasons = []string{}
 		// Keep route but remove interface to trigger not found error
+		cluster.MachineNetworks = nil
 		inventory.Interfaces = []*models.Interface{}
 
 		// First call to generate the error
