@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
@@ -89,6 +90,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				metallb.Operator.Name,
 				loki.Operator.Name,
 				openshiftlogging.Operator.Name,
+				networkobservability.Operator.Name,
 			))
 		})
 
@@ -98,6 +100,18 @@ var _ = Describe("Operators endpoint tests", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reply.Payload).To(BeEquivalentTo(models.OperatorProperties{}))
+		})
+
+		It("should provide network-observability operator properties", func() {
+			params := opclient.NewV2ListOperatorPropertiesParams().WithOperatorName(networkobservability.Operator.Name)
+			reply, err := utils_test.TestContext.UserBMClient.Operators.V2ListOperatorProperties(context.TODO(), params)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reply.Payload).To(HaveLen(2))
+			Expect(reply.Payload[0].Name).To(Equal("createFlowCollector"))
+			Expect(reply.Payload[0].DataType).To(Equal(models.OperatorPropertyDataTypeBoolean))
+			Expect(reply.Payload[1].Name).To(Equal("sampling"))
+			Expect(reply.Payload[1].DataType).To(Equal(models.OperatorPropertyDataTypeInteger))
 		})
 	})
 
@@ -144,6 +158,32 @@ var _ = Describe("Operators endpoint tests", func() {
 			cluster = getClusterReply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
 			Expect(operatorscommon.HasOperator(c.MonitoredOperators, newOperator)).Should(BeTrue())
+		})
+
+		It("persists network-observability operator properties on create", func() {
+			properties := `{"createFlowCollector":true,"sampling":50}`
+
+			reply, err := utils_test.TestContext.UserBMClient.Installer.V2RegisterCluster(context.TODO(), &installer.V2RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("test-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					PullSecret:       swag.String(pullSecret),
+					OlmOperators: []*models.OperatorCreateParams{
+						{
+							Name:       networkobservability.Operator.Name,
+							Properties: properties,
+						},
+					},
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			getClusterReply, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(*reply.GetPayload().ID))
+			Expect(err).NotTo(HaveOccurred())
+
+			op := operatorscommon.GetOperator(getClusterReply.GetPayload().MonitoredOperators, networkobservability.Operator.Name)
+			Expect(op).ToNot(BeNil())
+			Expect(op.Properties).To(Equal(properties))
 		})
 	})
 
@@ -209,6 +249,30 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(operatorscommon.HasOperator(c.MonitoredOperators, odf.Operator.Name)).Should(BeFalse())
 				utils_test.VerifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
+		})
+
+		It("persists network-observability operator properties on update", func() {
+			properties := `{"createFlowCollector":true,"sampling":100}`
+
+			_, err := utils_test.TestContext.UserBMClient.Installer.V2UpdateCluster(context.TODO(), &installer.V2UpdateClusterParams{
+				ClusterUpdateParams: &models.V2ClusterUpdateParams{
+					OlmOperators: []*models.OperatorCreateParams{
+						{
+							Name:       networkobservability.Operator.Name,
+							Properties: properties,
+						},
+					},
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			getReply, err := utils_test.TestContext.UserBMClient.Installer.V2GetCluster(context.TODO(), installer.NewV2GetClusterParams().WithClusterID(clusterID))
+			Expect(err).ToNot(HaveOccurred())
+
+			op := operatorscommon.GetOperator(getReply.Payload.MonitoredOperators, networkobservability.Operator.Name)
+			Expect(op).ToNot(BeNil())
+			Expect(op.Properties).To(Equal(properties))
 		})
 
 		It("Updated OLM validation failure reflected in the cluster", func() {
