@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.47.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.50.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2891257
-    checksum: sha256:67a169443a19a51b7595fa94f461d2b26552780ffda230f246495406164cc2f7
+    size: 2908697
+    checksum: sha256:ff4ee143fa43863903ee32fd44898dccb0b1886f37fa109d205fa786c21f645e
     name: kernel-headers
-    evr: 5.14.0-687.47.1.el9_8
-    sourcerpm: kernel-5.14.0-687.47.1.el9_8.src.rpm
+    evr: 5.14.0-687.50.1.el9_8
+    sourcerpm: kernel-5.14.0-687.50.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -158,20 +158,20 @@ arches:
     name: libxcrypt-devel
     evr: 4.4.18-3.el9
     sourcerpm: libxcrypt-4.4.18-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/n/nmstate-2.2.60-1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/n/nmstate-2.2.60-2.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 4310461
-    checksum: sha256:782afde191c4d8c6d7ca9ebe9ddc9b71f953928af7b15be99721564b8a7db12c
+    size: 4316477
+    checksum: sha256:1943d4ef8df028efc9dd74f05be0145f212aae1e5c1539fb8caaafdc30770b94
     name: nmstate
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/n/nmstate-libs-2.2.60-1.el9_8.aarch64.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/n/nmstate-libs-2.2.60-2.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 3454869
-    checksum: sha256:7603f042a6582ff8512fb64bd9cde78dad44ebf3fca27ab62c8ab63cd14e8caa
+    size: 3457920
+    checksum: sha256:14464b3de6772922a4d30f40b6e74c5d4883ebdf8d965f37e76451a4f6acd8aa
     name: nmstate-libs
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/o/openssl-devel-3.5.8-1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 5039228
@@ -844,20 +844,20 @@ arches:
     name: numactl-libs
     evr: 2.0.19-3.el9
     sourcerpm: numactl-2.0.19-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssh-9.9p1-9.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssh-9.9p1-11.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 431997
-    checksum: sha256:57fdab98de5639f0f1a4714700eeeae737876a9609ee2c8449bffb489c3c6d96
+    size: 432812
+    checksum: sha256:d8bcf6348f5ee9d840e7f74eaaa53801cb9c48c1184c7254dd06aa73f597c690
     name: openssh
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssh-clients-9.9p1-9.el9_8.aarch64.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssh-clients-9.9p1-11.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 769478
-    checksum: sha256:2f1657ebe0b8b96d9ecdfeb709426733d57aa7ec565eb805532d0b1bc9adcb20
+    size: 770368
+    checksum: sha256:b5f49e9e5d66075859596aa71f62bc8cc951d50129dd43543b6aacd22386b1c1
     name: openssh-clients
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/o/openssl-3.5.8-1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 1546056
@@ -907,13 +907,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-16.el9
     sourcerpm: shadow-utils-4.9-16.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-2.el9_8.aarch64.rpm
     repoid: codeready-builder-for-rhel-9-aarch64-rpms
-    size: 24646
-    checksum: sha256:8985d4192744ccf5e15eefb4c9abcfb525271fe55519f785ac6989ac1d108f8f
+    size: 24121
+    checksum: sha256:48a5826f661670292001919555df9045d317dc981b7475ac792cfaeae739c7f8
     name: nmstate-devel
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   source: []
   module_metadata: []
 - arch: ppc64le
@@ -1016,13 +1016,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.47.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.50.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2915069
-    checksum: sha256:609bf0733c3ce117cca2393f4b7c3f906743e15269ae1ffa47fe54d5af1d3949
+    size: 2932497
+    checksum: sha256:5b6aa1838d71417d7a49933f8813e8295a56284f9ec6d4398208637e756df4e7
     name: kernel-headers
-    evr: 5.14.0-687.47.1.el9_8
-    sourcerpm: kernel-5.14.0-687.47.1.el9_8.src.rpm
+    evr: 5.14.0-687.50.1.el9_8
+    sourcerpm: kernel-5.14.0-687.50.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -1072,20 +1072,20 @@ arches:
     name: libxcrypt-devel
     evr: 4.4.18-3.el9
     sourcerpm: libxcrypt-4.4.18-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/n/nmstate-2.2.60-1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/n/nmstate-2.2.60-2.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 4935562
-    checksum: sha256:a0231e7fafde3b64bdb48722e73b7de705cbc495f2be2fee7ffc35370fe13b88
+    size: 4940065
+    checksum: sha256:f036bdb77b638e8127398428af9d7151ceb3f69ac329a8c1cf13ea84cbf79d72
     name: nmstate
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/n/nmstate-libs-2.2.60-1.el9_8.ppc64le.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/n/nmstate-libs-2.2.60-2.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 3819703
-    checksum: sha256:b05e6d2b9a91307717670a2728101ce87c1c3e40437fcda07361065e22e25645
+    size: 3823262
+    checksum: sha256:cb5c3a17828666b591ed0b420a7dfad243108a15000e5b0f1afd976254822bd8
     name: nmstate-libs
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/o/openssl-devel-3.5.8-1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 5038938
@@ -1758,20 +1758,20 @@ arches:
     name: numactl-libs
     evr: 2.0.19-3.el9
     sourcerpm: numactl-2.0.19-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssh-9.9p1-9.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssh-9.9p1-11.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 459345
-    checksum: sha256:250b4ca1d479233026b7996acfe3a078e1eb2624bf4f4d69c2dcbec1859e731a
+    size: 460140
+    checksum: sha256:e7c1cee07236d943d868cc04041ab5fdedc43646a01d9c449e87fef16c01f6a5
     name: openssh
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssh-clients-9.9p1-9.el9_8.ppc64le.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssh-clients-9.9p1-11.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 835489
-    checksum: sha256:12bbf8f9506455ab50df66383e08c32b83dd5b4a8afe071f34209c57d95116a5
+    size: 836365
+    checksum: sha256:70e222c0e1daeb388c6887c35fe4fbdc2729e868c28439481fad91d67dcab3f1
     name: openssh-clients
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/o/openssl-3.5.8-1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 1571362
@@ -1821,13 +1821,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-16.el9
     sourcerpm: shadow-utils-4.9-16.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-2.el9_8.ppc64le.rpm
     repoid: codeready-builder-for-rhel-9-ppc64le-rpms
-    size: 24657
-    checksum: sha256:9ac8e34e200737902856c377b42eb514a37f804196c6b92f796053ec41012ed2
+    size: 24141
+    checksum: sha256:78c05b2956fb625e3083f18168e3ec38f7d2bdc50ec2c53351a7b5ec7e3b0dc4
     name: nmstate-devel
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   source: []
   module_metadata: []
 - arch: s390x
@@ -1937,13 +1937,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.47.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.50.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2921233
-    checksum: sha256:e014e0fb6d1911466d1c0dc335bdc7d0eee209f1e7b5f90e372d663ab14e1630
+    size: 2938685
+    checksum: sha256:ec4f80beb8ae7fc21f7a86ccd3cb6d81a6ea63fa99b435007b884516fc440d6a
     name: kernel-headers
-    evr: 5.14.0-687.47.1.el9_8
-    sourcerpm: kernel-5.14.0-687.47.1.el9_8.src.rpm
+    evr: 5.14.0-687.50.1.el9_8
+    sourcerpm: kernel-5.14.0-687.50.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -1993,20 +1993,20 @@ arches:
     name: libxcrypt-devel
     evr: 4.4.18-3.el9
     sourcerpm: libxcrypt-4.4.18-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/n/nmstate-2.2.60-1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/n/nmstate-2.2.60-2.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 4580546
-    checksum: sha256:51f66101d40fafa0b19db71d4e6761b3f204e8a88b95204aa93c9a7c5275d643
+    size: 4585170
+    checksum: sha256:9f5963ac997711bb74a72386ebfe130e6da491fbd67c0e13c2bc9533439ca9f1
     name: nmstate
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/n/nmstate-libs-2.2.60-1.el9_8.s390x.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/n/nmstate-libs-2.2.60-2.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 3622985
-    checksum: sha256:2408ce492dc81f85deffa6257936a3d2524aa7477d97120032b8a26beb3b57d3
+    size: 3627178
+    checksum: sha256:1b57ddcbd87e397cb861d98afde8a954b856f739f97c6e9ec00b999b362ea061
     name: nmstate-libs
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/o/openssl-devel-3.5.8-1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 5048884
@@ -2679,20 +2679,20 @@ arches:
     name: numactl-libs
     evr: 2.0.19-3.el9
     sourcerpm: numactl-2.0.19-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssh-9.9p1-9.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssh-9.9p1-11.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 428188
-    checksum: sha256:3e6abaf2413e00e23055f360f17f315a842ffc25908341531e8cfb094c641ab3
+    size: 429136
+    checksum: sha256:57a9e9af8a3633473ccb01efe81f08e6602caf5c9af841bc449b26fb4ba8e1d6
     name: openssh
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssh-clients-9.9p1-9.el9_8.s390x.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssh-clients-9.9p1-11.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 748105
-    checksum: sha256:6e9a84fe1b5e71ed702ba398df7a2a256f7ee8d2335f6a4369aa21901c7f7492
+    size: 748847
+    checksum: sha256:366f7e911eb1d88bc9584618d8c6bacaca5c4cd0025a70df0ebe047b38fe79db
     name: openssh-clients
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/o/openssl-3.5.8-1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 1554467
@@ -2742,13 +2742,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-16.el9
     sourcerpm: shadow-utils-4.9-16.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-2.el9_8.s390x.rpm
     repoid: codeready-builder-for-rhel-9-s390x-rpms
-    size: 24650
-    checksum: sha256:90aef3cafcab5468382af0722ad9abc68aa38fbdcb6a7070f665a30f32acd4f8
+    size: 24142
+    checksum: sha256:f522bfa90b933d80ca4b5b2d71c86d408228229d953399cf42f3e07f20002507
     name: nmstate-devel
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   source: []
   module_metadata: []
 - arch: x86_64
@@ -2858,13 +2858,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.47.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.50.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2930517
-    checksum: sha256:3792c2da1dc9bdf4502825c29017d60d3a9dfd076c90018c9708f2cd98271db3
+    size: 2947937
+    checksum: sha256:292d1be22f2d28c14cab8940e1c45505dd0edb889c8ca0ad772573591da03c61
     name: kernel-headers
-    evr: 5.14.0-687.47.1.el9_8
-    sourcerpm: kernel-5.14.0-687.47.1.el9_8.src.rpm
+    evr: 5.14.0-687.50.1.el9_8
+    sourcerpm: kernel-5.14.0-687.50.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
@@ -2900,20 +2900,20 @@ arches:
     name: libxcrypt-devel
     evr: 4.4.18-3.el9
     sourcerpm: libxcrypt-4.4.18-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/n/nmstate-2.2.60-1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/n/nmstate-2.2.60-2.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 4573358
-    checksum: sha256:8eb17ff897faf521829e1c49d3c3bd27c9a8ea510e18cfdc851c2e650a184ec3
+    size: 4578770
+    checksum: sha256:8c43432b6a5331ee03b082def31b60e9e061851eefbed1649477d6aa335ce6dc
     name: nmstate
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/n/nmstate-libs-2.2.60-1.el9_8.x86_64.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/n/nmstate-libs-2.2.60-2.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 3649288
-    checksum: sha256:8a13a923c694c005913f611d59223dd7fb5f66d39ec43076f565df8889ab69be
+    size: 3653162
+    checksum: sha256:3f97573811a15b044836f99c40b160904c2d65cc3c18ce0863f9a7c770a6ef04
     name: nmstate-libs
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/o/openssl-devel-3.5.8-1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 5039851
@@ -3579,20 +3579,20 @@ arches:
     name: numactl-libs
     evr: 2.0.19-3.el9
     sourcerpm: numactl-2.0.19-3.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssh-9.9p1-9.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssh-9.9p1-11.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 442241
-    checksum: sha256:cd14a09ebe95a8d09a779838bf71f8e05f809cbd1d7ef4553294284d35249a60
+    size: 443050
+    checksum: sha256:9fad2dc75044e577f03442e524b58223239eba14b12adbf8d14eeb82d22b596e
     name: openssh
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssh-clients-9.9p1-9.el9_8.x86_64.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssh-clients-9.9p1-11.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 799148
-    checksum: sha256:2e10d31aa0d2c2aaf521b4b1b46cd76b734a781a9ffaf496f8d39c53f4897705
+    size: 799504
+    checksum: sha256:445f8ef1a60229d575547695da0bf2a05fb51408bce01d06548a5273123c8877
     name: openssh-clients
-    evr: 9.9p1-9.el9_8
-    sourcerpm: openssh-9.9p1-9.el9_8.src.rpm
+    evr: 9.9p1-11.el9_8
+    sourcerpm: openssh-9.9p1-11.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/o/openssl-3.5.8-1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 1569041
@@ -3642,12 +3642,12 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-16.el9
     sourcerpm: shadow-utils-4.9-16.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/codeready-builder/os/Packages/n/nmstate-devel-2.2.60-2.el9_8.x86_64.rpm
     repoid: codeready-builder-for-rhel-9-x86_64-rpms
-    size: 24670
-    checksum: sha256:1acf638c2bae7ed79893b92184f0fda8ca47f96653b7b32d78575572de872cff
+    size: 24163
+    checksum: sha256:0bdb64c61dcded81084fed51e5cefc6f7b2acfc64aef25e7351e351abe5e3c4b
     name: nmstate-devel
-    evr: 2.2.60-1.el9_8
-    sourcerpm: nmstate-2.2.60-1.el9_8.src.rpm
+    evr: 2.2.60-2.el9_8
+    sourcerpm: nmstate-2.2.60-2.el9_8.src.rpm
   source: []
   module_metadata: []
