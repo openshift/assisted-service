@@ -35,7 +35,10 @@ const (
 	clusterNameRegex                = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?)*$"
 	clusterNameRegexForNonePlatform = "^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*)*$"
 	CloudOpenShiftCom               = "cloud.openshift.com"
-	sshPublicKeyRegex               = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
+	// sshPublicKeyRegex matches a supported public-key line (OCPBUGSM-13814).
+	// Known authorized_keys options are stripped before matching so prefixes
+	// such as from= are accepted (MGMT-25133) while junk prefixes are not.
+	sshPublicKeyRegex = "^(ssh-rsa AAAAB3NzaC1yc2|ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNT|ecdsa-sha2-nistp384 AAAAE2VjZHNhLXNoYTItbmlzdHAzODQAAAAIbmlzdHAzOD|ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1Mj|ssh-ed25519 AAAAC3NzaC1lZDI1NTE5|ssh-dss AAAAB3NzaC1kc3)[0-9A-Za-z+/]+[=]{0,3}( .*)?$"
 	// Size of the file used to embed an ignition config archive within an RHCOS ISO: 256 KiB
 	// See: https://github.com/coreos/coreos-assembler/blob/d2c968a1f3c75713a4e1449e3da657c5d5a5d7e7/src/cmd-buildextend-live#L113-L114
 	IgnitionImageSizePadding = 256 * 1024
@@ -45,6 +48,33 @@ var regexpSshPublicKey *regexp.Regexp
 
 func init() {
 	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
+}
+
+// allowedSSHAuthorizedKeyOptions maps sshd(8) authorized_keys option keywords
+// (lowercase) to whether the option requires a value.
+var allowedSSHAuthorizedKeyOptions = map[string]bool{
+	"agent-forwarding":    false,
+	"cert-authority":      false,
+	"command":             true,
+	"environment":         true,
+	"expiry-time":         true,
+	"from":                true,
+	"no-agent-forwarding": false,
+	"no-port-forwarding":  false,
+	"no-pty":              false,
+	"no-touch-required":   false,
+	"no-user-rc":          false,
+	"no-x11-forwarding":   false,
+	"permitlisten":        true,
+	"permitopen":          true,
+	"port-forwarding":     false,
+	"principals":          true,
+	"pty":                 false,
+	"restrict":            false,
+	"tunnel":              true,
+	"user-rc":             false,
+	"verify-required":     false,
+	"x11-forwarding":      false,
 }
 
 // ValidateClusterNameFormat validates specified cluster name format
@@ -91,18 +121,45 @@ func ValidateSSHPublicKey(sshPublicKeys string) error {
 
 	for _, sshPublicKey := range strings.Split(sshPublicKeys, "\n") {
 		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		keyBytes := []byte(sshPublicKey)
-		isMatched := regexpSshPublicKey.Match(keyBytes)
-		if !isMatched {
+		if sshPublicKey == "" {
+			continue
+		}
+
+		pub, _, options, _, err := ssh.ParseAuthorizedKey([]byte(sshPublicKey))
+		if err != nil {
+			return errors.Wrapf(err, "Malformed SSH key: %s", sshPublicKey)
+		}
+
+		keyForRegex := sshKeyLineForTypeRegex(sshPublicKey, pub, options)
+		if !regexpSshPublicKey.Match([]byte(keyForRegex)) {
 			return errors.Errorf(
 				"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
 				sshPublicKey)
-		} else if _, _, _, _, err := ssh.ParseAuthorizedKey(keyBytes); err != nil {
-			return errors.Wrapf(err, "Malformed SSH key: %s", sshPublicKey)
 		}
 	}
 
 	return nil
+}
+
+func sshAuthorizedKeyOptionsAllowed(options []string) bool {
+	for _, opt := range options {
+		name, _, hasValue := strings.Cut(opt, "=")
+		requiresValue, ok := allowedSSHAuthorizedKeyOptions[strings.ToLower(name)]
+		if !ok {
+			return false
+		}
+		if requiresValue != hasValue {
+			return false
+		}
+	}
+	return true
+}
+
+func sshKeyLineForTypeRegex(sshPublicKey string, pub ssh.PublicKey, options []string) string {
+	if len(options) == 0 || !sshAuthorizedKeyOptionsAllowed(options) {
+		return sshPublicKey
+	}
+	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub)))
 }
 
 func ValidatePEMCertificateBundle(bundle string) error {
