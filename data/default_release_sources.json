@@ -303,31 +303,36 @@
       {
         "cpu_architecture": "x86_64",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "arm64",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "ppc64le",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "s390x",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       },
       {
         "cpu_architecture": "multi",
         "channels": [
-          "stable"
+          "stable",
+          "candidate"
         ]
       }
     ]
