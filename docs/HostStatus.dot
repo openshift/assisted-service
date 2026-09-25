@@ -58,6 +58,7 @@ digraph HostStateMachine {
     "installing-in-progress" -> "installing-pending-user-action" [label = "wrong boot\norder", color=cornsilk4, fontcolor=cornsilk4];
 
     "installing-pending-user-action" -> installed [label = "boot from\ninstall disk", color=chartreuse4, fontcolor=chartreuse4];
+    "installing-pending-user-action" -> error [label = "timeout", color=crimson, fontcolor=crimson];
 
     cancelled -> resetting [label = "reset", color=aquamarine4, fontcolor=aquamarine4];
 
