@@ -1,4 +1,4 @@
-FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.26 AS builder
+FROM --platform=$BUILDPLATFORM registry.access.redhat.com/ubi9/go-toolset:1.25 AS builder
 ARG TARGETOS
 ARG TARGETARCH
 
@@ -12,7 +12,7 @@ WORKDIR /app
 
 USER 0
 RUN INSTALL_PKGS="gcc git nmstate-devel openssl-devel" && \
-    dnf install -y $INSTALL_PKGS && \
+    dnf install --nobest -y $INSTALL_PKGS && \
     dnf clean all
 USER ${USER_UID}
 
@@ -25,7 +25,7 @@ RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGET
 RUN CGO_ENABLED=1 GOFLAGS="-p=4" GO111MODULE=on GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -tags ${BUILD_TAGS} -o ./build/agent-installer-client cmd/agentbasedinstaller/client/main.go
 
 
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:8ebe2ad8fdf3cab3e5a53c1edc69194c98209cfadab24b884f4ad9ebcf7bbbfc
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest@sha256:c4c285d42941ebb2bd4da878479008e1e4536bb599aad1dbe568f89de9053661
 ARG release=main
 ARG version=latest
 
