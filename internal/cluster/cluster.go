@@ -1874,11 +1874,16 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 
 func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, m.log)
+	clusterManagedDNS, err := network.UsesClusterManagedDNS(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to check cluster-managed DNS")
+	}
+
 	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, log, cluster); err != nil {
 		return errors.Wrap(err, "failed to add chrony manifest")
 	}
 
-	if common.IsSingleNodeCluster(cluster) && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
+	if common.IsSingleNodeCluster(cluster) && !clusterManagedDNS && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, log, cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
