@@ -1561,6 +1561,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 
 	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
 		b.log.WithError(err).Errorf("Failed to generate additional cluster manifest")
+		b.clusterApi.HandlePreInstallError(ctx, cluster, err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generate additional cluster manifest"))
 	}
 
