@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/provider/registry"
@@ -1520,7 +1521,8 @@ func (v *validator) importedClusterHasManagedNetworking(cluster *common.Cluster)
 // DNS in advance, so we disable DNS validations while installing or adding
 // workers to managed networking clusters.
 //
-// If our SNO dnsmaq hack is enabled (ENABLE_SINGLE_NODE_DNSMASQ), then day-1
+// If our SNO dnsmaq hack is enabled (ENABLE_SINGLE_NODE_DNSMASQ)
+// or UnifiedClusterManagedDNSAndLB FeatureGate is enabled, then day-1
 // SNO clusters are an exception to the rule above. Our dnsmasq hack is enabled
 // for OCP and disabled for OKD.
 func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster, domainName, target string) (bool, ValidationStatus, string) {
@@ -1561,6 +1563,11 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster, domainN
 		// for the SNO dnsmasq hack that is leveraged by the day-1 cluster.
 	} else {
 		// This is a day-1, user-managed-networking cluster
+		clusterManagedDNS, err := installcfg.UsesClusterManagedDNS(cluster)
+		if err != nil {
+			return false, ValidationError, fmt.Sprintf("DNS configuration is invalid: %v", err)
+		}
+
 		networkCfg, err := network.NewConfig()
 		if err != nil {
 			// This should never happen, so the values chosen here are arbitrary
@@ -1568,10 +1575,11 @@ func (v *validator) shouldValidateDNSResolution(cluster *common.Cluster, domainN
 			return false, ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainName)
 		}
 
-		if common.IsSingleNodeCluster(cluster) && networkCfg.EnableSingleNodeDnsmasq {
+		if clusterManagedDNS || (common.IsSingleNodeCluster(cluster) && networkCfg.EnableSingleNodeDnsmasq) {
 			// day-1 SNO clusters don't need to perform DNS validation when our
-			// dnsmasq hack is enabled, as it takes care of having the required DNS
-			// entries automatically configured within the host
+			// dnsmasq hack or UnifiedClusterManagedDNSAndLB FeatureGate are enabled,
+			// as it takes care of having the required DNS entries automatically
+			// configured within the host
 			return false, ValidationSuccess, fmt.Sprintf("Domain name resolution for the %s domain was successful or not required", domainName)
 		}
 	}
