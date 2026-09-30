@@ -1,7 +1,7 @@
 FROM registry.redhat.io/openshift/golang-builder:golang-builder-v1.25-rhel9 AS golang
 
 RUN curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v2.8.0
-RUN go install gotest.tools/gotestsum@v1.12.3
+RUN GOFLAGS=-mod=mod go install gotest.tools/gotestsum@v1.12.3
 
 FROM quay.io/centos/centos:stream9
 
