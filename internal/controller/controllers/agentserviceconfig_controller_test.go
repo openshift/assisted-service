@@ -3945,3 +3945,177 @@ var _ = Describe("AgentServiceConfig immutable annotations validation", func() {
 		})
 	})
 })
+
+var _ = Describe("operator node selector and tolerations", func() {
+	var (
+		ascr *AgentServiceConfigReconciler
+		ascc ASC
+		ctx  = context.Background()
+		log  = logrus.New()
+
+		infraNodeSelector = map[string]string{
+			"node-role.kubernetes.io/infra": "",
+		}
+		infraTolerations = []corev1.Toleration{{
+			Key:      "node-role.kubernetes.io/infra",
+			Operator: corev1.TolerationOpExists,
+			Effect:   corev1.TaintEffectNoSchedule,
+		}}
+		workerNodeSelector = map[string]string{
+			"node-role.kubernetes.io/worker": "",
+		}
+		workerTolerations = []corev1.Toleration{{
+			Key:      "dedicated",
+			Operator: corev1.TolerationOpEqual,
+			Value:    "assisted",
+			Effect:   corev1.TaintEffectNoExecute,
+		}}
+	)
+
+	BeforeEach(func() {
+		asc := newASCDefault()
+		route := &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+		imageRoute := &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      imageServiceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: fmt.Sprintf("%s.images", testHost),
+			},
+		}
+		assistedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{
+				"foo": "bar",
+			},
+		}
+		assistedTrustedCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      assistedCAConfigMapName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{caBundleKey: "example-trusted-bundle"},
+		}
+
+		ascr = newTestReconciler(asc, route, imageRoute, assistedCM, assistedTrustedCM)
+		ascc = initASC(ascr, asc)
+	})
+
+	reconcileWorkloads := func() {
+		AssertReconcileSuccess(ctx, log, ascc, newAssistedServiceDeployment)
+		AssertReconcileSuccess(ctx, log, ascc, newWebHookDeployment)
+
+		obj, mutateFn := newImageServiceStatefulSet(ctx, log, ascc)
+		_, err := controllerutil.CreateOrUpdate(ctx, ascc.Client, obj, mutateFn)
+		Expect(err).NotTo(HaveOccurred())
+	}
+
+	expectScheduling := func(nodeSelector map[string]string, tolerations []corev1.Toleration) {
+		assisted := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, assisted)).To(Succeed())
+
+		webhook := &appsv1.Deployment{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: webhookServiceName, Namespace: testNamespace}, webhook)).To(Succeed())
+
+		imageService := &appsv1.StatefulSet{}
+		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: imageServiceName, Namespace: testNamespace}, imageService)).To(Succeed())
+
+		workloads := []struct {
+			name string
+			spec corev1.PodSpec
+		}{
+			{name: serviceName, spec: assisted.Spec.Template.Spec},
+			{name: webhookServiceName, spec: webhook.Spec.Template.Spec},
+			{name: imageServiceName, spec: imageService.Spec.Template.Spec},
+		}
+		for _, workload := range workloads {
+			// Empty maps and slices are omitted by the API and read back as nil.
+			if len(nodeSelector) == 0 {
+				Expect(workload.spec.NodeSelector).To(BeEmpty(), "node selector for %s", workload.name)
+			} else {
+				Expect(workload.spec.NodeSelector).To(Equal(nodeSelector), "node selector for %s", workload.name)
+			}
+			if len(tolerations) == 0 {
+				Expect(workload.spec.Tolerations).To(BeEmpty(), "tolerations for %s", workload.name)
+			} else {
+				Expect(workload.spec.Tolerations).To(Equal(tolerations), "tolerations for %s", workload.name)
+			}
+		}
+	}
+
+	Describe("when creating workloads", func() {
+		tests := []struct {
+			name         string
+			nodeSelector map[string]string
+			tolerations  []corev1.Toleration
+		}{
+			{
+				name:         "copies the operator node selector and tolerations",
+				nodeSelector: infraNodeSelector,
+				tolerations:  infraTolerations,
+			},
+			{
+				name:         "uses an empty node selector and tolerations when the operator has none",
+				nodeSelector: map[string]string{},
+				tolerations:  []corev1.Toleration{},
+			},
+			{
+				name:         "copies a node selector when tolerations are unset",
+				nodeSelector: infraNodeSelector,
+				tolerations:  []corev1.Toleration{},
+			},
+			{
+				name:         "copies tolerations when the node selector is unset",
+				nodeSelector: map[string]string{},
+				tolerations:  infraTolerations,
+			},
+		}
+
+		for _, tc := range tests {
+			It(tc.name, func() {
+				ascr.NodeSelector = tc.nodeSelector
+				ascr.Tolerations = tc.tolerations
+
+				reconcileWorkloads()
+
+				expectScheduling(tc.nodeSelector, tc.tolerations)
+			})
+		}
+	})
+
+	It("replaces node selector and tolerations when the operator scheduling changes", func() {
+		ascr.NodeSelector = infraNodeSelector
+		ascr.Tolerations = infraTolerations
+		reconcileWorkloads()
+		expectScheduling(infraNodeSelector, infraTolerations)
+
+		ascr.NodeSelector = workerNodeSelector
+		ascr.Tolerations = workerTolerations
+		reconcileWorkloads()
+		expectScheduling(workerNodeSelector, workerTolerations)
+	})
+
+	It("clears node selector and tolerations when the operator no longer has them", func() {
+		ascr.NodeSelector = infraNodeSelector
+		ascr.Tolerations = infraTolerations
+		reconcileWorkloads()
+		expectScheduling(infraNodeSelector, infraTolerations)
+
+		ascr.NodeSelector = nil
+		ascr.Tolerations = nil
+		reconcileWorkloads()
+		expectScheduling(map[string]string{}, []corev1.Toleration{})
+	})
+})
