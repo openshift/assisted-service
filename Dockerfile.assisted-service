@@ -1,11 +1,12 @@
 FROM registry.redhat.io/openshift/golang-builder:golang-builder-v1.25-rhel9 AS golang
+ENV GOPATH=/opt/app-root/src/go
 
 ADD . /app
 WORKDIR /app
 
 # Licenses
 RUN GOFLAGS=-mod=mod go install github.com/google/go-licenses@v1.6.0
-RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
+RUN "$GOPATH/bin/go-licenses" save --save_path /tmp/licenses ./...
 
 # Build binaries
 FROM quay.io/centos/centos:stream9 as builder
