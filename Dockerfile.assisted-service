@@ -6,7 +6,7 @@ ADD . /app
 WORKDIR /app
 
 # Licenses
-RUN go install github.com/google/go-licenses@v1.6.0
+RUN GOFLAGS=-mod=mod go install github.com/google/go-licenses@v1.6.0
 RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
 
 # Build binaries
