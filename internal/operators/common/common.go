@@ -7,9 +7,18 @@ import (
 	"path"
 	"text/template"
 
+	hostcommon "github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
+
+func EffectiveRoleForRequirementMessage(host *models.Host) models.HostRole {
+	role := hostcommon.GetEffectiveRole(host)
+	if role == models.HostRoleAutoAssign || role == "" {
+		return models.HostRoleWorker
+	}
+	return role
+}
 
 // Returns count for disks that are not installion disk and fulfill size requirements (eligible disks) and
 // disks that are not installation disk (available disks)

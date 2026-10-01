@@ -61,7 +61,7 @@ var _ = Describe("Operator", func() {
 				Status:       api.Failure,
 				ValidationId: operator.GetHostValidationID(),
 				Reasons: []string{
-					"Insufficient memory to deploy OpenShift AI, requires 32 GiB but found 8 GiB",
+					"Insufficient memory to deploy OpenShift AI on the worker role, requires an additional 32.00 GiB (included in the total required for the worker role) but found 8.00 GiB.",
 				},
 			},
 		),
@@ -78,7 +78,7 @@ var _ = Describe("Operator", func() {
 				Status:       api.Failure,
 				ValidationId: operator.GetHostValidationID(),
 				Reasons: []string{
-					"Insufficient CPU to deploy OpenShift AI, requires 8 CPU cores but found 4",
+					"Insufficient CPU to deploy OpenShift AI on the worker role, requires an additional 8 CPU cores (included in the total required for the worker role) but found 4.",
 				},
 			},
 		),

@@ -8,6 +8,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	operatorscommon "github.com/openshift/assisted-service/internal/operators/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/samber/lo"
@@ -130,16 +131,18 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message, err.Error()}}, err
 	}
 
+	effectiveRole := operatorscommon.EffectiveRoleForRequirementMessage(host)
+
 	cpu := requirements.CPUCores
 	if inventory.CPU.Count < cpu {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy multicluster engine. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy multicluster engine on the %s role, requires an additional %d CPU cores (included in the total required for the %s role) but found %d.", effectiveRole, cpu, effectiveRole, inventory.CPU.Count)}}, nil
 	}
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
 	if inventory.Memory.UsableBytes < memBytes {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy multicluster engine. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy multicluster engine on the %s role, requires an additional %d MiB (included in the total required for the %s role) but found %d MiB.", effectiveRole, mem, effectiveRole, usableMemory)}}, nil
 	}
 
 	result = api.ValidationResult{
