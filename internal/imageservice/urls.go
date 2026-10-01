@@ -78,17 +78,28 @@ func ShortImageURL(baseURL string, prefix ShortImageURLPrefix, token, version, a
 }
 
 // OsImageVersion returns the version string to use in image-service URLs.
-// Prefers the RHCOS build ID so multiple OS streams for the same OpenShift
-// version can be disambiguated.
+// For disconnected ISOs, prefers openshift_version so multiple z-stream OVE
+// images that share an RHCOS build can be selected unambiguously.
+// For other image types, prefers the RHCOS build ID so multiple OS streams
+// for the same OpenShift version can be disambiguated.
 func OsImageVersion(osImage *models.OsImage) (string, error) {
 	if osImage == nil {
 		return "", errors.New("OS image is nil")
 	}
-	if v := swag.StringValue(osImage.Version); v != "" {
-		return v, nil
-	}
-	if v := swag.StringValue(osImage.OpenshiftVersion); v != "" {
-		return v, nil
+	if osImage.Type == models.OsImageTypeDisconnectedIso {
+		if v := swag.StringValue(osImage.OpenshiftVersion); v != "" {
+			return v, nil
+		}
+		if v := swag.StringValue(osImage.Version); v != "" {
+			return v, nil
+		}
+	} else {
+		if v := swag.StringValue(osImage.Version); v != "" {
+			return v, nil
+		}
+		if v := swag.StringValue(osImage.OpenshiftVersion); v != "" {
+			return v, nil
+		}
 	}
 	return "", errors.Errorf("OS image entry '%+v' missing Version and OpenshiftVersion fields", osImage)
 }
