@@ -114,6 +114,26 @@ var _ = Describe("URL building", func() {
 		Expect(parsed.Path).To(Equal(fmt.Sprintf("/v3/byapikey/%s/%s/%s/full.iso", id, version, arch)))
 	})
 
+	It("builds a disconnected image short URL with openshift version", func() {
+		openshiftVersion := "4.22.16"
+		rhcosVersion := "9.6.20260101-0"
+		osImage := &models.OsImage{
+			Type:             models.OsImageTypeDisconnectedIso,
+			OpenshiftVersion: &openshiftVersion,
+			Version:          &rhcosVersion,
+			CPUArchitecture:  &arch,
+		}
+		versionForURL, err := OsImageVersion(osImage)
+		Expect(err).NotTo(HaveOccurred())
+
+		u, err := ShortImageURL(baseURL, ByIDPath, id, versionForURL, arch, string(models.ImageTypeDisconnectedIso))
+		Expect(err).NotTo(HaveOccurred())
+
+		parsed, err := url.Parse(u)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(parsed.Path).To(Equal(fmt.Sprintf("/v3/byid/%s/%s/%s/disconnected.iso", id, openshiftVersion, arch)))
+	})
+
 	It("successfully builds all boot artifact URLs", func() {
 		osImage := models.OsImage{CPUArchitecture: &arch, OpenshiftVersion: &version}
 		bootArtifacts, err := GetBootArtifactURLs(baseURL, id, &osImage, false)
@@ -188,7 +208,7 @@ func checkURL(u, scheme, host, path, version, arch string) {
 }
 
 var _ = Describe("OsImageVersion", func() {
-	It("prefers RHCOS version", func() {
+	It("prefers RHCOS version for online images", func() {
 		v, err := OsImageVersion(&models.OsImage{
 			OpenshiftVersion: swag.String("4.22"),
 			Version:          swag.String("9.6.20260101-0"),
@@ -197,11 +217,30 @@ var _ = Describe("OsImageVersion", func() {
 		Expect(v).To(Equal("9.6.20260101-0"))
 	})
 
-	It("falls back to openshift version", func() {
+	It("falls back to openshift version for online images", func() {
 		v, err := OsImageVersion(&models.OsImage{
 			OpenshiftVersion: swag.String("4.22"),
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(v).To(Equal("4.22"))
+	})
+
+	It("prefers openshift version for disconnected images", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			Type:             models.OsImageTypeDisconnectedIso,
+			OpenshiftVersion: swag.String("4.22.16"),
+			Version:          swag.String("9.6.20260101-0"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("4.22.16"))
+	})
+
+	It("falls back to RHCOS version for disconnected images without openshift version", func() {
+		v, err := OsImageVersion(&models.OsImage{
+			Type:    models.OsImageTypeDisconnectedIso,
+			Version: swag.String("9.6.20260101-0"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(v).To(Equal("9.6.20260101-0"))
 	})
 })
