@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
@@ -233,6 +234,24 @@ var _ = Describe("Operators manager", func() {
 			m := models.Manifest{}
 			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(6)
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("should upload FlowCollector as controller manifest when network-observability properties request it", func() {
+			netobservOperator := networkobservability.Operator
+			netobservOperator.Properties = `{"createFlowCollector": true, "sampling": 100}`
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&netobservOperator,
+			}
+
+			m := models.Manifest{}
+			mockS3Api.EXPECT().Upload(
+				gomock.Any(),
+				MatchControllerManifest(networkobservability.Operator.Name, "(?s).*kind: FlowCollector.*sampling: 100.*"),
+				gomock.Any(),
+			).Return(nil).Times(1)
+			// 3 OpenShift manifests (namespace, subscription, operatorgroup) + olm-operator-manifests ConfigMap
+			manifestsAPI.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any(), false).Return(&m, nil).Times(4)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
@@ -578,6 +597,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -621,6 +641,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -695,6 +716,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -737,6 +759,7 @@ var _ = Describe("Operators manager", func() {
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDMetallbRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", metallb.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLokiRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", loki.Operator.Name)}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOpenshiftLoggingRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", openshiftlogging.Operator.Name)}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDNetworkObservabilityRequirementsSatisfied), Reasons: []string{fmt.Sprintf("%s is disabled", networkobservability.Operator.Name)}},
 			))
 		})
 
@@ -933,6 +956,7 @@ var _ = Describe("Operators manager", func() {
 				oadp.Operator.Name,
 				loki.Operator.Name,
 				openshiftlogging.Operator.Name,
+				networkobservability.Operator.Name,
 			))
 		})
 
