@@ -668,6 +668,39 @@ func parseMachineNetworks(machineNetworks []*models.MachineNetwork) ([]*net.IPNe
 	return parsedCidr, nil
 }
 
+// MachineNetworksOfFamily returns the cluster machine networks of the requested
+// address family. Networks of the other family, and any that fail to parse, are
+// left out.
+func MachineNetworksOfFamily(cluster *common.Cluster, ipv6 bool) []*net.IPNet {
+	if cluster == nil {
+		return nil
+	}
+
+	var machineIpnets []*net.IPNet
+	for _, machineNetwork := range cluster.MachineNetworks {
+		if machineNetwork == nil {
+			continue
+		}
+
+		cidr := string(machineNetwork.Cidr)
+		isOfFamily := IsIPV4CIDR(cidr)
+		if ipv6 {
+			isOfFamily = IsIPv6CIDR(cidr)
+		}
+		if !isOfFamily {
+			continue
+		}
+
+		_, machineIpnet, err := net.ParseCIDR(cidr)
+		if err != nil {
+			continue
+		}
+		machineIpnets = append(machineIpnets, machineIpnet)
+	}
+
+	return machineIpnets
+}
+
 // IsHostInAllMachineNetworksCidr Check if a host belongs to all the networks specified as Machine Networks.
 func IsHostInAllMachineNetworksCidr(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
 	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {

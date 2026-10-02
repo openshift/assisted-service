@@ -33,34 +33,20 @@ func IsDefaultRoute(r *models.Route) (bool, error) {
 	return dst.IsUnspecified() && !gw.IsUnspecified(), nil
 }
 
-// Returns the IPv4 or the IPv6 default route
-func GetDefaultRouteByFamily(routes []*models.Route, ipv6 bool) *models.Route {
+// Returns every IPv4 or IPv6 default route
+func GetDefaultRoutesByFamily(routes []*models.Route, ipv6 bool) []*models.Route {
 	family := unix.AF_INET
 	if ipv6 {
 		family = unix.AF_INET6
 	}
 
-	defaultRoutes := lo.Filter(routes, func(r *models.Route, index int) bool {
+	return lo.Filter(routes, func(r *models.Route, index int) bool {
 		if int(r.Family) == family {
 			isDefault, _ := IsDefaultRoute(r)
 			return isDefault
 		}
 		return false
 	})
-
-	// keep the route with the lowest metric
-	var metric *int32
-	var defaultRoute *models.Route
-	for _, r := range defaultRoutes {
-		if metric != nil && *metric < r.Metric {
-			continue
-		}
-
-		metric = &r.Metric
-		defaultRoute = r
-	}
-
-	return defaultRoute
 }
 
 // Obtains the IP addresses used by a host
