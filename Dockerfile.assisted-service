@@ -1,13 +1,14 @@
 ARG RHEL_VERSION=9
 
-FROM registry.access.redhat.com/ubi$RHEL_VERSION/go-toolset:1.25 AS golang
+FROM registry.redhat.io/openshift/golang-builder:golang-builder-v1.25-rhel$RHEL_VERSION AS golang
+ENV GOPATH=/opt/app-root/src/go
 
 ADD . /app
 WORKDIR /app
 
 # Licenses
-RUN go install github.com/google/go-licenses@v1.6.0
-RUN ${HOME}/go/bin/go-licenses save --save_path /tmp/licenses ./...
+RUN GOFLAGS=-mod=mod go install github.com/google/go-licenses@v1.6.0
+RUN "$GOPATH/bin/go-licenses" save --save_path /tmp/licenses ./...
 
 # Build binaries
 FROM quay.io/centos/centos:stream$RHEL_VERSION as builder
