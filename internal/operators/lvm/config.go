@@ -6,6 +6,13 @@ const (
 	LvmsMinOpenshiftVersion_ForNewResourceRequirements string = "4.13.0"
 	LvmMinMultiNodeSupportVersion                      string = "4.15.0"
 	LvmNewResourcesOpenshiftVersion4_16                string = "4.16.0"
+	// LvmsCatalogFallbackMinVersion is the first OCP version where lvms-operator is not
+	// published to the default redhat-operators catalog. A fallback CatalogSource pointing
+	// to the previous catalog index is injected so the Subscription can resolve.
+	// TODO: Remove once lvms-operator is published to the 4.22 redhat-operators catalog.
+	LvmsCatalogFallbackMinVersion string = "4.22.0"
+	LvmsCatalogFallbackName       string = "redhat-operators-v4-21"
+	LvmsCatalogFallbackImage      string = "registry.redhat.io/redhat/redhat-operator-index:v4.21"
 
 	LvmoSubscriptionName string = "odf-lvm-operator"
 	LvmsSubscriptionName string = "lvms-operator"
