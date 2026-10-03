@@ -59,6 +59,13 @@ func (o *V2UploadLogs) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
+		// Clean up multipart form files if validation fails
+		if r.MultipartForm != nil {
+			r.MultipartForm.RemoveAll()
+		}
+		if r.Body != nil {
+			r.Body.Close()
+		}
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
