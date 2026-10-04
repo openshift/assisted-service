@@ -183,6 +183,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return
 	}
 
+	effectiveRole := common.GetEffectiveRole(host)
+
 	// Check CPU:
 	requiredCPUCores := requirements.CPUCores
 	usableCPUCores := inventory.CPU.Count
@@ -190,8 +192,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		result.Reasons = append(
 			result.Reasons,
 			fmt.Sprintf(
-				"Insufficient CPU to deploy OpenShift AI, requires %d CPU cores but found %d",
-				requiredCPUCores, usableCPUCores,
+				"Insufficient CPU to deploy OpenShift AI on the %s role, requires an additional %d CPU cores (included in the total required for the %s role) but found %d.",
+				effectiveRole, requiredCPUCores, effectiveRole, usableCPUCores,
 			),
 		)
 	}
@@ -203,9 +205,11 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		result.Reasons = append(
 			result.Reasons,
 			fmt.Sprintf(
-				"Insufficient memory to deploy OpenShift AI, requires %d GiB but found %d GiB",
-				conversions.BytesToGib(requiredMemoryBytes),
-				conversions.BytesToGib(usableMemoryBytes),
+				"Insufficient memory to deploy OpenShift AI on the %s role, requires an additional %s (included in the total required for the %s role) but found %s.",
+				effectiveRole,
+				conversions.BytesToString(requiredMemoryBytes),
+				effectiveRole,
+				conversions.BytesToString(usableMemoryBytes),
 			),
 		)
 	}
