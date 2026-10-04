@@ -1547,6 +1547,8 @@ var _ = Describe("Refresh Host", func() {
 		mockVersions := versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(&models.ReleaseImage{URL: swag.String("quay.io/openshift/some-image::latest")}, nil).AnyTimes()
+		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(versions.MustGatherVersion{"ocp": "quay.io/openshift/must-gather-image:latest"}, nil).AnyTimes()
 		defaultConfig.PrepareConfig.PrepareForInstallationTimeout = 8 * time.Minute
 		hapi = NewManager(common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, pr, false, nil, mockVersions, false)
 		hostId = strfmt.UUID(uuid.New().String())

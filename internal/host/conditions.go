@@ -98,7 +98,15 @@ func (v *validator) isSuccessfulContainerImageAvailability(c *validationContext)
 		return false
 	}
 	imagesStatuses, err := common.UnmarshalImageStatuses(c.host.ImagesStatus)
-	return err == nil && len(imagesStatuses) > 0 && allImagesValid(imagesStatuses)
+	if err != nil || len(imagesStatuses) == 0 {
+		return false
+	}
+	if allImagesValid(imagesStatuses) {
+		return true
+	}
+
+	criticalFailures, _, err := v.classifyFailedImages(c, imagesStatuses)
+	return err == nil && len(criticalFailures) == 0
 }
 
 func (v *validator) isHostStageTimedOut(c *validationContext) bool {

@@ -95,14 +95,24 @@ var _ = Describe("container_image_availability_cmd", func() {
 		Expect(step).To(BeNil())
 	})
 
-	It("get_step_get_must_gather_failure", func() {
+	It("get_step_get_must_gather_failure_is_non_fatal", func() {
 		mockVersions.EXPECT().GetReleaseImageForCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.ReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
 		mockVersions.EXPECT().GetMustGatherImages(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New("err")).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
-		Expect(err).To(HaveOccurred())
-		Expect(step).To(BeNil())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(step).NotTo(BeNil())
+
+		defaultReleaseImage := common.TestDefaultConfig.ReleaseImageUrl
+		request := &models.ContainerImageAvailabilityRequest{
+			Images:  []string{defaultReleaseImage, defaultMCOImage, cmd.instructionConfig.InstallerImage},
+			Timeout: defaultImageAvailabilityTimeoutSeconds,
+		}
+
+		b, err := json.Marshal(&request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(strings.Join(step[0].Args, " ")).To(ContainSubstring(string(b)))
 	})
 
 	AfterEach(func() {
