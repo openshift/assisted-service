@@ -413,7 +413,7 @@ function discover_release_art_dev_sources() {
 
   {
     printf '%s\n' "$@"
-    discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}"
+    discover_os_image_stream_sources_from_release_json "${release_image}" "${authfile}" || true
     if mco_image=$(oc adm -a "${authfile}" release info "${release_image}" --image-for machine-config-operator 2>/dev/null); then
       image_repo_from_pullspec "${mco_image}"
     fi
