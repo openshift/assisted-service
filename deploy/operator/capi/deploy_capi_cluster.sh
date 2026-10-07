@@ -93,7 +93,11 @@ if [ "${DISCONNECTED}" = "true" ]; then
     # https://github.com/openshift/hypershift/blob/825484eb33d14b4ab849b428d134582320655fcf/support/backwardcompat/backwardcompat.go#L42 is removed
     # This requires oc mirror v2 which copies the images along with its digest and the digest is needed because hypershift hard-coded these images
     RELEASE_IMAGE_HCP_OVERRIDE="${RELEASE_IMAGE_HCP_OVERRIDE:-quay.io/openshift-release-dev/ocp-release@sha256:7f183e9b5610a2c9f9aabfd5906b418adfbe659f441b019933426a19bf6a5962}"
-    CAPI_IMAGE="${CAPI_IMAGE:-quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:b573d5ddf848eca57fae686f6ca2297b2424b8431bbcb08d3e2cdb19fe1a146a}"
+    # Resolve cluster-api manager from the payload HyperShift will use (cluster-capi-controllers).
+    # A hardcoded digest drifts as Hypershift/OCP move and leaves the HCP cluster-api pod in ImagePullBackOff.
+    if [ -z "${CAPI_IMAGE:-}" ]; then
+      CAPI_IMAGE=$(oc adm -a "${PULL_SECRET_FILE}" release info "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" --image-for cluster-capi-controllers)
+    fi
     cat << EOM > isc.yaml
 kind: ImageSetConfiguration
 apiVersion: mirror.openshift.io/v2alpha1
@@ -103,12 +107,24 @@ mirror:
   - name: ${CAPI_IMAGE}
 EOM
     run_mirror_command_with_retry oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace "file://${PWD}/mirror" docker://"${OCP_MIRROR_REGISTRY}" --v2
+    # Point HostedCluster at the mirrored cluster-api manager so the HCP does not depend on
+    # Hypershift's default quay.io digest matching what we mirrored.
+    export LOCAL_CAPI_IMAGE="${OCP_MIRROR_REGISTRY}@$(oc image info -a "${PULL_SECRET_FILE}" "${CAPI_IMAGE}" -ojson | jq -r '.digest')"
 
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
     # by the server.
-    
+    #
+    # Include every art-dev repo referenced by the release (OCP 5.x uses ocp-v5.0-art-dev for payload images such as
+    # machine-config-daemon). Always keep ocp-v4.0-art-dev for the TEMP CAPI_IMAGE override above and for OSImageStream
+    # digests that still live under the v4 repository.
+    ART_DEV_ICS_ENTRIES=$(art_dev_image_content_source_entries \
+      "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
+      "${PULL_SECRET_FILE}" \
+      "${OCP_MIRROR_REGISTRY}" \
+      "quay.io/openshift-release-dev/ocp-v4.0-art-dev")
+
     if oc get crd imagedigestmirrorsets.config.openshift.io &>/dev/null; then
       cat << EOM > mirrors-config.yaml
 apiVersion: config.openshift.io/v1
@@ -121,10 +137,7 @@ spec:
     - ${OCP_MIRROR_REGISTRY}
     - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
-  - mirrors:
-    - ${OCP_MIRROR_REGISTRY}
-    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
-    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+$(printf '%s\n' "${ART_DEV_ICS_ENTRIES}" | sed 's/^/  /')
 EOM
     else
       cat << EOM > mirrors-config.yaml
@@ -138,23 +151,17 @@ spec:
     - ${OCP_MIRROR_REGISTRY}
     - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
-  - mirrors:
-    - ${OCP_MIRROR_REGISTRY}
-    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
-    source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+$(printf '%s\n' "${ART_DEV_ICS_ENTRIES}" | sed 's/^/  /')
 EOM
     fi
     oc apply --wait=true -f mirrors-config.yaml
     # 5. Image content source for hosted cluster to be passed in through the hypershift create command
-  cat << EOM >> /tmp/ics-hc.yaml
+    cat << EOM > /tmp/ics-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
   - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
   source: quay.io/openshift-release-dev/ocp-release
-- mirrors:
-  - ${OCP_MIRROR_REGISTRY}
-  - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
-  source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
+${ART_DEV_ICS_ENTRIES}
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
     export EXTRA_HYPERSHIFT_CLI_MOUNTS="$EXTRA_HYPERSHIFT_CLI_MOUNTS -v /tmp/ics-hc.yaml:/tmp/ics-hc.yaml"
@@ -305,6 +312,15 @@ else
   export PROVIDER_FLAG_FOR_CREATE_COMMAND=" --annotations hypershift.openshift.io/capi-provider-agent-image=$PROVIDER_IMAGE"
 fi
 
+if [ -z "${LOCAL_CAPI_IMAGE:-}" ]
+then
+  echo "LOCAL_CAPI_IMAGE override not set"
+  export CAPI_MANAGER_FLAG_FOR_CREATE_COMMAND=""
+else
+  echo "LOCAL_CAPI_IMAGE override: $LOCAL_CAPI_IMAGE"
+  export CAPI_MANAGER_FLAG_FOR_CREATE_COMMAND=" --annotations hypershift.openshift.io/capi-manager-image=$LOCAL_CAPI_IMAGE"
+fi
+
 if [ -z "$CONTROL_PLANE_OPERATOR_IMAGE" ]
 then
   echo "CONTROL_PLANE_OPERATOR_IMAGE override not set"
@@ -320,6 +336,7 @@ hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --b
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND \
+  $CAPI_MANAGER_FLAG_FOR_CREATE_COMMAND \
 
 
 # Wait for a hypershift hostedcontrolplane to report ready status
