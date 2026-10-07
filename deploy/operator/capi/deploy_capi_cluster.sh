@@ -294,7 +294,7 @@ if [ "${DISCONNECTED}" = "true" ]; then
   # delete all rs since patching the deployment doesn't actually remove the running rs
   oc delete rs --all -n hypershift
 fi
-wait_for_pod pod "hypershift"
+wait_for_pods "hypershift"
 
 if [ -z "$PROVIDER_IMAGE" ]
 then
