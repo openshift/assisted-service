@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/mce"
 	"github.com/openshift/assisted-service/internal/operators/metallb"
 	"github.com/openshift/assisted-service/internal/operators/mtv"
+	"github.com/openshift/assisted-service/internal/operators/networkobservability"
 	"github.com/openshift/assisted-service/internal/operators/nmstate"
 	"github.com/openshift/assisted-service/internal/operators/nodefeaturediscovery"
 	"github.com/openshift/assisted-service/internal/operators/nodehealthcheck"
@@ -3646,7 +3647,7 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-		Expect(requirements.Operators).To(HaveLen(28))
+		Expect(requirements.Operators).To(HaveLen(29))
 
 		for _, op := range requirements.Operators {
 			switch op.OperatorName {
@@ -3714,6 +3715,9 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 				continue
 			case openshiftlogging.Operator.Name:
 				continue
+			case networkobservability.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
 			default:
 				Fail("Unexpected operator")
 			}
