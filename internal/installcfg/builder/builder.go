@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/sirupsen/logrus"
@@ -29,17 +30,56 @@ type installConfigBuilder struct {
 	log                     logrus.FieldLogger
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder
 	providerRegistry        registry.ProviderRegistry
+	systemInfo              system.SystemInfo
+	// isEphemeral is true when this service runs on the node being installed,
+	// i.e. the agent-based installer. Only then does the host's FIPS state
+	// describe the cluster being created.
+	isEphemeral bool
 }
 
 func NewInstallConfigBuilder(
 	log logrus.FieldLogger,
 	mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder,
-	providerRegistry registry.ProviderRegistry) InstallConfigBuilder {
+	providerRegistry registry.ProviderRegistry,
+	systemInfo system.SystemInfo,
+	isEphemeral bool) InstallConfigBuilder {
 	return &installConfigBuilder{
 		log:                     log,
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 		providerRegistry:        providerRegistry,
+		systemInfo:              systemInfo,
+		isEphemeral:             isEphemeral,
 	}
+}
+
+// fipsEnabled reports whether the generated install-config should enable FIPS.
+//
+// For the agent-based installer the service runs on the node being installed,
+// which boots with fips=1 when a FIPS ISO was used, so the host's state is the
+// cluster's intended state. Elsewhere the service runs on a hub or in SaaS and
+// the host says nothing about the cluster being created, so this always
+// returns false; detecting there would silently turn every spoke cluster FIPS
+// on a FIPS-enabled hub.
+//
+// An unreadable /proc/sys/crypto/fips_enabled is logged and treated as not
+// enabled: the install-config is already being generated at this point, and
+// failing the install outright is worse than installing without FIPS.
+func (i *installConfigBuilder) fipsEnabled() bool {
+	if !i.isEphemeral {
+		return false
+	}
+
+	enabled, err := i.systemInfo.FIPSEnabled()
+	if err != nil {
+		i.log.WithError(err).Warn("Failed to determine host FIPS mode, continuing without FIPS")
+		return false
+	}
+
+	if enabled {
+		i.log.Info("Host is in FIPS mode, enabling FIPS in install-config")
+	}
+
+	return enabled
 }
 
 func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
@@ -112,6 +152,7 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		PullSecret:    cluster.PullSecret,
 		SSHKey:        cluster.SSHPublicKey,
 		OSImageStream: cluster.OsStream,
+		FIPS:          i.fipsEnabled(),
 	}
 
 	// For "None" network type, don't set networkType in install-config (user provides CNI manifests)
