@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.53.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.55.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2925601
-    checksum: sha256:7e82c856a00206976aede9e7b3865d0a2363b1262c0f9e1949ba29c7b9c47281
+    size: 2933341
+    checksum: sha256:e776854fb231e0e71682fcded0fd61600331dff7003ea72a06b90be45ff4d8b1
     name: kernel-headers
-    evr: 5.14.0-687.53.1.el9_8
-    sourcerpm: kernel-5.14.0-687.53.1.el9_8.src.rpm
+    evr: 5.14.0-687.55.1.el9_8
+    sourcerpm: kernel-5.14.0-687.55.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -144,13 +144,13 @@ arches:
     name: libubsan
     evr: 11.5.0-14.el9
     sourcerpm: gcc-11.5.0-14.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libvirt-libs-11.10.0-12.3.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libvirt-libs-11.10.0-12.7.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 5567425
-    checksum: sha256:1242774627fb890677962e363596dfae0647a82b4c3fe83a90489bc20fe2d444
+    size: 5568463
+    checksum: sha256:5c655e790cdbf31a4d44e4a2fe738ed40a1bcf0913bad2919cb97fe1ba18a3ce
     name: libvirt-libs
-    evr: 11.10.0-12.3.el9_8
-    sourcerpm: libvirt-11.10.0-12.3.el9_8.src.rpm
+    evr: 11.10.0-12.7.el9_8
+    sourcerpm: libvirt-11.10.0-12.7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 33051
@@ -1016,13 +1016,13 @@ arches:
     name: glibc-devel
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.53.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.55.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2949645
-    checksum: sha256:7318493a0814cea968050892155214dc61c91549fbea2f66aa4008be389ace7c
+    size: 2957141
+    checksum: sha256:bae44246fc61aa51b9ce41567fe79b4fa08f1d1e4159090b53a4da8be3f3d8a2
     name: kernel-headers
-    evr: 5.14.0-687.53.1.el9_8
-    sourcerpm: kernel-5.14.0-687.53.1.el9_8.src.rpm
+    evr: 5.14.0-687.55.1.el9_8
+    sourcerpm: kernel-5.14.0-687.55.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -1058,13 +1058,13 @@ arches:
     name: libubsan
     evr: 11.5.0-14.el9
     sourcerpm: gcc-11.5.0-14.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libvirt-libs-11.10.0-12.3.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libvirt-libs-11.10.0-12.7.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 5732815
-    checksum: sha256:341e7a76178391016471685435f78560fb427444561c60d1f6cc5409faadb734
+    size: 5733633
+    checksum: sha256:df0189b51df64c5b4edfba51b49d62d53e8b196649e8d30e792d91cfa4b20a97
     name: libvirt-libs
-    evr: 11.10.0-12.3.el9_8
-    sourcerpm: libvirt-11.10.0-12.3.el9_8.src.rpm
+    evr: 11.10.0-12.7.el9_8
+    sourcerpm: libvirt-11.10.0-12.7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 33082
@@ -1937,13 +1937,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.53.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.55.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2955557
-    checksum: sha256:9b1a97d19e52dfb5387cae5fd1a7888ce3e1f794b17117ef4cc1eeb1daca8aeb
+    size: 2963305
+    checksum: sha256:bb3fe37e6ec9d4382eee188ce3711faa648987594a33ad8968af23da6b6a7f27
     name: kernel-headers
-    evr: 5.14.0-687.53.1.el9_8
-    sourcerpm: kernel-5.14.0-687.53.1.el9_8.src.rpm
+    evr: 5.14.0-687.55.1.el9_8
+    sourcerpm: kernel-5.14.0-687.55.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -1979,13 +1979,13 @@ arches:
     name: libubsan
     evr: 11.5.0-14.el9
     sourcerpm: gcc-11.5.0-14.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libvirt-libs-11.10.0-12.3.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libvirt-libs-11.10.0-12.7.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 5544638
-    checksum: sha256:10e07f997d6f3e04fe4d08e311cac13ac5642b34f7fb625bfbf6933d38be6efa
+    size: 5559460
+    checksum: sha256:01bd65169698016321b1402ae4767f3679c672210b2c8d207d57cd70c0a88aee
     name: libvirt-libs
-    evr: 11.10.0-12.3.el9_8
-    sourcerpm: libvirt-11.10.0-12.3.el9_8.src.rpm
+    evr: 11.10.0-12.7.el9_8
+    sourcerpm: libvirt-11.10.0-12.7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 33073
@@ -2858,13 +2858,13 @@ arches:
     name: glibc-headers
     evr: 2.34-275.el9_8
     sourcerpm: glibc-2.34-275.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.53.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.55.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2965145
-    checksum: sha256:2473df2cf5b65c762af7941fe87324e98dc0e8b42d1e5745051a0405e200b7f5
+    size: 2972617
+    checksum: sha256:1914c6db3a904ee66b4ea18b11df8ee66ae82b22fe3ee7a6f25099c8bbcdfaf1
     name: kernel-headers
-    evr: 5.14.0-687.53.1.el9_8
-    sourcerpm: kernel-5.14.0-687.53.1.el9_8.src.rpm
+    evr: 5.14.0-687.55.1.el9_8
+    sourcerpm: kernel-5.14.0-687.55.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
@@ -2886,13 +2886,13 @@ arches:
     name: libslirp
     evr: 4.4.0-8.el9
     sourcerpm: libslirp-4.4.0-8.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libvirt-libs-11.10.0-12.3.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libvirt-libs-11.10.0-12.7.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 5773365
-    checksum: sha256:0b56ff27258d42e29c49a356796a6f462ecd2f245ea0a484fc11d5cc900a9736
+    size: 5775102
+    checksum: sha256:01045ff8966b4d3a3cf17cbb152407748357b63cc43fb791cecdd8a9a7be959b
     name: libvirt-libs
-    evr: 11.10.0-12.3.el9_8
-    sourcerpm: libvirt-11.10.0-12.3.el9_8.src.rpm
+    evr: 11.10.0-12.7.el9_8
+    sourcerpm: libvirt-11.10.0-12.7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libxcrypt-devel-4.4.18-3.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 33101
