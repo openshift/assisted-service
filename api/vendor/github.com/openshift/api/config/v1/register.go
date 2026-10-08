@@ -72,6 +72,14 @@ func addKnownTypes(scheme *runtime.Scheme) error {
 		&ImageDigestMirrorSetList{},
 		&ImageTagMirrorSet{},
 		&ImageTagMirrorSetList{},
+		&ImagePolicy{},
+		&ImagePolicyList{},
+		&ClusterImagePolicy{},
+		&ClusterImagePolicyList{},
+		&InsightsDataGather{},
+		&InsightsDataGatherList{},
+		&CRIOCredentialProviderConfig{},
+		&CRIOCredentialProviderConfigList{},
 	)
 	metav1.AddToGroupVersion(scheme, GroupVersion)
 	return nil
