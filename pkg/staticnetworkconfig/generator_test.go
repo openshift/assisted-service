@@ -684,6 +684,33 @@ desiredState:
 		Expect(fileContent).To(ContainSubstring("dhcp: false"))
 		Expect(err).NotTo(HaveOccurred())
 	})
+	It("Success - vlan interface preserves id in name and replaces base-iface", func() {
+		vlanYAML := `interfaces:
+- name: eth0.100
+  type: vlan
+  state: up
+  vlan:
+    base-iface: eth0
+    id: 100`
+		escapedYamlContent, err := escapeYAMLForJSON(vlanYAML)
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		Expect(err).NotTo(HaveOccurred())
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring(`name: "{{ capture.iface0.interfaces.0.name }}.100"`))
+		Expect(fileContent).To(ContainSubstring(`base-iface: "{{ capture.iface0.interfaces.0.name }}"`))
+	})
+	It("Success - bond port with vlan drops id in list items", func() {
+		escapedYamlContent, err := escapeYAMLForJSON(fmt.Sprintf(bondYAML, "eth0.100"))
+		Expect(err).NotTo(HaveOccurred())
+		macMap := fmt.Sprintf(macInterfaceMap, "eth0")
+		config, err := staticNetworkGenerator.GenerateStaticNetworkConfigDataYAML(fmt.Sprintf(hostsYAMLAndIni, escapedYamlContent, macMap))
+		Expect(err).NotTo(HaveOccurred())
+		fileContent := config[1].FileContents
+		Expect(fileContent).To(ContainSubstring(`- "{{ capture.iface0.interfaces.0.name }}"`))
+		Expect(fileContent).NotTo(ContainSubstring(`- "{{ capture.iface0.interfaces.0.name }}.100"`))
+	})
 })
 
 var _ = Describe("StaticNetworkConfig.GenerateStaticNetworkConfigArchive", func() {
