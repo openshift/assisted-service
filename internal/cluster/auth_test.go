@@ -20,7 +20,7 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("fails with rhsso auth when the cloud.openshift.com pull secret is missing", func() {
-		infraEnv := &common.InfraEnv{
+		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			InfraEnv:   models.InfraEnv{ID: &id},
 			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
@@ -30,7 +30,7 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("succeeds with rhsso auth when cloud.openshift.com pull secret is present", func() {
-		infraEnv := &common.InfraEnv{
+		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			InfraEnv:   models.InfraEnv{ID: &id},
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
@@ -40,7 +40,7 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("returns empty when no auth is configured", func() {
-		infraEnv := &common.InfraEnv{
+		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			InfraEnv:   models.InfraEnv{ID: &id},
 			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
@@ -50,7 +50,7 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("returns an error if an invalid auth type is configured", func() {
-		infraEnv := &common.InfraEnv{
+		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			InfraEnv:   models.InfraEnv{ID: &id},
 			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
@@ -60,7 +60,7 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("returns an error for local auth with no private key", func() {
-		infraEnv := &common.InfraEnv{
+		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			InfraEnv:   models.InfraEnv{ID: &id},
 			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
