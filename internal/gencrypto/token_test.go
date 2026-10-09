@@ -44,7 +44,7 @@ var _ = Context("with an ECDSA key pair", func() {
 	})
 
 	validateToken := func(token string, pub crypto.PublicKey, id string) {
-		parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
+		parser := jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodES256.Alg()}))
 		parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
 
 		Expect(err).ToNot(HaveOccurred())
@@ -104,7 +104,7 @@ var _ = Describe("JWTForSymmetricKey", func() {
 		token, err := JWTForSymmetricKey(key, 4*time.Hour, "subject")
 		Expect(err).ToNot(HaveOccurred())
 
-		parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodHS256.Alg()}}
+		parser := jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodHS256.Alg()}))
 		parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return key, nil })
 
 		Expect(err).ToNot(HaveOccurred())

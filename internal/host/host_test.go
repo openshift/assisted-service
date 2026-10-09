@@ -2325,6 +2325,7 @@ var _ = Describe("UpdateFencing", func() {
 			Username: swag.String("admin"),
 			Password: swag.String("password123"),
 		}
+		//nolint:gosec // This test intentionally marshals synthetic fencing credentials.
 		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -2349,6 +2350,7 @@ var _ = Describe("UpdateFencing", func() {
 			Password:                swag.String("password123"),
 			CertificateVerification: swag.String("Disabled"),
 		}
+		//nolint:gosec // This test intentionally marshals synthetic fencing credentials.
 		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -2372,6 +2374,7 @@ var _ = Describe("UpdateFencing", func() {
 			Username: swag.String("admin"),
 			Password: swag.String("password123"),
 		}
+		//nolint:gosec // This test intentionally marshals synthetic fencing credentials.
 		fencingCredentials, err := json.Marshal(fencingCredentialsParams)
 		Expect(err).ShouldNot(HaveOccurred())
 
