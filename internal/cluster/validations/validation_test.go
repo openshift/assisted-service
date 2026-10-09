@@ -226,11 +226,53 @@ var _ = Describe("SSH Key validation", func() {
 		err := ValidateSSHPublicKey(validSSHPublicKeys)
 		Expect(err).Should(BeNil())
 	})
+	It("valid ssh key with authorized_keys from option", func() {
+		err := ValidateSSHPublicKey(`from="192.0.2.1,192.0.2.2" ` + validSSHPublicKey)
+		Expect(err).Should(BeNil())
+	})
+	It("valid ssh key with case-insensitive authorized_keys options", func() {
+		err := ValidateSSHPublicKey(`FROM="192.0.2.1,192.0.2.2",No-PTY ` + validSSHPublicKey)
+		Expect(err).Should(BeNil())
+	})
+	It("valid ssh key with command option containing key type text", func() {
+		err := ValidateSSHPublicKey(`command="echo ssh-rsa " ` + validSSHPublicKey)
+		Expect(err).Should(BeNil())
+	})
+	It("valid ssh keys with blank lines", func() {
+		err := ValidateSSHPublicKey(validSSHPublicKey + "\n\n" + validSSHPublicKey)
+		Expect(err).Should(BeNil())
+	})
 	It("invalid ssh key", func() {
 		var err error
 		err = ValidateSSHPublicKey(invalidSSHPublicKeyA)
 		Expect(err).ShouldNot(BeNil())
 		err = ValidateSSHPublicKey(invalidSSHPublicKeyB)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("authorized_keys option without a key is rejected", func() {
+		err := ValidateSSHPublicKey(`from="192.0.2.1"`)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("authorized_keys option with truncated key is rejected", func() {
+		err := ValidateSSHPublicKey(`from="192.0.2.1" ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAItruncated`)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("bare command option without a value is rejected", func() {
+		err := ValidateSSHPublicKey(`command ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`COMMAND ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("bare from option without a value is rejected", func() {
+		err := ValidateSSHPublicKey(`from ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`FROM ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+	})
+	It("flag option with a value is rejected", func() {
+		err := ValidateSSHPublicKey(`no-pty=true ` + validSSHPublicKey)
+		Expect(err).ShouldNot(BeNil())
+		err = ValidateSSHPublicKey(`No-PTY=true ` + validSSHPublicKey)
 		Expect(err).ShouldNot(BeNil())
 	})
 })
