@@ -127,7 +127,7 @@ func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.
 }
 
 func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
-	parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
+	parser := jwt.NewParser(jwt.WithValidMethods([]string{jwt.SigningMethodES256.Alg()}))
 	parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
 
 	if err != nil {

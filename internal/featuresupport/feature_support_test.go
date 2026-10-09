@@ -544,8 +544,8 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
 						ControlPlaneCount: 2,
 						Hosts: []*models.Host{
-							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
-							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"}, //nolint:gosec // Synthetic test credentials.
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"}, //nolint:gosec // Synthetic test credentials.
 						},
 						Platform: &models.Platform{
 							Type: models.PlatformTypeBaremetal.Pointer(),
@@ -568,7 +568,7 @@ var _ = Describe("V2ListFeatureSupportLevels API", func() {
 						OpenshiftVersion:  common.MinimumVersionForTwoNodesWithFencing,
 						ControlPlaneCount: 2,
 						Hosts: []*models.Host{
-							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"},
+							{Role: models.HostRoleMaster, FencingCredentials: "fencing-credentials"}, //nolint:gosec // Synthetic test credentials.
 							{Role: models.HostRoleMaster},
 						},
 						Platform: &models.Platform{
