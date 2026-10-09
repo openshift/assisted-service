@@ -2276,7 +2276,7 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.Fie
 	if err != nil {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 	}
-	return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeue}, nil
 }
 
 func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strfmt.UUID) (*models.Host, error) {

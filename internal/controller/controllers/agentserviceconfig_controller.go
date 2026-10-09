@@ -276,7 +276,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 
 	// Ensure relevant finalizers exist (cleanup on deletion)
 	if err := ensureFinalizers(ctx, log, asc, agentServiceConfigFinalizerName); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 	if !instance.DeletionTimestamp.IsZero() {
 		return ctrl.Result{}, nil

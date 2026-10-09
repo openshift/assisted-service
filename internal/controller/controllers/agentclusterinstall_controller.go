@@ -93,7 +93,7 @@ func (r *AgentClusterInstallReconciler) Reconcile(origCtx context.Context, req c
 
 		if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
 			log.WithError(updateErr).Error("failed to update AgentClusterInstall Status")
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, updateErr
 		}
 	}
 
