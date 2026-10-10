@@ -73,7 +73,7 @@ var _ = Describe("Disconnected Ignition", func() {
 		}
 
 		id := strfmt.UUID("test-infra-env-id")
-		infraEnv = &common.InfraEnv{
+		infraEnv = &common.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses test:test.
 			PullSecret: `{"auths":{"test.registry.com":{"auth":"dGVzdDp0ZXN0"}}}`,
 			InfraEnv: models.InfraEnv{
 				ID:               &id,
