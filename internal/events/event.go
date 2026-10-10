@@ -318,7 +318,7 @@ func filterEvents(tx *gorm.DB, clusterID *strfmt.UUID, hostIds []strfmt.UUID, in
 	}
 
 	if hostIds != nil {
-		return tx.Where("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
+		tx = tx.Where("events.host_id IN (?)", hostsUUIDsToStrings(hostIds))
 	}
 
 	if infraEnvID != nil {
