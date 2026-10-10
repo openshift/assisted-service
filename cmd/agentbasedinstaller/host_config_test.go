@@ -290,8 +290,9 @@ var _ = Describe("applyFencingCredentials", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			testLogger, _ := test.NewNullLogger()
+			const syntheticFencingCredentials = `{"address": "existing"}` //nolint:gosec // Placeholder fencing data for this test; it contains no usable credentials.
 			host := &models.Host{
-				FencingCredentials: `{"address": "existing"}`,
+				FencingCredentials: syntheticFencingCredentials,
 			}
 			config := &hostConfig{
 				configDir: tempDir,
