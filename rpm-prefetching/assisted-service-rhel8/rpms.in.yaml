@@ -1,4 +1,7 @@
 contentOrigin:
+  repos:
+    - repoid: ubi-8-baseos-rpms
+      baseurl: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/$basearch/baseos/os
   repofiles: ["./redhat.repo"]
 packages:
   - libvirt-libs
@@ -10,6 +13,8 @@ packages:
   - gcc
   - git
   - openssl-devel  
+upgradePackages:
+  - tzdata
 arches:
   - aarch64
   - x86_64
