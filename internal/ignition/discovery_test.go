@@ -32,6 +32,9 @@ import (
 	"github.com/vincent-petithory/dataurl"
 )
 
+const syntheticTestCloudPullSecret = `{"auths":{"cloud.openshift.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}`    //nolint:gosec // Synthetic token:test pull secret used only by ignition tests.
+const syntheticTestRegistryPullSecret = `{"auths":{"registry.redhat.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}` //nolint:gosec // Synthetic token:test pull secret used only by ignition tests.
+
 var _ = Describe("proxySettingsForIgnition", func() {
 
 	Context("test proxy settings in discovery ignition", func() {
@@ -104,8 +107,8 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{ //nolint:gosec // Synthetic pull secret in this test fixture.
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		cluster = &common.Cluster{
+			PullSecret: syntheticTestCloudPullSecret,
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MachineNetworks: []*models.MachineNetwork{{
@@ -114,13 +117,13 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
-		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
 				ClusterID:     clusterID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
@@ -135,12 +138,12 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			infraEnvWithoutToken := common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+			infraEnvWithoutToken := common.InfraEnv{
 				InfraEnv: models.InfraEnv{
 					ID:            &infraEnvID,
 					PullSecretSet: false,
 				},
-				PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+				PullSecret: syntheticTestRegistryPullSecret,
 			}
 			_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnvWithoutToken, ignitionConfig, false, auth.TypeRHSSO, "")
 
@@ -1094,12 +1097,12 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
-		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses token:test.
+		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 		var err error
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
@@ -1262,13 +1265,13 @@ var _ = Describe("OKD overrides", func() {
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses token:test.
+		infraEnv = common.InfraEnv{
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
 				ClusterID:     clusterID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 		var err error
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
