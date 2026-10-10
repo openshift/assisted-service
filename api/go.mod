@@ -65,3 +65,5 @@ replace github.com/golang/glog => github.com/golang/glog v1.2.4
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.82.2
+
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
