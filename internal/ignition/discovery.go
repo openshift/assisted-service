@@ -337,6 +337,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(ctx context.Context, infr
 		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
+		"NetworkSysctlConfig":  base64.StdEncoding.EncodeToString([]byte(constants.NetworkSysctlConfig)),
 		"EnableAgentService":   infraEnv.InternalIgnitionConfigOverride == "",
 		"ProfileProxyExports":  dataurl.EncodeBytes([]byte(GetProfileProxyEntries(httpProxy, httpsProxy, noProxy))),
 		"DesiredNtpSources":    desiredNtpSources,
