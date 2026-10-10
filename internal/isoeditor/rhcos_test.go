@@ -20,6 +20,11 @@ func TestIsoEditor(t *testing.T) {
 	RunSpecs(t, "IsoEditor")
 }
 
+const rhcosTestEncodedHTTPProxy = "http://user%40example.com:pas%25word%5D@10.10.1.1:3128"   //nolint:gosec // Synthetic proxy credentials exercise URL parsing only.
+const rhcosTestEncodedHTTPSProxy = "https://user%40example.com:pas%25word%5D@10.10.1.1:3128" //nolint:gosec // Synthetic proxy credentials exercise URL parsing only.
+const rhcosTestHTTPProxy = "http://userexample.com:pasword@10.10.1.1:3128"                   //nolint:gosec // Synthetic proxy credentials exercise URL parsing only.
+const rhcosTestHTTPSProxy = "https://userexample.com:pasword@10.10.1.1:3128"                 //nolint:gosec // Synthetic proxy credentials exercise URL parsing only.
+
 var _ = Describe("RamdiskImageArchive", func() {
 	It("adds a new archive correctly - ocp versions less than MinimalVersionForNmstatectl", func() {
 
@@ -187,16 +192,16 @@ var _ = Describe("RamdiskImageArchive", func() {
 			{
 				description: "with urlencoded special characters",
 				clusterProxyInfo: ClusterProxyInfo{
-					HTTPProxy:  "http://user%40example.com:pas%25word%5D@10.10.1.1:3128",
-					HTTPSProxy: "https://user%40example.com:pas%25word%5D@10.10.1.1:3128",
+					HTTPProxy:  rhcosTestEncodedHTTPProxy,
+					HTTPSProxy: rhcosTestEncodedHTTPSProxy,
 					NoProxy:    "quay.io",
 				},
 			},
 			{
 				description: "without urlencoded special characters",
 				clusterProxyInfo: ClusterProxyInfo{
-					HTTPProxy:  "http://userexample.com:pasword@10.10.1.1:3128",
-					HTTPSProxy: "https://userexample.com:pasword@10.10.1.1:3128",
+					HTTPProxy:  rhcosTestHTTPProxy,
+					HTTPSProxy: rhcosTestHTTPSProxy,
 					NoProxy:    "quay.io",
 				},
 			},

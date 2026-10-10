@@ -6986,6 +6986,7 @@ func (b *bareMetalInventory) updateHostFencing(ctx context.Context, host *common
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	//nolint:gosec // Fencing credentials are intentionally serialized for the host update request.
 	fencingCredentials, err := json.Marshal(fencingCredentialsParams)
 	if err != nil {
 		log.WithError(err).Errorf("failed to marshal fencing credentials to host <%s> in infra env <%s>", host.ID, host.InfraEnvID)

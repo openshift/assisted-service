@@ -297,7 +297,7 @@ func IsSliceNonEmpty(arg interface{}) bool {
 	if reflect.ValueOf(arg).Kind() == reflect.Slice {
 		funk.ForEach(arg, func(elem interface{}) {
 			v := reflect.ValueOf(elem)
-			if v.Kind() == reflect.Ptr {
+			if v.Kind() == reflect.Pointer {
 				v = reflect.Indirect(v.Elem())
 			}
 			for i := 0; i < v.NumField(); i++ {

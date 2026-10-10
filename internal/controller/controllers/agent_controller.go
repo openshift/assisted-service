@@ -1791,6 +1791,7 @@ func (r *AgentReconciler) updateHostFencingCredentials(ctx context.Context, log 
 		agentFencingCredentials.CertificateVerification = swag.String(string(certificateVerification))
 	}
 
+	//nolint:gosec // Fencing credentials are intentionally serialized for the host update request.
 	fencingCredentials, err := json.Marshal(agentFencingCredentials)
 	if err != nil {
 		log.WithError(err).Errorf("failed to marshal fencing credentials for host %s infra-env %s", host.ID.String(), host.InfraEnvID.String())
