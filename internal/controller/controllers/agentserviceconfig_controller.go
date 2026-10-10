@@ -295,7 +295,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	// Invoke validation funcs
 	valid, err := validate(ctx, log, asc, supportsCertManager)
 	if err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 	if !valid {
 		return ctrl.Result{}, nil
@@ -310,7 +310,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 
 	// Remove IPXE HTTP routes if not needed
 	if err := cleanHTTPRoute(ctx, log, asc); err != nil {
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	// Reconcile components
@@ -328,7 +328,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 	// Ensure image-service StatefulSet is reconciled (only if image service is not disabled)
 	if isImageServiceEnabled(asc.Object.GetAnnotations()) {
 		if err := ensureImageServiceStatefulSet(ctx, log, asc); err != nil {
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -367,7 +367,7 @@ func updateConditions(ctx context.Context, log *logrus.Entry, asc ASC) (ctrl.Res
 			log.WithError(updateErr).Error("Failed to update status")
 			return ctrl.Result{}, updateErr
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Recheck operand health after recording an unhealthy condition.
 	}
 
 	conditionsv1.SetStatusConditionNoHeartbeat(asc.conditions, conditionsv1.Condition{
