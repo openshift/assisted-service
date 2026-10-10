@@ -74,7 +74,7 @@ var _ = Describe("Disconnected Ignition", func() {
 
 		id := strfmt.UUID("test-infra-env-id")
 		infraEnv = &common.InfraEnv{
-			PullSecret: `{"auths":{"test.registry.com":{"auth":"dGVzdDp0ZXN0"}}}`,
+			PullSecret: syntheticDisconnectedPullSecret,
 			InfraEnv: models.InfraEnv{
 				ID:               &id,
 				Name:             swag.String("test-infra-env"),
