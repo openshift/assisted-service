@@ -104,7 +104,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{
+		cluster = &common.Cluster{ //nolint:gosec // Synthetic pull secret in this test fixture.
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 			Cluster: models.Cluster{
 				ID: &clusterID,
@@ -114,11 +114,14 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            &infraEnvID,
-			ClusterID:     clusterID,
-			PullSecretSet: false,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+			InfraEnv: models.InfraEnv{
+				ID:            &infraEnvID,
+				ClusterID:     clusterID,
+				PullSecretSet: false,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
 		Expect(err).ToNot(HaveOccurred())
@@ -132,10 +135,13 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:            &infraEnvID,
-				PullSecretSet: false,
-			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+			infraEnvWithoutToken := common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+				InfraEnv: models.InfraEnv{
+					ID:            &infraEnvID,
+					PullSecretSet: false,
+				},
+				PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			}
 			_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnvWithoutToken, ignitionConfig, false, auth.TypeRHSSO, "")
 
 			Expect(err).ShouldNot(BeNil())
