@@ -269,7 +269,7 @@ go.uber.org/zap/zapcore
 # golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 ## explicit; go 1.20
 golang.org/x/exp/maps
-# golang.org/x/net v0.54.0 => golang.org/x/net v0.55.0
+# golang.org/x/net v0.55.0 => golang.org/x/net v0.55.0
 ## explicit; go 1.25.0
 golang.org/x/net/html
 golang.org/x/net/html/atom
