@@ -10,6 +10,9 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 )
 
+const authTestCloudPullSecret = `{"auths":{"cloud.openshift.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}`    //nolint:gosec // Synthetic token:test pull secret used only by auth tests.
+const authTestRegistryPullSecret = `{"auths":{"registry.redhat.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}` //nolint:gosec // Synthetic token:test pull secret used only by auth tests.
+
 var _ = Describe("AgentToken", func() {
 	var (
 		id strfmt.UUID
@@ -20,9 +23,9 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("fails with rhsso auth when the cloud.openshift.com pull secret is missing", func() {
-		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+		infraEnv := &common.InfraEnv{
 			InfraEnv:   models.InfraEnv{ID: &id},
-			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: authTestRegistryPullSecret,
 		}
 		_, err := AgentToken(infraEnv, auth.TypeRHSSO)
 
@@ -30,9 +33,9 @@ var _ = Describe("AgentToken", func() {
 	})
 
 	It("succeeds with rhsso auth when cloud.openshift.com pull secret is present", func() {
-		infraEnv := &common.InfraEnv{ //nolint:gosec // Synthetic pull secret in this test fixture.
+		infraEnv := &common.InfraEnv{
 			InfraEnv:   models.InfraEnv{ID: &id},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: authTestCloudPullSecret,
 		}
 		_, err := AgentToken(infraEnv, auth.TypeRHSSO)
 
@@ -42,7 +45,7 @@ var _ = Describe("AgentToken", func() {
 	It("returns empty when no auth is configured", func() {
 		infraEnv := &common.InfraEnv{
 			InfraEnv:   models.InfraEnv{ID: &id},
-			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: authTestRegistryPullSecret,
 		}
 		token, err := AgentToken(infraEnv, auth.TypeNone)
 		Expect(err).ToNot(HaveOccurred())
@@ -52,7 +55,7 @@ var _ = Describe("AgentToken", func() {
 	It("returns an error if an invalid auth type is configured", func() {
 		infraEnv := &common.InfraEnv{
 			InfraEnv:   models.InfraEnv{ID: &id},
-			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: authTestRegistryPullSecret,
 		}
 		_, err := AgentToken(infraEnv, auth.AuthType("asdf"))
 
@@ -62,7 +65,7 @@ var _ = Describe("AgentToken", func() {
 	It("returns an error for local auth with no private key", func() {
 		infraEnv := &common.InfraEnv{
 			InfraEnv:   models.InfraEnv{ID: &id},
-			PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: authTestRegistryPullSecret,
 		}
 		_, err := AgentToken(infraEnv, auth.TypeLocal)
 
