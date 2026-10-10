@@ -505,7 +505,7 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 			}
 			// After update there should not be any more changes on the object
 			// Update will return a new object so the creation of maps like annotations or labels is not valid anymore
-			return &ctrl.Result{Requeue: true}, nil
+			return &ctrl.Result{Requeue: true}, nil //nolint:staticcheck // Preserve rate-limited retry behavior.
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
@@ -555,7 +555,7 @@ func (r *AgentReconciler) handleAgentFinalizer(ctx context.Context, log logrus.F
 			controllerutil.RemoveFinalizer(agent, AgentFinalizerName)
 			if err := r.Update(ctx, agent); err != nil {
 				log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
-				return &ctrl.Result{Requeue: true}, err
+				return &ctrl.Result{}, err
 			}
 		}
 		// Stop reconciliation as the item is being deleted
@@ -1104,7 +1104,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		if clusterId != nil {
 			err = r.populateEventsURL(log, agent, h.InfraEnvID.String())
 			if err != nil {
-				ret = ctrl.Result{Requeue: true}
+				ret = ctrl.Result{Requeue: true} //nolint:staticcheck // Preserve rate-limited retry behavior.
 				err = nil
 				return ret, nil
 			}
@@ -2276,7 +2276,7 @@ func (r *AgentReconciler) restoreHostByAgent(ctx context.Context, log logrus.Fie
 	if err != nil {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, err
 	}
-	return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeue}, nil
+	return ctrl.Result{RequeueAfter: defaultRequeue}, nil
 }
 
 func createNewHost(agent *v1beta1.Agent, clusterID *strfmt.UUID, infraEnvID strfmt.UUID) (*models.Host, error) {

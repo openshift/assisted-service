@@ -216,7 +216,7 @@ type reconcileRequeue struct {
 
 func (r reconcileRequeue) Result() (result reconcile.Result, err error) {
 	result = reconcile.Result{
-		Requeue:      true,
+		Requeue:      true, //nolint:staticcheck // Preserve retry behavior when the delay is zero.
 		RequeueAfter: r.requeueAfter,
 	}
 	return result, err

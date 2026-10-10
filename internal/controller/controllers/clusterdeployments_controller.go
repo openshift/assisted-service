@@ -186,7 +186,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 			}
 		} else {
 			log.WithError(err).Errorf("failed to get AgentClusterInstall name=%s namespace=%s", aciName, clusterDeployment.Namespace)
-			return ctrl.Result{Requeue: true}, err
+			return ctrl.Result{}, err
 		}
 	}
 
@@ -208,7 +208,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	err = r.ensureOwnerRef(ctx, log, clusterDeployment, clusterInstall)
 	if err != nil {
 		log.WithError(err).Error("error setting owner reference")
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 	pullSecret, err := r.getPullSecret(ctx, clusterDeployment, clusterInstall)
 	if err != nil {
