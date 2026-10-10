@@ -116,3 +116,5 @@ replace go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.41.0
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
 replace github.com/metal3-io/baremetal-operator/apis => github.com/metal3-io/baremetal-operator/apis v0.8.1
+
+replace github.com/moby/moby => github.com/moby/moby/v2 v2.0.0-beta.8
