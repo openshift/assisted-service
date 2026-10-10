@@ -21,9 +21,34 @@ The script:
 4. Calls `run-postgresql` to start the database
 
 This handles all scenarios correctly:
-- **Fresh install**: No data → normal initialization
-- **Restart (same version)**: Versions match → normal startup
-- **Upgrade (version mismatch)**: Versions differ → enables pg_upgrade
+- **Fresh install**: No data → hop init containers no-op, main container initializes
+- **Restart (same version)**: Versions match → hop init containers no-op, normal startup
+- **Adjacent upgrade (version mismatch of one hop)**: Main container enables pg_upgrade
+- **EUS skip-upgrade (for example PG12 → PG15 or PG12 → PG16)**: Init containers walk the sclorg hop chain, then the main container starts
+
+## EUS skip-upgrades (ACM-39262)
+
+Each sclorg image can only upgrade from `POSTGRESQL_PREV_VERSION`. ACM EUS skips more than one PostgreSQL major version:
+
+| ACM upgrade | Data version | Target image | Required hops |
+|-------------|--------------|--------------|---------------|
+| 2.15 → 2.16 | PG12 | PG13 | 12 → 13 |
+| 2.16 → 2.17 | PG13 | PG15 | 13 → 15 |
+| 2.15 → 2.17 | PG12 | PG15 | 12 → 13 → 15 |
+| 2.16 → 2.18 | PG13 | PG16 | 13 → 15 → 16 |
+| 2.15 → 2.18 | PG12 | PG16 | 12 → 13 → 15 → 16 |
+
+The operator therefore adds **init containers** for every hop strictly older than `DATABASE_IMAGE`:
+
+1. `postgres-upgrade-to-13` uses `DATABASE_IMAGE_PG13` (`postgresql-13-c9s`) and runs `postgres_hop.sh`
+2. `postgres-upgrade-to-15` uses `DATABASE_IMAGE_PG15` (`postgresql-15-c9s`) and runs `postgres_hop.sh`
+3. The main `postgres` container uses `DATABASE_IMAGE` and `postgres_startup.sh`
+
+`postgres_hop.sh` only reads `PG_VERSION` to decide whether to run. If data is already at or newer than that hop, it exits 0 without starting PostgreSQL (an older image cannot open a newer data directory). If data matches `POSTGRESQL_PREV_VERSION`, it sets `POSTGRESQL_UPGRADE=hardlink`, calls sclorg `try_pgupgrade`, and exits so the next container can run.
+
+These intermediate images **must** be in the operator CSV `relatedImages` and operator env (`DATABASE_IMAGE_PG13`, `DATABASE_IMAGE_PG15`) so disconnected / oc-mirror payloads include them.
+
+If the target image reference has no `postgresql-N` token (bare digest), set `DATABASE_IMAGE_VERSION` to the major version (for example `16`) so the operator still emits the correct hops. When the image name already contains `postgresql-N`, that token wins over `DATABASE_IMAGE_VERSION`.
 
 ## How pg_upgrade Works
 
@@ -128,15 +153,19 @@ Note: There is no `postgresql-14-c9s` image. RHEL 9 module streams skip PG14, so
 To upgrade to a new PostgreSQL version:
 
 1. Update `internal/controller/controllers/images.go` with the new image
-2. Update `deploy/olm-catalog/manifests/assisted-service-operator.clusterserviceversion.yaml`:
-   - Update `DATABASE_IMAGE` env var
-   - Update `relatedImages` section
-3. Update backplane-operator:
+2. Add the previous image as a hop in `postgres_upgrade.go` (`postgresUpgradePath`) if customers can skip to the new version from an older EUS
+3. Update operator packaging so `hack/generate.sh generate_bundle` keeps the hop images:
+   - `config/manager/manager.yaml`: `DATABASE_IMAGE` plus `DATABASE_IMAGE_PG<prev>` env vars
+   - `config/manifests/bases/assisted-service-operator.clusterserviceversion.yaml`: same env vars and `relatedImages`
+   - `config/manifests/bundle-overrides/related-images-patch.yaml`: current image plus every hop image
+     (operator-sdk drops `relatedImages`; this patch is what verify-generated-code checks)
+   - Then regenerate the catalog CSV (`deploy/olm-catalog/manifests/assisted-service-operator.clusterserviceversion.yaml`)
+4. Update backplane-operator:
    - `hack/bundle-automation/config.yaml` - image mapping
    - `pkg/templates/charts/toggle/assisted-service/values.yaml`
    - `pkg/templates/charts/toggle/assisted-service/templates/infrastructure-operator.yaml`
 
-The wrapper script automatically detects version mismatches and triggers `pg_upgrade` when needed.
+Hop init containers plus the wrapper script automatically walk the sclorg path and trigger `pg_upgrade` when needed.
 
 ## Deployment Strategy
 
@@ -148,15 +177,13 @@ deploymentStrategy := appsv1.DeploymentStrategy{
 }
 ```
 
-This ensures the old pod releases the PVC before the new pod starts, preventing deadlocks.
+This ensures the old pod releases the PVC before the new pod starts, preventing deadlocks. Hop init containers run in that new pod, sequentially, on the same PVC.
 
-## Version Skip Protection
+## Unsupported source versions
 
-The sclorg container validates that the source data version matches `POSTGRESQL_PREV_VERSION`. If a customer tries to skip versions (e.g., PG12 → PG15), the container fails with a clear error:
+The sclorg container still validates that each hop's source data matches `POSTGRESQL_PREV_VERSION`. If data is older than the first hop we ship (currently PG12 via `postgresql-13-c9s`), the hop init container fails with:
 
+```text
+this hop image can only upgrade from 12, not '<version>'.
+An earlier hop init container is missing from the upgrade path.
 ```
-With this container image you can only upgrade from data directory
-of version '13', not '12'.
-```
-
-This prevents accidental data corruption from unsupported upgrade paths.
