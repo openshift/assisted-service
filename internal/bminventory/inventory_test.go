@@ -64,6 +64,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/provider/vsphere"
 	"github.com/openshift/assisted-service/internal/stream"
+	"github.com/openshift/assisted-service/internal/system"
 	testutils "github.com/openshift/assisted-service/internal/testing"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -320,7 +321,7 @@ func mockClusterRegisterSuccessWithVersion(cpuArchitecture, openshiftVersion str
 func createInstallConfigBuilder() installcfg_builder.InstallConfigBuilder {
 	log := common.GetTestLog().WithField("pkg", "installcfg")
 	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
-	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log))
+	return installcfg_builder.NewInstallConfigBuilder(log, mockMirrorRegistriesConfigBuilder, registry.InitProviderRegistry(log), system.NewLocalSystemInfo(), false)
 
 }
 
