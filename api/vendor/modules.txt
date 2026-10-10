@@ -110,8 +110,8 @@ github.com/openshift/hive/apis/scheme
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
-# go.mongodb.org/mongo-driver v1.12.0
-## explicit; go 1.13
+# go.mongodb.org/mongo-driver v1.17.10
+## explicit; go 1.18
 go.mongodb.org/mongo-driver/bson
 go.mongodb.org/mongo-driver/bson/bsoncodec
 go.mongodb.org/mongo-driver/bson/bsonoptions
