@@ -104,7 +104,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{
+		cluster = &common.Cluster{ //nolint:gosec // Synthetic test pull secret uses token:test.
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 			Cluster: models.Cluster{
 				ID: &clusterID,
@@ -114,7 +114,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses token:test.
 			ID:            &infraEnvID,
 			ClusterID:     clusterID,
 			PullSecretSet: false,
