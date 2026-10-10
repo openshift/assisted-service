@@ -32,6 +32,9 @@ import (
 	"github.com/vincent-petithory/dataurl"
 )
 
+const syntheticTestCloudPullSecret = `{"auths":{"cloud.openshift.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}`    //nolint:gosec // Synthetic token:test pull secret used only by ignition tests.
+const syntheticTestRegistryPullSecret = `{"auths":{"registry.redhat.com":{"auth":"dG9rZW46dGVzdAo=","email":"coyote@acme.com"}}}` //nolint:gosec // Synthetic token:test pull secret used only by ignition tests.
+
 var _ = Describe("proxySettingsForIgnition", func() {
 
 	Context("test proxy settings in discovery ignition", func() {
@@ -105,7 +108,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MachineNetworks: []*models.MachineNetwork{{
@@ -114,11 +117,14 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
-			ID:            &infraEnvID,
-			ClusterID:     clusterID,
-			PullSecretSet: false,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            &infraEnvID,
+				ClusterID:     clusterID,
+				PullSecretSet: false,
+			},
+			PullSecret: syntheticTestCloudPullSecret,
+		}
 		var err error
 		builder, err = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
 		Expect(err).ToNot(HaveOccurred())
@@ -132,10 +138,13 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{
-				ID:            &infraEnvID,
-				PullSecretSet: false,
-			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+			infraEnvWithoutToken := common.InfraEnv{
+				InfraEnv: models.InfraEnv{
+					ID:            &infraEnvID,
+					PullSecretSet: false,
+				},
+				PullSecret: syntheticTestRegistryPullSecret,
+			}
 			_, err := builder.FormatDiscoveryIgnitionFile(context.Background(), &infraEnvWithoutToken, ignitionConfig, false, auth.TypeRHSSO, "")
 
 			Expect(err).ShouldNot(BeNil())
@@ -1093,7 +1102,7 @@ var _ = Describe("Ignition SSH key building", func() {
 				ID:            &infraEnvID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 		var err error
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
@@ -1262,7 +1271,7 @@ var _ = Describe("OKD overrides", func() {
 				ClusterID:     clusterID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 		var err error
 		builder, err = NewBuilder(logrus.New(), mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder, mockOcRelease, mockVersionHandler)
