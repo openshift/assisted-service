@@ -907,6 +907,13 @@ arches:
     name: nmstate-devel
     evr: 1.4.6-4.el8_10
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
+    repoid: rhel-8-for-aarch64-baseos-rpms
+    size: 566324
+    checksum: sha256:01bfbadab99667b5a99af113bd034f8a2c6538dcf986a407c4648072357b4f73
+    name: tzdata
+    evr: 2026e-1.el8_10
+    sourcerpm: tzdata-2026e-1.el8_10.src.rpm
   source: []
   module_metadata:
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/appstream/os/repodata/b2a55ea9ea0147b7534dfff6789491a0ff5a9e5f28cb14b0d52c1fc1bed77b00-modules.yaml.gz
@@ -1818,6 +1825,13 @@ arches:
     name: nmstate-devel
     evr: 1.4.6-4.el8_10
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
+    repoid: rhel-8-for-ppc64le-baseos-rpms
+    size: 566324
+    checksum: sha256:01bfbadab99667b5a99af113bd034f8a2c6538dcf986a407c4648072357b4f73
+    name: tzdata
+    evr: 2026e-1.el8_10
+    sourcerpm: tzdata-2026e-1.el8_10.src.rpm
   source: []
   module_metadata:
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/appstream/os/repodata/55cb175cd14ec237bd1726ca6d1d79cf7a593d2c36112fa32be1d052fb4b3d67-modules.yaml.gz
