@@ -1094,7 +1094,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
-		infraEnv = common.InfraEnv{
+		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses token:test.
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
 				PullSecretSet: false,
@@ -1262,7 +1262,7 @@ var _ = Describe("OKD overrides", func() {
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		infraEnv = common.InfraEnv{
+		infraEnv = common.InfraEnv{ //nolint:gosec // Synthetic test pull secret uses token:test.
 			InfraEnv: models.InfraEnv{
 				ID:            &infraEnvID,
 				ClusterID:     clusterID,

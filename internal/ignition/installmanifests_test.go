@@ -41,7 +41,7 @@ var hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"cu
 
 func testCluster() *common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
-	return &common.Cluster{
+	return &common.Cluster{ //nolint:gosec // Synthetic test pull secret uses token:test.
 		PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		Cluster: models.Cluster{
 			ID: &clusterID,
