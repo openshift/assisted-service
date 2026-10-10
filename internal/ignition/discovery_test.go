@@ -103,7 +103,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		mockOcRelease = oc.NewMockRelease(ctrl)
 		mockVersionHandler = versions.NewMockHandler(ctrl)
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{
+		cluster = &common.Cluster{ //nolint:gosec // Test-only pull secret uses the synthetic token:test credential.
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 			Cluster: models.Cluster{
 				ID: &clusterID,
@@ -113,7 +113,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
-		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ //nolint:gosec // Test-only pull secret uses the synthetic token:test credential.
 			ID:            &infraEnvID,
 			ClusterID:     clusterID,
 			PullSecretSet: false,
@@ -131,7 +131,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{
+			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{ //nolint:gosec // Test-only pull secret uses the synthetic token:test credential.
 				ID:            &infraEnvID,
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
