@@ -907,8 +907,8 @@ arches:
     name: nmstate-devel
     evr: 1.4.6-4.el8_10
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/aarch64/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
-    repoid: ubi-8-baseos-rpms
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
+    repoid: rhel-8-for-aarch64-baseos-rpms
     size: 566324
     checksum: sha256:01bfbadab99667b5a99af113bd034f8a2c6538dcf986a407c4648072357b4f73
     name: tzdata
@@ -1825,8 +1825,8 @@ arches:
     name: nmstate-devel
     evr: 1.4.6-4.el8_10
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
-  - url: https://cdn-ubi.redhat.com/content/public/ubi/dist/ubi8/8/ppc64le/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
-    repoid: ubi-8-baseos-rpms
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/t/tzdata-2026e-1.el8_10.noarch.rpm
+    repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 566324
     checksum: sha256:01bfbadab99667b5a99af113bd034f8a2c6538dcf986a407c4648072357b4f73
     name: tzdata
