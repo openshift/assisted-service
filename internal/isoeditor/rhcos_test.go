@@ -186,7 +186,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 		}{
 			{
 				description: "with urlencoded special characters",
-				clusterProxyInfo: ClusterProxyInfo{
+				clusterProxyInfo: ClusterProxyInfo{ //nolint:gosec // Synthetic proxy credentials exercise URL parsing.
 					HTTPProxy:  "http://user%40example.com:pas%25word%5D@10.10.1.1:3128",
 					HTTPSProxy: "https://user%40example.com:pas%25word%5D@10.10.1.1:3128",
 					NoProxy:    "quay.io",
