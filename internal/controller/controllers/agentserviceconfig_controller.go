@@ -3132,6 +3132,18 @@ func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 
 		injectImagePullSecretsWhenNonOCP(ctx, &deployment.Spec.Template, asc)
 
+		if asc.rec.NodeSelector != nil {
+			deployment.Spec.Template.Spec.NodeSelector = asc.rec.NodeSelector
+		} else {
+			deployment.Spec.Template.Spec.NodeSelector = map[string]string{}
+		}
+
+		if asc.rec.Tolerations != nil {
+			deployment.Spec.Template.Spec.Tolerations = asc.rec.Tolerations
+		} else {
+			deployment.Spec.Template.Spec.Tolerations = []corev1.Toleration{}
+		}
+
 		return nil
 	}
 	return deployment, mutateFn, nil
