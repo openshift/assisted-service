@@ -474,9 +474,9 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 		})
 		if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
-			return ctrl.Result{Requeue: true}, statusErr
+			return ctrl.Result{}, statusErr
 		}
-		return ctrl.Result{Requeue: true}, err
+		return ctrl.Result{}, err
 	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, asc.Client, obj, mutateFn); err != nil {
@@ -490,12 +490,12 @@ func reconcileComponent(ctx context.Context, log *logrus.Entry, asc ASC, compone
 		})
 		if statusErr := asc.Client.Status().Update(ctx, asc.Object); statusErr != nil {
 			log.WithError(err).Error("Failed to update status")
-			return ctrl.Result{Requeue: true}, statusErr
+			return ctrl.Result{}, statusErr
 		}
 	} else if result != controllerutil.OperationResultNone {
 		log.Info(component.name + " created")
 	}
-	return ctrl.Result{Requeue: false}, nil
+	return ctrl.Result{}, nil
 }
 
 func ensureFinalizers(ctx context.Context, log logrus.FieldLogger, asc ASC, finalizerName string) error {
