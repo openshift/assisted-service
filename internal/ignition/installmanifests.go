@@ -410,6 +410,7 @@ func (g *installerGenerator) applyManifestPatches(ctx context.Context) error {
 			}
 			log.Debugf("applied the yaml patch to the manifest at %s: \n %s", manifestPath, string(data[:]))
 
+			//nolint:gosec // Walked entry names are basenames joined under installer-owned directories.
 			err = os.WriteFile(manifestPath, data, 0600)
 			if err != nil {
 				return errors.Wrapf(err, "failed to write manifest \"%s\"", manifestPath)
@@ -455,6 +456,7 @@ func (g *installerGenerator) applyInfrastructureCRPatch(ctx context.Context) err
 	}
 	log.Debugf("applied the yaml patch to the infrastructure manifest at %s: \n %s", infraManifest, string(data[:]))
 
+	//nolint:gosec // This fixed manifest path is under the installer-owned work directory.
 	err = os.WriteFile(infraManifest, data, 0600)
 	if err != nil {
 		return errors.Wrapf(err, "failed to write Infrastructure Manifest \"%s\"", infraManifest)
