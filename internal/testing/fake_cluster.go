@@ -25,6 +25,7 @@ import (
 	wtch "k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/retry"
 	apiregv1 "k8s.io/kube-aggregator/pkg/apis/apiregistration/v1"
 	clnt "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -173,13 +174,30 @@ func (c *FakeCluster) watchStatefulSets() wtch.Interface {
 			case wtch.Added:
 				object, ok := event.Object.(*appsv1.StatefulSet)
 				Expect(ok).To(BeTrue())
-				replicas := *object.Spec.Replicas
-				object.Status.Replicas = replicas
-				object.Status.ReadyReplicas = replicas
-				object.Status.CurrentReplicas = replicas
-				object.Status.UpdatedReplicas = replicas
-				err = c.client.Status().Update(context.Background(), object)
+				key := clnt.ObjectKeyFromObject(object)
+				var replicas int32
+				updated := false
+				err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+					statefulSet := &appsv1.StatefulSet{}
+					if err := c.client.Get(context.Background(), key, statefulSet); err != nil {
+						return clnt.IgnoreNotFound(err)
+					}
+
+					replicas = *statefulSet.Spec.Replicas
+					statefulSet.Status.Replicas = replicas
+					statefulSet.Status.ReadyReplicas = replicas
+					statefulSet.Status.CurrentReplicas = replicas
+					statefulSet.Status.UpdatedReplicas = replicas
+					if err := c.client.Status().Update(context.Background(), statefulSet); err != nil {
+						return err
+					}
+					updated = true
+					return nil
+				})
 				Expect(err).ToNot(HaveOccurred())
+				if !updated {
+					continue
+				}
 				c.logger.Info(
 					"Updated stateful set",
 					"namespace", object.Namespace,
