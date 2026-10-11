@@ -10,6 +10,8 @@ packages:
   - gcc
   - git
   - openssl-devel  
+upgradePackages:
+  - tzdata
 arches:
   - aarch64
   - x86_64
