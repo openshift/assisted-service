@@ -33,3 +33,5 @@ require (
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
 replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+
+replace golang.org/x/net => golang.org/x/net v0.55.0
