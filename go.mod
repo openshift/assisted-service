@@ -173,9 +173,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.21.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	k8s.io/apiserver v0.29.5 // indirect
 	k8s.io/cli-runtime v0.29.9 // indirect
 	k8s.io/component-base v0.29.9 // indirect
