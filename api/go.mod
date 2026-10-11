@@ -107,3 +107,5 @@ replace go.opentelemetry.io/otel => go.opentelemetry.io/otel v1.41.0
 replace go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.43.0
 
 replace github.com/moby/spdystream => github.com/moby/spdystream v0.5.1
+
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
