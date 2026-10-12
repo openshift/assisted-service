@@ -486,6 +486,7 @@ func (w *WireMock) CreateStubToken(testToken string) (string, error) {
 	}
 
 	var resBody []byte
+	//nolint:gosec // The mock response contains synthetic token credentials.
 	resBody, err := json.Marshal(tokenResponse)
 	if err != nil {
 		return "", err
