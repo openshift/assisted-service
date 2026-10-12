@@ -1,8 +1,6 @@
 module github.com/openshift/assisted-service/api
 
-go 1.25.0
-
-toolchain go1.25.11
+go 1.26.0
 
 require (
 	github.com/itchyny/gojq v0.12.8
