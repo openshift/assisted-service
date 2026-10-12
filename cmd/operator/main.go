@@ -129,17 +129,23 @@ func main() {
 
 	restCfg := ctrl.GetConfigOrDie()
 
-	tlsCfg, err := tlsconfig.FetchTLSConfig(context.Background(), restCfg)
+	kubeClient, err := client.New(restCfg, client.Options{Scheme: scheme})
+	if err != nil {
+		setupLog.Error(err, "failed to initialize client")
+		os.Exit(1)
+	}
+	isOpenShift, err := controllers.ServerIsOpenShift(context.Background(), kubeClient)
+	if err != nil {
+		setupLog.Error(err, "failed to check server")
+		os.Exit(1)
+	}
+
+	tlsResult, err := tlsconfig.ResolveTLSConfig(context.Background(), restCfg, isOpenShift)
 	if err != nil {
 		setupLog.Error(err, "unable to fetch TLS config from APIServer")
 		os.Exit(1)
 	}
-	tlsOpts := []func(*tls.Config){
-		func(cfg *tls.Config) {
-			cfg.MinVersion = tlsCfg.MinVersion
-			cfg.CipherSuites = tlsCfg.CipherSuites
-		},
-	}
+	tlsOpts := []func(*tls.Config){tlsResult.TLSConfig}
 
 	mgr, err := ctrl.NewManager(restCfg, ctrl.Options{
 		Scheme: scheme,
@@ -212,16 +218,6 @@ func main() {
 	}
 	spokeClientCache := controllers.NewSpokeClientCache(spokeClientFactory)
 
-	c, err := client.New(mgr.GetConfig(), client.Options{Scheme: mgr.GetScheme()})
-	if err != nil {
-		log.WithError(err).Error("failed to initialize client")
-		os.Exit(1)
-	}
-	isOpenShift, err := controllers.ServerIsOpenShift(context.Background(), c)
-	if err != nil {
-		log.WithError(err).Error("failed to check server ")
-		os.Exit(1)
-	}
 	introspector := getPodIntrospector(log, mgr)
 	if err = (&controllers.AgentServiceConfigReconciler{
 		AgentServiceConfigReconcileContext: controllers.AgentServiceConfigReconcileContext{
@@ -281,7 +277,7 @@ func main() {
 	// The APIServer resource only exists on OpenShift, so there is no
 	// cluster-wide TLS profile to watch on other Kubernetes flavors.
 	if isOpenShift {
-		if err := tlsconfig.WatchForTLSProfileChanges(ctx, restCfg, cancel); err != nil {
+		if err := tlsconfig.SetupSecurityProfileWatcher(mgr, tlsResult, cancel); err != nil {
 			setupLog.Error(err, "unable to start TLS profile watcher")
 			os.Exit(1)
 		}

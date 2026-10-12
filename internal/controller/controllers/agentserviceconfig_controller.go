@@ -1542,12 +1542,13 @@ func newAssistedCM(ctx context.Context, log logrus.FieldLogger, asc ASC) (client
 			cm.Data["HTTPS_KEY_FILE"] = "/etc/assisted-tls-config/tls.key"
 			cm.Data["SERVICE_CA_CERT_PATH"] = "/etc/assisted-ingress-cert/ca-bundle.crt"
 			if asc.rec.RestConfig != nil {
-				minVersion, cipherSuites, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
+				args, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
 				if err != nil {
 					log.WithError(err).Warn("unable to fetch TLS profile for assisted-service, skipping TLS configuration")
 				} else {
-					cm.Data["TLS_MIN_VERSION"] = minVersion
-					cm.Data["TLS_CIPHER_SUITES"] = strings.Join(cipherSuites, ",")
+					for key, value := range args.Env() {
+						cm.Data[key] = value
+					}
 				}
 			}
 		} else {
@@ -1696,14 +1697,13 @@ func newImageServiceStatefulSet(ctx context.Context, log logrus.FieldLogger, asc
 			corev1.EnvVar{Name: "HTTP_LISTEN_PORT", Value: imageHandlerHTTPPort.String()},
 		)
 		if asc.rec.RestConfig != nil {
-			minVersion, cipherSuites, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
+			args, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
 			if err != nil {
 				log.WithError(err).Warning("unable to fetch TLS profile for image-service, using defaults")
 			} else {
-				containerEnv = append(containerEnv,
-					corev1.EnvVar{Name: "TLS_MIN_VERSION", Value: minVersion},
-					corev1.EnvVar{Name: "TLS_CIPHER_SUITES", Value: strings.Join(cipherSuites, ",")},
-				)
+				for name, value := range args.Env() {
+					containerEnv = append(containerEnv, corev1.EnvVar{Name: name, Value: value})
+				}
 			}
 		}
 		volumeMounts = append(volumeMounts,
@@ -3042,14 +3042,11 @@ func newWebHookDeployment(ctx context.Context, log logrus.FieldLogger, asc ASC) 
 	}
 
 	if asc.rec.IsOpenShift && asc.rec.RestConfig != nil {
-		minVersion, cipherSuites, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
+		args, err := tlsconfig.FetchTLSCLIArgs(ctx, asc.rec.RestConfig)
 		if err != nil {
 			log.WithError(err).Warning("unable to fetch TLS profile for webhook, using defaults")
 		} else {
-			command = append(command, fmt.Sprintf("--tls-min-version=%s", minVersion))
-			if len(cipherSuites) > 0 {
-				command = append(command, fmt.Sprintf("--tls-cipher-suites=%s", strings.Join(cipherSuites, ",")))
-			}
+			command = append(command, args.Flags()...)
 		}
 	}
 
