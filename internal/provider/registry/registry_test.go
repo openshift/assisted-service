@@ -686,7 +686,7 @@ func createClusterFromHosts(hosts []*models.Host) common.Cluster {
 }
 
 func getInstallerConfigBaremetal() installcfg.InstallerConfigBaremetal {
-	return installcfg.InstallerConfigBaremetal{
+	return installcfg.InstallerConfigBaremetal{ //nolint:gosec // This fixture uses a synthetic pull secret.
 		APIVersion: "v1",
 		BaseDomain: "test.base.domain",
 		Networking: struct {
