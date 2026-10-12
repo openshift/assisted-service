@@ -1120,10 +1120,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 	updateString(clusterInstall.Spec.OSStream, cluster.OsStream, &params.OsStream)
 
-	if len(clusterInstall.Spec.NTPSources) > 0 {
-		ntpSources := strings.Join(clusterInstall.Spec.NTPSources, ",")
-		updateString(ntpSources, cluster.NtpSources, &params.NtpSources)
-	}
+	updateString(strings.Join(clusterInstall.Spec.NTPSources, ","), cluster.NtpSources, &params.NtpSources)
 
 	// Update ignition endpoint if needed
 	shouldUpdate, err := r.updateIgnitionInUpdateParams(ctx, log, clusterInstall, cluster, params)

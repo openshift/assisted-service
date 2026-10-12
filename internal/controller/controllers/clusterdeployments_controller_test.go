@@ -3646,6 +3646,46 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
 		})
 
+		It("remove ntpSources from spec clears ntpSources in backend", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:               &sId,
+					Name:             clusterName,
+					OpenshiftVersion: "4.8",
+					ClusterNetworks:  clusterNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ClusterNetwork),
+					ServiceNetworks:  serviceNetworksEntriesToArray(defaultAgentClusterInstallSpec.Networking.ServiceNetwork),
+					NetworkType:      swag.String(models.ClusterNetworkTypeOpenShiftSDN),
+					Status:           swag.String(models.ClusterStatusInsufficient),
+					IngressVips:      common.TestIPv4Networking.IngressVips,
+					APIVips:          common.TestIPv4Networking.APIVips,
+					BaseDNSDomain:    defaultClusterSpec.BaseDomain,
+					SSHPublicKey:     defaultAgentClusterInstallSpec.SSHPublicKey,
+					NtpSources:       "old-ntp.example.com",
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+			updateReply := getDefaultTestCluster()
+
+			mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+					Expect(param.ClusterUpdateParams.NtpSources).To(Equal(swag.String("")))
+				}).Return(updateReply, nil)
+
+			aci.Spec.NTPSources = nil
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+		})
+
 		It("update disk encryption configuration", func() {
 			tangServersConfig := `[{"URL":"http://tang.example.com:7500","Thumbprint":"PLjNyRdGw03zlRoGjQYMahSZGu9"}]`
 			backEndCluster := &common.Cluster{
