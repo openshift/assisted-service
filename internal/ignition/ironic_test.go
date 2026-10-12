@@ -26,7 +26,7 @@ var _ = Describe("GenerateIronicConfig", func() {
 				ID:            &infraEnvID,
 				PullSecretSet: false,
 			},
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 		}
 	})
 	It("GenerateIronicConfig override default ironic agent image", func() {
