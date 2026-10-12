@@ -796,7 +796,7 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
 
 		Expect(err).NotTo(Succeed())
-		Expect(result).NotTo(Equal(ctrl.Result{}))
+		Expect(result).To(Equal(ctrl.Result{}))
 
 		instance := &aiv1beta1.AgentServiceConfig{}
 		err = ascr.Get(ctx, types.NamespacedName{Name: "agent"}, instance)
