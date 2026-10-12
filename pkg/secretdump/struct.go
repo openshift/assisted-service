@@ -41,7 +41,7 @@ func dumpSecretStructInternal(obj interface{}, sb *strings.Builder, depth int) {
 				value := field.Interface()
 				if field.Kind() == reflect.Struct {
 					dumpSecretStructInternal(value, sb, depth+1)
-				} else if field.Kind() == reflect.Ptr {
+				} else if field.Kind() == reflect.Pointer {
 					sb.WriteString(fmt.Sprintf("<%T>", value))
 				} else {
 					sb.WriteString(fmt.Sprintf("%#v", value))

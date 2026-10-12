@@ -42,7 +42,7 @@ var hostInventory = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"cu
 func testCluster() *common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
 	return &common.Cluster{
-		PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		PullSecret: syntheticTestCloudPullSecret,
 		Cluster: models.Cluster{
 			ID: &clusterID,
 			MachineNetworks: []*models.MachineNetwork{{
@@ -1907,7 +1907,7 @@ var _ = Describe("Import Cluster TLS Certs for ephemeral installer", func() {
 		db, dbName = common.PrepareTestDB()
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
-			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			PullSecret: syntheticTestCloudPullSecret,
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MachineNetworks: []*models.MachineNetwork{{
