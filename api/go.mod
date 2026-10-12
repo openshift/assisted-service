@@ -48,8 +48,6 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.mongodb.org/mongo-driver v1.17.10 // indirect
-	go.mongodb.org/mongo-driver v1.12.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.55.0 // indirect
