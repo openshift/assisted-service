@@ -1,7 +1,9 @@
 module github.com/openshift/assisted-service/api
 
 go 1.26.0
+
 toolchain go1.26.7
+
 require (
 	github.com/itchyny/gojq v0.12.8
 	github.com/onsi/ginkgo v1.16.5
@@ -16,6 +18,8 @@ require (
 	sigs.k8s.io/controller-runtime v0.13.1
 	sigs.k8s.io/yaml v1.4.0
 )
+
+require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -59,8 +63,6 @@ require (
 	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/matttproud/golang_protobuf_extensions/v2 v2.0.0 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
@@ -97,11 +99,18 @@ require (
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+)
+
 replace (
 	github.com/openshift/assisted-service/models => ../models
 	golang.org/x/net => golang.org/x/net v0.24.0
 	sigs.k8s.io/controller-runtime => sigs.k8s.io/controller-runtime v0.17.3
+)
+
 replace github.com/golang/glog => github.com/golang/glog v1.2.4
+
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+
 replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+
 replace google.golang.org/grpc => google.golang.org/grpc v1.83.1
