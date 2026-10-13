@@ -35,21 +35,11 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/lib/pq v1.10.9 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-<<<<<<< HEAD
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/oklog/ulid v1.3.1 // indirect
-	go.mongodb.org/mongo-driver v1.17.10 // indirect
-||||||| parent of 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
-	github.com/oklog/ulid v1.3.1 // indirect
-	go.mongodb.org/mongo-driver v1.12.0 // indirect
-=======
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
->>>>>>> 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.24.5 // indirect

@@ -173,17 +173,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.21.0 // indirect
 	go.starlark.net v0.0.0-20230525235612-a134d8f9ddca // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
-<<<<<<< HEAD
+	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
-||||||| parent of 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
-	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
-=======
-	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
->>>>>>> 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
 	k8s.io/apiserver v0.29.5 // indirect
 	k8s.io/cli-runtime v0.29.9 // indirect
 	k8s.io/component-base v0.29.9 // indirect
@@ -261,12 +253,6 @@ require (
 	go.etcd.io/etcd/api/v3 v3.5.11 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.11 // indirect
 	go.etcd.io/etcd/client/v3 v3.5.11 // indirect
-<<<<<<< HEAD
-	go.mongodb.org/mongo-driver v1.17.10 // indirect
-||||||| parent of 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
-	go.mongodb.org/mongo-driver v1.14.0 // indirect
-=======
->>>>>>> 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.46.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.61.0 // indirect
 	go.opentelemetry.io/otel v1.44.0 // indirect

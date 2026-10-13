@@ -107,27 +107,6 @@ github.com/oklog/ulid/v2
 ## explicit; go 1.26.0
 github.com/openshift/assisted-service/models
 github.com/openshift/assisted-service/models/validations
-<<<<<<< HEAD
-# go.mongodb.org/mongo-driver v1.17.10
-## explicit; go 1.18
-go.mongodb.org/mongo-driver/bson
-go.mongodb.org/mongo-driver/bson/bsoncodec
-go.mongodb.org/mongo-driver/bson/bsonoptions
-go.mongodb.org/mongo-driver/bson/bsonrw
-go.mongodb.org/mongo-driver/bson/bsontype
-go.mongodb.org/mongo-driver/bson/primitive
-go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-||||||| parent of 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
-# go.mongodb.org/mongo-driver v1.12.0
-## explicit; go 1.13
-go.mongodb.org/mongo-driver/bson
-go.mongodb.org/mongo-driver/bson/bsoncodec
-go.mongodb.org/mongo-driver/bson/bsonoptions
-go.mongodb.org/mongo-driver/bson/bsonrw
-go.mongodb.org/mongo-driver/bson/bsontype
-go.mongodb.org/mongo-driver/bson/primitive
-go.mongodb.org/mongo-driver/x/bsonx/bsoncore
-=======
 # github.com/rogpeppe/go-internal v1.16.0
 ## explicit; go 1.25
 # go.yaml.in/yaml/v3 v3.0.4
@@ -142,7 +121,6 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
->>>>>>> 1eaa0ce7f (ACM-44922: CVE-2026-88031 Bump github.com/go-openapi/loads, github.com/go-openapi/analysis, github.com/go-openapi/validate, github.com/go-openapi/strfmt to fix CVE-2026-88031 through introducers update)
 # gopkg.in/yaml.v2 v2.4.0
 ## explicit; go 1.15
 gopkg.in/yaml.v2
