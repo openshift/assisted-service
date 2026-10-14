@@ -2343,3 +2343,4 @@ sigs.k8s.io/yaml/goyaml.v2
 # sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
 # sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 # github.com/containerd/containerd => github.com/containerd/containerd v1.7.33
+# go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.17.10
