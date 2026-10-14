@@ -235,12 +235,12 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.50-aarch64",
 		},
 		"4.20": {
-			Version: "4.20.41",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.41-aarch64",
+			Version: "4.20.42",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.42-aarch64",
 		},
 		"4.21": {
-			Version: "4.21.36",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.36-aarch64",
+			Version: "4.21.37",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.37-aarch64",
 		},
 		"4.22": {
 			Version: "4.22.17",
@@ -281,12 +281,12 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.50-multi",
 		},
 		"4.20": {
-			Version: "4.20.41-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.41-multi",
+			Version: "4.20.42-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.42-multi",
 		},
 		"4.21": {
-			Version: "4.21.36-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.36-multi",
+			Version: "4.21.37-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.37-multi",
 		},
 		"4.22": {
 			Version: "4.22.17-multi",
@@ -335,12 +335,12 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.19.50-x86_64",
 		},
 		"4.20": {
-			Version: "4.20.41",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.41-x86_64",
+			Version: "4.20.42",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.20.42-x86_64",
 		},
 		"4.21": {
-			Version: "4.21.36",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.36-x86_64",
+			Version: "4.21.37",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.21.37-x86_64",
 		},
 		"4.22": {
 			Version: "4.22.17",
