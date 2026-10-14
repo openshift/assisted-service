@@ -301,3 +301,5 @@ replace (
 )
 
 replace github.com/containerd/containerd => github.com/containerd/containerd v1.7.33
+
+replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.17.10
