@@ -2,6 +2,7 @@ package builder
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/provider/registry"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"go.uber.org/mock/gomock"
@@ -28,6 +30,7 @@ var (
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	providerRegistry                  registry.ProviderRegistry
 	ctrl                              *gomock.Controller
+	mockSystemInfo                    *system.MockSystemInfo
 )
 
 func createInstallConfigBuilder() *installConfigBuilder {
@@ -35,10 +38,20 @@ func createInstallConfigBuilder() *installConfigBuilder {
 
 	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	providerRegistry = registry.InitProviderRegistry(common.GetTestLog())
+	mockSystemInfo = system.NewMockSystemInfo(ctrl)
 	return &installConfigBuilder{
 		log:                     common.GetTestLog(),
 		mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder,
-		providerRegistry:        providerRegistry}
+		providerRegistry:        providerRegistry,
+		systemInfo:              mockSystemInfo}
+}
+
+// createEphemeralInstallConfigBuilder returns a builder configured as the
+// agent-based installer, where the host's FIPS state describes the cluster.
+func createEphemeralInstallConfigBuilder() *installConfigBuilder {
+	b := createInstallConfigBuilder()
+	b.isEphemeral = true
+	return b
 }
 
 var _ = Describe("installcfg", func() {
@@ -1327,3 +1340,92 @@ func TestBuilder(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "installcfg tests")
 }
+
+var _ = Describe("FIPS auto-detection", func() {
+	var (
+		cluster       common.Cluster
+		installConfig *installConfigBuilder
+	)
+
+	BeforeEach(func() {
+		installConfig = createInstallConfigBuilder()
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).AnyTimes()
+
+		id := strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:               &id,
+			OpenshiftVersion: "4.19",
+			BaseDNSDomain:    "example.com",
+			APIVips:          []*models.APIVip{{IP: "102.345.34.34", ClusterID: id}},
+			IngressVips:      []*models.IngressVip{{IP: "22.334.454.4", ClusterID: id}},
+			ImageInfo:        &models.ImageInfo{},
+			Platform:         &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeBaremetal)},
+			ClusterNetworks:  []*models.ClusterNetwork{{Cidr: "1.3.0.0/16", HostPrefix: 24}},
+			ServiceNetworks:  []*models.ServiceNetwork{{Cidr: "1.2.5.0/24"}},
+			MachineNetworks:  []*models.MachineNetwork{{Cidr: "1.2.3.0/24"}},
+			NetworkType:      swag.String(models.ClusterNetworkTypeOVNKubernetes),
+		}}
+		cluster.Hosts = []*models.Host{{
+			Inventory: getInventoryStr("hostname0", "bootMode", true, false),
+			Role:      models.HostRoleMaster,
+		}}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("sets fips when the agent-based installer runs on a FIPS host", func() {
+		installConfig.isEphemeral = true
+		mockSystemInfo.EXPECT().FIPSEnabled().Return(true, nil).Times(1)
+
+		result, err := installConfig.getBasicInstallConfig(&cluster)
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FIPS).To(BeTrue())
+	})
+
+	It("does not set fips when the agent-based installer runs on a non-FIPS host", func() {
+		installConfig.isEphemeral = true
+		mockSystemInfo.EXPECT().FIPSEnabled().Return(false, nil).Times(1)
+
+		result, err := installConfig.getBasicInstallConfig(&cluster)
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FIPS).To(BeFalse())
+	})
+
+	It("never inspects the host when not the agent-based installer", func() {
+		// On a FIPS-enabled MCE hub or in SaaS the host says nothing about the
+		// cluster being created. Detecting there would turn every spoke FIPS.
+		mockSystemInfo.EXPECT().FIPSEnabled().Times(0)
+
+		result, err := installConfig.getBasicInstallConfig(&cluster)
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FIPS).To(BeFalse())
+	})
+
+	It("treats an unreadable fips_enabled as not enabled", func() {
+		installConfig.isEphemeral = true
+		mockSystemInfo.EXPECT().FIPSEnabled().Return(false, errors.New("permission denied")).Times(1)
+
+		result, err := installConfig.getBasicInstallConfig(&cluster)
+
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.FIPS).To(BeFalse())
+	})
+
+	It("lets an explicit install-config override win over host detection", func() {
+		installConfig.isEphemeral = true
+		mockSystemInfo.EXPECT().FIPSEnabled().Return(true, nil).Times(1)
+		cluster.InstallConfigOverrides = `{"fips": false}`
+
+		data, err := installConfig.GetInstallConfig(&cluster, []*common.InfraEnv{}, "")
+
+		Expect(err).ShouldNot(HaveOccurred())
+		var result installcfg.InstallerConfigBaremetal
+		Expect(json.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
+		Expect(result.FIPS).To(BeFalse())
+	})
+})
