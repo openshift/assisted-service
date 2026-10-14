@@ -92,13 +92,13 @@ var _ = Describe("RamdiskImageArchive", func() {
 			clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 		Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 	})
-	It("returns nothing when given nothing - ocp versions less than MinimalVersionForNmstatectl", func() {
+	It("returns network sysctl tuning when given nothing - ocp versions less than MinimalVersionForNmstatectl", func() {
 		archive, err := RamdiskImageArchive(
 			[]staticnetworkconfig.StaticNetworkConfigData{},
 			&ClusterProxyInfo{},
 			constants.PreNetworkConfigScript, constants.MinimalISONetworkConfigService)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(archive).To(BeNil())
+		expectNetworkSysctlTuningInArchive(archive)
 	})
 
 	It("adds a new archive correctly - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
@@ -205,7 +205,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 		}
 		Fail("pre-network-manager-config.service not found in archive")
 	})
-	It("returns nothing when given nothing - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
+	It("returns network sysctl tuning when given nothing - ocp versions greater than/ equal to MinimalVersionForNmstatectl", func() {
 		serviceContent, err := common.FormatMinimalISONetworkConfigServiceNmstatectl(0)
 		Expect(err).ToNot(HaveOccurred())
 		archive, err := RamdiskImageArchive(
@@ -213,7 +213,7 @@ var _ = Describe("RamdiskImageArchive", func() {
 			&ClusterProxyInfo{},
 			constants.PreNetworkConfigScriptWithNmstatectl, serviceContent)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(archive).To(BeNil())
+		expectNetworkSysctlTuningInArchive(archive)
 	})
 
 	It("handles authenticated proxy with and without urlencoded special characters", func() {
@@ -278,3 +278,35 @@ var _ = Describe("RamdiskImageArchive", func() {
 		}
 	})
 })
+
+func expectNetworkSysctlTuningInArchive(archive []byte) {
+	gzipReader, err := gzip.NewReader(bytes.NewReader(archive))
+	Expect(err).ToNot(HaveOccurred())
+
+	var scriptContent, serviceContent, serviceLink string
+	r := cpio.NewReader(gzipReader)
+	for {
+		hdr, err := r.Next()
+		if err == io.EOF {
+			break
+		}
+		Expect(err).ToNot(HaveOccurred())
+		switch hdr.Name {
+		case "/usr/local/bin/assisted-network-sysctl.sh":
+			content, err := io.ReadAll(r)
+			Expect(err).ToNot(HaveOccurred())
+			scriptContent = string(content)
+		case "/etc/systemd/system/assisted-network-sysctl.service":
+			content, err := io.ReadAll(r)
+			Expect(err).ToNot(HaveOccurred())
+			serviceContent = string(content)
+		case "/etc/systemd/system/initrd.target.wants/assisted-network-sysctl.service":
+			Expect(hdr.Mode & cpio.ModeSymlink).ToNot(BeZero())
+			serviceLink = hdr.Linkname
+		}
+	}
+
+	Expect(scriptContent).To(Equal(constants.NetworkSysctlTuningScript))
+	Expect(serviceContent).To(Equal(constants.NetworkSysctlTuningService))
+	Expect(serviceLink).To(Equal("/etc/systemd/system/assisted-network-sysctl.service"))
+}
