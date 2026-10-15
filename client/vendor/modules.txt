@@ -104,7 +104,7 @@ github.com/mailru/easyjson/jwriter
 ## explicit; go 1.15
 github.com/oklog/ulid/v2
 # github.com/openshift/assisted-service/models v0.0.0 => ../models
-## explicit; go 1.26.0
+## explicit; go 1.25.0
 github.com/openshift/assisted-service/models
 github.com/openshift/assisted-service/models/validations
 # github.com/rogpeppe/go-internal v1.16.0
