@@ -10,6 +10,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/openshift/assisted-service/internal/common"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -97,9 +98,21 @@ func (a *Api) V2TriggerEvent(ctx context.Context, params events.V2TriggerEventPa
 func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 
-	// Merge deprecated HostID into HostIds before scope enforcement
-	if params.HostID != nil {
-		params.HostIds = append(params.HostIds, *params.HostID)
+	// Merge and normalize host IDs before using them for scope checks or queries.
+	if len(params.HostIds) > 0 || params.HostID != nil {
+		hostIds := make([]strfmt.UUID, 0, len(params.HostIds)+1)
+		hostIds = append(hostIds, params.HostIds...)
+		if params.HostID != nil {
+			hostIds = append(hostIds, *params.HostID)
+		}
+		for i, id := range hostIds {
+			parsed, err := uuid.Parse(id.String())
+			if err != nil {
+				return common.NewApiError(http.StatusBadRequest, fmt.Errorf("invalid host ID: %w", err))
+			}
+			hostIds[i] = strfmt.UUID(parsed.String())
+		}
+		params.HostIds = hostIds
 	}
 
 	if err := a.enforceEventsScopeFromPayload(ctx, params); err != nil {
@@ -118,6 +131,13 @@ func (a *Api) V2ListEvents(ctx context.Context, params events.V2ListEventsParams
 		DeletedHosts: params.DeletedHosts,
 		ClusterLevel: params.ClusterLevel,
 		Categories:   params.Categories,
+	}
+
+	// Host IDs can have event history in multiple InfraEnvs. Always constrain
+	// event rows to the token's InfraEnv, including host-only requests.
+	if payload := ocm.PayloadFromContext(ctx); payload.ResourceType == gencrypto.InfraEnvKey {
+		infraEnvID := strfmt.UUID(payload.ResourceID)
+		V2getEventsParams.InfraEnvID = &infraEnvID
 	}
 
 	response, err := a.handler.V2GetEvents(ctx, &V2getEventsParams)
@@ -181,14 +201,19 @@ func (a *Api) enforceEventsScopeFromPayload(ctx context.Context, params events.V
 
 	switch payload.ResourceType {
 	case gencrypto.InfraEnvKey:
-		if params.InfraEnvID != nil {
-			if payload.ResourceID != params.InfraEnvID.String() {
-				return deny("Events scope mismatch: query infra_env_id=%s", params.InfraEnvID)
-			}
-			return allow()
+		// Cluster filtering takes precedence over InfraEnv filtering in the
+		// event query, so an InfraEnv token must not select a cluster.
+		if params.ClusterID != nil {
+			return deny("Events scope rejected: infra_env_id token cannot query cluster_id=%s", params.ClusterID)
+		}
+		if params.InfraEnvID != nil && payload.ResourceID != params.InfraEnvID.String() {
+			return deny("Events scope mismatch: query infra_env_id=%s", params.InfraEnvID)
 		}
 		if len(params.HostIds) > 0 {
 			return a.verifyHostsBelongToInfraEnv(payload.ResourceID, params.HostIds)
+		}
+		if params.InfraEnvID != nil {
+			return allow()
 		}
 		return deny("Events scope rejected: infra_env_id token requires infra_env_id or host_ids filter")
 
@@ -213,9 +238,13 @@ func (a *Api) enforceEventsScopeFromPayload(ctx context.Context, params events.V
 
 func (a *Api) verifyHostsBelongToInfraEnv(infraEnvID string, hostIds []strfmt.UUID) middleware.Responder {
 	resourceType := gencrypto.InfraEnvKey
-	hostIdStrings := make([]string, len(hostIds))
-	for i, id := range hostIds {
-		hostIdStrings[i] = id.String()
+	hostIdStrings := make([]string, 0, len(hostIds))
+	seen := make(map[strfmt.UUID]struct{}, len(hostIds))
+	for _, id := range hostIds {
+		if _, exists := seen[id]; !exists {
+			hostIdStrings = append(hostIdStrings, id.String())
+			seen[id] = struct{}{}
+		}
 	}
 	var count int64
 	err := a.db.Model(&common.Host{}).
@@ -229,12 +258,12 @@ func (a *Api) verifyHostsBelongToInfraEnv(infraEnvID string, hostIds []strfmt.UU
 		a.recordScopeCheck(resourceType, "denied")
 		return common.NewApiError(http.StatusInternalServerError, fmt.Errorf("failed to verify host ownership"))
 	}
-	if count != int64(len(hostIds)) {
+	if count != int64(len(hostIdStrings)) {
 		a.log.WithFields(logrus.Fields{
 			"host_ids":     hostIdStrings,
 			"infra_env_id": infraEnvID,
 			"matched":      count,
-			"requested":    len(hostIds),
+			"requested":    len(hostIdStrings),
 		}).Warn("Events scope rejected: not all hosts belong to token's infra_env")
 		a.recordScopeCheck(resourceType, "denied")
 		return common.NewApiError(http.StatusNotFound, fmt.Errorf("Object Not Found"))
