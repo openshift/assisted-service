@@ -219,16 +219,16 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.14.75-aarch64",
 		},
 		"4.16": {
-			Version: "4.16.72",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.72-aarch64",
+			Version: "4.16.73",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.73-aarch64",
 		},
 		"4.17": {
-			Version: "4.17.58",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.58-aarch64",
+			Version: "4.17.59",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.59-aarch64",
 		},
 		"4.18": {
-			Version: "4.18.56",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.56-aarch64",
+			Version: "4.18.57",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.57-aarch64",
 		},
 		"4.19": {
 			Version: "4.19.51",
@@ -247,8 +247,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.18-aarch64",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.6",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.6-aarch64",
+			Version: "5.0.0-rc.7",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-aarch64",
 		},
 	},
 	"multi": {
@@ -265,16 +265,16 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.14.75-multi",
 		},
 		"4.16": {
-			Version: "4.16.72-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.72-multi",
+			Version: "4.16.73-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.73-multi",
 		},
 		"4.17": {
-			Version: "4.17.58-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.58-multi",
+			Version: "4.17.59-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.59-multi",
 		},
 		"4.18": {
-			Version: "4.18.56-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.56-multi",
+			Version: "4.18.57-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.57-multi",
 		},
 		"4.19": {
 			Version: "4.19.51-multi",
@@ -293,8 +293,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.18-multi",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.6-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.6-multi",
+			Version: "5.0.0-rc.7-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-multi",
 		},
 	},
 	"x86_64": {
@@ -311,24 +311,24 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.11.59-x86_64",
 		},
 		"4.13": {
-			Version: "4.13.71",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.13.71-x86_64",
+			Version: "4.13.72",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.13.72-x86_64",
 		},
 		"4.14": {
 			Version: "4.14.75",
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.14.75-x86_64",
 		},
 		"4.16": {
-			Version: "4.16.72",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.72-x86_64",
+			Version: "4.16.73",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.16.73-x86_64",
 		},
 		"4.17": {
-			Version: "4.17.58",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.58-x86_64",
+			Version: "4.17.59",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.17.59-x86_64",
 		},
 		"4.18": {
-			Version: "4.18.56",
-			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.56-x86_64",
+			Version: "4.18.57",
+			URL:     "quay.io/openshift-release-dev/ocp-release:4.18.57-x86_64",
 		},
 		"4.19": {
 			Version: "4.19.51",
@@ -347,8 +347,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.18-x86_64",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.6",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.6-x86_64",
+			Version: "5.0.0-rc.7",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-x86_64",
 		},
 	},
 }
