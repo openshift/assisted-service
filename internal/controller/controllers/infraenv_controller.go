@@ -188,11 +188,11 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 		}
 		updateParams.InfraEnvUpdateParams.Proxy = proxy
 	}
-	if len(infraEnv.Spec.AdditionalNTPSources) > 0 {
-		updateParams.InfraEnvUpdateParams.AdditionalNtpSources = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+	if additionalNtpSources := strings.Join(infraEnv.Spec.AdditionalNTPSources, ","); additionalNtpSources != internalInfraEnv.AdditionalNtpSources {
+		updateParams.InfraEnvUpdateParams.AdditionalNtpSources = swag.String(additionalNtpSources)
 	}
-	if len(infraEnv.Spec.NTPSources) > 0 {
-		updateParams.InfraEnvUpdateParams.NtpSources = swag.String(strings.Join(infraEnv.Spec.NTPSources[:], ","))
+	if ntpSources := strings.Join(infraEnv.Spec.NTPSources, ","); ntpSources != internalInfraEnv.NtpSources {
+		updateParams.InfraEnvUpdateParams.NtpSources = swag.String(ntpSources)
 	}
 	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
 	if imageType != common.ImageTypeValue(internalInfraEnv.Type) {
