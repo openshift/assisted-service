@@ -276,3 +276,5 @@ replace (
 	github.com/openshift/assisted-service/models => ./models
 	golang.org/x/oauth2 => github.com/openshift/golang-oauth2 v0.26.1-0.20250310184649-06a918c6239d
 )
+
+replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.17.10
