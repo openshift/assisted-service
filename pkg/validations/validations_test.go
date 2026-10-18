@@ -94,6 +94,8 @@ var _ = Describe("URL validations", func() {
 			{"http://10.9.8.7:123/config", ""},
 			{"http://[1080::8:800:200c:417a]:123", ""},
 			{"http://[1080::8:800:200c:417a]:123/config", ""},
+			{"https://fd2e:6f44:5dd8:c956::14:31187", ""},
+			{"https://fd2e:6f44:5dd8:c956::14:31187/ignition", ""},
 			{
 				"http://[1080:0:0:0:8:800:200C:417A]:8888 ",
 				"URL 'http://[1080:0:0:0:8:800:200C:417A]:8888 ' format is not valid: parse \"http://[1080:0:0:0:8:800:200C:417A]:8888 \": invalid port \":8888 \" after host",
@@ -127,6 +129,21 @@ var _ = Describe("URL validations", func() {
 					Expect(err.Error()).To(Equal(param.err))
 				}
 			}
+		})
+	})
+
+	Context("NormalizeHTTPURL", func() {
+		It("brackets unbracketed IPv6 ignition URLs", func() {
+			Expect(NormalizeHTTPURL("https://fd2e:6f44:5dd8:c956::14:31187")).
+				To(Equal("https://[fd2e:6f44:5dd8:c956::14]:31187"))
+			Expect(NormalizeHTTPURL("https://fd2e:6f44:5dd8:c956::14:31187/ignition")).
+				To(Equal("https://[fd2e:6f44:5dd8:c956::14]:31187/ignition"))
+		})
+
+		It("leaves IPv4 and already bracketed IPv6 URLs unchanged", func() {
+			Expect(NormalizeHTTPURL("https://1.2.3.4:555/ignition")).To(Equal("https://1.2.3.4:555/ignition"))
+			Expect(NormalizeHTTPURL("http://[1080::8:800:200c:417a]:123/config")).
+				To(Equal("http://[1080::8:800:200c:417a]:123/config"))
 		})
 	})
 
