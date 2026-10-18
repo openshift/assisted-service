@@ -306,3 +306,5 @@ replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
 replace github.com/jackc/pgx/v5 => github.com/jackc/pgx/v5 v5.9.0
 
 replace github.com/moby/go-archive => github.com/moby/go-archive v0.3.0
+
+replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.17.10
