@@ -3,6 +3,7 @@ package ignition
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -40,6 +41,7 @@ type DisconnectedIgnitionGenerator struct {
 }
 
 const nmStateConfigInfraEnvLabelKey = "agent-install.openshift.io/infraenv-id"
+const nmstateConfigIgnitionPath = "/etc/assisted/manifests/nmstateconfig.yaml"
 
 func NewDisconnectedIgnitionGenerator(
 	executer executer.Executer,
@@ -79,7 +81,8 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 		}
 	}()
 
-	if err = createManifests(infraEnv, disconnectedManifestsDir, log); err != nil {
+	nmstateConfigYAML, err := createManifests(infraEnv, disconnectedManifestsDir, log)
+	if err != nil {
 		return "", errors.Wrap(err, "failed to create manifests")
 	}
 
@@ -104,6 +107,13 @@ func (g *DisconnectedIgnitionGenerator) GenerateDisconnectedIgnition(ctx context
 	ignitionContent, err := generateUnconfiguredIgnition(g.executer, release.Path, disconnectedManifestsDir, log)
 	if err != nil {
 		return "", errors.Wrap(err, "failed to generate ignition")
+	}
+
+	if len(nmstateConfigYAML) > 0 {
+		ignitionContent, err = ensureNMStateConfigInIgnition(ignitionContent, nmstateConfigYAML, log)
+		if err != nil {
+			return "", errors.Wrap(err, "failed to ensure NMStateConfig in ignition")
+		}
 	}
 
 	log.Infof("Generated unconfigured-ignition for disconnected image (infraEnv: %s, arch: %s) using installer %s",
@@ -214,25 +224,26 @@ func createDisconnectedManifestsDir(workDir string, infraEnv *common.InfraEnv) (
 	return disconnectedManifestsDir, nil
 }
 
-func createManifests(infraEnv *common.InfraEnv, disconnectedDir string, log logrus.FieldLogger) error {
+func createManifests(infraEnv *common.InfraEnv, disconnectedDir string, log logrus.FieldLogger) ([]byte, error) {
 	manifestsDir := filepath.Join(disconnectedDir, "cluster-manifests")
 	if err := os.MkdirAll(manifestsDir, 0o755); err != nil {
-		return errors.Wrap(err, "failed to create manifests directory")
+		return nil, errors.Wrap(err, "failed to create manifests directory")
 	}
 
 	if err := createInfraEnvManifest(infraEnv, manifestsDir); err != nil {
-		return errors.Wrap(err, "failed to create infraEnv manifest")
+		return nil, errors.Wrap(err, "failed to create infraEnv manifest")
 	}
 
 	if err := createPullSecretManifest(infraEnv, manifestsDir); err != nil {
-		return errors.Wrap(err, "failed to create pull secret manifest")
+		return nil, errors.Wrap(err, "failed to create pull secret manifest")
 	}
 
-	if err := createNMStateConfigManifests(infraEnv, manifestsDir, log); err != nil {
-		return errors.Wrap(err, "failed to create NMStateConfig manifests")
+	nmstateConfigYAML, err := createNMStateConfigManifests(infraEnv, manifestsDir, log)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to create NMStateConfig manifests")
 	}
 
-	return nil
+	return nmstateConfigYAML, nil
 }
 
 func createMirrorConfig(disconnectedDir string) error {
@@ -352,19 +363,48 @@ func addInteractiveSentinelFile(ignitionContent []byte) (string, error) {
 	return string(modifiedContent), nil
 }
 
-func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string, log logrus.FieldLogger) error {
+// ensureNMStateConfigInIgnition is a temporary workaround to inject
+// the nmnstateconfig.yaml in the ISO. This will allow to properly manage the
+// static network config during the installation. To be removed once the
+// installer agent create unconfigured-ignition will be fixed.
+func ensureNMStateConfigInIgnition(ignitionContent string, nmstateConfigYAML []byte, log logrus.FieldLogger) (string, error) {
+	config, err := commonignition.ParseToLatest([]byte(ignitionContent))
+	if err != nil {
+		return "", errors.Wrap(err, "failed to parse ignition config")
+	}
+
+	for _, file := range config.Storage.Files {
+		if file.Path == nmstateConfigIgnitionPath {
+			log.Debug("NMStateConfig already present in ignition, skipping workaround")
+			return ignitionContent, nil
+		}
+	}
+
+	dataURI := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString(nmstateConfigYAML)
+	commonignition.SetFileInIgnition(config, nmstateConfigIgnitionPath, dataURI, false, 0600, true)
+
+	modifiedContent, err := json.Marshal(config)
+	if err != nil {
+		return "", errors.Wrap(err, "failed to marshal modified ignition config")
+	}
+
+	log.Info("Added NMStateConfig to ignition as workaround for static networking with OVE ISO")
+	return string(modifiedContent), nil
+}
+
+func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string, log logrus.FieldLogger) ([]byte, error) {
 	if strings.TrimSpace(infraEnv.StaticNetworkConfig) == "" {
 		log.Debug("No static network configuration present, skipping NMStateConfig manifests")
-		return nil
+		return nil, nil
 	}
 
 	if infraEnv.ID == nil {
-		return errors.New("infraEnv ID is required when static network configuration is provided")
+		return nil, errors.New("infraEnv ID is required when static network configuration is provided")
 	}
 
 	var staticNetworkConfigs []*models.HostStaticNetworkConfig
 	if err := json.Unmarshal([]byte(infraEnv.StaticNetworkConfig), &staticNetworkConfigs); err != nil {
-		return errors.Wrap(err, "failed to unmarshal static network config")
+		return nil, errors.Wrap(err, "failed to unmarshal static network config")
 	}
 
 	labelSelector := map[string]string{
@@ -412,7 +452,7 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 
 		nmStateYAML, err := yaml.Marshal(nmStateConfig)
 		if err != nil {
-			return errors.Wrapf(err, "failed to marshal NMStateConfig %d", i)
+			return nil, errors.Wrapf(err, "failed to marshal NMStateConfig %d", i)
 		}
 
 		nmStateYAMLs = append(nmStateYAMLs, nmStateYAML)
@@ -423,11 +463,12 @@ func createNMStateConfigManifests(infraEnv *common.InfraEnv, manifestsDir string
 
 		filename := filepath.Join(manifestsDir, "nmstateconfig.yaml")
 		if err := os.WriteFile(filename, combinedYAML, 0o600); err != nil {
-			return errors.Wrap(err, "failed to write NMStateConfig")
+			return nil, errors.Wrap(err, "failed to write NMStateConfig")
 		}
 
 		log.Infof("Created NMStateConfig manifest: %s", filename)
+		return combinedYAML, nil
 	}
 
-	return nil
+	return nil, nil
 }

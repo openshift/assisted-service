@@ -3,8 +3,11 @@ package ignition
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -12,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
+	commonignition "github.com/openshift/assisted-service/internal/common/ignition"
 	"github.com/openshift/assisted-service/internal/constants"
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/installercache"
@@ -617,6 +621,123 @@ var _ = Describe("Disconnected Ignition", func() {
 
 			_, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
 			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("should add NMStateConfig to ignition when installer does not embed it", func() {
+			infraEnv.StaticNetworkConfig = `[
+				{
+					"mac_interface_map": [
+						{"mac_address": "52:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
+					],
+					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n"
+				}
+			]`
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				mockIgnition := `{"ignition":{"version":"3.2.0"},"storage":{"files":[]}}`
+				err := os.WriteFile(ignitionPath, []byte(mockIgnition), 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			config, err := commonignition.ParseToLatest([]byte(result))
+			Expect(err).NotTo(HaveOccurred())
+
+			found := false
+			for _, file := range config.Storage.Files {
+				if file.Path == nmstateConfigIgnitionPath {
+					found = true
+					Expect(file.Contents.Source).NotTo(BeNil())
+					parts := strings.SplitN(*file.Contents.Source, "base64,", 2)
+					Expect(parts).To(HaveLen(2))
+					decoded, decErr := base64.StdEncoding.DecodeString(parts[1])
+					Expect(decErr).NotTo(HaveOccurred())
+					Expect(string(decoded)).To(ContainSubstring("NMStateConfig"))
+					Expect(string(decoded)).To(ContainSubstring("52:54:00:aa:bb:cc"))
+				}
+			}
+			Expect(found).To(BeTrue(), "expected NMStateConfig file at %s in ignition", nmstateConfigIgnitionPath)
+		})
+
+		It("should not duplicate NMStateConfig when installer already embeds it", func() {
+			infraEnv.StaticNetworkConfig = `[
+				{
+					"mac_interface_map": [
+						{"mac_address": "52:54:00:aa:bb:cc", "logical_nic_name": "eth0"}
+					],
+					"network_yaml": "interfaces:\n- name: eth0\n  type: ethernet\n  state: up\n"
+				}
+			]`
+
+			releaseImage := &models.ReleaseImage{
+				CPUArchitecture:  swag.String(common.DefaultCPUArchitecture),
+				OpenshiftVersion: swag.String("4.16.0"),
+				URL:              swag.String("quay.io/openshift-release-dev/ocp-release:4.16.0-x86_64"),
+				Version:          swag.String("4.16.0"),
+			}
+
+			mockVersionsHandler.EXPECT().GetReleaseImage(ctx, "4.16.0", common.DefaultCPUArchitecture, infraEnv.PullSecret).Return(releaseImage, nil)
+			mockEvents.EXPECT().V2AddMetricsEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			mockInstallerCache.EXPECT().Get(ctx, *releaseImage.URL, "", infraEnv.PullSecret, gomock.Any(), "4.16.0", infraEnv.ClusterID).Return(mockRelease, nil)
+
+			existingContent := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte("installer-provided-content"))
+			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(command string, args ...string) (string, string, int) {
+				oveDir := args[4]
+
+				mockIgnition := map[string]interface{}{
+					"ignition": map[string]interface{}{"version": "3.2.0"},
+					"storage": map[string]interface{}{
+						"files": []interface{}{
+							map[string]interface{}{
+								"path": nmstateConfigIgnitionPath,
+								"contents": map[string]interface{}{
+									"source": existingContent,
+								},
+							},
+						},
+					},
+				}
+				ignitionBytes, jsonErr := json.Marshal(mockIgnition)
+				Expect(jsonErr).NotTo(HaveOccurred())
+
+				ignitionPath := filepath.Join(oveDir, "unconfigured-agent.ign")
+				err := os.WriteFile(ignitionPath, ignitionBytes, 0600)
+				Expect(err).NotTo(HaveOccurred())
+
+				return "success", "", 0
+			})
+
+			result, err := generator.GenerateDisconnectedIgnition(ctx, infraEnv, cluster.OpenshiftVersion, cluster.Name)
+			Expect(err).NotTo(HaveOccurred())
+
+			config, err := commonignition.ParseToLatest([]byte(result))
+			Expect(err).NotTo(HaveOccurred())
+
+			count := 0
+			for _, file := range config.Storage.Files {
+				if file.Path == nmstateConfigIgnitionPath {
+					count++
+				}
+			}
+			Expect(count).To(Equal(1), "expected exactly one NMStateConfig file entry, not duplicated")
 		})
 
 		It("should not create agent-config.yaml when rendezvous IP is not provided", func() {
