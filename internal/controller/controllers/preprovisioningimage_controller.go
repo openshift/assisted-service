@@ -808,7 +808,7 @@ func (r *PreprovisioningImageReconciler) handlePreprovisioningImageDeletion(ctx 
 
 // processMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
 func (r *PreprovisioningImageReconciler) processMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (*common.MirrorRegistryConfiguration, error) {
-	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef)
+	mirrorRegistryConfiguration, userTomlConfigMap, err := mirrorregistry.ProcessMirrorRegistryConfig(ctx, log, r.Client, infraEnv.Spec.MirrorRegistryRef, infraEnv.Namespace)
 	if err != nil {
 		return nil, err
 	}
