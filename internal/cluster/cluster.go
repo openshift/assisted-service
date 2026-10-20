@@ -27,6 +27,7 @@ import (
 	eventsapi "github.com/openshift/assisted-service/internal/events/api"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/installcfg"
 	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -1874,11 +1875,16 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 
 func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, m.log)
+	clusterManagedDNS, err := installcfg.UsesClusterManagedDNS(cluster)
+	if err != nil {
+		return errors.Wrap(err, "failed to check cluster-managed DNS")
+	}
+
 	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, log, cluster); err != nil {
 		return errors.Wrap(err, "failed to add chrony manifest")
 	}
 
-	if common.IsSingleNodeCluster(cluster) && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
+	if common.IsSingleNodeCluster(cluster) && !clusterManagedDNS && m.manifestsGeneratorAPI.IsSNODNSMasqEnabled() {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, log, cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
