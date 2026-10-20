@@ -39,12 +39,7 @@ spec:
         - protocol: TCP
           port: 5353
     # Kubernetes API
-    - to:
-        - ipBlock:
-            cidr: 0.0.0.0/0
-        - ipBlock:
-            cidr: ::/0
-      ports:
+    - ports:
         - protocol: TCP
           port: 6443
     # HTTPS egress (registries for image lookups)
