@@ -19,6 +19,7 @@ package clientv3
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -28,6 +29,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
 )
 
@@ -40,6 +42,8 @@ func (c *Client) unaryClientInterceptor(optFuncs ...retryOption) grpc.UnaryClien
 	return func(ctx context.Context, method string, req, reply interface{}, cc *grpc.ClientConn, invoker grpc.UnaryInvoker, opts ...grpc.CallOption) error {
 		ctx = withVersion(ctx)
 		grpcOpts, retryOpts := filterCallOptions(opts)
+		var p peer.Peer
+		grpcOpts = append(grpcOpts, grpc.Peer(&p))
 		callOpts := reuseOrNewWithCallOptions(intOpts, retryOpts)
 		// short circuit for simplicity, and avoiding allocations.
 		if callOpts.max == 0 {
@@ -62,6 +66,7 @@ func (c *Client) unaryClientInterceptor(optFuncs ...retryOption) grpc.UnaryClien
 			c.GetLogger().Warn(
 				"retrying of unary invoker failed",
 				zap.String("target", cc.Target()),
+				zap.String("peer", p.String()),
 				zap.Uint("attempt", attempt),
 				zap.Error(lastErr),
 			)
@@ -85,7 +90,7 @@ func (c *Client) unaryClientInterceptor(optFuncs ...retryOption) grpc.UnaryClien
 				}
 				continue
 			}
-			if !isSafeRetry(c.lg, lastErr, callOpts) {
+			if !isSafeRetry(c, lastErr, callOpts) {
 				return lastErr
 			}
 		}
@@ -279,7 +284,7 @@ func (s *serverStreamingRetryingStream) receiveMsgAndIndicateRetry(m interface{}
 		return true, err
 
 	}
-	return isSafeRetry(s.client.lg, err, s.callOpts), err
+	return isSafeRetry(s.client, err, s.callOpts), err
 }
 
 func (s *serverStreamingRetryingStream) reestablishStreamAndResendBuffer(callCtx context.Context) (grpc.ClientStream, error) {
@@ -319,17 +324,28 @@ func waitRetryBackoff(ctx context.Context, attempt uint, callOpts *options) erro
 }
 
 // isSafeRetry returns "true", if request is safe for retry with the given error.
-func isSafeRetry(lg *zap.Logger, err error, callOpts *options) bool {
+func isSafeRetry(c *Client, err error, callOpts *options) bool {
 	if isContextError(err) {
 		return false
 	}
+
+	// Situation when learner refuses RPC it is supposed to not serve is from the server
+	// perspective not retryable.
+	// But for backward-compatibility reasons we need  to support situation that
+	// customer provides mix of learners (not yet voters) and voters with an
+	// expectation to pick voter in the next attempt.
+	// TODO: Ideally client should be 'aware' which endpoint represents: leader/voter/learner with high probability.
+	if errors.Is(err, rpctypes.ErrGPRCNotSupportedForLearner) && len(c.Endpoints()) > 1 {
+		return true
+	}
+
 	switch callOpts.retryPolicy {
 	case repeatable:
 		return isSafeRetryImmutableRPC(err)
 	case nonRepeatable:
 		return isSafeRetryMutableRPC(err)
 	default:
-		lg.Warn("unrecognized retry policy", zap.String("retryPolicy", callOpts.retryPolicy.String()))
+		c.lg.Warn("unrecognized retry policy", zap.String("retryPolicy", callOpts.retryPolicy.String()))
 		return false
 	}
 }
@@ -341,11 +357,11 @@ func isContextError(err error) bool {
 func contextErrToGrpcErr(err error) error {
 	switch err {
 	case context.DeadlineExceeded:
-		return status.Errorf(codes.DeadlineExceeded, err.Error())
+		return status.Error(codes.DeadlineExceeded, err.Error())
 	case context.Canceled:
-		return status.Errorf(codes.Canceled, err.Error())
+		return status.Error(codes.Canceled, err.Error())
 	default:
-		return status.Errorf(codes.Unknown, err.Error())
+		return status.Error(codes.Unknown, err.Error())
 	}
 }
 
