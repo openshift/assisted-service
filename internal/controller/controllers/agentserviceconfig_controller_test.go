@@ -2320,11 +2320,9 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 		found := &appsv1.Deployment{}
 		Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-		Expect(found.Spec.Template.Spec.InitContainers).To(HaveLen(2))
+		Expect(found.Spec.Template.Spec.InitContainers).To(HaveLen(1))
 		Expect(found.Spec.Template.Spec.InitContainers[0].Name).To(Equal("postgres-upgrade-to-13"))
 		Expect(found.Spec.Template.Spec.InitContainers[0].Image).To(Equal(defaultDatabaseImagePG13))
-		Expect(found.Spec.Template.Spec.InitContainers[1].Name).To(Equal("postgres-upgrade-to-15"))
-		Expect(found.Spec.Template.Spec.InitContainers[1].Image).To(Equal(defaultDatabaseImagePG15))
 		Expect(found.Spec.Template.Spec.Containers[1].Image).To(Equal(defaultDatabaseImage))
 		Expect(found.Spec.Template.Spec.InitContainers[0].VolumeMounts).To(
 			ContainElement(corev1.VolumeMount{Name: "postgresdb", MountPath: "/var/lib/pgsql/data"}),

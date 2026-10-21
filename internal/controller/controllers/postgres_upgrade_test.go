@@ -43,6 +43,7 @@ var _ = Describe("postgresHopsBeforeTarget", func() {
 	})
 
 	It("includes PG13 and PG15 hops when the target is PG16", func() {
+		Expect(os.Setenv("DATABASE_IMAGE", "quay.io/sclorg/postgresql-16-c9s:latest")).To(Succeed())
 		hops := postgresHopsBeforeTarget()
 		Expect(hops).To(HaveLen(2))
 		Expect(hops[0].version).To(Equal("13"))
@@ -92,6 +93,7 @@ var _ = Describe("postgresUpgradeInitContainers", func() {
 	})
 
 	It("builds init containers that share env, mounts, and the hop script", func() {
+		Expect(os.Setenv("DATABASE_IMAGE", "quay.io/sclorg/postgresql-16-c9s:latest")).To(Succeed())
 		env := []corev1.EnvVar{{Name: "POSTGRESQL_USER", Value: "admin"}}
 		mounts := []corev1.VolumeMount{{Name: "postgresdb", MountPath: "/var/lib/pgsql/data"}}
 		resources := corev1.ResourceRequirements{
