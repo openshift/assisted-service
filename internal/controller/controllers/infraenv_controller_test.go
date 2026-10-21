@@ -954,6 +954,39 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 	})
 
+	Context("update NTP sources", func() {
+		var notSent *string
+		DescribeTable("sends only the NTP fields that differ from the DB",
+			func(dbAdditional, dbExclusive string, specAdditional, specExclusive []string, expectedAdditional, expectedExclusive *string) {
+				dbInfraEnv := &common.InfraEnv{InfraEnv: models.InfraEnv{
+					ID:                   &sId,
+					AdditionalNtpSources: dbAdditional,
+					NtpSources:           dbExclusive,
+				}}
+				mockInstallerInternal.EXPECT().GetInfraEnvByKubeKey(gomock.Any()).Return(dbInfraEnv, nil)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockInstallerInternal.EXPECT().UpdateInfraEnvInternal(gomock.Any(), gomock.Any(), nil, nil).DoAndReturn(
+					func(ctx context.Context, params installer.UpdateInfraEnvParams, _ *string, _ *common.MirrorRegistryConfiguration) (*common.InfraEnv, error) {
+						Expect(params.InfraEnvUpdateParams.AdditionalNtpSources).To(Equal(expectedAdditional))
+						Expect(params.InfraEnvUpdateParams.NtpSources).To(Equal(expectedExclusive))
+						return &common.InfraEnv{InfraEnv: models.InfraEnv{ID: &sId, DownloadURL: downloadURL, CPUArchitecture: infraEnvArch}}, nil
+					})
+				kubeInfraEnv := newInfraEnvImage("myInfraEnv", testNamespace, aiv1beta1.InfraEnvSpec{
+					PullSecretRef:        &corev1.LocalObjectReference{Name: "pull-secret"},
+					AdditionalNTPSources: specAdditional,
+					NTPSources:           specExclusive,
+				})
+				Expect(c.Create(ctx, kubeInfraEnv)).To(Succeed())
+
+				_, err := ir.Reconcile(ctx, newInfraEnvRequest(kubeInfraEnv))
+				Expect(err).ToNot(HaveOccurred())
+			},
+			Entry("switch from additionalNTPSources to ntpSources", "foo.com", "", nil, []string{"bar.com"}, swag.String(""), swag.String("bar.com")),
+			Entry("switch from ntpSources to additionalNTPSources", "", "bar.com", []string{"foo.com"}, nil, swag.String("foo.com"), swag.String("")),
+			Entry("unchanged ntpSources", "", "bar.com", nil, []string{"bar.com"}, notSent, notSent),
+		)
+	})
+
 	It("register new infraEnv with exclusive ntpSources", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
