@@ -5813,3 +5813,149 @@ var _ = Describe("indexManifestConfigMapNames", func() {
 		Expect(result).To(BeNil())
 	})
 })
+
+var _ = Describe("getSSHPublicKey", func() {
+	var (
+		c         client.Client
+		cr        *ClusterDeploymentsReconciler
+		ctx       = context.Background()
+		cd        *hivev1.ClusterDeployment
+		aci       *hiveext.AgentClusterInstall
+		secretRef types.NamespacedName
+	)
+
+	BeforeEach(func() {
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		cr = &ClusterDeploymentsReconciler{
+			Client:    c,
+			APIReader: c,
+			Scheme:    scheme.Scheme,
+			Log:       common.GetTestLog(),
+		}
+		cd = newClusterDeployment("test-cluster", testNamespace, getDefaultClusterDeploymentSpec("test-cluster", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, cd)).To(Succeed())
+		aci = newAgentClusterInstall("test-cluster-aci", testNamespace, getDefaultAgentClusterInstallSpec("test-cluster"), cd)
+		aci.Spec.SSHPublicKey = ""
+		aci.Annotations = map[string]string{GenerateSSHKeyAnnotation: "true"}
+		secretRef = types.NamespacedName{Namespace: testNamespace, Name: "test-cluster-ssh-key"}
+	})
+
+	It("uses the AgentClusterInstall key when set, even if generation is requested", func() {
+		aci.Spec.SSHPublicKey = "ssh-rsa AAAA user-key "
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).To(Equal("ssh-rsa AAAA user-key"))
+		Expect(k8serrors.IsNotFound(c.Get(ctx, secretRef, &corev1.Secret{}))).To(BeTrue())
+	})
+
+	It("returns no key when generation is not requested", func() {
+		aci.Annotations = nil
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).To(BeEmpty())
+		Expect(k8serrors.IsNotFound(c.Get(ctx, secretRef, &corev1.Secret{}))).To(BeTrue())
+	})
+
+	It("generates a keypair into a Secret owned by the ClusterDeployment", func() {
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+
+		secret := &corev1.Secret{}
+		Expect(c.Get(ctx, secretRef, secret)).To(Succeed())
+		Expect(string(secret.Data["ssh-publickey"])).To(Equal(key))
+		Expect(secret.Data["ssh-privatekey"]).To(ContainSubstring("OPENSSH PRIVATE KEY"))
+		Expect(secret.Labels).To(HaveKeyWithValue("hive.openshift.io/cluster-deployment-name", cd.Name))
+		Expect(secret.Labels).To(HaveKeyWithValue("hive.openshift.io/secret-type", "ssh-key"))
+		Expect(secret.OwnerReferences).To(HaveLen(1))
+		Expect(secret.OwnerReferences[0].Name).To(Equal(cd.Name))
+		Expect(secret.OwnerReferences[0].Kind).To(Equal("ClusterDeployment"))
+	})
+
+	It("reuses the generated key on later reconciles", func() {
+		key1, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+		key2, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key2).To(Equal(key1))
+	})
+
+	It("uses an existing Secret with that name", func() {
+		pub, priv, err := gencrypto.SSHKeyPair()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(c.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretRef.Name, Namespace: secretRef.Namespace},
+			Data:       map[string][]byte{"ssh-publickey": []byte(pub), "ssh-privatekey": []byte(priv)},
+		})).To(Succeed())
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).To(Equal(pub))
+	})
+
+	It("fails without overwriting an existing Secret that has no valid public key", func() {
+		Expect(c.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretRef.Name, Namespace: secretRef.Namespace},
+			Data:       map[string][]byte{"other": []byte("data")},
+		})).To(Succeed())
+		_, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(IsUserError(err)).To(BeTrue())
+
+		secret := &corev1.Secret{}
+		Expect(c.Get(ctx, secretRef, secret)).To(Succeed())
+		Expect(secret.Data).To(Equal(map[string][]byte{"other": []byte("data")}))
+	})
+
+	It("fails on an existing Secret with a malformed public key", func() {
+		Expect(c.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretRef.Name, Namespace: secretRef.Namespace},
+			Data:       map[string][]byte{"ssh-publickey": []byte("not-a-key")},
+		})).To(Succeed())
+		_, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(IsUserError(err)).To(BeTrue())
+	})
+
+	It("generates a new key if the Secret is deleted before installation", func() {
+		cluster := &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "ssh-rsa AAAA old-key", Status: swag.String(models.ClusterStatusReady)}}
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, cluster)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).NotTo(Equal(cluster.SSHPublicKey))
+		Expect(c.Get(ctx, secretRef, &corev1.Secret{})).To(Succeed())
+	})
+
+	It("keeps the current key if the Secret is deleted after installation started", func() {
+		cluster := &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "ssh-rsa AAAA old-key", Status: swag.String(models.ClusterStatusInstalling)}}
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, cluster)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).To(Equal(cluster.SSHPublicKey))
+		Expect(k8serrors.IsNotFound(c.Get(ctx, secretRef, &corev1.Secret{}))).To(BeTrue())
+	})
+
+	It("ignores the Secret after installation started", func() {
+		pub, _, err := gencrypto.SSHKeyPair()
+		Expect(err).NotTo(HaveOccurred())
+		Expect(c.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretRef.Name, Namespace: secretRef.Namespace},
+			Data:       map[string][]byte{"ssh-publickey": []byte(pub)},
+		})).To(Succeed())
+		cluster := &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "ssh-rsa AAAA old-key", Status: swag.String(models.ClusterStatusInstalled)}}
+		key, err := cr.getSSHPublicKey(ctx, common.GetTestLog(), cd, aci, cluster)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(key).To(Equal(cluster.SSHPublicKey))
+	})
+
+	It("gets only the InfraEnvs that reference the ClusterDeployment", func() {
+		Expect(c.Create(ctx, newInfraEnvImage("referencing", testNamespace, aiv1beta1.InfraEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: cd.Name, Namespace: cd.Namespace},
+		}))).To(Succeed())
+		Expect(c.Create(ctx, newInfraEnvImage("other", testNamespace, aiv1beta1.InfraEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "other-cluster", Namespace: cd.Namespace},
+		}))).To(Succeed())
+		Expect(c.Create(ctx, newInfraEnvImage("late-binding", testNamespace, aiv1beta1.InfraEnvSpec{}))).To(Succeed())
+
+		infraEnvs, err := cr.listClusterInfraEnvs(ctx, cd)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(infraEnvs).To(HaveLen(1))
+		Expect(infraEnvs[0].Name).To(Equal("referencing"))
+	})
+})
