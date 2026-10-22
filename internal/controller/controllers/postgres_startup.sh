@@ -9,20 +9,16 @@
 
 set -e
 
-PGDATA="${PGDATA:-/var/lib/pgsql/data/userdata}"
+PGDATA=/var/lib/pgsql/data/userdata
 
 echo "=== PostgreSQL Startup Check ==="
 
 if [ -f "$PGDATA/PG_VERSION" ]; then
-    DATA_VERSION="$(tr -d '[:space:]' < "$PGDATA/PG_VERSION")"
+    DATA_VERSION=$(cat "$PGDATA/PG_VERSION")
     echo "Data directory version: $DATA_VERSION"
     echo "Container image version: $POSTGRESQL_VERSION"
 
     if [ "$DATA_VERSION" != "$POSTGRESQL_VERSION" ]; then
-        if [ -n "${POSTGRESQL_PREV_VERSION:-}" ] && [ "$DATA_VERSION" != "$POSTGRESQL_PREV_VERSION" ]; then
-            echo "Data is version ${DATA_VERSION}; this image can only upgrade from ${POSTGRESQL_PREV_VERSION}."
-            echo "Intermediate hop init containers should have upgraded first. See docs/dev/postgresql-upgrade.md."
-        fi
         echo "Version mismatch detected - enabling pg_upgrade (hardlink mode)"
         export POSTGRESQL_UPGRADE=hardlink
     else
