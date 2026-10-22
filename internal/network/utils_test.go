@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"net"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"gorm.io/gorm"
 )
 
 var mNetworks = []*net.IPNet{
@@ -1560,5 +1563,52 @@ var _ = Describe("Network Comparison Functions with Dual-Stack Support", func() 
 				Expect(isDualStackItems(networks)).To(BeFalse())
 			})
 		})
+	})
+})
+
+var _ = Describe("UpdateVipsTables", func() {
+	var (
+		db        *gorm.DB
+		dbName    string
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.NewString())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("keeps the API VIPs when saving a new one fails", func() {
+		Expect(db.Create(&models.APIVip{ClusterID: clusterID, IP: "1.2.3.4"}).Error).ShouldNot(HaveOccurred())
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:      &clusterID,
+			APIVips: []*models.APIVip{{IP: "not-an-ip"}},
+		}}
+
+		Expect(UpdateVipsTables(db, cluster, true, false)).Should(HaveOccurred())
+
+		var vips []*models.APIVip
+		Expect(db.Where("cluster_id = ?", clusterID).Find(&vips).Error).ShouldNot(HaveOccurred())
+		Expect(vips).To(HaveLen(1))
+		Expect(string(vips[0].IP)).To(Equal("1.2.3.4"))
+	})
+
+	It("keeps the ingress VIPs when saving a new one fails", func() {
+		Expect(db.Create(&models.IngressVip{ClusterID: clusterID, IP: "1.2.3.5"}).Error).ShouldNot(HaveOccurred())
+		cluster := &common.Cluster{Cluster: models.Cluster{
+			ID:          &clusterID,
+			IngressVips: []*models.IngressVip{{IP: "not-an-ip"}},
+		}}
+
+		Expect(UpdateVipsTables(db, cluster, false, true)).Should(HaveOccurred())
+
+		var vips []*models.IngressVip
+		Expect(db.Where("cluster_id = ?", clusterID).Find(&vips).Error).ShouldNot(HaveOccurred())
+		Expect(vips).To(HaveLen(1))
+		Expect(string(vips[0].IP)).To(Equal("1.2.3.5"))
 	})
 })
