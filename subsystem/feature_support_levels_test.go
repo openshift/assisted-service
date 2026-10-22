@@ -97,6 +97,7 @@ var _ = Describe("Feature support levels API", func() {
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDBAREMETALPLATFORM))).To(Equal(true))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNONEPLATFORM))).To(Equal(true))
 				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDVSPHEREINTEGRATION))).To(Equal(true))
+				Expect(funk.Contains(*features, string(models.FeatureSupportLevelIDNETWORKOBSERVABILITY))).To(Equal(true))
 			})
 
 		})
