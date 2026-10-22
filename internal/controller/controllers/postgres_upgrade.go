@@ -9,11 +9,9 @@ import (
 )
 
 const (
-	databaseImagePG13Env     = "DATABASE_IMAGE_PG13"
-	databaseImagePG15Env     = "DATABASE_IMAGE_PG15"
-	databaseImageVersionEnv  = "DATABASE_IMAGE_VERSION"
-	defaultDatabaseImagePG13 = "quay.io/sclorg/postgresql-13-c9s:latest"
-	defaultDatabaseImagePG15 = "quay.io/sclorg/postgresql-15-c9s:latest"
+	databaseImagePG13Env    = "DATABASE_IMAGE_PG13"
+	databaseImagePG15Env    = "DATABASE_IMAGE_PG15"
+	databaseImageVersionEnv = "DATABASE_IMAGE_VERSION"
 )
 
 // postgresUpgradeHop is one sclorg image in the major-version path. Each image
@@ -26,24 +24,18 @@ type postgresUpgradeHop struct {
 
 // postgresUpgradePath is the sclorg hop chain excluding the current DATABASE_IMAGE.
 // RHEL 9 skips PG14, so the supported path is 12 → 13 → 15 → 16.
+//
+// Hop images are opt-in: each entry fires only when its env var is explicitly
+// set by the operator packaging. With no env var the hop is skipped, keeping
+// the default deployment free of intermediate images.
 func postgresUpgradePath() []postgresUpgradeHop {
 	return []postgresUpgradeHop{
-		{version: "13", envVar: databaseImagePG13Env, defaultImage: defaultDatabaseImagePG13},
-		{version: "15", envVar: databaseImagePG15Env, defaultImage: defaultDatabaseImagePG15},
+		{version: "13", envVar: databaseImagePG13Env},
+		{version: "15", envVar: databaseImagePG15Env},
 	}
 }
 
 var postgresVersionFromImage = regexp.MustCompile(`postgresql-(\d+)`)
-
-// DatabaseImagePG13 is the PostgreSQL 13 hop image used to upgrade PG12 data.
-func DatabaseImagePG13() string {
-	return getEnvVar(databaseImagePG13Env, defaultDatabaseImagePG13)
-}
-
-// DatabaseImagePG15 is the PostgreSQL 15 hop image used to upgrade PG13 data.
-func DatabaseImagePG15() string {
-	return getEnvVar(databaseImagePG15Env, defaultDatabaseImagePG15)
-}
 
 func (h postgresUpgradeHop) image() string {
 	return getEnvVar(h.envVar, h.defaultImage)
@@ -79,7 +71,9 @@ func databaseImageMajorVersion() (int, bool) {
 }
 
 // postgresHopsBeforeTarget returns sclorg hop images older than DATABASE_IMAGE
-// so EUS skip-upgrades can walk 12 → 13 → 15 → 16.
+// whose env var is explicitly set. Hops with an empty image (no env var, no
+// default) are skipped so that 5.x deployments never inject intermediate
+// containers unless the operator packaging opts in.
 func postgresHopsBeforeTarget() []postgresUpgradeHop {
 	targetVer, ok := databaseImageMajorVersion()
 	if !ok {
@@ -87,6 +81,9 @@ func postgresHopsBeforeTarget() []postgresUpgradeHop {
 	}
 	var hops []postgresUpgradeHop
 	for _, h := range postgresUpgradePath() {
+		if h.image() == "" {
+			continue
+		}
 		hv, err := strconv.Atoi(h.version)
 		if err != nil {
 			continue
