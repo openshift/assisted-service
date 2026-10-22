@@ -330,6 +330,37 @@ metadata:
 ...
 ```
 
+### Generating an SSH key
+
+To give each cluster its own SSH key without providing one, leave `spec.sshPublicKey` empty and add the
+`agent-install.openshift.io/generate-ssh-key: "true"` annotation to the AgentClusterInstall before the installation starts.
+The clusterdeployment controller generates an ECDSA keypair once and stores it in the `<clusterdeployment-name>-ssh-key`
+Secret, next to the admin kubeconfig and password Secrets, with the private key in `ssh-privatekey` and the public key in `ssh-publickey`.
+The installed nodes get the generated public key. A key set in `spec.sshPublicKey` always takes precedence.
+
+To also use the cluster's key in the discovery ISO, add the same annotation to an InfraEnv that has a `clusterRef` and no `sshAuthorizedKey`.
+
+With ZTP, leave `sshPublicKey` unset in the ClusterInstance and set the annotations through `extraAnnotations`:
+
+```yaml
+apiVersion: siteconfig.open-cluster-management.io/v1alpha1
+kind: ClusterInstance
+spec:
+  extraAnnotations:
+    AgentClusterInstall:
+      agent-install.openshift.io/generate-ssh-key: "true"
+    InfraEnv:
+      agent-install.openshift.io/generate-ssh-key: "true"
+```
+
+To retrieve the private key and connect to a node:
+
+```sh
+$ kubectl get secret test-cluster-ssh-key -n mynamespace -o jsonpath='{.data.ssh-privatekey}' | base64 -d > ssh-privatekey
+$ chmod 600 ssh-privatekey
+$ ssh -i ssh-privatekey core@<node-ip>
+```
+
 ### Ignoring cluster and host validations
 
 The Assisted Service runs a set of validations on clusters and hosts before allowing installation to proceed.
