@@ -10,6 +10,9 @@ packages:
   - gcc
   - git
   - openssl-devel  
+upgradePackages:
+  - glib2
+  - python3-urllib3
 arches:
   - aarch64
   - x86_64
