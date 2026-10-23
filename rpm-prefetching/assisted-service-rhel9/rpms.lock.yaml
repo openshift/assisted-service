@@ -102,13 +102,13 @@ arches:
     name: glibc-devel
     evr: 2.34-272.el9_8
     sourcerpm: glibc-2.34-272.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.59.1.el9_8.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/k/kernel-headers-5.14.0-687.60.1.el9_8.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
-    size: 2946233
-    checksum: sha256:5b077bb39f178f6765f4f779d8f164ee4e2f2cda06a7a1a79f95b08255d68184
+    size: 2947321
+    checksum: sha256:2905722b8f11583753d46f31afa2fdfe14784bcbb8d6668eb5a4ee1d7ff63752
     name: kernel-headers
-    evr: 5.14.0-687.59.1.el9_8
-    sourcerpm: kernel-5.14.0-687.59.1.el9_8.src.rpm
+    evr: 5.14.0-687.60.1.el9_8
+    sourcerpm: kernel-5.14.0-687.60.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/appstream/os/Packages/l/libasan-11.5.0-14.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-appstream-rpms
     size: 409047
@@ -746,13 +746,13 @@ arches:
     name: elfutils-libs
     evr: 0.194-1.el9
     sourcerpm: elfutils-0.194-1.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/e/expat-2.5.0-6.el9_8.5.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/e/expat-2.5.0-6.el9_8.7.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
-    size: 122957
-    checksum: sha256:d13bd77f429835b303d388e24811fb935060be4788c8fe4cf87703640f2337e0
+    size: 123207
+    checksum: sha256:991979acbff4494fee979934ec88d1c252f46baa77a2f1b35ec69251dd9c39ff
     name: expat
-    evr: 2.5.0-6.el9_8.5
-    sourcerpm: expat-2.5.0-6.el9_8.5.src.rpm
+    evr: 2.5.0-6.el9_8.7
+    sourcerpm: expat-2.5.0-6.el9_8.7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/f/fuse-common-3.10.2-9.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 8718
@@ -1191,13 +1191,13 @@ arches:
     name: glibc-devel
     evr: 2.34-272.el9_8
     sourcerpm: glibc-2.34-272.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.59.1.el9_8.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/k/kernel-headers-5.14.0-687.60.1.el9_8.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
-    size: 2970041
-    checksum: sha256:56d5677807568af019ac0ed7f4eb78f27aa1186f5cd374e51991b7663f24e2c3
+    size: 2971185
+    checksum: sha256:b45d84f7e0a0089f1892ef22440176bf888b8147a8a2ad32d6d1786a08c07f19
     name: kernel-headers
-    evr: 5.14.0-687.59.1.el9_8
-    sourcerpm: kernel-5.14.0-687.59.1.el9_8.src.rpm
+    evr: 5.14.0-687.60.1.el9_8
+    sourcerpm: kernel-5.14.0-687.60.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/appstream/os/Packages/l/libasan-11.5.0-14.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-appstream-rpms
     size: 440756
@@ -1835,13 +1835,13 @@ arches:
     name: elfutils-libs
     evr: 0.194-1.el9
     sourcerpm: elfutils-0.194-1.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/e/expat-2.5.0-6.el9_8.5.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/e/expat-2.5.0-6.el9_8.7.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
-    size: 133703
-    checksum: sha256:f379b66b57d67569fabaa4cecc75d7ed26b1c46733b626f3550fc31e740761af
+    size: 133968
+    checksum: sha256:3b8e1cec5a79edb3e96b2bdde21f9c71ff71cd66c27e8742adb4dfabdfb9a0e6
     name: expat
-    evr: 2.5.0-6.el9_8.5
-    sourcerpm: expat-2.5.0-6.el9_8.5.src.rpm
+    evr: 2.5.0-6.el9_8.7
+    sourcerpm: expat-2.5.0-6.el9_8.7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/f/fuse-common-3.10.2-9.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 8730
@@ -2294,13 +2294,13 @@ arches:
     name: glibc-headers
     evr: 2.34-272.el9_8
     sourcerpm: glibc-2.34-272.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.59.1.el9_8.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/k/kernel-headers-5.14.0-687.60.1.el9_8.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
-    size: 2976209
-    checksum: sha256:f5e27215825ad65601255cfaacc9286ee799c9b3f0e8073d8cf6fc27b89a5c67
+    size: 2977309
+    checksum: sha256:7a535ea8ade5f18b94f4c9b470116a2d46db5e7cd1e3a1662ec2ed4b2f76aa5a
     name: kernel-headers
-    evr: 5.14.0-687.59.1.el9_8
-    sourcerpm: kernel-5.14.0-687.59.1.el9_8.src.rpm
+    evr: 5.14.0-687.60.1.el9_8
+    sourcerpm: kernel-5.14.0-687.60.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/appstream/os/Packages/l/libasan-11.5.0-14.el9.s390x.rpm
     repoid: rhel-9-for-s390x-appstream-rpms
     size: 412888
@@ -2938,13 +2938,13 @@ arches:
     name: elfutils-libs
     evr: 0.194-1.el9
     sourcerpm: elfutils-0.194-1.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/e/expat-2.5.0-6.el9_8.5.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/e/expat-2.5.0-6.el9_8.7.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
-    size: 125167
-    checksum: sha256:f7480b168cba79b9f30bc54faf1c43b9eab1cd3d9701c31f601b40e472659981
+    size: 125332
+    checksum: sha256:e286d3efd8b202e2345d20548c34cb6d28556160634731ec59a447c70121e0f1
     name: expat
-    evr: 2.5.0-6.el9_8.5
-    sourcerpm: expat-2.5.0-6.el9_8.5.src.rpm
+    evr: 2.5.0-6.el9_8.7
+    sourcerpm: expat-2.5.0-6.el9_8.7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/f/fuse-common-3.10.2-9.el9.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 8730
@@ -3390,13 +3390,13 @@ arches:
     name: glibc-headers
     evr: 2.34-272.el9_8
     sourcerpm: glibc-2.34-272.el9_8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.59.1.el9_8.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/k/kernel-headers-5.14.0-687.60.1.el9_8.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
-    size: 2985513
-    checksum: sha256:fa019cf3b155923a773aacba0f5fc0f0e470480cc0c266cdff2be847d337f189
+    size: 2986597
+    checksum: sha256:02a07e8ee63bd1d2ed34b2bb5c7bd114860b0422832af1a5cc305dfdc2bc46f7
     name: kernel-headers
-    evr: 5.14.0-687.59.1.el9_8
-    sourcerpm: kernel-5.14.0-687.59.1.el9_8.src.rpm
+    evr: 5.14.0-687.60.1.el9_8
+    sourcerpm: kernel-5.14.0-687.60.1.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/appstream/os/Packages/l/libmpc-1.2.1-4.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-appstream-rpms
     size: 66075
@@ -4020,13 +4020,13 @@ arches:
     name: elfutils-libs
     evr: 0.194-1.el9
     sourcerpm: elfutils-0.194-1.el9.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/e/expat-2.5.0-6.el9_8.5.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/e/expat-2.5.0-6.el9_8.7.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
-    size: 129088
-    checksum: sha256:e6e7edd632fdd1dc4ad94b19b7ab88646f3ef8c1c7956bac58985c3e7118a362
+    size: 129370
+    checksum: sha256:289c8f4e65e7db02f5cc1c47caf5dcc0353660520ee4f840a3d27b0fa71680f7
     name: expat
-    evr: 2.5.0-6.el9_8.5
-    sourcerpm: expat-2.5.0-6.el9_8.5.src.rpm
+    evr: 2.5.0-6.el9_8.7
+    sourcerpm: expat-2.5.0-6.el9_8.7.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/f/fuse-common-3.10.2-9.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 8750
