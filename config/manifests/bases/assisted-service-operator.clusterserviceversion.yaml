@@ -188,6 +188,8 @@ spec:
     name: image-service
   - image: quay.io/sclorg/postgresql-15-c9s:latest
     name: postgresql
+  - image: quay.io/sclorg/postgresql-13-c9s:latest
+    name: postgresql-13
   - image: quay.io/edge-infrastructure/assisted-installer:ocm-2.17
     name: installer
   - image: quay.io/edge-infrastructure/assisted-installer-agent:ocm-2.17

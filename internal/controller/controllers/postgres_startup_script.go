@@ -11,3 +11,10 @@ import _ "embed"
 //
 //go:embed postgres_startup.sh
 var PostgresStartupScript string
+
+// PostgresHopScript upgrades exactly one PostgreSQL major version in an init
+// container and then exits. Used for EUS skip-upgrades that sclorg cannot do
+// in a single image (for example PG12 → PG15).
+//
+//go:embed postgres_hop.sh
+var PostgresHopScript string
