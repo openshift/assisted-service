@@ -68,7 +68,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.38
 	github.com/sirupsen/logrus v1.9.3
 	github.com/slok/go-http-metrics v0.11.0
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.11.1
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
@@ -205,7 +205,7 @@ require (
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.0.3-0.20211202193544-a5463b7f9c84 // indirect
-	github.com/opencontainers/runc v1.2.8 // indirect
+	github.com/opencontainers/runc v1.13.0 // indirect
 	github.com/openshift/machine-config-operator v0.0.1-0.20201023110058-6c8bd9b2915c
 	github.com/pierrec/lz4/v4 v4.1.17 // indirect
 	github.com/pkg/xattr v0.4.9 // indirect
@@ -215,7 +215,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stretchr/objx v0.5.1 // indirect
+	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
@@ -272,3 +272,5 @@ replace (
 	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
+
+replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.13.0
