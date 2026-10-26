@@ -1,7 +1,7 @@
 # github.com/fxamacker/cbor/v2 v2.9.0
 ## explicit; go 1.20
 github.com/fxamacker/cbor/v2
-# github.com/go-logr/logr v1.4.3
+# github.com/go-logr/logr v1.4.4
 ## explicit; go 1.18
 github.com/go-logr/logr
 # github.com/go-openapi/analysis v0.24.3
@@ -33,9 +33,12 @@ github.com/go-openapi/spec
 ## explicit; go 1.24.0
 github.com/go-openapi/strfmt
 github.com/go-openapi/strfmt/internal/bsonlite
-# github.com/go-openapi/swag v0.23.0
-## explicit; go 1.20
+# github.com/go-openapi/swag v0.25.4
+## explicit; go 1.24.0
 github.com/go-openapi/swag
+# github.com/go-openapi/swag/cmdutils v0.25.4
+## explicit; go 1.24.0
+github.com/go-openapi/swag/cmdutils
 # github.com/go-openapi/swag/conv v0.25.5
 ## explicit; go 1.24.0
 github.com/go-openapi/swag/conv
@@ -57,6 +60,9 @@ github.com/go-openapi/swag/loading
 # github.com/go-openapi/swag/mangling v0.25.5
 ## explicit; go 1.24.0
 github.com/go-openapi/swag/mangling
+# github.com/go-openapi/swag/netutils v0.25.4
+## explicit; go 1.24.0
+github.com/go-openapi/swag/netutils
 # github.com/go-openapi/swag/stringutils v0.25.5
 ## explicit; go 1.24.0
 github.com/go-openapi/swag/stringutils
@@ -73,10 +79,6 @@ github.com/go-openapi/validate
 ## explicit; go 1.18
 github.com/go-viper/mapstructure/v2
 github.com/go-viper/mapstructure/v2/internal/errors
-# github.com/gogo/protobuf v1.3.2
-## explicit; go 1.15
-github.com/gogo/protobuf/proto
-github.com/gogo/protobuf/sortkeys
 # github.com/google/uuid v1.6.0
 ## explicit
 github.com/google/uuid
@@ -86,9 +88,6 @@ github.com/jinzhu/inflection
 # github.com/jinzhu/now v1.1.4
 ## explicit; go 1.12
 github.com/jinzhu/now
-# github.com/josharian/intern v1.0.0
-## explicit; go 1.5
-github.com/josharian/intern
 # github.com/json-iterator/go v1.1.12
 ## explicit; go 1.12
 github.com/json-iterator/go
@@ -97,11 +96,6 @@ github.com/json-iterator/go
 github.com/lib/pq
 github.com/lib/pq/oid
 github.com/lib/pq/scram
-# github.com/mailru/easyjson v0.7.7
-## explicit; go 1.12
-github.com/mailru/easyjson/buffer
-github.com/mailru/easyjson/jlexer
-github.com/mailru/easyjson/jwriter
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
 ## explicit
 github.com/modern-go/concurrent
@@ -111,8 +105,8 @@ github.com/modern-go/reflect2
 # github.com/oklog/ulid/v2 v2.1.1
 ## explicit; go 1.15
 github.com/oklog/ulid/v2
-# github.com/openshift/api v0.0.0-20251120220512-cb382c9eaf42
-## explicit; go 1.24.0
+# github.com/openshift/api v0.0.0-20260825094607-13a84dedc5a3
+## explicit; go 1.26.0
 github.com/openshift/api/config/v1
 github.com/openshift/api/machine/v1
 github.com/openshift/api/machine/v1beta1
@@ -124,8 +118,8 @@ github.com/openshift/assisted-service/models/validations
 # github.com/openshift/custom-resource-status v1.1.3-0.20220503160415-f2fdb4999d87
 ## explicit; go 1.12
 github.com/openshift/custom-resource-status/conditions/v1
-# github.com/openshift/hive/apis v0.0.0-20260415205034-aa1db747a6ba
-## explicit; go 1.24.0
+# github.com/openshift/hive/apis v0.0.0-20261022181904-20d13c74d2a9
+## explicit; go 1.26.0
 github.com/openshift/hive/apis/hive/v1
 github.com/openshift/hive/apis/hive/v1/agent
 github.com/openshift/hive/apis/hive/v1/aws
@@ -139,23 +133,26 @@ github.com/openshift/hive/apis/hive/v1/nutanix
 github.com/openshift/hive/apis/hive/v1/openstack
 github.com/openshift/hive/apis/hive/v1/vsphere
 github.com/openshift/hive/apis/scheme
+# github.com/openshift/installer v1.5.0-rc-1
+## explicit; go 1.26.0
+github.com/openshift/installer/pkg/types/vsphere
 # github.com/x448/float16 v0.8.4
 ## explicit; go 1.11
 github.com/x448/float16
-# go.yaml.in/yaml/v2 v2.4.3
+# go.yaml.in/yaml/v2 v2.4.4
 ## explicit; go 1.15
 go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/net v0.55.0 => golang.org/x/net v0.24.0
+# golang.org/x/net v0.58.0 => golang.org/x/net v0.24.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/text v0.37.0
-## explicit; go 1.25.0
+# golang.org/x/text v0.42.0
+## explicit; go 1.26.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -163,9 +160,6 @@ golang.org/x/text/unicode/norm
 # gopkg.in/inf.v0 v0.9.1
 ## explicit
 gopkg.in/inf.v0
-# gopkg.in/yaml.v3 v3.0.1
-## explicit
-gopkg.in/yaml.v3
 # gorm.io/gorm v1.24.5
 ## explicit; go 1.16
 gorm.io/gorm
@@ -173,15 +167,17 @@ gorm.io/gorm/clause
 gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
-# k8s.io/api v0.34.2
-## explicit; go 1.24.0
+# k8s.io/api v0.36.2
+## explicit; go 1.26.0
 k8s.io/api/authorization/v1
 k8s.io/api/core/v1
 k8s.io/api/rbac/v1
-# k8s.io/apimachinery v0.34.2
-## explicit; go 1.24.0
+# k8s.io/apimachinery v0.36.2
+## explicit; go 1.26.0
 k8s.io/apimachinery/pkg/api/operation
 k8s.io/apimachinery/pkg/api/resource
+k8s.io/apimachinery/pkg/api/validate/constraints
+k8s.io/apimachinery/pkg/api/validate/content
 k8s.io/apimachinery/pkg/apis/meta/v1
 k8s.io/apimachinery/pkg/conversion
 k8s.io/apimachinery/pkg/conversion/queryparams
@@ -204,8 +200,8 @@ k8s.io/apimachinery/pkg/util/validation
 k8s.io/apimachinery/pkg/util/validation/field
 k8s.io/apimachinery/pkg/watch
 k8s.io/apimachinery/third_party/forked/golang/reflect
-# k8s.io/klog/v2 v2.130.1
-## explicit; go 1.18
+# k8s.io/klog/v2 v2.140.0
+## explicit; go 1.21
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
 k8s.io/klog/v2/internal/clock
@@ -213,8 +209,13 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/utils v0.0.0-20251002143259-bc988d571ff4
-## explicit; go 1.18
+k8s.io/klog/v2/internal/verbosity
+k8s.io/klog/v2/textlogger
+# k8s.io/kube-openapi v0.0.0-20260519202549-bbf5c5577288
+## explicit; go 1.24.0
+k8s.io/kube-openapi/pkg/util
+# k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
+## explicit; go 1.25
 k8s.io/utils/internal/third_party/forked/golang/net
 k8s.io/utils/net
 k8s.io/utils/ptr
@@ -226,7 +227,7 @@ sigs.k8s.io/json/internal/golang/encoding/json
 ## explicit; go 1.18
 sigs.k8s.io/randfill
 sigs.k8s.io/randfill/bytesource
-# sigs.k8s.io/structured-merge-diff/v6 v6.3.1
+# sigs.k8s.io/structured-merge-diff/v6 v6.4.0
 ## explicit; go 1.23
 sigs.k8s.io/structured-merge-diff/v6/value
 # sigs.k8s.io/yaml v1.6.0
