@@ -52,6 +52,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/stream"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -231,6 +232,7 @@ type bareMetalInventory struct {
 	providerRegistry              registry.ProviderRegistry
 	insecureIPXEURLs              bool
 	ephemeralService              bool
+	systemInfo                    system.SystemInfo
 	disconnectedIgnitionGenerator *ignition.DisconnectedIgnitionGenerator
 }
 
@@ -266,6 +268,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	ephemeralService bool,
+	systemInfo system.SystemInfo,
 	oveIgnitionGenerator *ignition.DisconnectedIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
@@ -300,6 +303,7 @@ func NewBareMetalInventory(
 		providerRegistry:              providerRegistry,
 		insecureIPXEURLs:              insecureIPXEURLs,
 		ephemeralService:              ephemeralService,
+		systemInfo:                    systemInfo,
 		disconnectedIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
@@ -5100,11 +5104,37 @@ func (b *bareMetalInventory) GetInfraEnv(ctx context.Context, params installer.G
 	return installer.NewGetInfraEnvOK().WithPayload(&i.InfraEnv)
 }
 
+// setInfraEnvFipsEnabled reports, for the agent-based installer, whether clusters
+// installed from the infra-env will have FIPS mode enabled. Elsewhere the stored
+// value set by the user is returned unchanged.
+//
+// With the agent-based installer, the service runs on the node being installed,
+// which boots with fips=1 when a FIPS enabled ISO was used, so the host's state is
+// the cluster's. That is reported in place of the stored value, which is never set
+// on that node because the infra-env is registered there from the ISO's manifests.
+// On a hub the host's state says nothing about the clusters, so it is not inspected.
+func (b *bareMetalInventory) setInfraEnvFipsEnabled(log logrus.FieldLogger, infraEnv *models.InfraEnv) {
+	if !b.ephemeralService || infraEnv == nil {
+		return
+	}
+
+	enabled, err := b.systemInfo.FIPSEnabled()
+	if err != nil {
+		// Only report what the host confirms, never a stored value in its place.
+		log.WithError(err).Warn("Failed to determine host FIPS mode, leaving fips_enabled unset")
+		infraEnv.FipsEnabled = nil
+		return
+	}
+
+	infraEnv.FipsEnabled = swag.Bool(enabled)
+}
+
 func (b *bareMetalInventory) GetInfraEnvInternal(ctx context.Context, params installer.GetInfraEnvParams) (*common.InfraEnv, error) {
 	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.InfraEnvID)
 	if err != nil {
 		return nil, err
 	}
+	b.setInfraEnvFipsEnabled(logutil.FromContext(ctx, b.log), &infraEnv.InfraEnv)
 	return infraEnv, nil
 }
 
@@ -5127,6 +5157,7 @@ func (b *bareMetalInventory) ListInfraEnvsInternal(ctx context.Context, clusterI
 	}
 
 	for _, i := range dbInfraEnvs {
+		b.setInfraEnvFipsEnabled(log, &i.InfraEnv)
 		infraEnvs = append(infraEnvs, &i.InfraEnv)
 	}
 	return infraEnvs, nil
@@ -5314,6 +5345,7 @@ func (b *bareMetalInventory) RegisterInfraEnvInternal(ctx context.Context, kubeK
 				NtpSources:                   swag.StringValue(params.InfraenvCreateParams.NtpSources),
 				SSHAuthorizedKey:             swag.StringValue(params.InfraenvCreateParams.SSHAuthorizedKey),
 				RendezvousIP:                 params.InfraenvCreateParams.RendezvousIP,
+				FipsEnabled:                  params.InfraenvCreateParams.FipsEnabled,
 				CPUArchitecture:              params.InfraenvCreateParams.CPUArchitecture,
 				KernelArguments:              kernelArguments,
 				AdditionalTrustBundle:        params.InfraenvCreateParams.AdditionalTrustBundle,
@@ -5480,6 +5512,10 @@ func (b *bareMetalInventory) validateInfraEnvCreateParams(ctx context.Context, p
 		params.InfraenvCreateParams.RendezvousIP = nil
 	}
 	if err = validateRendezvousIP(params.InfraenvCreateParams.ImageType, params.InfraenvCreateParams.RendezvousIP); err != nil {
+		return err
+	}
+
+	if err = validateFipsEnabled(params.InfraenvCreateParams.ImageType, params.InfraenvCreateParams.FipsEnabled); err != nil {
 		return err
 	}
 
@@ -5690,7 +5726,7 @@ func (b *bareMetalInventory) UpdateInfraEnvInternal(ctx context.Context, params 
 		if requestedType := params.InfraEnvUpdateParams.ImageType; requestedType != "" {
 			targetImageType = requestedType
 		}
-		if err = b.validateRendezvousIPUpdate(params.InfraEnvUpdateParams.RendezvousIP, targetImageType); err != nil {
+		if err = b.validateDisconnectedIsoUpdates(params.InfraEnvUpdateParams, targetImageType); err != nil {
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 
@@ -5838,6 +5874,7 @@ func (b *bareMetalInventory) updateInfraEnvData(infraEnv *common.InfraEnv, param
 	}
 
 	b.applyRendezvousIPUpdates(infraEnv, rendezvousIP, targetImageType, updates)
+	applyFipsEnabledUpdates(infraEnv, params.InfraEnvUpdateParams.FipsEnabled, targetImageType, updates)
 
 	if params.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds != nil {
 		if infraEnv.NetworkDiscoveryDelaySeconds == nil || *params.InfraEnvUpdateParams.NetworkDiscoveryDelaySeconds != *infraEnv.NetworkDiscoveryDelaySeconds {
@@ -5926,6 +5963,15 @@ func (b *bareMetalInventory) validateInfraEnvIgnitionParams(ctx context.Context,
 	return nil
 }
 
+// validateDisconnectedIsoUpdates validates the update fields that are only
+// supported for the disconnected-iso image type.
+func (b *bareMetalInventory) validateDisconnectedIsoUpdates(updateParams *models.InfraEnvUpdateParams, targetImageType models.ImageType) error {
+	if err := b.validateRendezvousIPUpdate(updateParams.RendezvousIP, targetImageType); err != nil {
+		return err
+	}
+	return validateFipsEnabled(targetImageType, updateParams.FipsEnabled)
+}
+
 func (b *bareMetalInventory) validateRendezvousIPUpdate(ip *string, targetImageType models.ImageType) error {
 	if swag.StringValue(ip) == "" {
 		return nil
@@ -5986,6 +6032,31 @@ func (b *bareMetalInventory) applyRendezvousIPUpdates(infraEnv *common.InfraEnv,
 	// Update to a new non-empty value.
 	if *rendezvousIP != swag.StringValue(infraEnv.RendezvousIP) {
 		updates["rendezvous_ip"] = *rendezvousIP
+	}
+}
+
+// validateFipsEnabled rejects enabling FIPS on anything but a disconnected ISO,
+// the only image type where it is turned into the fips=1 boot argument.
+func validateFipsEnabled(imageType models.ImageType, fipsEnabled *bool) error {
+	if swag.BoolValue(fipsEnabled) && imageType != models.ImageTypeDisconnectedIso {
+		return errors.Errorf("FIPS mode is only supported for disconnected ISO infra-envs")
+	}
+	return nil
+}
+
+func applyFipsEnabledUpdates(infraEnv *common.InfraEnv, fipsEnabled *bool, targetImageType models.ImageType, updates map[string]interface{}) {
+	// If moving away from disconnected-iso, clear any existing value.
+	if targetImageType != models.ImageTypeDisconnectedIso {
+		if infraEnv.FipsEnabled != nil {
+			updates["fips_enabled"] = gorm.Expr("NULL")
+		}
+		return
+	}
+
+	// Store an explicit false even when nothing was stored before, so that
+	// "set to false" is distinguishable from "never set".
+	if fipsEnabled != nil && (infraEnv.FipsEnabled == nil || *fipsEnabled != *infraEnv.FipsEnabled) {
+		updates["fips_enabled"] = *fipsEnabled
 	}
 }
 
