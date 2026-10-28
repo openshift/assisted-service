@@ -178,6 +178,7 @@ var (
 	mockProviderRegistry              *registry.MockProviderRegistry
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	mockInstallerCache                *installercache.MockInstallerCache
+	mockSystemInfo                    *system.MockSystemInfo
 	mockExecuter                      *executer.MockExecuter
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
@@ -20243,6 +20244,7 @@ func createInventoryWithImageService(db *gorm.DB, cfg Config, enableImageService
 	mockExecuter = executer.NewMockExecuter(ctrl)
 	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	mockInstallerCache = installercache.NewMockInstallerCache(ctrl)
+	mockSystemInfo = system.NewMockSystemInfo(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
 
@@ -20259,7 +20261,7 @@ func createInventoryWithImageService(db *gorm.DB, cfg Config, enableImageService
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, false, disconnectedIgnitionGenerator)
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, false, mockSystemInfo, disconnectedIgnitionGenerator)
 
 	if enableImageService {
 		bm.ImageServiceBaseURL = imageServiceBaseURL
@@ -23186,5 +23188,67 @@ var _ = Describe("CreateHostInKubeKeyNamespace", func() {
 		// Verify the record is actually soft-deleted (not active)
 		Expect(db.Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID2.String()).Count(&count).Error).ToNot(HaveOccurred())
 		Expect(count).To(Equal(int64(0)))
+	})
+})
+
+var _ = Describe("setFipsEnabled", func() {
+	var (
+		fipsCtrl    *gomock.Controller
+		fipsSysInfo *system.MockSystemInfo
+		cluster     *models.Cluster
+	)
+
+	newInventory := func(ephemeral bool) *bareMetalInventory {
+		return &bareMetalInventory{
+			log:              common.GetTestLog(),
+			ephemeralService: ephemeral,
+			systemInfo:       fipsSysInfo,
+		}
+	}
+
+	BeforeEach(func() {
+		fipsCtrl = gomock.NewController(GinkgoT())
+		fipsSysInfo = system.NewMockSystemInfo(fipsCtrl)
+		cluster = &models.Cluster{}
+	})
+
+	AfterEach(func() {
+		fipsCtrl.Finish()
+	})
+
+	It("reports true when the agent-based installer runs on a FIPS host", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(true, nil).Times(1)
+
+		newInventory(true).setFipsEnabled(common.GetTestLog(), cluster)
+
+		Expect(cluster.FipsEnabled).ToNot(BeNil())
+		Expect(*cluster.FipsEnabled).To(BeTrue())
+	})
+
+	It("reports false when the agent-based installer runs on a non-FIPS host", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, nil).Times(1)
+
+		newInventory(true).setFipsEnabled(common.GetTestLog(), cluster)
+
+		Expect(cluster.FipsEnabled).ToNot(BeNil())
+		Expect(*cluster.FipsEnabled).To(BeFalse())
+	})
+
+	It("never inspects the host when not the agent-based installer", func() {
+		// On a hub the host's FIPS state says nothing about the clusters it
+		// creates, so reporting it would label spokes incorrectly.
+		fipsSysInfo.EXPECT().FIPSEnabled().Times(0)
+
+		newInventory(false).setFipsEnabled(common.GetTestLog(), cluster)
+
+		Expect(cluster.FipsEnabled).To(BeNil())
+	})
+
+	It("leaves the field unset when the host state cannot be read", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, errors.New("permission denied")).Times(1)
+
+		newInventory(true).setFipsEnabled(common.GetTestLog(), cluster)
+
+		Expect(cluster.FipsEnabled).To(BeNil())
 	})
 })
