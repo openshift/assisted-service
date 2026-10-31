@@ -291,13 +291,13 @@ arches:
     name: diffutils
     evr: 3.6-6.el8
     sourcerpm: diffutils-3.6-6.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.2.noarch.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.4.noarch.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 71664
-    checksum: sha256:118f99c4089f398fb4a7bbbb051e5dca22d3c1dc058e79f8ce785fff3506f179
+    size: 71968
+    checksum: sha256:e4eaa29550ea9dffae3fa28d36e3d89d37b586caeb7634138be9766a02d19178
     name: emacs-filesystem
-    evr: 1:26.1-15.el8_10.2
-    sourcerpm: emacs-26.1-15.el8_10.2.src.rpm
+    evr: 1:26.1-15.el8_10.4
+    sourcerpm: emacs-26.1-15.el8_10.4.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/f/fuse-common-3.3.0-19.el8.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 23000
@@ -361,13 +361,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8_10.1
     sourcerpm: kbd-2.0.4-11.el8_10.1.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/kernel-headers-4.18.0-553.179.1.el8_10.aarch64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/kernel-headers-4.18.0-553.180.1.el8_10.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 12548920
-    checksum: sha256:78ccf333e1bbaaf4730fbe7d85c41c0bb479825cc3b99f913ae3b1ccd49fe039
+    size: 12549876
+    checksum: sha256:2f7ad5ca010ea65ef82034ce6ba7e5c5499d4075d4d2f3abbf94878ac4f53aa9
     name: kernel-headers
-    evr: 4.18.0-553.179.1.el8_10
-    sourcerpm: kernel-4.18.0-553.179.1.el8_10.src.rpm
+    evr: 4.18.0-553.180.1.el8_10
+    sourcerpm: kernel-4.18.0-553.180.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 49180
@@ -424,13 +424,6 @@ arches:
     name: libedit
     evr: 3.1-23.20170329cvs.el8
     sourcerpm: libedit-3.1-23.20170329cvs.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/l/libgcc-8.5.0-30.el8_10.aarch64.rpm
-    repoid: rhel-8-for-aarch64-baseos-rpms
-    size: 76468
-    checksum: sha256:77946d920c35d9784a00fe3f6fb6178c14848ec85fdb54fbcf4554746c5f4d6f
-    name: libgcc
-    evr: 8.5.0-30.el8_10
-    sourcerpm: gcc-8.5.0-30.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/baseos/os/Packages/l/libgomp-8.5.0-30.el8_10.aarch64.rpm
     repoid: rhel-8-for-aarch64-baseos-rpms
     size: 205112
@@ -916,10 +909,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/appstream/os/repodata/08f367011e6a3eef50bb9ba219448b59d36150552b593cbdb3f03292db0a2aab-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/aarch64/appstream/os/repodata/f8deda0f274ffa6e36e7164eb849a6a0d0ed8e3c2b140b903bb28421ae5eb63c-modules.yaml.gz
     repoid: rhel-8-for-aarch64-appstream-rpms
-    size: 862098
-    checksum: sha256:08f367011e6a3eef50bb9ba219448b59d36150552b593cbdb3f03292db0a2aab
+    size: 865007
+    checksum: sha256:f8deda0f274ffa6e36e7164eb849a6a0d0ed8e3c2b140b903bb28421ae5eb63c
 - arch: ppc64le
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/ppc64le/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202609081428.p2.g7189593.assembly.stream.el8.ppc64le.rpm
@@ -1209,13 +1202,13 @@ arches:
     name: diffutils
     evr: 3.6-6.el8
     sourcerpm: diffutils-3.6-6.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.2.noarch.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.4.noarch.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 71664
-    checksum: sha256:118f99c4089f398fb4a7bbbb051e5dca22d3c1dc058e79f8ce785fff3506f179
+    size: 71968
+    checksum: sha256:e4eaa29550ea9dffae3fa28d36e3d89d37b586caeb7634138be9766a02d19178
     name: emacs-filesystem
-    evr: 1:26.1-15.el8_10.2
-    sourcerpm: emacs-26.1-15.el8_10.2.src.rpm
+    evr: 1:26.1-15.el8_10.4
+    sourcerpm: emacs-26.1-15.el8_10.4.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/f/fuse-common-3.3.0-19.el8.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 23016
@@ -1279,13 +1272,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8_10.1
     sourcerpm: kbd-2.0.4-11.el8_10.1.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/kernel-headers-4.18.0-553.179.1.el8_10.ppc64le.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/kernel-headers-4.18.0-553.180.1.el8_10.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 12568116
-    checksum: sha256:d6f0c7730e9aeddf46aeaa4cc13198a9d0b1c9a4901505091712d2c73fd6bfd1
+    size: 12568992
+    checksum: sha256:30ae99ddf3ef5080ddd28bf49246778b01289141bd476507d2bd098bc2a4dadb
     name: kernel-headers
-    evr: 4.18.0-553.179.1.el8_10
-    sourcerpm: kernel-4.18.0-553.179.1.el8_10.src.rpm
+    evr: 4.18.0-553.180.1.el8_10
+    sourcerpm: kernel-4.18.0-553.180.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 49200
@@ -1342,13 +1335,6 @@ arches:
     name: libedit
     evr: 3.1-23.20170329cvs.el8
     sourcerpm: libedit-3.1-23.20170329cvs.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/l/libgcc-8.5.0-30.el8_10.ppc64le.rpm
-    repoid: rhel-8-for-ppc64le-baseos-rpms
-    size: 72048
-    checksum: sha256:50b13f486934620567f06fbd81c9cef57c84f6633b7812ec9aa51683fa65b0a4
-    name: libgcc
-    evr: 8.5.0-30.el8_10
-    sourcerpm: gcc-8.5.0-30.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/baseos/os/Packages/l/libgomp-8.5.0-30.el8_10.ppc64le.rpm
     repoid: rhel-8-for-ppc64le-baseos-rpms
     size: 218536
@@ -1834,10 +1820,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/appstream/os/repodata/fd97ecc13d9898d198a87a3b62c59a9c99f610b5bc09841e0bb69d03571b4d9e-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/ppc64le/appstream/os/repodata/3c3a792b7712e7f6e97e9a6eb5ff9a2ee9106463516293929fea52d6277ebe03-modules.yaml.gz
     repoid: rhel-8-for-ppc64le-appstream-rpms
-    size: 854869
-    checksum: sha256:fd97ecc13d9898d198a87a3b62c59a9c99f610b5bc09841e0bb69d03571b4d9e
+    size: 858757
+    checksum: sha256:3c3a792b7712e7f6e97e9a6eb5ff9a2ee9106463516293929fea52d6277ebe03
 - arch: s390x
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/s390x/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202609081428.p2.g7189593.assembly.stream.el8.s390x.rpm
@@ -2127,13 +2113,13 @@ arches:
     name: diffutils
     evr: 3.6-6.el8
     sourcerpm: diffutils-3.6-6.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.2.noarch.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.4.noarch.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 71664
-    checksum: sha256:118f99c4089f398fb4a7bbbb051e5dca22d3c1dc058e79f8ce785fff3506f179
+    size: 71968
+    checksum: sha256:e4eaa29550ea9dffae3fa28d36e3d89d37b586caeb7634138be9766a02d19178
     name: emacs-filesystem
-    evr: 1:26.1-15.el8_10.2
-    sourcerpm: emacs-26.1-15.el8_10.2.src.rpm
+    evr: 1:26.1-15.el8_10.4
+    sourcerpm: emacs-26.1-15.el8_10.4.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/f/fuse-common-3.3.0-19.el8.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 23024
@@ -2197,13 +2183,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8_10.1
     sourcerpm: kbd-2.0.4-11.el8_10.1.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/kernel-headers-4.18.0-553.179.1.el8_10.s390x.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/kernel-headers-4.18.0-553.180.1.el8_10.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
-    size: 12575964
-    checksum: sha256:e10ce768be58fed50e5692a7be66cb2a6f4933030c533425383208ba35cf070c
+    size: 12576452
+    checksum: sha256:330c9aca61ff37ee52f4b24e2da579699be4fb4a2d33ef9ae4c18010112f9629
     name: kernel-headers
-    evr: 4.18.0-553.179.1.el8_10
-    sourcerpm: kernel-4.18.0-553.179.1.el8_10.src.rpm
+    evr: 4.18.0-553.180.1.el8_10
+    sourcerpm: kernel-4.18.0-553.180.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 49208
@@ -2260,13 +2246,6 @@ arches:
     name: libedit
     evr: 3.1-23.20170329cvs.el8
     sourcerpm: libedit-3.1-23.20170329cvs.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/l/libgcc-8.5.0-30.el8_10.s390x.rpm
-    repoid: rhel-8-for-s390x-baseos-rpms
-    size: 67236
-    checksum: sha256:23cddac480931dc8cd0ad4811dbc042e076ed3e462c8d2e5b5930b364bba79bb
-    name: libgcc
-    evr: 8.5.0-30.el8_10
-    sourcerpm: gcc-8.5.0-30.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/baseos/os/Packages/l/libgomp-8.5.0-30.el8_10.s390x.rpm
     repoid: rhel-8-for-s390x-baseos-rpms
     size: 207392
@@ -2752,10 +2731,10 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/appstream/os/repodata/ec8b4110e9de8032553fd7c7838ae29bc707b45463c7050e272c37ab7eb82425-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/s390x/appstream/os/repodata/1024c06a66ab488a9c16fd93b8badf0498090335575fb0d2821a6bc748e53c14-modules.yaml.gz
     repoid: rhel-8-for-s390x-appstream-rpms
-    size: 857978
-    checksum: sha256:ec8b4110e9de8032553fd7c7838ae29bc707b45463c7050e272c37ab7eb82425
+    size: 861040
+    checksum: sha256:1024c06a66ab488a9c16fd93b8badf0498090335575fb0d2821a6bc748e53c14
 - arch: x86_64
   packages:
   - url: https://cdn.redhat.com/content/dist/layered/rhel8/x86_64/rhocp/4.17/os/Packages/o/openshift-clients-4.17.0-202609081428.p2.g7189593.assembly.stream.el8.x86_64.rpm
@@ -3045,13 +3024,13 @@ arches:
     name: diffutils
     evr: 3.6-6.el8
     sourcerpm: diffutils-3.6-6.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.2.noarch.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/e/emacs-filesystem-26.1-15.el8_10.4.noarch.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 71664
-    checksum: sha256:118f99c4089f398fb4a7bbbb051e5dca22d3c1dc058e79f8ce785fff3506f179
+    size: 71968
+    checksum: sha256:e4eaa29550ea9dffae3fa28d36e3d89d37b586caeb7634138be9766a02d19178
     name: emacs-filesystem
-    evr: 1:26.1-15.el8_10.2
-    sourcerpm: emacs-26.1-15.el8_10.2.src.rpm
+    evr: 1:26.1-15.el8_10.4
+    sourcerpm: emacs-26.1-15.el8_10.4.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/f/fuse-common-3.3.0-19.el8.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 23032
@@ -3115,13 +3094,13 @@ arches:
     name: kbd-misc
     evr: 2.0.4-11.el8_10.1
     sourcerpm: kbd-2.0.4-11.el8_10.1.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/kernel-headers-4.18.0-553.179.1.el8_10.x86_64.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/kernel-headers-4.18.0-553.180.1.el8_10.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 12580652
-    checksum: sha256:8161b834b45ba5c9caa0153ed6082a94bff7e0c731406fa6e4553ffe8332b7dd
+    size: 12581404
+    checksum: sha256:c1be8f0fed65ed1d164c2b8539166ca591c8bbdd33feb69b9713dc3e39dd0bff
     name: kernel-headers
-    evr: 4.18.0-553.179.1.el8_10
-    sourcerpm: kernel-4.18.0-553.179.1.el8_10.src.rpm
+    evr: 4.18.0-553.180.1.el8_10
+    sourcerpm: kernel-4.18.0-553.180.1.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/k/keyutils-libs-devel-1.5.10-9.el8.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 49216
@@ -3164,13 +3143,6 @@ arches:
     name: libedit
     evr: 3.1-23.20170329cvs.el8
     sourcerpm: libedit-3.1-23.20170329cvs.el8.src.rpm
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/l/libgcc-8.5.0-30.el8_10.x86_64.rpm
-    repoid: rhel-8-for-x86_64-baseos-rpms
-    size: 83508
-    checksum: sha256:87022efbbcb061be20ec79081e10b3363cd02969b9900f9e2952c6018a8ce001
-    name: libgcc
-    evr: 8.5.0-30.el8_10
-    sourcerpm: gcc-8.5.0-30.el8_10.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/baseos/os/Packages/l/libgomp-8.5.0-30.el8_10.x86_64.rpm
     repoid: rhel-8-for-x86_64-baseos-rpms
     size: 213084
@@ -3649,7 +3621,7 @@ arches:
     sourcerpm: nmstate-1.4.6-4.el8_10.src.rpm
   source: []
   module_metadata:
-  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/appstream/os/repodata/b4cc598ff20263bdaad4ff63f51f5588d67250a7ce291059aba897d1f91357d0-modules.yaml.gz
+  - url: https://cdn.redhat.com/content/dist/rhel8/8/x86_64/appstream/os/repodata/43e1263d8cf1c57e0c4360e9145982f40f3ceb3b9baa4ffa8f6c29f81e1866d0-modules.yaml.gz
     repoid: rhel-8-for-x86_64-appstream-rpms
-    size: 883725
-    checksum: sha256:b4cc598ff20263bdaad4ff63f51f5588d67250a7ce291059aba897d1f91357d0
+    size: 886743
+    checksum: sha256:43e1263d8cf1c57e0c4360e9145982f40f3ceb3b9baa4ffa8f6c29f81e1866d0
