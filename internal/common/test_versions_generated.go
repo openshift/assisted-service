@@ -32,8 +32,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.18/4.18.30/rhcos-4.18.30-aarch64-live.aarch64.iso",
 		},
 		"4.19": {
-			Version: "9.6.20260112-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.19/4.19.23/rhcos-4.19.23-aarch64-live-iso.aarch64.iso",
+			Version: "9.6.20261027-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.19/4.19.54/rhcos-4.19.54-aarch64-live-iso.aarch64.iso",
 		},
 		"4.20": {
 			Version: "9.6.20260112-0",
@@ -48,8 +48,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-aarch64-live-iso.aarch64.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260921-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/5.0.0-rc.7/rhcos-5.0.0-rc.7-aarch64-live-iso.aarch64.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-aarch64-live-iso.aarch64.iso",
 		},
 	},
 	"ppc64le": {
@@ -78,8 +78,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.18/4.18.30/rhcos-4.18.30-ppc64le-live.ppc64le.iso",
 		},
 		"4.19": {
-			Version: "9.6.20260112-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.19/4.19.23/rhcos-4.19.23-ppc64le-live-iso.ppc64le.iso",
+			Version: "9.6.20261027-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.19/4.19.54/rhcos-4.19.54-ppc64le-live-iso.ppc64le.iso",
 		},
 		"4.20": {
 			Version: "9.6.20260112-0",
@@ -94,8 +94,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-ppc64le-live-iso.ppc64le.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260921-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.0.0-rc.7/rhcos-5.0.0-rc.7-ppc64le-live-iso.ppc64le.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-ppc64le-live-iso.ppc64le.iso",
 		},
 	},
 	"s390x": {
@@ -124,8 +124,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.18/4.18.30/rhcos-4.18.30-s390x-live.s390x.iso",
 		},
 		"4.19": {
-			Version: "9.6.20260112-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.19/4.19.23/rhcos-4.19.23-s390x-live-iso.s390x.iso",
+			Version: "9.6.20261027-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.19/4.19.54/rhcos-4.19.54-s390x-live-iso.s390x.iso",
 		},
 		"4.20": {
 			Version: "9.6.20260112-0",
@@ -140,8 +140,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-s390x-live-iso.s390x.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260921-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.0.0-rc.7/rhcos-5.0.0-rc.7-s390x-live-iso.s390x.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-s390x-live-iso.s390x.iso",
 		},
 	},
 	"x86_64": {
@@ -178,8 +178,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.18/4.18.30/rhcos-4.18.30-x86_64-live.x86_64.iso",
 		},
 		"4.19": {
-			Version: "9.6.20260616-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.45/rhcos-4.19.45-x86_64-live-iso.x86_64.iso",
+			Version: "9.6.20261027-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.19/4.19.54/rhcos-4.19.54-x86_64-live-iso.x86_64.iso",
 		},
 		"4.20": {
 			Version: "9.6.20260818-0",
@@ -194,8 +194,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-x86_64-live-iso.x86_64.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260921-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/5.0.0-rc.7/rhcos-5.0.0-rc.7-x86_64-live-iso.x86_64.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-x86_64-live-iso.x86_64.iso",
 		},
 	},
 }
@@ -247,8 +247,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.20-aarch64",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.7",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-aarch64",
+			Version: "5.0.0-rc.8",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.8-aarch64",
 		},
 	},
 	"multi": {
@@ -293,8 +293,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.20-multi",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.7-multi",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-multi",
+			Version: "5.0.0-rc.8-multi",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.8-multi",
 		},
 	},
 	"x86_64": {
@@ -347,8 +347,8 @@ var testReleaseImagesByArch = map[string]map[string]testReleaseImage{
 			URL:     "quay.io/openshift-release-dev/ocp-release:4.22.20-x86_64",
 		},
 		"5.0": {
-			Version: "5.0.0-rc.7",
-			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.7-x86_64",
+			Version: "5.0.0-rc.8",
+			URL:     "quay.io/openshift-release-dev/ocp-release:5.0.0-rc.8-x86_64",
 		},
 	},
 }
