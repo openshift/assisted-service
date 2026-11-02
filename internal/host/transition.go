@@ -77,7 +77,7 @@ var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.Da
 var resetProgressFields = []interface{}{"progress_current_stage", "", "progress_installation_percentage", 0,
 	"progress_progress_info", "", "progress_stage_started_at", strfmt.DateTime(time.Time{}), "progress_stage_updated_at", strfmt.DateTime(time.Time{})}
 
-var resetFields = append(resetProgressFields, "inventory", "", "bootstrap", false, "images_status", "")
+var resetFields = append(resetProgressFields, "inventory", "", "bootstrap", false, "images_status", "", "validations_info", "")
 var restFieldsOnUnbind = append(append(resetProgressFields, resetLogsField...), "cluster_id", nil, "kind", swag.String(models.HostKindHost), "connectivity", "", "domain_name_resolutions", "",
 	"free_addresses", "", "images_status", "", "installation_disk_id", "", "installation_disk_path", "", "machine_config_pool_name", "",
 	"role", "auto-assign", "api_vip_connectivity", "", "suggested_role", "", "images_status", "",
