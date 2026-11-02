@@ -385,7 +385,11 @@ func (f *NodeFeatureDiscoveryFeature) getSupportLevel(filters SupportLevelFilter
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonOpenshiftVersion
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *NodeFeatureDiscoveryFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -426,7 +430,11 @@ func (f *NvidiaGPUFeature) getSupportLevel(filters SupportLevelFilters) (models.
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.21", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *NvidiaGPUFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -468,7 +476,11 @@ func (f *PipelinesFeature) getSupportLevel(filters SupportLevelFilters) (models.
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.14", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *PipelinesFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -506,7 +518,11 @@ func (f *ServiceMeshFeature) getSupportLevel(filters SupportLevelFilters) (model
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.21", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *ServiceMeshFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -544,7 +560,7 @@ func (f *ServerLessFeature) getSupportLevel(filters SupportLevelFilters) (models
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *ServerLessFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -591,7 +607,11 @@ func (f *OpenShiftAIFeature) getSupportLevel(filters SupportLevelFilters) (model
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonPlatform
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.21", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *OpenShiftAIFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -631,7 +651,7 @@ func (f *AuthorinoFeature) GetName() string {
 }
 
 func (f *AuthorinoFeature) getSupportLevel(filters SupportLevelFilters) (models.SupportLevel, models.IncompatibilityReason) {
-	return models.SupportLevelDevPreview, ""
+	return models.SupportLevelSupported, ""
 }
 
 func (f *AuthorinoFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -779,7 +799,11 @@ func (f *AMDGPUFeature) getSupportLevel(filters SupportLevelFilters) (models.Sup
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.16", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *AMDGPUFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
@@ -821,7 +845,11 @@ func (f *KMMFeature) getSupportLevel(filters SupportLevelFilters) (models.Suppor
 		return models.SupportLevelUnavailable, models.IncompatibilityReasonCPUArchitecture
 	}
 
-	return models.SupportLevelDevPreview, ""
+	if isDevPreview, err := common.BaseVersionLessThan("4.12", filters.OpenshiftVersion); isDevPreview || err != nil {
+		return models.SupportLevelDevPreview, ""
+	}
+
+	return models.SupportLevelSupported, ""
 }
 
 func (f *KMMFeature) getIncompatibleArchitectures(_ *string) []models.ArchitectureSupportLevelID {
