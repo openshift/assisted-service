@@ -318,6 +318,7 @@ var _ = Describe("RegisterHost", func() {
 			Expect(h.Progress.ProgressInfo).To(BeEmpty())
 			Expect(h.NtpSources).To(BeEmpty())
 			Expect(h.ImagesStatus).To(BeEmpty())
+			Expect(h.ValidationsInfo).To(BeEmpty())
 		})
 
 		for i := range tests {
@@ -338,7 +339,8 @@ var _ = Describe("RegisterHost", func() {
 						CurrentStage: common.TestDefaultConfig.HostProgressStage,
 						ProgressInfo: "some info",
 					},
-					NtpSources: "some ntp sources",
+					NtpSources:      "some ntp sources",
+					ValidationsInfo: "some validations info",
 				}).Error).ShouldNot(HaveOccurred())
 				if t.srcState != models.HostStatusDiscovering {
 					mockEvents.EXPECT().SendHostEvent(gomock.Any(), eventstest.NewEventMatcher(
@@ -1181,6 +1183,7 @@ var _ = Describe("Unbind", func() {
 		Expect(h.InstallationDiskID).Should(BeEmpty())
 		Expect(h.InstallationDiskPath).Should(BeEmpty())
 		Expect(h.MachineConfigPoolName).Should(BeEmpty())
+		Expect(h.ValidationsInfo).Should(BeEmpty())
 		Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
 		Expect(h.SuggestedRole).Should(BeEmpty())
 		bytes, err := json.Marshal(defaultNTPSources)
