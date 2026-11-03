@@ -1472,6 +1472,64 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_TYPE]).To(Equal(string(models.HostRoleWorker)))
 				Expect(string(spokeMachine.Spec.ProviderSpec.Value.Raw)).To(ContainSubstring(imageURL))
 			})
+			It("should backfill spoke BMH and Machine when a day 2 Agent completes after MCS cert injection", func() {
+				// Model the MCS certificate update interrupting reconciliation before
+				// the Agent reaches Done.
+				host_day2.Status.Provisioning.State = bmh_v1alpha1.StateReady
+				Expect(c.Update(ctx, host_day2)).To(Succeed())
+				agent_day2.Status.DebugInfo.State = models.HostStatusInstalling
+				agent_day2.Status.Progress.CurrentStage = models.HostStageInstalling
+				Expect(c.Update(ctx, agent_day2)).To(Succeed())
+
+				configMap := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "root-ca",
+						Namespace: "kube-system",
+					},
+					Data: map[string]string{"ca.crt": BASIC_CERT},
+				}
+				Expect(bmhr.spokeClient.Create(ctx, configMap)).To(Succeed())
+
+				By("Reconciling Agent inventory before injecting the MCS certificate")
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(ctrl.Result{}))
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				Expect(c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)).To(Succeed())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+
+				By("Injecting the MCS certificate before creating spoke resources")
+				result, err = bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(ctrl.Result{}))
+				Expect(c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)).To(Succeed())
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+				spokeMachine := &machinev1beta1.Machine{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)
+				Expect(k8serrors.IsNotFound(err)).To(BeTrue())
+
+				By("Completing the Agent before the next BMH reconcile")
+				Expect(c.Get(ctx, types.NamespacedName{Name: agent_day2.Name, Namespace: agent_day2.Namespace}, agent_day2)).To(Succeed())
+				agent_day2.Status.DebugInfo.State = models.HostStatusAddedToExistingCluster
+				agent_day2.Status.Progress.CurrentStage = models.HostStageDone
+				Expect(c.Update(ctx, agent_day2)).To(Succeed())
+
+				result, err = bmhr.Reconcile(ctx, newBMHRequest(host_day2))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(result).To(Equal(ctrl.Result{}))
+				Expect(spokeClient.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeBMH)).To(Succeed())
+				Expect(spokeBMH.Spec.ConsumerRef).NotTo(BeNil())
+				Expect(spokeBMH.Spec.ConsumerRef.Name).To(Equal(machineName))
+				Expect(spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: OPENSHIFT_MACHINE_API_NAMESPACE}, spokeMachine)).To(Succeed())
+				Expect(spokeMachine.ObjectMeta.Annotations).To(HaveKey(BMH_ANNOTATION))
+				Expect(spokeMachine.ObjectMeta.Labels[MACHINE_ROLE]).To(Equal(string(models.HostRoleWorker)))
+			})
 			It("should create spoke BMH & Machine for day 2 host with master role when it's installing - happy flow", func() {
 				configMap := &corev1.ConfigMap{
 					ObjectMeta: metav1.ObjectMeta{
