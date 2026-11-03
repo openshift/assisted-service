@@ -50,6 +50,14 @@ Assisted Service is a REST/Kubernetes API service that installs OpenShift cluste
 - `api/` - Kubernetes API definitions (CRDs)
 - `models/` - Auto-generated data models
 
+## Code Change Requirements
+
+1. Every code change **must** include unit tests for new or modified behavior, when possible.
+2. Bug fixes **must** include a regression test that fails without the fix and passes with it.
+3. Do not skip, weaken, or delete existing tests to make your change pass.
+4. Run `make unit-test` (or `go test ./path/to/package`) before committing to verify tests pass locally.
+5. See the [Testing](#testing) section below and [`.agents/skills/assisted-service-writing-unit-tests/SKILL.md`](.agents/skills/assisted-service-writing-unit-tests/SKILL.md) for test patterns and conventions.
+
 ## Common Development Commands
 
 ### Building
