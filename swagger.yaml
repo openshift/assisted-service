@@ -4609,6 +4609,9 @@ definitions:
       master:
         description: Requirements towards a master node
         $ref: '#/definitions/host-type-hardware-requirements'
+      arbiter:
+        description: Requirements towards an arbiter node
+        $ref: '#/definitions/host-type-hardware-requirements'
 
   host-type-hardware-requirements:
     type: object

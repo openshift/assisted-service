@@ -1771,6 +1771,14 @@ var _ = Describe("Preflight host requirements", func() {
 					InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 				},
 			},
+			Arbiter: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         defaultWorkerCores,
+					DiskSizeGb:                       defaultWorkerDiskSize,
+					RAMMib:                           defaultWorkerRam,
+					InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+				},
+			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores:                         defaultWorkerCores,
@@ -1800,6 +1808,14 @@ var _ = Describe("Preflight host requirements", func() {
 					DiskSizeGb:                       defaultMasterDiskSize,
 					RAMMib:                           defaultSnoRam,
 					InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+				},
+			},
+			Arbiter: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         defaultWorkerCores,
+					DiskSizeGb:                       defaultWorkerDiskSize,
+					RAMMib:                           defaultWorkerRam,
+					InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
@@ -1843,6 +1859,14 @@ var _ = Describe("Preflight host requirements", func() {
 					InstallationDiskSpeedThresholdMs: 1,
 				},
 			},
+			Arbiter: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         3,
+					DiskSizeGb:                       102,
+					RAMMib:                           9 * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: 2,
+				},
+			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores:                         3,
@@ -1875,6 +1899,7 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeTrue())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeTrue())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeTrue())
 		})
 
@@ -1895,6 +1920,7 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeTrue())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeFalse())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
 		})
 
@@ -1915,6 +1941,7 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeFalse())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeTrue())
 		})
 
@@ -1935,6 +1962,7 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeFalse())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
 		})
 
@@ -1954,6 +1982,7 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeFalse())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
 		})
 
@@ -1974,6 +2003,28 @@ var _ = Describe("Preflight host requirements", func() {
 			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
+		})
+
+		It("TPM - arbiters only", func() {
+
+			diskEncryptionClusterID := strfmt.UUID(uuid.New().String())
+			diskEncryptionCluster := &common.Cluster{Cluster: models.Cluster{
+				ID:               &diskEncryptionClusterID,
+				OpenshiftVersion: openShiftVersionNotInConfig,
+				DiskEncryption: &models.DiskEncryption{
+					EnableOn: swag.String(models.DiskEncryptionEnableOnArbiters),
+					Mode:     swag.String(models.DiskEncryptionModeTpmv2),
+				},
+			}}
+
+			operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(diskEncryptionCluster)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), diskEncryptionCluster)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result.Ocp.Master.Quantitative.TpmEnabledInBios).To(BeFalse())
+			Expect(result.Ocp.Arbiter.Quantitative.TpmEnabledInBios).To(BeTrue())
 			Expect(result.Ocp.Worker.Quantitative.TpmEnabledInBios).To(BeFalse())
 		})
 	})

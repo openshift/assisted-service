@@ -3579,6 +3579,14 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
 			PacketLossPercentage:             ptr.To(float64(10)),
 		}
+		arbiterOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:                         2,
+			DiskSizeGb:                       50,
+			RAMMib:                           8192,
+			InstallationDiskSpeedThresholdMs: 10,
+			NetworkLatencyThresholdMs:        ptr.To(float64(1000)),
+			PacketLossPercentage:             ptr.To(float64(0)),
+		}
 		workerCNVRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores: 2,
 			RAMMib:   360,
@@ -3643,6 +3651,9 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &workerOCPRequirements,
+			},
+			Arbiter: &models.HostTypeHardwareRequirements{
+				Quantitative: &arbiterOCPRequirements,
 			},
 		}
 		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
