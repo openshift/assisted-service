@@ -30,3 +30,5 @@ require (
 	go.mongodb.org/mongo-driver v1.10.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4
