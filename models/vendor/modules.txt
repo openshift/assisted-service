@@ -88,3 +88,4 @@ gorm.io/gorm/clause
 gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
+# golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4

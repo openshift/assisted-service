@@ -35,3 +35,5 @@ require (
 )
 
 replace github.com/openshift/assisted-service/models => ../models
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4
