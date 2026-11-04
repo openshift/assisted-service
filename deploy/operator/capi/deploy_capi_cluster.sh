@@ -4,6 +4,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(realpath ${__dir}/../../..)"
 source ${__dir}/../common.sh
 source ${__dir}/../utils.sh
+source ${__dir}/../mirror_utils.sh
 
 set -x
 
@@ -65,6 +66,10 @@ elif [[ "${IP_STACK}" == "v4v6" ]]; then
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
+    install_oc_mirrorv2
+    export AUTHFILE="${XDG_RUNTIME_DIR}/containers/auth.json"
+    mkdir -p "$(dirname "${AUTHFILE}")"
+    merge_authfiles "${PULL_SECRET_FILE}" "${REGISTRY_CREDS}" "${AUTHFILE}"
     # Disconnected hypershift requires:
     export OCP_MIRROR_REGISTRY="${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
     # 1. pull secret in hypershift namespace for the hypershift operator
@@ -73,15 +78,32 @@ if [ "${DISCONNECTED}" = "true" ]; then
       oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n hypershift
     # 2. mirrored hypershift operator image to local mirror registry
     HYPERSHIFT_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${HYPERSHIFT_IMAGE}):hypershift"
-    oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
+    run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${HYPERSHIFT_IMAGE}" "${HYPERSHIFT_LOCAL_IMAGE}"
     export HYPERSHIFT_IMAGE="${HYPERSHIFT_LOCAL_IMAGE}"
     # 3. mirrored CAPI provider agent image to local mirror registry
     if [ ! -z "$PROVIDER_IMAGE" ]
     then
-      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/$(get_image_repository_only ${PROVIDER_IMAGE}):capi"
-      oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
+      provider_repo=$(get_image_repository_only "${PROVIDER_IMAGE}")
+      export PROVIDER_LOCAL_IMAGE="${LOCAL_REGISTRY}/${provider_repo}:capi"
+      run_mirror_command_with_retry oc image mirror -a "${PULL_SECRET_FILE}" "${PROVIDER_IMAGE}" "${PROVIDER_LOCAL_IMAGE}"
       export PROVIDER_IMAGE="${PROVIDER_LOCAL_IMAGE}"
     fi
+  
+    # [TEMP]. mirrored release image and CAPI operator image in that release image to local mirror registry until 
+    # https://github.com/openshift/hypershift/blob/825484eb33d14b4ab849b428d134582320655fcf/support/backwardcompat/backwardcompat.go#L42 is removed
+    # This requires oc mirror v2 which copies the images along with its digest and the digest is needed because hypershift hard-coded these images
+    RELEASE_IMAGE_HCP_OVERRIDE="${RELEASE_IMAGE_HCP_OVERRIDE:-quay.io/openshift-release-dev/ocp-release@sha256:7f183e9b5610a2c9f9aabfd5906b418adfbe659f441b019933426a19bf6a5962}"
+    CAPI_IMAGE="${CAPI_IMAGE:-quay.io/openshift-release-dev/ocp-v4.0-art-dev@sha256:b573d5ddf848eca57fae686f6ca2297b2424b8431bbcb08d3e2cdb19fe1a146a}"
+    cat << EOM > isc.yaml
+kind: ImageSetConfiguration
+apiVersion: mirror.openshift.io/v2alpha1
+mirror:
+  additionalImages:
+  - name: ${RELEASE_IMAGE_HCP_OVERRIDE}
+  - name: ${CAPI_IMAGE}
+EOM
+    run_mirror_command_with_retry oc-mirror --config isc.yaml --authfile "${PULL_SECRET_FILE}" --workspace "file://${PWD}/mirror" docker://"${OCP_MIRROR_REGISTRY}" --v2
+
     # 4. ImageDigestMirrorSet for local mirror registry (prerequisite is the openshift release is mirrored to the local
     # registry). Note that older versions of OpenShift, before OpenShift 4.14, don't support this ImageDigestMirrorSet
     # object, instead they use the now deprecated ImageContentSourcePolicy. So we need to check which one is supported
@@ -97,9 +119,11 @@ spec:
   imageDigestMirrors:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     else
@@ -112,9 +136,11 @@ spec:
   repositoryDigestMirrors:
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
     source: quay.io/openshift-release-dev/ocp-release
   - mirrors:
     - ${OCP_MIRROR_REGISTRY}
+    - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     fi
@@ -123,9 +149,11 @@ EOM
   cat << EOM >> /tmp/ics-hc.yaml
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
+  - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-release
   source: quay.io/openshift-release-dev/ocp-release
 - mirrors:
   - ${OCP_MIRROR_REGISTRY}
+  - ${OCP_MIRROR_REGISTRY}/openshift-release-dev/ocp-v4.0-art-dev
   source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 EOM
     export EXTRA_HYPERSHIFT_CREATE_COMMANDS="$EXTRA_HYPERSHIFT_CREATE_COMMANDS --image-content-sources /tmp/ics-hc.yaml"
@@ -195,12 +223,70 @@ oc patch storageclass assisted-service -p '{"metadata": {"annotations":{"storage
 
 ### Hypershift CLI needs access to the kubeconfig, pull-secret and public SSH key
 function hypershift_cli() {
-  full_cmd="update-ca-trust;$@"
-  podman run -it --net host --rm --entrypoint /bin/bash -v $KUBECONFIG:/root/.kube/config -v $ASSISTED_PULLSECRET_JSON:$ASSISTED_PULLSECRET_JSON -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub $EXTRA_HYPERSHIFT_CLI_MOUNTS $HYPERSHIFT_IMAGE -c "$full_cmd"
+  local -a podman_args=(
+    run -it --net host --rm
+    --entrypoint /bin/bash
+    -v "${KUBECONFIG}:/root/.kube/config"
+    -v "${ASSISTED_PULLSECRET_JSON}:${ASSISTED_PULLSECRET_JSON}"
+    -v /root/.ssh/id_rsa.pub:/root/.ssh/id_rsa.pub
+  )
+  if [[ -n "${AUTHFILE:-}" && -f "${AUTHFILE}" ]]; then
+    podman_args+=(--authfile "${AUTHFILE}")
+  fi
+
+  local -a extra_mounts=()
+  read -ra mounts_array <<< "${EXTRA_HYPERSHIFT_CLI_MOUNTS:-}"
+  local i=0
+  while [[ $i -lt ${#mounts_array[@]} ]]; do
+    local m="${mounts_array[$i]}"
+    if [[ "${m}" == "--volume" || "${m}" == "-v" ]]; then
+      if [[ $((i+1)) -ge ${#mounts_array[@]} ]]; then
+        echo "Invalid mount format" >&2
+        return 1
+      fi
+      local next_m="${mounts_array[$((i+1))]}"
+      if [[ ! "${next_m}" =~ ^/ ]]; then
+        echo "Invalid mount format" >&2
+        return 1
+      fi
+      extra_mounts+=("${m}" "${next_m}")
+      i=$((i+2))
+    elif [[ "${m}" =~ ^--volume=|^/ ]]; then
+      extra_mounts+=("${m}")
+      i=$((i+1))
+    else
+      echo "Invalid mount format" >&2
+      return 1
+    fi
+  done
+
+  local -a cmd_args=("$@")
+  
+  if [[ "${cmd_args[1]}" == "install" ]]; then
+    read -ra install_flags <<< "${EXTRA_HYPERSHIFT_INSTALL_FLAGS:-}"
+    for flag in "${install_flags[@]}"; do
+      if [[ ! "${flag}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${flag}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
+        echo "Invalid install flag format" >&2
+        return 1
+      fi
+      cmd_args+=("${flag}")
+    done
+  elif [[ "${cmd_args[1]}" == "create" ]]; then
+    read -ra create_cmds <<< "${EXTRA_HYPERSHIFT_CREATE_COMMANDS:-}"
+    for cmd in "${create_cmds[@]}"; do
+      if [[ ! "${cmd}" =~ ^--[a-zA-Z0-9-]+(=[a-zA-Z0-9_./:-]+)?$ && ! "${cmd}" =~ ^[a-zA-Z0-9_./:-]+$ ]]; then
+        echo "Invalid create command format" >&2
+        return 1
+      fi
+      cmd_args+=("${cmd}")
+    done
+  fi
+
+  podman "${podman_args[@]}" "${extra_mounts[@]}" "${HYPERSHIFT_IMAGE}" -c 'update-ca-trust && "$@"' -- "${cmd_args[@]}"
 }
 
 echo "Installing HyperShift using upstream image"
-hypershift_cli hypershift install --hypershift-image $HYPERSHIFT_IMAGE --namespace hypershift $EXTRA_HYPERSHIFT_INSTALL_FLAGS
+hypershift_cli hypershift install --hypershift-image "${HYPERSHIFT_IMAGE}" --namespace hypershift
 if [ "${DISCONNECTED}" = "true" ]; then
   # disconnected hypershift requires patching the operator deployment with the local image mirror of the capi agent and the machine config operator image (registry override flag)
   oc patch deploy/operator -n hypershift --type=strategic \
@@ -234,7 +320,7 @@ hypershift_cli hypershift create cluster agent --name $ASSISTED_CLUSTER_NAME --b
  --release-image ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-${RELEASE_IMAGE}} \
   $CONTROL_PLANE_OPERATOR_FLAG_FOR_CREATE_COMMAND \
   $PROVIDER_FLAG_FOR_CREATE_COMMAND \
-  $EXTRA_HYPERSHIFT_CREATE_COMMANDS
+
 
 # Wait for a hypershift hostedcontrolplane to report ready status
 wait_for_resource "hostedcontrolplane/${ASSISTED_CLUSTER_NAME}" "${SPOKE_NAMESPACE}-${ASSISTED_CLUSTER_NAME}"
