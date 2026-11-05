@@ -5944,6 +5944,17 @@ definitions:
         items:
           $ref: '#/definitions/bundle-create-params'
         x-go-custom-tag: gorm:"-"
+      fips_enabled:
+        type: boolean
+        x-nullable: true
+        description: >-
+          Whether this cluster will be installed with FIPS mode enabled. Only
+          reported by the agent-based installer, where the service runs on the
+          node being installed and so its FIPS state is the cluster's. Omitted
+          elsewhere, because a hub's FIPS state says nothing about the clusters
+          it creates, and omitted when the host state cannot be read.
+          Read-only, not persisted.
+        x-go-custom-tag: gorm:"-"
       ams_subscription_id:
         type: string
         format: uuid

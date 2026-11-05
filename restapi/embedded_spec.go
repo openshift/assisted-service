@@ -6740,6 +6740,12 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "fips_enabled": {
+          "description": "Whether this cluster will be installed with FIPS mode enabled. Only reported by the agent-based installer, where the service runs on the node being installed and so its FIPS state is the cluster's. Omitted elsewhere, because a hub's FIPS state says nothing about the clusters it creates, and omitted when the host state cannot be read. Read-only, not persisted.",
+          "type": "boolean",
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
+        },
         "high_availability_mode": {
           "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -18638,6 +18644,12 @@ func init() {
           "description": "JSON-formatted string containing the usage information by feature name",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "fips_enabled": {
+          "description": "Whether this cluster will be installed with FIPS mode enabled. Only reported by the agent-based installer, where the service runs on the node being installed and so its FIPS state is the cluster's. Omitted elsewhere, because a hub's FIPS state says nothing about the clusters it creates, and omitted when the host state cannot be read. Read-only, not persisted.",
+          "type": "boolean",
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "high_availability_mode": {
           "description": "(DEPRECATED) Please use 'control_plane_count' instead. Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",

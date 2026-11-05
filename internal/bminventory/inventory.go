@@ -52,6 +52,7 @@ import (
 	"github.com/openshift/assisted-service/internal/provider"
 	"github.com/openshift/assisted-service/internal/provider/registry"
 	"github.com/openshift/assisted-service/internal/stream"
+	"github.com/openshift/assisted-service/internal/system"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -231,6 +232,7 @@ type bareMetalInventory struct {
 	providerRegistry              registry.ProviderRegistry
 	insecureIPXEURLs              bool
 	ephemeralService              bool
+	systemInfo                    system.SystemInfo
 	disconnectedIgnitionGenerator *ignition.DisconnectedIgnitionGenerator
 }
 
@@ -266,6 +268,7 @@ func NewBareMetalInventory(
 	providerRegistry registry.ProviderRegistry,
 	insecureIPXEURLs bool,
 	ephemeralService bool,
+	systemInfo system.SystemInfo,
 	oveIgnitionGenerator *ignition.DisconnectedIgnitionGenerator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
@@ -300,6 +303,7 @@ func NewBareMetalInventory(
 		providerRegistry:              providerRegistry,
 		insecureIPXEURLs:              insecureIPXEURLs,
 		ephemeralService:              ephemeralService,
+		systemInfo:                    systemInfo,
 		disconnectedIgnitionGenerator: oveIgnitionGenerator,
 	}
 }
@@ -2444,6 +2448,7 @@ func (b *bareMetalInventory) v2UpdateClusterInternal(ctx context.Context, params
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
+	b.setFipsEnabled(log, &cluster.Cluster)
 	for _, host := range cluster.Hosts {
 		b.customizeHost(&cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
@@ -3683,6 +3688,25 @@ func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, clust
 	return ret
 }
 
+// setFipsEnabled reports whether the cluster it will be installed with FIPs enabled
+//
+// With the agent-based installer, the service runs on the node being installed,
+// which boots with fips=1 when a FIPS enabled ISO was used, so the host's state is
+// the cluster's.
+func (b *bareMetalInventory) setFipsEnabled(log logrus.FieldLogger, cluster *models.Cluster) {
+	if !b.ephemeralService || cluster == nil {
+		return
+	}
+
+	enabled, err := b.systemInfo.FIPSEnabled()
+	if err != nil {
+		log.WithError(err).Warn("Failed to determine host FIPS mode, leaving fips_enabled unset")
+		return
+	}
+
+	cluster.FipsEnabled = swag.Bool(enabled)
+}
+
 func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params installer.V2ListClustersParams) ([]*models.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	db := b.db
@@ -3724,6 +3748,7 @@ func (b *bareMetalInventory) listClustersInternal(ctx context.Context, params in
 			h.FreeAddresses = ""
 		}
 
+		b.setFipsEnabled(log, &c.Cluster)
 		clusters = append(clusters, &c.Cluster)
 	}
 	return clusters, nil
@@ -3752,6 +3777,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
+	b.setFipsEnabled(log, &cluster.Cluster)
 	for _, host := range cluster.Hosts {
 		b.customizeHost(&cluster.Cluster, host)
 		// Clear this field as it is not needed to be sent via API
