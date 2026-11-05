@@ -10561,6 +10561,85 @@ var _ = Describe("infraEnvs", func() {
 			Expect(infraEnv.SSHAuthorizedKey).Should(Equal(sshKey))
 		})
 
+		It("clearing ssh key with empty string should remove the key", func() {
+			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+				"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+				"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+				"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+				"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+				"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+
+			// Create infraenv with an existing SSH key
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{
+				PullSecret: "PULL_SECRET",
+				InfraEnv: models.InfraEnv{
+					ID:               &infraEnvID,
+					PullSecretSet:    true,
+					SSHAuthorizedKey: sshKey,
+					CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+					Type:             models.ImageTypeFullIso.Pointer(),
+				}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Update with empty string to clear the SSH key
+			mockInfraEnvUpdateSuccess()
+			emptyKey := ""
+			reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+				InfraEnvID: infraEnvID,
+				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+					SSHAuthorizedKey: &emptyKey,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+
+			// Verify the SSH key was cleared
+			var infraEnv common.InfraEnv
+			err = db.First(&infraEnv, "id = ?", infraEnvID).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(infraEnv.SSHAuthorizedKey).Should(Equal(""))
+		})
+
+		It("not sending ssh key should preserve existing key", func() {
+			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+				"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+				"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+				"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+				"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+				"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+
+			// Create infraenv with an existing SSH key
+			infraEnvID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.InfraEnv{
+				PullSecret: "PULL_SECRET",
+				InfraEnv: models.InfraEnv{
+					ID:               &infraEnvID,
+					PullSecretSet:    true,
+					SSHAuthorizedKey: sshKey,
+					CPUArchitecture:  common.TestDefaultConfig.CPUArchitecture,
+					OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+					Type:             models.ImageTypeFullIso.Pointer(),
+				}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Update without sending SSHAuthorizedKey (nil pointer)
+			mockInfraEnvUpdateSuccess()
+			reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+				InfraEnvID:           infraEnvID,
+				InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+					// SSHAuthorizedKey intentionally not set (nil)
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+
+			// Verify the SSH key was preserved
+			var infraEnv common.InfraEnv
+			err = db.First(&infraEnv, "id = ?", infraEnvID).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(infraEnv.SSHAuthorizedKey).Should(Equal(sshKey))
+		})
+
 		It("empty pull-secret", func() {
 			pullSecret := ""
 			reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
