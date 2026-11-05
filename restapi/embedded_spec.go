@@ -8934,6 +8934,10 @@ func init() {
     "host-type-hardware-requirements-wrapper": {
       "type": "object",
       "properties": {
+        "arbiter": {
+          "description": "Requirements towards an arbiter node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        },
         "master": {
           "description": "Requirements towards a master node",
           "$ref": "#/definitions/host-type-hardware-requirements"
@@ -20800,6 +20804,10 @@ func init() {
     "host-type-hardware-requirements-wrapper": {
       "type": "object",
       "properties": {
+        "arbiter": {
+          "description": "Requirements towards an arbiter node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        },
         "master": {
           "description": "Requirements towards a master node",
           "$ref": "#/definitions/host-type-hardware-requirements"

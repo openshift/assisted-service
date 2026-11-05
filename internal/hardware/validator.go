@@ -429,6 +429,9 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 		if common.EnabledForRole(diskEncryption, models.HostRoleMaster) {
 			ocpRequirements.Master.Quantitative.TpmEnabledInBios = true
 		}
+		if common.EnabledForRole(diskEncryption, models.HostRoleArbiter) {
+			ocpRequirements.Arbiter.Quantitative.TpmEnabledInBios = true
+		}
 		if common.EnabledForRole(diskEncryption, models.HostRoleWorker) {
 			ocpRequirements.Worker.Quantitative.TpmEnabledInBios = true
 		}
@@ -556,6 +559,9 @@ func (v *validator) getClusterPreflightOCPRequirements(cluster *common.Cluster) 
 		Master: &models.HostTypeHardwareRequirements{
 			Quantitative: v.getMasterRequirements(cluster, requirements),
 		},
+		Arbiter: &models.HostTypeHardwareRequirements{
+			Quantitative: toClusterHostRequirementsDetails(requirements.ArbiterRequirements),
+		},
 		Worker: &models.HostTypeHardwareRequirements{
 			Quantitative: toClusterHostRequirementsDetails(requirements.WorkerRequirements),
 		},
@@ -570,6 +576,9 @@ func (v *validator) getInfraEnvPreflightOCPRequirements(infraEnv *common.InfraEn
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{
 			Quantitative: toClusterHostRequirementsDetails(requirements.MasterRequirements),
+		},
+		Arbiter: &models.HostTypeHardwareRequirements{
+			Quantitative: toClusterHostRequirementsDetails(requirements.ArbiterRequirements),
 		},
 		Worker: &models.HostTypeHardwareRequirements{
 			Quantitative: toClusterHostRequirementsDetails(requirements.WorkerRequirements),

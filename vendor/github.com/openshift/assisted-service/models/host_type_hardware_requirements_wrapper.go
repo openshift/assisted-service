@@ -18,6 +18,9 @@ import (
 // swagger:model host-type-hardware-requirements-wrapper
 type HostTypeHardwareRequirementsWrapper struct {
 
+	// Requirements towards an arbiter node
+	Arbiter *HostTypeHardwareRequirements `json:"arbiter,omitempty"`
+
 	// Requirements towards a master node
 	Master *HostTypeHardwareRequirements `json:"master,omitempty"`
 
@@ -28,6 +31,10 @@ type HostTypeHardwareRequirementsWrapper struct {
 // Validate validates this host type hardware requirements wrapper
 func (m *HostTypeHardwareRequirementsWrapper) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateArbiter(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateMaster(formats); err != nil {
 		res = append(res, err)
@@ -40,6 +47,25 @@ func (m *HostTypeHardwareRequirementsWrapper) Validate(formats strfmt.Registry) 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *HostTypeHardwareRequirementsWrapper) validateArbiter(formats strfmt.Registry) error {
+	if swag.IsZero(m.Arbiter) { // not required
+		return nil
+	}
+
+	if m.Arbiter != nil {
+		if err := m.Arbiter.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("arbiter")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("arbiter")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -85,6 +111,10 @@ func (m *HostTypeHardwareRequirementsWrapper) validateWorker(formats strfmt.Regi
 func (m *HostTypeHardwareRequirementsWrapper) ContextValidate(ctx context.Context, formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.contextValidateArbiter(ctx, formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.contextValidateMaster(ctx, formats); err != nil {
 		res = append(res, err)
 	}
@@ -96,6 +126,22 @@ func (m *HostTypeHardwareRequirementsWrapper) ContextValidate(ctx context.Contex
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *HostTypeHardwareRequirementsWrapper) contextValidateArbiter(ctx context.Context, formats strfmt.Registry) error {
+
+	if m.Arbiter != nil {
+		if err := m.Arbiter.ContextValidate(ctx, formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("arbiter")
+			} else if ce, ok := err.(*errors.CompositeError); ok {
+				return ce.ValidateName("arbiter")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
