@@ -82,6 +82,10 @@ import (
 const (
 	adminPasswordSecretStringTemplate   = "%s-admin-password"
 	adminKubeConfigStringTemplate       = "%s-admin-kubeconfig"
+	sshKeySecretStringTemplate          = "%s-ssh-key"
+	sshPrivateKeySecretKey              = "ssh-privatekey"
+	sshPublicKeySecretKey               = "ssh-publickey"
+	GenerateSSHKeyAnnotation            = aiv1beta1.Group + "/generate-ssh-key"
 	InstallConfigOverrides              = aiv1beta1.Group + "/install-config-overrides"
 	IgnoredClusterValidationsAnnotation = aiv1beta1.Group + "/ignored-cluster-validations"
 	IgnoredHostValidationsAnnotation    = aiv1beta1.Group + "/ignored-host-validations"
@@ -680,6 +684,54 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx conte
 	return r.createClusterCredentialSecret(ctx, log, cluster, name, data, "kubeconfig")
 }
 
+// getSSHPublicKey returns the SSH public key to install the cluster with. A key set in the
+// AgentClusterInstall always wins. Otherwise, if GenerateSSHKeyAnnotation is set, a keypair is
+// generated once and kept in the <cd>-ssh-key Secret next to the other cluster credentials.
+func (r *ClusterDeploymentsReconciler) getSSHPublicKey(ctx context.Context, log logrus.FieldLogger,
+	clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (string, error) {
+	// Trim key before comparing as done in RegisterClusterInternal
+	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
+	if sshPublicKey != "" || clusterInstall.Annotations[GenerateSSHKeyAnnotation] != "true" {
+		return sshPublicKey, nil
+	}
+
+	// A new key would not reach hosts that already started installing, so keep the current one
+	if cluster != nil && !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady}, swag.StringValue(cluster.Status)) {
+		return cluster.SSHPublicKey, nil
+	}
+
+	name := fmt.Sprintf(sshKeySecretStringTemplate, clusterDeployment.Name)
+	secretRef := types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: name}
+	s, err := getSecret(ctx, r.Client, r.APIReader, secretRef)
+	if err == nil {
+		sshPublicKey = strings.TrimSpace(string(s.Data[sshPublicKeySecretKey]))
+		if sshPublicKey == "" {
+			return "", newInputError("Secret %s does not contain an SSH public key in %s", secretRef, sshPublicKeySecretKey)
+		}
+		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return "", newInputError("Secret %s does not contain a valid SSH public key in %s", secretRef, sshPublicKeySecretKey)
+		}
+		return sshPublicKey, nil
+	}
+	if !k8serrors.IsNotFound(err) {
+		return "", err
+	}
+
+	log.Infof("Generating SSH key for cluster, stored in Secret %s", secretRef)
+	sshPublicKey, sshPrivateKey, err := gencrypto.SSHKeyPair()
+	if err != nil {
+		return "", errors.Wrap(err, "failed to generate SSH key")
+	}
+	data := map[string][]byte{
+		sshPrivateKeySecretKey: []byte(sshPrivateKey),
+		sshPublicKeySecretKey:  []byte(sshPublicKey),
+	}
+	if _, err = r.createClusterCredentialSecret(ctx, log, clusterDeployment, name, data, "ssh-key"); err != nil {
+		return "", errors.Wrapf(err, "failed to create Secret %s", secretRef)
+	}
+	return sshPublicKey, nil
+}
+
 func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -1115,8 +1167,10 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		return cluster, errors.Wrap(err, "failed to update network params")
 	}
 	update = swag.BoolValue(shouldUpdateNetworkParams) || update
-	// Trim key before comparing as done in RegisterClusterInternal
-	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
+	sshPublicKey, err := r.getSSHPublicKey(ctx, log, clusterDeployment, clusterInstall, cluster)
+	if err != nil {
+		return cluster, err
+	}
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 	updateString(clusterInstall.Spec.OSStream, cluster.OsStream, &params.OsStream)
 
@@ -1202,6 +1256,15 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 		return cluster, nil
 	}
 
+	// List before the update so a failed list is retried, the InfraEnvs are notified of the new SSH key after it
+	var infraEnvs []aiv1beta1.InfraEnv
+	if params.SSHPublicKey != nil {
+		infraEnvs, err = r.listClusterInfraEnvs(ctx, clusterDeployment)
+		if err != nil {
+			return cluster, err
+		}
+	}
+
 	var clusterAfterUpdate *common.Cluster
 
 	clusterAfterUpdate, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.V2UpdateClusterParams{
@@ -1214,7 +1277,26 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(
 
 	log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 
+	for _, infraEnv := range infraEnvs {
+		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
+	}
+
 	return clusterAfterUpdate, nil
+}
+
+func (r *ClusterDeploymentsReconciler) listClusterInfraEnvs(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) ([]aiv1beta1.InfraEnv, error) {
+	infraEnvList := &aiv1beta1.InfraEnvList{}
+	if err := r.List(ctx, infraEnvList); err != nil {
+		return nil, errors.Wrap(err, "failed to list InfraEnvs")
+	}
+	var infraEnvs []aiv1beta1.InfraEnv
+	for _, infraEnv := range infraEnvList.Items {
+		if infraEnv.Spec.ClusterRef != nil && infraEnv.Spec.ClusterRef.Name == clusterDeployment.Name &&
+			infraEnv.Spec.ClusterRef.Namespace == clusterDeployment.Namespace {
+			infraEnvs = append(infraEnvs, infraEnv)
+		}
+	}
+	return infraEnvs, nil
 }
 
 func selectClusterNetworkType(params *models.V2ClusterUpdateParams, cluster *common.Cluster) (*string, error) {
@@ -1670,6 +1752,11 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	clusterParams := CreateClusterParams(clusterDeployment, clusterInstall, pullSecret, releaseImage, ignitionEndpoint, nil)
+	clusterParams.SSHPublicKey, err = r.getSSHPublicKey(ctx, log, clusterDeployment, clusterInstall, nil)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get SSH public key for cluster %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+		return r.updateStatus(ctx, log, clusterInstall, clusterDeployment, nil, err)
+	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, mirrorRegistryConfiguration, installer.V2RegisterClusterParams{
 		NewClusterParams: clusterParams,
