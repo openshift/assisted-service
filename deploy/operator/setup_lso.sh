@@ -24,22 +24,22 @@ function install_lso() {
 
 
     OC_VERSION_MAJOR_MINOR=$(oc version -o json | jq --raw-output '.openshiftVersion' | cut -d'.' -f1-2)
-    if [[ ${OC_VERSION_MAJOR_MINOR} == "5.0" && "${DISCONNECTED}" != true ]]; then
-        # LSO has not been published to the 5.0 redhat-operators catalog, so
-        # it cannot be installed on OpenShift 5.0. Until this is resolved,
-        # we explicitly install the 4.22 catalog as redhat-operators-v4-22
-        # and then subscribe to the LSO version from the 4.22 rather than the 5.0 catalog.
-        # TODO: Bump the versions once LSO is published to the 5.0 catalog.
-        catalog_source_name="redhat-operators-v4-22"
+    if [[ ${OC_VERSION_MAJOR_MINOR} == "5.1" && "${DISCONNECTED}" != true ]]; then
+        # LSO has not been published to the 5.1 redhat-operators catalog, so
+        # it cannot be installed on OpenShift 5.1. Until this is resolved,
+        # we explicitly install the 5.1 catalog as redhat-operators-v5-0
+        # and then subscribe to the LSO version from the 4.22 rather than the 5.1 catalog.
+        # TODO: Bump the versions once LSO is published to the 5.1 catalog.
+        catalog_source_name="redhat-operators-v5-0"
         oc create -f - <<EOCR
         kind: CatalogSource
         apiVersion: operators.coreos.com/v1alpha1
         metadata:
-          name: redhat-operators-v4-22
+          name: redhat-operators-v5-0
           namespace: openshift-marketplace
         spec:
-          displayName: Red Hat Operators v4.22
-          image: registry.redhat.io/redhat/redhat-operator-index:v4.22
+          displayName: Red Hat Operators v5.0
+          image: registry.redhat.io/redhat/redhat-operator-index:v5.0
           priority: -100
           publisher: Red Hat
           sourceType: grpc
