@@ -1153,9 +1153,15 @@ func (r *BMACReconciler) reconcileDay2SpokeBMH(ctx context.Context, log logrus.F
 		return reconcileComplete{}
 	}
 
-	if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusInstallingInProgress}, agent.Status.DebugInfo.State) {
-		// If agent hasn't started installing, do not create the spoke BMH yet
-		log.Debugf("Agent has not started installing, not creating the spoke BMH for %s on cluster %s", bmh.Name, agent.Spec.ClusterDeploymentName.Name)
+	if !funk.ContainsString([]string{
+		models.HostStatusInstalling,
+		models.HostStatusInstallingInProgress,
+		// MCS certificate reconciliation can stop a BMH reconcile before the
+		// spoke BMH/Machine are created. The next reconcile may happen after the
+		// Agent has joined the cluster; allow it to backfill the missing resources.
+		models.HostStatusAddedToExistingCluster,
+	}, agent.Status.DebugInfo.State) {
+		log.Debugf("Agent status %q is not eligible to create the spoke BMH for %s on cluster %s", agent.Status.DebugInfo.State, bmh.Name, agent.Spec.ClusterDeploymentName.Name)
 		return reconcileComplete{stop: false}
 	}
 
