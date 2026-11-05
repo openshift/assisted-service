@@ -1698,7 +1698,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(result).To(Equal(ctrl.Result{}))
 
 				Expect(c.Get(ctx, types.NamespacedName{Name: host_day2.Name, Namespace: testNamespace}, updatedHost)).To(Succeed())
-				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring("dGVzdA=="))
+				Expect(updatedHost.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(TEST_CA_CERT))))
 				Expect(updatedHost.ObjectMeta.Annotations).NotTo(HaveKey(BMH_SPOKE_CREATED_ANNOTATION))
 
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, host_day2.Name)
