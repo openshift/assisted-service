@@ -1,4 +1,4 @@
-package tlsconfig_test
+package tlsconfig
 
 import (
 	"testing"

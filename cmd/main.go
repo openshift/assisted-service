@@ -161,6 +161,7 @@ var Options struct {
 	HTTPSCertFile                        string        `envconfig:"HTTPS_CERT_FILE" default:""`
 	TLSMinVersion                        string        `envconfig:"TLS_MIN_VERSION" default:""`
 	TLSCipherSuites                      string        `envconfig:"TLS_CIPHER_SUITES" default:""`
+	TLSCurvePreferences                  string        `envconfig:"TLS_CURVE_PREFERENCES" default:""`
 	MaxIdleConns                         int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
 	MaxOpenConns                         int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"90"`
 	ConnMaxLifetime                      time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
@@ -836,12 +837,12 @@ func applyClusterTLSConfig(log *logrus.Logger, serverInfo *servers.ServerInfo) {
 	if Options.TLSMinVersion == "" || serverInfo.HTTPS == nil {
 		return
 	}
-	tlsCfg, err := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites)
+	tlsCfg, err := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites, Options.TLSCurvePreferences)
 	if err != nil {
 		log.WithError(err).Fatal("unable to build TLS config from environment")
 	}
 	serverInfo.HTTPS.TLSConfig = tlsCfg
-	log.Infof("Applied cluster TLS profile: MinVersion=0x%04x, CipherSuites=%d", tlsCfg.MinVersion, len(tlsCfg.CipherSuites))
+	log.Infof("Applied cluster TLS profile: MinVersion=0x%04x, CipherSuites=%d, CurvePreferences=%d", tlsCfg.MinVersion, len(tlsCfg.CipherSuites), len(tlsCfg.CurvePreferences))
 }
 
 func setupDB(log logrus.FieldLogger, slowQueryConfig slowquery.Config) *gorm.DB {
@@ -1004,13 +1005,14 @@ func createControllerManager() (manager.Manager, error) {
 		var webhookTLSOpts []func(*tls.Config)
 		restCfg := ctrl.GetConfigOrDie()
 		if Options.TLSMinVersion != "" {
-			tlsCfg, tlsErr := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites)
+			tlsCfg, tlsErr := tlsconfig.BuildTLSConfigFromCLIArgs(Options.TLSMinVersion, Options.TLSCipherSuites, Options.TLSCurvePreferences)
 			if tlsErr != nil {
 				return nil, tlsErr
 			}
 			webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
 				cfg.MinVersion = tlsCfg.MinVersion
 				cfg.CipherSuites = tlsCfg.CipherSuites
+				cfg.CurvePreferences = tlsCfg.CurvePreferences
 			})
 		}
 
