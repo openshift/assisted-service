@@ -1,9 +1,9 @@
 package spoke_k8s_client
 
 import (
+	"crypto/tls"
 	"net/http"
 
-	"go.uber.org/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
@@ -12,9 +12,11 @@ import (
 	"github.com/openshift/assisted-service/internal/system"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
+	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	utilnet "k8s.io/apimachinery/pkg/util/net"
 )
 
 const testCert string = `-----BEGIN CERTIFICATE-----
@@ -356,12 +358,10 @@ var _ = Describe("Factory", func() {
 				called := false
 				wrapper := func(rt http.RoundTripper) http.RoundTripper {
 					called = true
-					tr, ok := rt.(*http.Transport)
-					Expect(ok).To(BeTrue())
-					Expect(tr.TLSClientConfig).ToNot(BeNil())
-					Expect(tr.TLSClientConfig.RootCAs).ToNot(BeNil())
+					tlsConfig := tlsConfigOf(rt)
+					Expect(tlsConfig.RootCAs).ToNot(BeNil())
 					// Expect 2 subjects: one from kubeconfig and one from system bundle
-					Expect(len(tr.TLSClientConfig.RootCAs.Subjects())).To(Equal(2))
+					Expect(len(tlsConfig.RootCAs.Subjects())).To(Equal(2))
 					return rt
 				}
 
@@ -380,12 +380,10 @@ var _ = Describe("Factory", func() {
 				called := false
 				wrapper := func(rt http.RoundTripper) http.RoundTripper {
 					called = true
-					tr, ok := rt.(*http.Transport)
-					Expect(ok).To(BeTrue())
-					Expect(tr.TLSClientConfig).ToNot(BeNil())
-					Expect(tr.TLSClientConfig.RootCAs).ToNot(BeNil())
+					tlsConfig := tlsConfigOf(rt)
+					Expect(tlsConfig.RootCAs).ToNot(BeNil())
 					// Expect 1 subjects: one from kubeconfig
-					Expect(len(tr.TLSClientConfig.RootCAs.Subjects())).To(Equal(1))
+					Expect(len(tlsConfig.RootCAs.Subjects())).To(Equal(1))
 					return rt
 				}
 
@@ -404,12 +402,10 @@ var _ = Describe("Factory", func() {
 				called := false
 				wrapper := func(rt http.RoundTripper) http.RoundTripper {
 					called = true
-					tr, ok := rt.(*http.Transport)
-					Expect(ok).To(BeTrue())
-					Expect(tr.TLSClientConfig).ToNot(BeNil())
-					Expect(tr.TLSClientConfig.RootCAs).ToNot(BeNil())
+					tlsConfig := tlsConfigOf(rt)
+					Expect(tlsConfig.RootCAs).ToNot(BeNil())
 					// Expect 1 subjects: one from kubeconfig
-					Expect(len(tr.TLSClientConfig.RootCAs.Subjects())).To(Equal(1))
+					Expect(len(tlsConfig.RootCAs.Subjects())).To(Equal(1))
 					return rt
 				}
 
@@ -423,3 +419,12 @@ var _ = Describe("Factory", func() {
 		})
 	})
 })
+
+// tlsConfigOf returns the TLS config from a client-go round tripper.
+// Kubernetes 1.36 wraps the cached *http.Transport, so a direct type assertion fails.
+func tlsConfigOf(rt http.RoundTripper) *tls.Config {
+	tlsConfig, err := utilnet.TLSClientConfig(rt)
+	Expect(err).NotTo(HaveOccurred())
+	Expect(tlsConfig).NotTo(BeNil())
+	return tlsConfig
+}
