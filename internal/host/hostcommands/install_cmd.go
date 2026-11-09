@@ -351,15 +351,16 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, inve
 	hasDay2UnknownMachineNetwork := hasDay2UnknownMachineNetwork(cluster, host, isOciCluster, log)
 	installerArgs, hasIPConfigOverride = appends390xArgs(inventory, installerArgs, log)
 	hasIPConfigOverride = hasIPConfigOverride || hasUserConfiguredIP || hasDay2UnknownMachineNetwork
+	staticNetwork := hasStaticNetwork(cluster, infraEnv)
 
 	// append kargs depending on installation drive type
 	installationDisk := hostutil.GetDiskByInstallationPath(inventory.Disks, hostutil.GetHostInstallationPath(host))
 	if installationDisk != nil {
-		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride)
+		installerArgs, err = appendMultipathArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride, staticNetwork)
 		if err != nil {
 			return "", err
 		}
-		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride)
+		installerArgs, err = appendISCSIArgs(installerArgs, installationDisk, inventory, hasIPConfigOverride, staticNetwork)
 		if err != nil {
 			return "", err
 		}
@@ -442,7 +443,7 @@ func appendCopyNetwork(installerArgs []string) []string {
 	return installerArgs
 }
 
-func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool) ([]string, error) {
+func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool, staticNetwork bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeISCSI {
 		return installerArgs, nil
 	}
@@ -456,7 +457,7 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 		return installerArgs, nil
 	}
 
-	// configure DHCP on the interface used by the iSCSI boot volume
+	// configure the interface used by the iSCSI boot volume
 	iSCSIHostIP, err := netip.ParseAddr(installationDisk.Iscsi.HostIPAddress)
 	if err != nil {
 		return nil, fmt.Errorf("Cannot parse iSCSI host IP %s: %w", installationDisk.Iscsi.HostIPAddress, err)
@@ -467,12 +468,15 @@ func appendISCSIArgs(installerArgs []string, installationDisk *models.Disk, inve
 		return nil, fmt.Errorf("Cannot find the interface belonging to iSCSI host IP: %w", err)
 	}
 
-	dhcp := "dhcp"
-	if iSCSIHostIP.Is6() {
-		dhcp = "dhcp6"
+	ipConfig := "dhcp"
+	switch {
+	case staticNetwork:
+		ipConfig = "ibft"
+	case iSCSIHostIP.Is6():
+		ipConfig = "dhcp6"
 	}
 
-	netArg := formatNetKarg(nic, dhcp)
+	netArg := formatNetKarg(nic, ipConfig)
 	if !lo.Contains(installerArgs, netArg) {
 		installerArgs = append(installerArgs, "--append-karg", netArg)
 	}
@@ -494,7 +498,7 @@ func appendRaidArgs(installerArgs []string, installationDisk *models.Disk) ([]st
 	return installerArgs, nil
 }
 
-func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool) ([]string, error) {
+func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, inventory *models.Inventory, hasIPConfigOverride bool, staticNetwork bool) ([]string, error) {
 	if installationDisk.DriveType != models.DriveTypeMultipath {
 		return installerArgs, nil
 	}
@@ -506,7 +510,7 @@ func appendMultipathArgs(installerArgs []string, installationDisk *models.Disk, 
 	if len(iSCSIDisks) != 0 {
 		var err error
 		for _, iscsiDisk := range iSCSIDisks {
-			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasIPConfigOverride)
+			installerArgs, err = appendISCSIArgs(installerArgs, iscsiDisk, inventory, hasIPConfigOverride, staticNetwork)
 			if err != nil {
 				return nil, err
 			}
