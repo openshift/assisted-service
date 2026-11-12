@@ -49,6 +49,6 @@ replace github.com/openshift/assisted-service/models => ../models
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
-replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.20.2
 
 replace golang.org/x/net => golang.org/x/net v0.55.0
