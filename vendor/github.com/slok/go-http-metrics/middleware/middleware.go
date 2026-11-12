@@ -32,6 +32,9 @@ type Config struct {
 	// DisableMeasureInflight will disable the recording metrics about the inflight requests number,
 	// by default measuring inflights is enabled (`DisableMeasureInflight` is false).
 	DisableMeasureInflight bool
+	// IgnoredPaths is a list of paths that will not be measured for the request duration
+	// and the response size. They will still be counted in the RequestsInflight metric.
+	IgnoredPaths []string
 }
 
 func (c *Config) defaults() {
@@ -48,14 +51,31 @@ func (c *Config) defaults() {
 // receive a `Reporter` that knows how to get the data the Middleware service needs
 // to measure.
 type Middleware struct {
-	cfg Config
+	recorder               metrics.Recorder
+	service                string
+	groupedStatus          bool
+	disableMeasureSize     bool
+	disableMeasureInflight bool
+	ignoredPaths           map[string]struct{}
 }
 
 // New returns the a Middleware service.
 func New(cfg Config) Middleware {
 	cfg.defaults()
 
-	m := Middleware{cfg: cfg}
+	ignPaths := map[string]struct{}{}
+	for _, path := range cfg.IgnoredPaths {
+		ignPaths[path] = struct{}{}
+	}
+
+	m := Middleware{
+		recorder:               cfg.Recorder,
+		service:                cfg.Service,
+		groupedStatus:          cfg.GroupedStatus,
+		disableMeasureSize:     cfg.DisableMeasureSize,
+		disableMeasureInflight: cfg.DisableMeasureInflight,
+		ignoredPaths:           ignPaths,
+	}
 
 	return m
 }
@@ -75,41 +95,46 @@ func (m Middleware) Measure(handlerID string, reporter Reporter, next func()) {
 	}
 
 	// Measure inflights if required.
-	if !m.cfg.DisableMeasureInflight {
+	if !m.disableMeasureInflight {
 		props := metrics.HTTPProperties{
-			Service: m.cfg.Service,
+			Service: m.service,
 			ID:      hid,
 		}
-		m.cfg.Recorder.AddInflightRequests(ctx, props, 1)
-		defer m.cfg.Recorder.AddInflightRequests(ctx, props, -1)
+		m.recorder.AddInflightRequests(ctx, props, 1)
+		defer m.recorder.AddInflightRequests(ctx, props, -1)
 	}
 
 	// Start the timer and when finishing measure the duration.
 	start := time.Now()
 	defer func() {
+		_, shouldIgnore := m.ignoredPaths[reporter.URLPath()]
+		if shouldIgnore {
+			return
+		}
+
 		duration := time.Since(start)
 
 		// If we need to group the status code, it uses the
 		// first number of the status code because is the least
 		// required identification way.
 		var code string
-		if m.cfg.GroupedStatus {
+		if m.groupedStatus {
 			code = fmt.Sprintf("%dxx", reporter.StatusCode()/100)
 		} else {
 			code = strconv.Itoa(reporter.StatusCode())
 		}
 
 		props := metrics.HTTPReqProperties{
-			Service: m.cfg.Service,
+			Service: m.service,
 			ID:      hid,
 			Method:  reporter.Method(),
 			Code:    code,
 		}
-		m.cfg.Recorder.ObserveHTTPRequestDuration(ctx, props, duration)
+		m.recorder.ObserveHTTPRequestDuration(ctx, props, duration)
 
 		// Measure size of response if required.
-		if !m.cfg.DisableMeasureSize {
-			m.cfg.Recorder.ObserveHTTPResponseSize(ctx, props, reporter.BytesWritten())
+		if !m.disableMeasureSize {
+			m.recorder.ObserveHTTPResponseSize(ctx, props, reporter.BytesWritten())
 		}
 	}()
 

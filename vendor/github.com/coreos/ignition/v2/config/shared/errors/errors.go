@@ -39,6 +39,7 @@ var (
 	ErrLinkUsedSymlink           = errors.New("link path includes link in config")
 	ErrLinkTargetRequired        = errors.New("link target is required")
 	ErrHardLinkToDirectory       = errors.New("hard link target is a directory")
+	ErrHardLinkSpecifiesOwner    = errors.New("user/group ignored for hard link")
 	ErrDiskDeviceRequired        = errors.New("disk device is required")
 	ErrPartitionNumbersCollide   = errors.New("partition numbers collide")
 	ErrPartitionsOverlap         = errors.New("partitions overlap")
@@ -61,8 +62,9 @@ var (
 	ErrClevisConfigRequired      = errors.New("missing required custom clevis config")
 	ErrClevisCustomWithOthers    = errors.New("cannot use custom clevis config with tpm2, tang, or threshold")
 	ErrTangThumbprintRequired    = errors.New("thumbprint is required")
+	ErrInvalidTangAdvertisement  = errors.New("advertisement is not valid JSON")
 	ErrFileIllegalMode           = errors.New("illegal file mode")
-	ErrModeSpecialBits           = errors.New("setuid/setgid/sticky bits are not supported in spec versions older than 3.4.0")
+	ErrModeSpecialBits           = errors.New("setuid/setgid/sticky bits are not supported or functional in spec versions older than 3.6.0")
 	ErrBothIDAndNameSet          = errors.New("cannot set both id and name")
 	ErrLabelTooLong              = errors.New("partition labels may not exceed 36 characters")
 	ErrDoesntMatchGUIDRegex      = errors.New("doesn't match the form \"01234567-89AB-CDEF-EDCB-A98765432101\"")
@@ -70,6 +72,8 @@ var (
 	ErrNoPath                    = errors.New("path not specified")
 	ErrPathRelative              = errors.New("path not absolute")
 	ErrDirtyPath                 = errors.New("path is not fully simplified")
+	ErrPartitionsOverwritten     = errors.New("filesystem overwrites partitioned device")
+	ErrFilesystemImplicitWipe    = errors.New("device matches disk with wipeTable enabled; filesystem will be wiped")
 	ErrRaidLevelRequired         = errors.New("raid level is required")
 	ErrSparesUnsupportedForLevel = errors.New("spares unsupported for linear and raid0 arrays")
 	ErrUnrecognizedRaidLevel     = errors.New("unrecognized raid level")
@@ -80,6 +84,9 @@ var (
 	ErrDuplicateLabels           = errors.New("cannot use the same partition label twice")
 	ErrInvalidProxy              = errors.New("proxies must be http(s)")
 	ErrInsecureProxy             = errors.New("insecure plaintext HTTP proxy specified for HTTPS resources")
+	ErrPathConflictsSystemd      = errors.New("path conflicts with systemd unit or dropin")
+	ErrCexWithClevis             = errors.New("cannot use cex with clevis")
+	ErrCexWithKeyFile            = errors.New("cannot use key file with cex")
 
 	// Systemd section errors
 	ErrInvalidSystemdExt       = errors.New("invalid systemd unit extension")
@@ -112,4 +119,10 @@ var (
 // name, is missing an Install section.
 func NewNoInstallSectionError(name string) error {
 	return fmt.Errorf("unit %q is enabled, but has no install section so enable does nothing", name)
+}
+
+// NewNoInstallSectionForInstantiableUnitError produces an error indicating the
+// given instantiable unit for an instance unit is missing an Install section.
+func NewNoInstallSectionForInstantiableUnitError(instantiable, instance string) error {
+	return fmt.Errorf("template unit %q for %q doesn't have Install section", instantiable, instance)
 }
