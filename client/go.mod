@@ -1,8 +1,6 @@
 module github.com/openshift/assisted-service/client
 
-go 1.25.0
-
-toolchain go1.25.14
+go 1.26.0
 
 require (
 	github.com/go-openapi/errors v0.22.0
@@ -43,4 +41,4 @@ replace github.com/containerd/containerd => github.com/containerd/containerd/v2 
 
 replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
 
-replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+replace golang.org/x/crypto => golang.org/x/crypto v0.59.0
