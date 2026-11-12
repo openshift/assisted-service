@@ -307,4 +307,4 @@ replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v
 
 replace github.com/moby/go-archive => github.com/moby/go-archive v0.3.0
 
-replace github.com/distribution/distribution/v3 => github.com/distribution/distribution/v3 v3.1.0
+replace github.com/distribution/distribution/v3 => github.com/distribution/distribution/v3 v3.1.2
