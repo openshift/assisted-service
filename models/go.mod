@@ -50,4 +50,4 @@ replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
 
 replace github.com/moby/moby => github.com/moby/moby/v2 v2.0.0-beta.8
 
-replace google.golang.org/grpc => google.golang.org/grpc v1.83.1
+replace google.golang.org/grpc => google.golang.org/grpc v1.83.2
