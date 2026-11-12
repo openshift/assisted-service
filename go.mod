@@ -40,7 +40,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/iancoleman/strcase v0.2.0
 	github.com/itchyny/gojq v0.12.8
-	github.com/jackc/pgx/v5 v5.6.0
+	github.com/jackc/pgx/v5 v5.9.2
 	github.com/jinzhu/copier v0.3.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
@@ -296,6 +296,6 @@ replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v
 
 replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
 
-replace github.com/jackc/pgx/v5 => github.com/jackc/pgx/v5 v5.9.0
+replace github.com/jackc/pgx/v5 => github.com/jackc/pgx/v5 v5.9.2
 
 replace github.com/moby/go-archive => github.com/moby/go-archive v0.3.0
