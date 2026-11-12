@@ -1,20 +1,24 @@
 package common
 
 import (
+	"encoding/json"
+	"os"
+	"strings"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 )
 
-func osVersions(versions ...string) map[string]testOsImage {
-	m := make(map[string]testOsImage, len(versions))
+func osVersions(versions ...string) map[string][]testOsImage {
+	m := make(map[string][]testOsImage, len(versions))
 	for _, v := range versions {
-		m[v] = testOsImage{}
+		m[v] = []testOsImage{{}}
 	}
 	return m
 }
 
-func withOsImages(images map[string]map[string]testOsImage, fn func()) {
+func withOsImages(images map[string]map[string][]testOsImage, fn func()) {
 	original := testOsImagesByArch
 	testOsImagesByArch = images
 	defer func() { testOsImagesByArch = original }()
@@ -31,7 +35,7 @@ func withReleaseImages(images map[string]map[string]testReleaseImage, fn func())
 var _ = Describe("TestVersionBuilder", func() {
 	Describe("Version selection with defaults", func() {
 		It("returns the latest x86_64 version by default", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14", "4.15", "4.16"),
 			}, func() {
 				Expect(TestVersion().Version()).To(Equal("4.16"))
@@ -39,7 +43,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("returns the oldest version when Oldest is called", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14", "4.15", "4.16"),
 			}, func() {
 				Expect(TestVersion().Oldest().Version()).To(Equal("4.14"))
@@ -47,7 +51,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("returns the latest version when Latest is called after Oldest", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14", "4.15", "4.16"),
 			}, func() {
 				Expect(TestVersion().Oldest().Latest().Version()).To(Equal("4.16"))
@@ -57,7 +61,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("Architecture selection", func() {
 		It("selects versions for the requested architecture", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture:   osVersions("4.14", "4.15"),
 				ARM64CPUArchitecture: osVersions("4.16", "4.17"),
 			}, func() {
@@ -66,7 +70,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("panics when the architecture has no versions", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14"),
 			}, func() {
 				Expect(func() {
@@ -78,7 +82,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("TryVersion", func() {
 		It("returns false when no versions exist for the architecture", func() {
-			withOsImages(map[string]map[string]testOsImage{}, func() {
+			withOsImages(map[string]map[string][]testOsImage{}, func() {
 				v, ok := TestVersion().TryVersion()
 				Expect(ok).To(BeFalse())
 				Expect(v).To(BeEmpty())
@@ -86,7 +90,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("returns false when constraint filters out all versions", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14"),
 			}, func() {
 				v, ok := TestVersion().GreaterThan("5.0").TryVersion()
@@ -96,7 +100,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("returns the matching version on success", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.14", "4.15"),
 			}, func() {
 				v, ok := TestVersion().TryVersion()
@@ -111,7 +115,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("LessThan", func() {
 			It("filters to versions below the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					Expect(TestVersion().LessThan("4.16").Version()).To(Equal("4.15"))
@@ -120,7 +124,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("returns nothing when all versions are at or above the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.16", "4.17"),
 				}, func() {
 					_, ok := TestVersion().LessThan("4.16").TryVersion()
@@ -131,7 +135,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("GreaterThan", func() {
 			It("filters to versions above the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					Expect(TestVersion().GreaterThan("4.15").Version()).To(Equal("4.17"))
@@ -140,7 +144,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("returns nothing when all versions are at or below the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15"),
 				}, func() {
 					_, ok := TestVersion().GreaterThan("4.15").TryVersion()
@@ -151,7 +155,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("Exact", func() {
 			It("matches the exact version", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16"),
 				}, func() {
 					Expect(TestVersion().Exact("4.15").Version()).To(Equal("4.15"))
@@ -159,7 +163,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("returns nothing when the version is not present", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.16"),
 				}, func() {
 					_, ok := TestVersion().Exact("4.15").TryVersion()
@@ -170,7 +174,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("constraint with single version", func() {
 			It("returns the only version when it matches", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.15"),
 				}, func() {
 					Expect(TestVersion().LessThan("5.0").Version()).To(Equal("4.15"))
@@ -178,7 +182,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("returns nothing when the single version does not match", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.15"),
 				}, func() {
 					_, ok := TestVersion().GreaterThan("5.0").TryVersion()
@@ -189,7 +193,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("constraints compose with AND semantics", func() {
 			It("applies all constraints together", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					v := TestVersion().LessThan("4.17").GreaterThan("4.14").Version()
@@ -198,7 +202,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("returns nothing when constraints are mutually exclusive", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					_, ok := TestVersion().LessThan("4.15").GreaterThan("4.16").TryVersion()
@@ -209,7 +213,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("LessThanOrEqual", func() {
 			It("includes the threshold version", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					Expect(TestVersion().LessThanOrEqual("4.16").Version()).To(Equal("4.16"))
@@ -218,7 +222,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("excludes versions above the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.16", "4.17"),
 				}, func() {
 					Expect(TestVersion().LessThanOrEqual("4.16").Version()).To(Equal("4.16"))
@@ -228,7 +232,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("GreaterThanOrEqual", func() {
 			It("includes the threshold version", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17"),
 				}, func() {
 					Expect(TestVersion().GreaterThanOrEqual("4.16").Oldest().Version()).To(Equal("4.16"))
@@ -237,7 +241,7 @@ var _ = Describe("TestVersionBuilder", func() {
 			})
 
 			It("excludes versions below the threshold", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15"),
 				}, func() {
 					Expect(TestVersion().GreaterThanOrEqual("4.15").Version()).To(Equal("4.15"))
@@ -247,7 +251,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("range query with composed constraints", func() {
 			It("GreaterThanOrEqual + LessThan gives half-open range [low, high)", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16", "4.17", "4.18"),
 				}, func() {
 					b := TestVersion().GreaterThanOrEqual("4.15").LessThan("4.18")
@@ -259,7 +263,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 		Describe("no constraint returns all versions", func() {
 			It("returns latest without any constraint", func() {
-				withOsImages(map[string]map[string]testOsImage{
+				withOsImages(map[string]map[string][]testOsImage{
 					X86CPUArchitecture: osVersions("4.14", "4.15", "4.16"),
 				}, func() {
 					Expect(TestVersion().Version()).To(Equal("4.16"))
@@ -271,7 +275,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("Constraint with cross-major versions", func() {
 		It("compares across major version boundaries", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16", "4.17", "5.0", "5.1"),
 			}, func() {
 				Expect(TestVersion().GreaterThan("4.17").Oldest().Version()).To(Equal("5.0"))
@@ -282,7 +286,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("ReleaseVersion", func() {
 		It("returns the release version from generated data", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{
@@ -294,7 +298,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("falls back to multi release version when arch has no entry", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				S390xCPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{
@@ -306,7 +310,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("falls back to version + .0 when no release data exists", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{}, func() {
@@ -318,7 +322,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("ReleaseImageURL", func() {
 		It("returns the URL from generated data for x86_64", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{
@@ -330,7 +334,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("returns the URL from generated data for arm64", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				ARM64CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{
@@ -342,7 +346,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("falls back to multi URL when arch has no entry", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				S390xCPUArchitecture: osVersions("4.16"),
 			}, func() {
 				withReleaseImages(map[string]map[string]testReleaseImage{
@@ -356,7 +360,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("parseVersion panics on invalid input", func() {
 		It("panics for an unparseable version string", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				Expect(func() {
@@ -366,7 +370,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("panics when Version is called and constraint uses invalid version", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				Expect(func() {
@@ -378,7 +382,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	Describe("Edge cases", func() {
 		It("handles empty version list for a known architecture", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions(),
 			}, func() {
 				_, ok := TestVersion().TryVersion()
@@ -387,7 +391,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("constraint on empty list returns nothing", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions(),
 			}, func() {
 				_, ok := TestVersion().LessThan("5.0").TryVersion()
@@ -396,7 +400,7 @@ var _ = Describe("TestVersionBuilder", func() {
 		})
 
 		It("Oldest and Latest on a single-element list return the same version", func() {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture: osVersions("4.16"),
 			}, func() {
 				Expect(TestVersion().Oldest().Version()).To(Equal("4.16"))
@@ -407,7 +411,7 @@ var _ = Describe("TestVersionBuilder", func() {
 
 	DescribeTable("constraint + arch combinations",
 		func(arch string, constraint func(*TestVersionBuilder) *TestVersionBuilder, expected string) {
-			withOsImages(map[string]map[string]testOsImage{
+			withOsImages(map[string]map[string][]testOsImage{
 				X86CPUArchitecture:   osVersions("4.14", "4.15", "4.16"),
 				ARM64CPUArchitecture: osVersions("4.15", "4.16", "4.17"),
 			}, func() {
@@ -431,4 +435,97 @@ var _ = Describe("TestVersionBuilder", func() {
 			"4.16",
 		),
 	)
+})
+
+var _ = Describe("Rhcos image selection", func() {
+	It("returns the only image when the version has no stream metadata", func() {
+		withOsImages(map[string]map[string][]testOsImage{
+			X86CPUArchitecture: {
+				"4.21": {{
+					Version: "9.6.20261027-0",
+					URL:     "https://example.com/4.21.iso",
+				}},
+			},
+		}, func() {
+			Expect(TestVersion().Exact("4.21").RhcosImageURL()).To(Equal("https://example.com/4.21.iso"))
+			Expect(TestVersion().Exact("4.21").RhcosVersion()).To(Equal("9.6.20261027-0"))
+		})
+	})
+
+	It("returns the default stream when several images share a version", func() {
+		withOsImages(map[string]map[string][]testOsImage{
+			X86CPUArchitecture: {
+				"5.0": {
+					{
+						Version:  "10.2.20261026-0",
+						URL:      "https://example.com/rhel-10.iso",
+						OsStream: "rhel-10",
+					},
+					{
+						Version:         "9.8.20261026-0",
+						URL:             "https://example.com/rhel-9.iso",
+						OsStream:        "rhel-9",
+						DefaultOsStream: testBoolPtr(true),
+					},
+				},
+			},
+		}, func() {
+			Expect(TestVersion().Exact("5.0").RhcosImageURL()).To(Equal("https://example.com/rhel-9.iso"))
+			Expect(TestVersion().Exact("5.0").RhcosVersion()).To(Equal("9.8.20261026-0"))
+		})
+	})
+
+	It("returns the image when only the OS stream is set", func() {
+		withOsImages(map[string]map[string][]testOsImage{
+			X86CPUArchitecture: {
+				"5.0": {{
+					Version:  "10.2.20261026-0",
+					URL:      "https://example.com/rhel-10.iso",
+					OsStream: "rhel-10",
+				}},
+			},
+		}, func() {
+			Expect(TestVersion().Exact("5.0").RhcosImageURL()).To(Equal("https://example.com/rhel-10.iso"))
+			Expect(TestVersion().Exact("5.0").RhcosVersion()).To(Equal("10.2.20261026-0"))
+		})
+	})
+})
+
+var _ = Describe("generated OS images", func() {
+	It("keeps optional OS stream fields from default_os_images.json", func() {
+		raw, err := os.ReadFile("../../data/default_os_images.json")
+		Expect(err).NotTo(HaveOccurred())
+
+		var entries []struct {
+			OpenshiftVersion string `json:"openshift_version"`
+			CPUArchitecture  string `json:"cpu_architecture"`
+			URL              string `json:"url"`
+			Version          string `json:"version"`
+			OsStream         string `json:"os_stream"`
+			DefaultOsStream  *bool  `json:"default_os_stream"`
+		}
+		Expect(json.Unmarshal(raw, &entries)).To(Succeed())
+
+		for _, entry := range entries {
+			parts := strings.Split(entry.OpenshiftVersion, ".")
+			version := parts[0] + "." + parts[1]
+			images := testOsImagesByArch[entry.CPUArchitecture][version]
+
+			var found bool
+			for _, img := range images {
+				if img.Version != entry.Version || img.URL != entry.URL {
+					continue
+				}
+				Expect(img.OsStream).To(Equal(entry.OsStream))
+				if entry.DefaultOsStream == nil {
+					Expect(img.DefaultOsStream).To(BeNil())
+				} else {
+					Expect(img.DefaultOsStream).NotTo(BeNil())
+					Expect(*img.DefaultOsStream).To(Equal(*entry.DefaultOsStream))
+				}
+				found = true
+			}
+			Expect(found).To(BeTrue(), "missing generated image %s %s %s", entry.CPUArchitecture, version, entry.Version)
+		}
+	})
 })
