@@ -148,14 +148,14 @@ go.yaml.in/yaml/v2
 # go.yaml.in/yaml/v3 v3.0.4
 ## explicit; go 1.16
 go.yaml.in/yaml/v3
-# golang.org/x/net v0.55.0 => golang.org/x/net v0.24.0
+# golang.org/x/net v0.62.0 => golang.org/x/net v0.24.0
 ## explicit; go 1.18
 golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
 golang.org/x/net/idna
-# golang.org/x/text v0.37.0
-## explicit; go 1.25.0
+# golang.org/x/text v0.44.0
+## explicit; go 1.26.0
 golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
@@ -235,6 +235,6 @@ sigs.k8s.io/yaml
 # github.com/openshift/assisted-service/models => ../models
 # golang.org/x/net => golang.org/x/net v0.24.0
 # github.com/golang/glog => github.com/golang/glog v1.2.4
-# golang.org/x/crypto => golang.org/x/crypto v0.52.0
+# golang.org/x/crypto => golang.org/x/crypto v0.59.0
 # github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
 # google.golang.org/grpc => google.golang.org/grpc v1.83.1

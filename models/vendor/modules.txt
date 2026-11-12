@@ -116,5 +116,5 @@ gorm.io/gorm/clause
 gorm.io/gorm/logger
 gorm.io/gorm/schema
 gorm.io/gorm/utils
-# golang.org/x/crypto => golang.org/x/crypto v0.52.0
+# golang.org/x/crypto => golang.org/x/crypto v0.59.0
 # github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
