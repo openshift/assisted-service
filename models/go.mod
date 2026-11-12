@@ -34,7 +34,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.1.5
+replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.2.9
 
 replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
 
