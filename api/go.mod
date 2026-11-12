@@ -1,8 +1,6 @@
 module github.com/openshift/assisted-service/api
 
-go 1.25.0
-
-toolchain go1.25.14
+go 1.26.0
 
 require (
 	github.com/itchyny/gojq v0.12.8
@@ -72,11 +70,11 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
-	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.15.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/sys v0.50.0 // indirect
+	golang.org/x/term v0.48.0 // indirect
+	golang.org/x/text v0.44.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -109,7 +107,7 @@ replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.4
 
 replace github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.15
 
-replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+replace golang.org/x/crypto => golang.org/x/crypto v0.59.0
 
 replace github.com/metal3-io/baremetal-operator/apis => github.com/metal3-io/baremetal-operator/apis v0.8.1
 
