@@ -38,7 +38,7 @@ require (
 
 replace github.com/openshift/assisted-service/models => ../models
 
-replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v4 v4.1.4
+replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v4 v4.1.6
 
 replace github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.2.5
 
