@@ -1,8 +1,6 @@
 module github.com/openshift/assisted-service/models
 
-go 1.25.0
-
-toolchain go1.25.14
+go 1.26.0
 
 require (
 	github.com/go-openapi/errors v0.20.3
@@ -33,7 +31,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
-replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
+replace golang.org/x/crypto => golang.org/x/crypto v0.59.0
 
 replace google.golang.org/grpc => google.golang.org/grpc v1.82.2
 
