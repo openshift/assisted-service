@@ -3799,6 +3799,25 @@ var _ = Describe("cluster reconcile", func() {
 					}},
 					shouldUpdate: true,
 				},
+				{
+					name: "same multiple machine networks in different order - no update",
+					specMachineNetworks: []hiveext.MachineNetworkEntry{
+						{CIDR: "192.168.0.0/25"},
+						{CIDR: "192.168.10.0/25"},
+						{CIDR: "192.168.20.0/25"},
+					},
+					dbMachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.20.0/25"},
+						{Cidr: "192.168.0.0/25"},
+						{Cidr: "192.168.10.0/25"},
+					},
+					expectedMachineNetworks: []hiveext.MachineNetworkEntry{
+						{CIDR: "192.168.20.0/25"},
+						{CIDR: "192.168.0.0/25"},
+						{CIDR: "192.168.10.0/25"},
+					},
+					shouldUpdate: false,
+				},
 			}
 
 			for idx := range tests {
@@ -3838,6 +3857,97 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(aci.Status.MachineNetwork).Should(Equal(test.expectedMachineNetworks))
 				})
 			}
+
+			It("reordered machine networks should not trigger update params - MGMT-25660 regression", func() {
+				backEndCluster := getDefaultTestCluster()
+				dbNetworks := []*models.MachineNetwork{
+					{Cidr: "192.168.20.0/25", ClusterID: *backEndCluster.ID},
+					{Cidr: "192.168.0.0/25", ClusterID: *backEndCluster.ID},
+					{Cidr: "192.168.10.0/25", ClusterID: *backEndCluster.ID},
+				}
+				backEndCluster.MachineNetworks = dbNetworks
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				aci.Spec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{
+					{CIDR: "192.168.0.0/25"},
+					{CIDR: "192.168.10.0/25"},
+					{CIDR: "192.168.20.0/25"},
+				}
+				Expect(c.Update(ctx, aci)).ShouldNot(HaveOccurred())
+
+				mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+						Expect(param.ClusterUpdateParams.MachineNetworks).Should(BeNil(),
+							"MachineNetworks should not be set in update params when only order differs")
+					}).Return(backEndCluster, nil)
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
+
+			It("reversed dual-stack VIPs should include machine networks in update params", func() {
+				backEndCluster := getDefaultTestCluster()
+				// Backend: IPv4-primary order
+				backEndCluster.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "1.2.3.0/24", ClusterID: *backEndCluster.ID},
+					{Cidr: "1001:db8::/120", ClusterID: *backEndCluster.ID},
+				}
+				backEndCluster.APIVips = []*models.APIVip{
+					{IP: "1.2.3.5", ClusterID: *backEndCluster.ID},
+					{IP: "1001:db8::64", ClusterID: *backEndCluster.ID},
+				}
+				backEndCluster.IngressVips = []*models.IngressVip{
+					{IP: "1.2.3.6", ClusterID: *backEndCluster.ID},
+					{IP: "1001:db8::65", ClusterID: *backEndCluster.ID},
+				}
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				// Spec: reversed to IPv6-primary order
+				aci.Spec.APIVIP = "1001:db8::64"
+				aci.Spec.IngressVIP = "1001:db8::65"
+				aci.Spec.APIVIPs = []string{"1001:db8::64", "1.2.3.5"}
+				aci.Spec.IngressVIPs = []string{"1001:db8::65", "1.2.3.6"}
+				aci.Spec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{
+					{CIDR: "1001:db8::/120"},
+					{CIDR: "1.2.3.0/24"},
+				}
+				Expect(c.Update(ctx, aci)).ShouldNot(HaveOccurred())
+
+				updateReply := getDefaultTestCluster()
+				updateReply.MachineNetworks = []*models.MachineNetwork{
+					{Cidr: "1001:db8::/120"},
+					{Cidr: "1.2.3.0/24"},
+				}
+				updateReply.APIVips = []*models.APIVip{
+					{IP: "1001:db8::64"},
+					{IP: "1.2.3.5"},
+				}
+				updateReply.IngressVips = []*models.IngressVip{
+					{IP: "1001:db8::65"},
+					{IP: "1.2.3.6"},
+				}
+
+				mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+						Expect(param.ClusterUpdateParams.MachineNetworks).ShouldNot(BeNil(),
+							"MachineNetworks must be sent when VIP order changes to keep primary network in sync")
+						Expect(param.ClusterUpdateParams.MachineNetworks).Should(Equal([]*models.MachineNetwork{
+							{Cidr: "1001:db8::/120"},
+							{Cidr: "1.2.3.0/24"},
+						}))
+					}).Return(updateReply, nil)
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
 		})
 
 		It("only state changed", func() {
