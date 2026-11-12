@@ -7,6 +7,10 @@
     ],
     "prHourlyLimit": 0,
     "prConcurrentLimit": 0,
+    "vulnerabilityAlerts": {
+        "enabled": false
+    },
+    "osvVulnerabilityAlerts": false,
     "enabledManagers": [
         "custom.regex",
         "tekton",
