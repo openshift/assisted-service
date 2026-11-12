@@ -2,7 +2,7 @@ module github.com/openshift/assisted-service/client
 
 go 1.26.0
 
-toolchain go1.26.7
+toolchain go1.26.11
 
 require (
 	github.com/go-openapi/errors v0.22.7
