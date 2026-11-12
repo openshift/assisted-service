@@ -301,7 +301,7 @@ replace (
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
 
-replace github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v3 v3.0.5
+replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v3 v4.0.0
 
 replace github.com/opencontainers/selinux => github.com/opencontainers/selinux v1.13.0
 
