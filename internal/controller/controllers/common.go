@@ -375,10 +375,12 @@ func clusterNetworkSetsEqual(a, b []*models.ClusterNetwork) bool {
 	if len(a) != len(b) {
 		return false
 	}
+	matched := make([]bool, len(b))
 	for _, netA := range a {
 		found := false
-		for _, netB := range b {
-			if netA.Cidr == netB.Cidr && netA.HostPrefix == netB.HostPrefix {
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr && netA.HostPrefix == netB.HostPrefix {
+				matched[j] = true
 				found = true
 				break
 			}
@@ -396,10 +398,12 @@ func serviceNetworkSetsEqual(a, b []*models.ServiceNetwork) bool {
 	if len(a) != len(b) {
 		return false
 	}
+	matched := make([]bool, len(b))
 	for _, netA := range a {
 		found := false
-		for _, netB := range b {
-			if netA.Cidr == netB.Cidr {
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr {
+				matched[j] = true
 				found = true
 				break
 			}
@@ -417,10 +421,12 @@ func machineNetworkSetsEqual(a, b []*models.MachineNetwork) bool {
 	if len(a) != len(b) {
 		return false
 	}
+	matched := make([]bool, len(b))
 	for _, netA := range a {
 		found := false
-		for _, netB := range b {
-			if netA.Cidr == netB.Cidr {
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr {
+				matched[j] = true
 				found = true
 				break
 			}
