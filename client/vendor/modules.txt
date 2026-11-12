@@ -109,6 +109,6 @@ gorm.io/gorm/utils
 # github.com/go-jose/go-jose/v3 => github.com/go-jose/go-jose/v4 v4.1.4
 # github.com/containerd/containerd => github.com/containerd/containerd/v2 v2.2.9
 # golang.org/x/crypto => golang.org/x/crypto v0.52.0
-# google.golang.org/grpc => google.golang.org/grpc v1.82.2
+# google.golang.org/grpc => google.golang.org/grpc v1.83.1
 # github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
 # github.com/moby/moby => github.com/moby/moby/v2 v2.0.0-beta.8
