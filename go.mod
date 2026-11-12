@@ -300,6 +300,6 @@ replace (
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
 )
 
-replace github.com/containerd/containerd => github.com/containerd/containerd v1.7.33
+replace github.com/containerd/containerd => github.com/containerd/containerd v1.7.36
 
 replace go.mongodb.org/mongo-driver => go.mongodb.org/mongo-driver v1.17.10
