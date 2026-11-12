@@ -99,6 +99,42 @@ func TestMachineNetworkSetsEqual(t *testing.T) {
 			},
 			expected: true,
 		},
+		{
+			name: "duplicate desired matches distinct backend - not equal",
+			a: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "192.168.0.0/25"},
+			},
+			b: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "10.0.0.0/8"},
+			},
+			expected: false,
+		},
+		{
+			name: "duplicate backend matches distinct desired - not equal",
+			a: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "10.0.0.0/8"},
+			},
+			b: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "192.168.0.0/25"},
+			},
+			expected: false,
+		},
+		{
+			name: "identical duplicates on both sides - equal",
+			a: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "192.168.0.0/25"},
+			},
+			b: []*models.MachineNetwork{
+				{Cidr: "192.168.0.0/25"},
+				{Cidr: "192.168.0.0/25"},
+			},
+			expected: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -142,6 +178,30 @@ func TestServiceNetworkSetsEqual(t *testing.T) {
 				{Cidr: "10.96.0.0/12"},
 			},
 			expected: false,
+		},
+		{
+			name: "duplicate desired matches distinct backend - not equal",
+			a: []*models.ServiceNetwork{
+				{Cidr: "1.2.5.0/24"},
+				{Cidr: "1.2.5.0/24"},
+			},
+			b: []*models.ServiceNetwork{
+				{Cidr: "1.2.5.0/24"},
+				{Cidr: "10.96.0.0/12"},
+			},
+			expected: false,
+		},
+		{
+			name: "identical duplicates on both sides - equal",
+			a: []*models.ServiceNetwork{
+				{Cidr: "1.2.5.0/24"},
+				{Cidr: "1.2.5.0/24"},
+			},
+			b: []*models.ServiceNetwork{
+				{Cidr: "1.2.5.0/24"},
+				{Cidr: "1.2.5.0/24"},
+			},
+			expected: true,
 		},
 	}
 	for _, tt := range tests {
@@ -207,6 +267,30 @@ func TestClusterNetworkSetsEqual(t *testing.T) {
 				{Cidr: "1.3.0.0/16", HostPrefix: 24},
 			},
 			expected: false,
+		},
+		{
+			name: "duplicate desired matches distinct backend - not equal",
+			a: []*models.ClusterNetwork{
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+			},
+			b: []*models.ClusterNetwork{
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+				{Cidr: "10.128.0.0/14", HostPrefix: 24},
+			},
+			expected: false,
+		},
+		{
+			name: "identical duplicates on both sides - equal",
+			a: []*models.ClusterNetwork{
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+			},
+			b: []*models.ClusterNetwork{
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+				{Cidr: "1.3.0.0/16", HostPrefix: 24},
+			},
+			expected: true,
 		},
 	}
 	for _, tt := range tests {

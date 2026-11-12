@@ -980,8 +980,10 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			update = true
 		}
 	}
-	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
-		newMachineNetworks := machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
+	var newMachineNetworks []*models.MachineNetwork
+	machineNetworksSpecified := len(clusterInstall.Spec.Networking.MachineNetwork) > 0
+	if machineNetworksSpecified {
+		newMachineNetworks = machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
 		if !machineNetworkSetsEqual(newMachineNetworks, cluster.MachineNetworks) {
 			params.MachineNetworks = newMachineNetworks
 			update = true
@@ -1032,6 +1034,15 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			params.IngressVips = desiredIngressVips
 			update = true
 		}
+	}
+
+	// When VIP order changes (e.g. dual-stack primary address-family swap),
+	// also send MachineNetworks so the backend keeps the primary machine
+	// network in sync with the primary VIP.  Without this, a reversed VIP
+	// pair gets validated against the old machine-network order → HTTP 400.
+	if machineNetworksSpecified && params.MachineNetworks == nil &&
+		(params.APIVips != nil || params.IngressVips != nil) {
+		params.MachineNetworks = newMachineNetworks
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
