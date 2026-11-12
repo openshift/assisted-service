@@ -3799,6 +3799,25 @@ var _ = Describe("cluster reconcile", func() {
 					}},
 					shouldUpdate: true,
 				},
+				{
+					name: "same multiple machine networks in different order - no update",
+					specMachineNetworks: []hiveext.MachineNetworkEntry{
+						{CIDR: "192.168.0.0/25"},
+						{CIDR: "192.168.10.0/25"},
+						{CIDR: "192.168.20.0/25"},
+					},
+					dbMachineNetworks: []*models.MachineNetwork{
+						{Cidr: "192.168.20.0/25"},
+						{Cidr: "192.168.0.0/25"},
+						{Cidr: "192.168.10.0/25"},
+					},
+					expectedMachineNetworks: []hiveext.MachineNetworkEntry{
+						{CIDR: "192.168.20.0/25"},
+						{CIDR: "192.168.0.0/25"},
+						{CIDR: "192.168.10.0/25"},
+					},
+					shouldUpdate: false,
+				},
 			}
 
 			for idx := range tests {
@@ -3838,6 +3857,37 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(aci.Status.MachineNetwork).Should(Equal(test.expectedMachineNetworks))
 				})
 			}
+
+			It("reordered machine networks should not trigger update params - MGMT-25660 regression", func() {
+				backEndCluster := getDefaultTestCluster()
+				dbNetworks := []*models.MachineNetwork{
+					{Cidr: "192.168.20.0/25", ClusterID: *backEndCluster.ID},
+					{Cidr: "192.168.0.0/25", ClusterID: *backEndCluster.ID},
+					{Cidr: "192.168.10.0/25", ClusterID: *backEndCluster.ID},
+				}
+				backEndCluster.MachineNetworks = dbNetworks
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+				mockInstallerInternal.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+				mockInstallerInternal.EXPECT().HostWithCollectedLogsExists(gomock.Any()).Return(false, nil)
+
+				aci.Spec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{
+					{CIDR: "192.168.0.0/25"},
+					{CIDR: "192.168.10.0/25"},
+					{CIDR: "192.168.20.0/25"},
+				}
+				Expect(c.Update(ctx, aci)).ShouldNot(HaveOccurred())
+
+				mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx context.Context, param installer.V2UpdateClusterParams, mirrorRegistryConfiguration *common.MirrorRegistryConfiguration) {
+						Expect(param.ClusterUpdateParams.MachineNetworks).Should(BeNil(),
+							"MachineNetworks should not be set in update params when only order differs")
+					}).Return(backEndCluster, nil)
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+			})
 		})
 
 		It("only state changed", func() {

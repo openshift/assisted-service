@@ -968,48 +968,23 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
 		newClusterNetworks := clusterNetworksEntriesToArray(clusterInstall.Spec.Networking.ClusterNetwork)
-		if len(newClusterNetworks) != len(cluster.ClusterNetworks) {
+		if !clusterNetworkSetsEqual(newClusterNetworks, cluster.ClusterNetworks) {
 			params.ClusterNetworks = newClusterNetworks
 			update = true
-		} else {
-			for index := range newClusterNetworks {
-				if newClusterNetworks[index].Cidr != cluster.ClusterNetworks[index].Cidr ||
-					newClusterNetworks[index].HostPrefix != cluster.ClusterNetworks[index].HostPrefix {
-					params.ClusterNetworks = newClusterNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
 		newServiceNetworks := serviceNetworksEntriesToArray(clusterInstall.Spec.Networking.ServiceNetwork)
-		if len(newServiceNetworks) != len(cluster.ServiceNetworks) {
+		if !serviceNetworkSetsEqual(newServiceNetworks, cluster.ServiceNetworks) {
 			params.ServiceNetworks = newServiceNetworks
 			update = true
-		} else {
-			for index := range newServiceNetworks {
-				if newServiceNetworks[index].Cidr != cluster.ServiceNetworks[index].Cidr {
-					params.ServiceNetworks = newServiceNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
 	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
 		newMachineNetworks := machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
-		if len(newMachineNetworks) != len(cluster.MachineNetworks) {
+		if !machineNetworkSetsEqual(newMachineNetworks, cluster.MachineNetworks) {
 			params.MachineNetworks = newMachineNetworks
 			update = true
-		} else {
-			for index := range newMachineNetworks {
-				if newMachineNetworks[index].Cidr != cluster.MachineNetworks[index].Cidr {
-					params.MachineNetworks = newMachineNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
 
