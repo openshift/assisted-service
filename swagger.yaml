@@ -8032,6 +8032,17 @@ definitions:
         description: |-
           The number of seconds to wait before mapping host MACs to interfaces when applying static network config on minimal ISO.
           This can be used on hosts that need time to discover their NICs.
+      fips_enabled:
+        type: boolean
+        x-nullable: true
+        description: >-
+          Whether clusters installed from this infra-env will have FIPS mode
+          enabled. Only supported for the disconnected-iso image type, where
+          it causes the ISO to boot with the fips=1 kernel argument. When the
+          agent-based installer reports an infra-env, the value is instead
+          read from the host it runs on, which booted from that ISO, so it
+          reflects what will actually be installed. Omitted when not set, or
+          when the agent-based installer cannot read the host state.
   proxy:
     type: object
     x-go-custom-tag: gorm:"embedded;embeddedPrefix:proxy_"
@@ -8089,6 +8100,15 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/host_static_network_config'
+      fips_enabled:
+        type: boolean
+        x-nullable: true
+        description: >-
+          Whether clusters installed from this infra-env will have FIPS mode
+          enabled. Only supported for the disconnected-iso image type, where
+          it causes the ISO to boot with the fips=1 kernel argument. FIPS is
+          fixed when the ISO boots, so it cannot be changed for hosts that
+          have already booted.
       rendezvous_ip:
         type: string
         description: |-
@@ -8163,6 +8183,15 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/host_static_network_config'
+      fips_enabled:
+        type: boolean
+        x-nullable: true
+        description: >-
+          Whether clusters installed from this infra-env will have FIPS mode
+          enabled. Only supported for the disconnected-iso image type, where
+          it causes the ISO to boot with the fips=1 kernel argument. FIPS is
+          fixed when the ISO boots, so it cannot be changed for hosts that
+          have already booted.
       rendezvous_ip:
         type: string
         description: |-

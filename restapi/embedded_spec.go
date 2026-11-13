@@ -9366,6 +9366,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. When the agent-based installer reports an infra-env, the value is instead read from the host it runs on, which booted from that ISO, so it reflects what will actually be installed. Omitted when not set, or when the agent-based installer cannot read the host state.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "generator_version": {
           "description": "Image generator version.",
           "type": "string"
@@ -9506,6 +9511,11 @@ func init() {
           ],
           "x-nullable": false
         },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
@@ -9583,6 +9593,11 @@ func init() {
           "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
           "maxLength": 65535,
+          "x-nullable": true
+        },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.",
+          "type": "boolean",
           "x-nullable": true
         },
         "ignition_config_override": {
@@ -21237,6 +21252,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. When the agent-based installer reports an infra-env, the value is instead read from the host it runs on, which booted from that ISO, so it reflects what will actually be installed. Omitted when not set, or when the agent-based installer cannot read the host state.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "generator_version": {
           "description": "Image generator version.",
           "type": "string"
@@ -21379,6 +21399,11 @@ func init() {
           ],
           "x-nullable": false
         },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.",
+          "type": "boolean",
+          "x-nullable": true
+        },
         "ignition_config_override": {
           "description": "JSON formatted string containing the user overrides for the initial ignition config.",
           "type": "string"
@@ -21457,6 +21482,11 @@ func init() {
           "description": "Allows users to change the additional_trust_bundle infra-env field",
           "type": "string",
           "maxLength": 65535,
+          "x-nullable": true
+        },
+        "fips_enabled": {
+          "description": "Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.",
+          "type": "boolean",
           "x-nullable": true
         },
         "ignition_config_override": {

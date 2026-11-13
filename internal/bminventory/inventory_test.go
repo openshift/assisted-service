@@ -178,6 +178,7 @@ var (
 	mockProviderRegistry              *registry.MockProviderRegistry
 	mockMirrorRegistriesConfigBuilder *mirrorregistries.MockServiceMirrorRegistriesConfigBuilder
 	mockInstallerCache                *installercache.MockInstallerCache
+	mockSystemInfo                    *system.MockSystemInfo
 	mockExecuter                      *executer.MockExecuter
 	secondDayWorkerIgnition           = []byte(`{
 		"ignition": {
@@ -9602,6 +9603,49 @@ var _ = Describe("infraEnvs", func() {
 				verifyApiErrorString(reply, http.StatusBadRequest, "Invalid rendezvous IP")
 			})
 
+			It("should fail when enabling FIPS on non-disconnected-iso infraenv", func() {
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegistrationFailedEventName),
+					eventstest.WithMessageContainsMatcher("FIPS mode is only supported for disconnected ISO infra-envs"))).Times(1)
+
+				reply := bm.RegisterInfraEnv(ctx, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("infra-env-with-fips"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeFullIso,
+						ClusterID:        &clusterID,
+						FipsEnabled:      swag.Bool(true),
+					},
+				})
+
+				verifyApiErrorString(reply, http.StatusBadRequest, "FIPS mode is only supported for disconnected ISO infra-envs")
+			})
+
+			It("should store FIPS when enabling it on disconnected-iso infraenv", func() {
+				mockInfraEnvRegisterSuccess()
+				mockEvents.EXPECT().SendInfraEnvEvent(ctx, eventstest.NewEventMatcher(
+					eventstest.WithNameMatcher(eventgen.InfraEnvRegisteredEventName))).Times(1)
+				mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).AnyTimes()
+				mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+				reply, err := bm.RegisterInfraEnvInternal(ctx, nil, nil, installer.RegisterInfraEnvParams{
+					InfraenvCreateParams: &models.InfraEnvCreateParams{
+						Name:             swag.String("disconnected-fips-infra-env"),
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						PullSecret:       swag.String(fakePullSecret),
+						ImageType:        models.ImageTypeDisconnectedIso,
+						ClusterID:        &clusterID,
+						FipsEnabled:      swag.Bool(true),
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(swag.BoolValue(reply.FipsEnabled)).To(BeTrue())
+
+				var dbInfraEnv common.InfraEnv
+				Expect(db.First(&dbInfraEnv, "id = ?", reply.ID.String()).Error).To(Succeed())
+				Expect(swag.BoolValue(dbInfraEnv.FipsEnabled)).To(BeTrue())
+			})
 		})
 
 		Context("OS stream", func() {
@@ -10027,6 +10071,113 @@ var _ = Describe("infraEnvs", func() {
 					Expect(swag.StringValue(i.RendezvousIP)).To(Equal("192.168.1.100"))
 				})
 
+			})
+			Context("FipsEnabled", func() {
+				setInfraEnvType := func(imageType models.ImageType) {
+					err = db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("type", imageType).Error
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				storedFipsEnabled := func() *bool {
+					var dbInfraEnv common.InfraEnv
+					Expect(db.First(&dbInfraEnv, "id = ?", i.ID.String()).Error).To(Succeed())
+					return dbInfraEnv.FipsEnabled
+				}
+
+				It("should fail when enabling FIPS on non-disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeFullIso)
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							FipsEnabled: swag.Bool(true),
+						},
+					})
+
+					verifyApiErrorString(reply, http.StatusBadRequest, "FIPS mode is only supported for disconnected ISO infra-envs")
+					Expect(storedFipsEnabled()).To(BeNil())
+				})
+
+				It("should store FIPS when enabling it on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							FipsEnabled: swag.Bool(true),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					Expect(swag.BoolValue(reply.(*installer.UpdateInfraEnvCreated).Payload.FipsEnabled)).To(BeTrue())
+					Expect(swag.BoolValue(storedFipsEnabled())).To(BeTrue())
+				})
+
+				It("should store FIPS as disabled when turning it off on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("fips_enabled", true).Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							FipsEnabled: swag.Bool(false),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					Expect(storedFipsEnabled()).ToNot(BeNil())
+					Expect(*storedFipsEnabled()).To(BeFalse())
+				})
+
+				It("should store FIPS as disabled when it was never set on disconnected-iso infraenv", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+					Expect(storedFipsEnabled()).To(BeNil())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							FipsEnabled: swag.Bool(false),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					Expect(storedFipsEnabled()).ToNot(BeNil())
+					Expect(*storedFipsEnabled()).To(BeFalse())
+				})
+
+				It("should clear FIPS when image type changes away from disconnected-iso", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("fips_enabled", true).Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							ImageType: models.ImageTypeFullIso,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					Expect(storedFipsEnabled()).To(BeNil())
+				})
+
+				It("should preserve FIPS when field is omitted in unrelated update", func() {
+					setInfraEnvType(models.ImageTypeDisconnectedIso)
+					mockInfraEnvUpdateSuccess()
+					Expect(db.Model(&common.InfraEnv{}).Where("id = ?", i.ID).Update("fips_enabled", true).Error).ToNot(HaveOccurred())
+
+					reply := bm.UpdateInfraEnv(ctx, installer.UpdateInfraEnvParams{
+						InfraEnvID: *i.ID,
+						InfraEnvUpdateParams: &models.InfraEnvUpdateParams{
+							AdditionalNtpSources: swag.String("1.1.1.1"),
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateInfraEnvCreated()))
+					Expect(swag.BoolValue(storedFipsEnabled())).To(BeTrue())
+				})
 			})
 			It("Update AdditionalNtpSources", func() {
 				mockInfraEnvUpdateSuccess()
@@ -20322,6 +20473,7 @@ func createInventoryWithImageService(db *gorm.DB, cfg Config, enableImageService
 	mockExecuter = executer.NewMockExecuter(ctrl)
 	mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockServiceMirrorRegistriesConfigBuilder(ctrl)
 	mockInstallerCache = installercache.NewMockInstallerCache(ctrl)
+	mockSystemInfo = system.NewMockSystemInfo(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	gcConfig := garbagecollector.Config{DeregisterInactiveAfter: 20 * 24 * time.Hour}
 
@@ -20338,7 +20490,7 @@ func createInventoryWithImageService(db *gorm.DB, cfg Config, enableImageService
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), getTestAuthzHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockOSImages, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder,
-		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, false, disconnectedIgnitionGenerator)
+		mockStaticNetworkConfig, gcConfig, mockProviderRegistry, true, false, mockSystemInfo, disconnectedIgnitionGenerator)
 
 	if enableImageService {
 		bm.ImageServiceBaseURL = imageServiceBaseURL
@@ -23265,5 +23417,99 @@ var _ = Describe("CreateHostInKubeKeyNamespace", func() {
 		// Verify the record is actually soft-deleted (not active)
 		Expect(db.Model(&common.Host{}).Where("id = ? AND infra_env_id = ?", hostID.String(), infraEnvID2.String()).Count(&count).Error).ToNot(HaveOccurred())
 		Expect(count).To(Equal(int64(0)))
+	})
+})
+
+var _ = Describe("setInfraEnvFipsEnabled", func() {
+	var (
+		fipsCtrl    *gomock.Controller
+		fipsSysInfo *system.MockSystemInfo
+		infraEnv    *models.InfraEnv
+	)
+
+	newInventory := func(ephemeral bool) *bareMetalInventory {
+		return &bareMetalInventory{
+			log:              common.GetTestLog(),
+			ephemeralService: ephemeral,
+			systemInfo:       fipsSysInfo,
+		}
+	}
+
+	BeforeEach(func() {
+		fipsCtrl = gomock.NewController(GinkgoT())
+		fipsSysInfo = system.NewMockSystemInfo(fipsCtrl)
+		infraEnv = &models.InfraEnv{}
+	})
+
+	AfterEach(func() {
+		fipsCtrl.Finish()
+	})
+
+	It("reports true when the agent-based installer runs on a FIPS host", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(true, nil).Times(1)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).ToNot(BeNil())
+		Expect(*infraEnv.FipsEnabled).To(BeTrue())
+	})
+
+	It("reports false when the agent-based installer runs on a non-FIPS host", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, nil).Times(1)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).ToNot(BeNil())
+		Expect(*infraEnv.FipsEnabled).To(BeFalse())
+	})
+
+	It("never inspects the host when not the agent-based installer", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Times(0)
+
+		newInventory(false).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).To(BeNil())
+	})
+
+	It("leaves the field unset when the host state cannot be read", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, errors.New("permission denied")).Times(1)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).To(BeNil())
+	})
+
+	It("clears a stored value when the host state cannot be read", func() {
+		infraEnv.FipsEnabled = swag.Bool(true)
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, errors.New("permission denied")).Times(1)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).To(BeNil())
+	})
+
+	It("reports the host state in place of a stored value on the agent-based installer", func() {
+		infraEnv.FipsEnabled = swag.Bool(true)
+		fipsSysInfo.EXPECT().FIPSEnabled().Return(false, nil).Times(1)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(infraEnv.FipsEnabled).ToNot(BeNil())
+		Expect(*infraEnv.FipsEnabled).To(BeFalse())
+	})
+
+	It("returns the stored value unchanged when not the agent-based installer", func() {
+		infraEnv.FipsEnabled = swag.Bool(true)
+		fipsSysInfo.EXPECT().FIPSEnabled().Times(0)
+
+		newInventory(false).setInfraEnvFipsEnabled(common.GetTestLog(), infraEnv)
+
+		Expect(swag.BoolValue(infraEnv.FipsEnabled)).To(BeTrue())
+	})
+
+	It("tolerates a nil infra-env", func() {
+		fipsSysInfo.EXPECT().FIPSEnabled().Times(0)
+
+		newInventory(true).setInfraEnvFipsEnabled(common.GetTestLog(), nil)
 	})
 })

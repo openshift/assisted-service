@@ -39,6 +39,9 @@ type InfraEnvCreateParams struct {
 	// Enum: [x86_64 aarch64 arm64 ppc64le s390x]
 	CPUArchitecture string `json:"cpu_architecture,omitempty"`
 
+	// Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.
+	FipsEnabled *bool `json:"fips_enabled,omitempty"`
+
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 

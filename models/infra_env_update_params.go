@@ -27,6 +27,9 @@ type InfraEnvUpdateParams struct {
 	// Max Length: 65535
 	AdditionalTrustBundle *string `json:"additional_trust_bundle,omitempty"`
 
+	// Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. FIPS is fixed when the ISO boots, so it cannot be changed for hosts that have already booted.
+	FipsEnabled *bool `json:"fips_enabled,omitempty"`
+
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 

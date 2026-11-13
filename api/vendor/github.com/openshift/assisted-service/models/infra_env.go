@@ -53,6 +53,9 @@ type InfraEnv struct {
 	// Format: date-time
 	ExpiresAt strfmt.DateTime `json:"expires_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// Whether clusters installed from this infra-env will have FIPS mode enabled. Only supported for the disconnected-iso image type, where it causes the ISO to boot with the fips=1 kernel argument. When the agent-based installer reports an infra-env, the value is instead read from the host it runs on, which booted from that ISO, so it reflects what will actually be installed. Omitted when not set, or when the agent-based installer cannot read the host state.
+	FipsEnabled *bool `json:"fips_enabled,omitempty"`
+
 	// Image generator version.
 	GeneratorVersion string `json:"generator_version,omitempty"`
 
