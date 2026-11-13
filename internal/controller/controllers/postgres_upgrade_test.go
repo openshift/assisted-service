@@ -42,28 +42,37 @@ var _ = Describe("postgresHopsBeforeTarget", func() {
 		Expect(os.Unsetenv(databaseImagePG15Env)).To(Succeed())
 	})
 
-	It("includes PG13 and PG15 hops when the target is PG16", func() {
+	It("returns no hops when env vars are not set (opt-in only)", func() {
+		Expect(postgresHopsBeforeTarget()).To(BeEmpty())
+	})
+
+	It("includes PG13 and PG15 hops when both env vars are explicitly set", func() {
+		Expect(os.Setenv(databaseImagePG13Env, "registry.example/pg13")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15")).To(Succeed())
 		hops := postgresHopsBeforeTarget()
 		Expect(hops).To(HaveLen(2))
 		Expect(hops[0].version).To(Equal("13"))
 		Expect(hops[1].version).To(Equal("15"))
 	})
 
-	It("includes only the PG13 hop when the target is PG15", func() {
-		Expect(os.Setenv("DATABASE_IMAGE", "quay.io/sclorg/postgresql-15-c9s:latest")).To(Succeed())
+	It("includes only the PG15 hop when only PG15 env var is set", func() {
+		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15")).To(Succeed())
 		hops := postgresHopsBeforeTarget()
 		Expect(hops).To(HaveLen(1))
-		Expect(hops[0].version).To(Equal("13"))
+		Expect(hops[0].version).To(Equal("15"))
 	})
 
 	It("includes no hops when the target is PG13", func() {
 		Expect(os.Setenv("DATABASE_IMAGE", "quay.io/sclorg/postgresql-13-c9s:latest")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15")).To(Succeed())
 		Expect(postgresHopsBeforeTarget()).To(BeEmpty())
 	})
 
 	It("uses DATABASE_IMAGE_VERSION when the image name has no version token", func() {
 		Expect(os.Setenv("DATABASE_IMAGE", "registry.example/postgres@sha256:deadbeef")).To(Succeed())
 		Expect(os.Setenv(databaseImageVersionEnv, "16")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG13Env, "registry.example/pg13")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15")).To(Succeed())
 		hops := postgresHopsBeforeTarget()
 		Expect(hops).To(HaveLen(2))
 		Expect(hops[0].version).To(Equal("13"))
@@ -73,6 +82,7 @@ var _ = Describe("postgresHopsBeforeTarget", func() {
 	It("prefers the postgresql-N token over DATABASE_IMAGE_VERSION", func() {
 		Expect(os.Setenv("DATABASE_IMAGE", "quay.io/sclorg/postgresql-15-c9s:latest")).To(Succeed())
 		Expect(os.Setenv(databaseImageVersionEnv, "16")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG13Env, "registry.example/pg13")).To(Succeed())
 		hops := postgresHopsBeforeTarget()
 		Expect(hops).To(HaveLen(1))
 		Expect(hops[0].version).To(Equal("13"))
@@ -91,7 +101,15 @@ var _ = Describe("postgresUpgradeInitContainers", func() {
 		Expect(os.Unsetenv(databaseImagePG15Env)).To(Succeed())
 	})
 
-	It("builds init containers that share env, mounts, and the hop script", func() {
+	It("returns no init containers when hop env vars are not set", func() {
+		init := postgresUpgradeInitContainers(nil, nil, corev1.ResourceRequirements{})
+		Expect(init).To(BeEmpty())
+	})
+
+	It("builds init containers when hop env vars are explicitly set", func() {
+		Expect(os.Setenv(databaseImagePG13Env, "registry.example/pg13:latest")).To(Succeed())
+		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15:latest")).To(Succeed())
+
 		env := []corev1.EnvVar{{Name: "POSTGRESQL_USER", Value: "admin"}}
 		mounts := []corev1.VolumeMount{{Name: "postgresdb", MountPath: "/var/lib/pgsql/data"}}
 		resources := corev1.ResourceRequirements{
@@ -104,9 +122,9 @@ var _ = Describe("postgresUpgradeInitContainers", func() {
 		init := postgresUpgradeInitContainers(env, mounts, resources)
 		Expect(init).To(HaveLen(2))
 		Expect(init[0].Name).To(Equal("postgres-upgrade-to-13"))
-		Expect(init[0].Image).To(Equal(defaultDatabaseImagePG13))
+		Expect(init[0].Image).To(Equal("registry.example/pg13:latest"))
 		Expect(init[1].Name).To(Equal("postgres-upgrade-to-15"))
-		Expect(init[1].Image).To(Equal(defaultDatabaseImagePG15))
+		Expect(init[1].Image).To(Equal("registry.example/pg15:latest"))
 		for _, c := range init {
 			Expect(c.Command).To(Equal([]string{"/bin/bash", "-c"}))
 			Expect(c.Args).To(Equal([]string{PostgresHopScript}))
@@ -114,30 +132,5 @@ var _ = Describe("postgresUpgradeInitContainers", func() {
 			Expect(c.VolumeMounts).To(Equal(mounts))
 			Expect(c.Resources).To(Equal(resources))
 		}
-	})
-
-	It("uses operator env overrides for hop images", func() {
-		Expect(os.Setenv(databaseImagePG13Env, "registry.example/postgresql-13:custom")).To(Succeed())
-		init := postgresUpgradeInitContainers(nil, nil, corev1.ResourceRequirements{})
-		Expect(init[0].Image).To(Equal("registry.example/postgresql-13:custom"))
-	})
-})
-
-var _ = Describe("DatabaseImage hop getters", func() {
-	AfterEach(func() {
-		Expect(os.Unsetenv(databaseImagePG13Env)).To(Succeed())
-		Expect(os.Unsetenv(databaseImagePG15Env)).To(Succeed())
-	})
-
-	It("returns default hop images", func() {
-		Expect(DatabaseImagePG13()).To(Equal(defaultDatabaseImagePG13))
-		Expect(DatabaseImagePG15()).To(Equal(defaultDatabaseImagePG15))
-	})
-
-	It("returns configured hop images", func() {
-		Expect(os.Setenv(databaseImagePG13Env, "registry.example/pg13")).To(Succeed())
-		Expect(os.Setenv(databaseImagePG15Env, "registry.example/pg15")).To(Succeed())
-		Expect(DatabaseImagePG13()).To(Equal("registry.example/pg13"))
-		Expect(DatabaseImagePG15()).To(Equal("registry.example/pg15"))
 	})
 })
