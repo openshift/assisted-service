@@ -187,8 +187,9 @@ function wait_for_boolean_field() {
     field="$2"
     namespace="${3:-}"
     interval="${4:-10}"
+    max_retries="${5:-150}"
 
-    for i in {1..50}; do
+    for i in $(seq 1 ${max_retries}); do
         date --rfc-3339=seconds
         value=$(oc get -n ${namespace} ${object} -o custom-columns=field:${field} --no-headers)
         if [ "${value}" = "true" ]; then

@@ -314,12 +314,94 @@ EOCR
   tee < ./assisted-mirror-config >(oc apply  -f -)
 }
 
+# Mirror CI pipeline override images into the disconnected local registry and
+# rewrite the corresponding env vars to the local pullspecs. Catalog mirror only
+# covers OLM relatedImages (typically quay.io), so CI digests from
+# registry.build*.ci.openshift.org would otherwise cause ImagePullBackOff.
+function mirror_ci_override_images() {
+    echo "Mirroring CI pipeline override images to local registry..."
+
+    if [[ -z "${LOCAL_REGISTRY:-}" ]]; then
+        echo "ERROR: LOCAL_REGISTRY is required to mirror CI override images"
+        return 1
+    fi
+    if [[ -z "${AUTHFILE:-}" ]]; then
+        echo "ERROR: AUTHFILE is required to mirror CI override images"
+        return 1
+    fi
+
+    local override_images=(
+        "${AGENT_IMAGE:-}"
+        "${CONTROLLER_IMAGE:-}"
+        "${INSTALLER_IMAGE:-}"
+        "${IMAGE_SERVICE_IMAGE:-}"
+        "${SERVICE_IMAGE:-}"
+    )
+    local override_names=(
+        "AGENT_IMAGE"
+        "CONTROLLER_IMAGE"
+        "INSTALLER_IMAGE"
+        "IMAGE_SERVICE_IMAGE"
+        "SERVICE_IMAGE"
+    )
+
+    local i image name repo dest
+    for i in "${!override_images[@]}"; do
+        image="${override_images[$i]}"
+        name="${override_names[$i]}"
+
+        if [[ -z "${image}" ]]; then
+            echo "  ${name}: not set, skipping"
+            continue
+        fi
+
+        # Skip images already rewritten to the local registry (e.g. re-entry).
+        if [[ "${image}" == "${LOCAL_REGISTRY}/"* ]]; then
+            echo "  ${name}: already local (${image}), skipping"
+            continue
+        fi
+
+        # Destination must be a bare repository; oc image mirror rejects digests
+        # in the dest and pushes by digest from the source reference.
+        repo="$(get_image_repository_only "${image}")"
+        if [[ -z "${repo}" ]]; then
+            echo "ERROR: Could not parse repository for ${name}: ${image}"
+            return 1
+        fi
+        dest="${LOCAL_REGISTRY}/${repo}"
+
+        echo "  ${name}: mirroring ${image} -> ${dest}"
+
+        run_mirror_command_with_retry oc image mirror \
+            --registry-config="${AUTHFILE}" \
+            --insecure=true \
+            "${image}" \
+            "${dest}" || {
+                echo "ERROR: Failed to mirror ${name}: ${image}"
+                return 1
+            }
+
+        # Point subscription overrides at the local mirror so hub pods do not
+        # depend on an IDMS entry for the unreachable CI registry. Keep the
+        # source digest (if any) so pulls stay digest-pinned.
+        if [[ "${image}" == *@* ]]; then
+            export "${name}=${dest}@${image##*@}"
+        else
+            export "${name}=${dest}"
+        fi
+        echo "  ${name}: mirrored successfully (${!name})"
+    done
+
+    echo "CI pipeline override image mirroring complete."
+}
+
 function from_index_image() {
   if [ "${DISCONNECTED}" = "true" ]; then
     catalog_source_name=$ASSISTED_SERVICE_OPERATOR_CATALOG
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
+    mirror_ci_override_images
   else
     catalog_source_name=${ASSISTED_SERVICE_OPERATOR_CATALOG}
   fi
