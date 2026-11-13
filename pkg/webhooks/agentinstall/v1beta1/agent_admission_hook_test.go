@@ -93,30 +93,30 @@ var _ = Describe("agent web validate", func() {
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "newName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
 			expectedAllowed: true,
 		},
 		{
-			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is immutable for day 1 host, state installing",
+			name: "Test Agent.Spec.ClusterDeploymentName is immutable for day 1 host, state installing",
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
-					Name:      "oldName",
-					Namespace: "newNamespace",
+					Name:      "newName",
+					Namespace: "test-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -124,17 +124,17 @@ var _ = Describe("agent web validate", func() {
 			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindHost},
 		},
 		{
-			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is immutable for day 2 host, state installing",
+			name: "Test Agent.Spec.ClusterDeploymentName is immutable for day 2 host, state installing",
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
-					Name:      "oldName",
-					Namespace: "newNamespace",
+					Name:      "newName",
+					Namespace: "test-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -146,13 +146,13 @@ var _ = Describe("agent web validate", func() {
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "newName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -167,7 +167,7 @@ var _ = Describe("agent web validate", func() {
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -175,17 +175,17 @@ var _ = Describe("agent web validate", func() {
 			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusInstalling}, Kind: models.HostKindAddToExistingClusterHost},
 		},
 		{
-			name: "Test Agent.Spec.ClusterDeploymentName.Namespace is mutable, state known",
+			name: "Test Agent.Spec.ClusterDeploymentName.Name is mutable, state known",
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
-					Name:      "oldName",
-					Namespace: "newNamespace",
+					Name:      "newName",
+					Namespace: "test-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -193,17 +193,35 @@ var _ = Describe("agent web validate", func() {
 			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusKnown}},
 		},
 		{
-			name: "Test Agent update does not fail when ClusterReference is set and remains the same",
+			name: "Test Agent.Spec.ClusterDeploymentName.Namespace cross-namespace is rejected",
 			newSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "other-namespace",
 				},
 			},
 			oldSpec: v1beta1.AgentSpec{
 				ClusterDeploymentName: &v1beta1.ClusterReference{
 					Name:      "oldName",
-					Namespace: "oldNamespace",
+					Namespace: "test-namespace",
+				},
+			},
+			operation:       admissionv1.Update,
+			expectedAllowed: false,
+			newStatus:       v1beta1.AgentStatus{DebugInfo: v1beta1.DebugInfo{State: models.HostStatusKnown}},
+		},
+		{
+			name: "Test Agent update does not fail when ClusterReference is set and remains the same",
+			newSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "test-namespace",
+				},
+			},
+			oldSpec: v1beta1.AgentSpec{
+				ClusterDeploymentName: &v1beta1.ClusterReference{
+					Name:      "oldName",
+					Namespace: "test-namespace",
 				},
 			},
 			operation:       admissionv1.Update,
@@ -368,6 +386,7 @@ var _ = Describe("agent web validate", func() {
 			request := &admissionv1.AdmissionRequest{
 				Operation: tc.operation,
 				Resource:  *tc.gvr,
+				Namespace: "test-namespace",
 				Object: runtime.RawExtension{
 					Raw: tc.newObjectRaw,
 				},
