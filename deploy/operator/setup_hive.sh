@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source ${__dir}/common.sh
-source ${__dir}/utils.sh
+source "${__dir}/common.sh"
+source "${__dir}/utils.sh"
+source "${__dir}/mirror_utils.sh"
 
 set -o xtrace
 
@@ -139,7 +140,7 @@ function from_upstream() {
 
     if [ "${DISCONNECTED}" = "true" ]; then
         export IMG="${LOCAL_REGISTRY}/localimages/hive:latest"
-        oc image mirror \
+        run_mirror_command_with_retry oc image mirror \
             -a ${AUTHFILE} \
             ${HIVE_IMAGE} \
             ${IMG}
