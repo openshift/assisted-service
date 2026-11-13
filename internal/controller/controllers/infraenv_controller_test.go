@@ -1827,3 +1827,17 @@ var _ = Describe("infraEnv reconcile with image service disabled", func() {
 		Expect(infraEnvImage.Status.InfraEnvDebugInfo.EventsURL).NotTo(BeEmpty())
 	})
 })
+
+var _ = DescribeTable("getSSHAuthorizedKey",
+	func(infraEnvKey string, annotated bool, cluster *common.Cluster, expected string) {
+		infraEnv := &aiv1beta1.InfraEnv{Spec: aiv1beta1.InfraEnvSpec{SSHAuthorizedKey: infraEnvKey}}
+		if annotated {
+			infraEnv.Annotations = map[string]string{GenerateSSHKeyAnnotation: "true"}
+		}
+		Expect(getSSHAuthorizedKey(infraEnv, cluster)).To(Equal(expected))
+	},
+	Entry("InfraEnv key wins over the cluster key", "infraenv-key", true, &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "cluster-key"}}, "infraenv-key"),
+	Entry("annotated InfraEnv without a key uses the cluster key", "", true, &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "cluster-key"}}, "cluster-key"),
+	Entry("InfraEnv without the annotation keeps no key", "", false, &common.Cluster{Cluster: models.Cluster{SSHPublicKey: "cluster-key"}}, ""),
+	Entry("annotated InfraEnv without a cluster keeps no key", "", true, nil, ""),
+)
