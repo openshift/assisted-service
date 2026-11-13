@@ -20,6 +20,10 @@ import (
 
 const minimalOpenShiftVersionForImageDigestSupport = "4.14.0-0.0"
 
+// minimalOpenShiftVersionForImageDigestSourcePolicy is the first release whose installer accepts
+// imageDigestSources[].sourcePolicy. Older installers parse install-config strictly and reject the field.
+const minimalOpenShiftVersionForImageDigestSourcePolicy = "4.21.0-0.0"
+
 //go:generate mockgen -source=builder.go -package=builder -destination=mock_installcfg.go
 type InstallConfigBuilder interface {
 	GetInstallConfig(cluster *common.Cluster, clusterInfraenvs []*common.InfraEnv, rhRootCA string) ([]byte, error)
@@ -219,7 +223,11 @@ func (i *installConfigBuilder) handleMirrorRegistry(cfg *installcfg.InstallerCon
 
 	i.log.Debugf("found OpenShift version %s, setting mirror registry %+v", cluster.OpenshiftVersion, configuration)
 	if isOpenShiftVersionRecentEnough {
-		if err = i.setImageDigestMirrorSet(cfg, configuration); err != nil {
+		supportsSourcePolicy, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSourcePolicy, cluster.OpenshiftVersion)
+		if err != nil {
+			return err
+		}
+		if err = i.setImageDigestMirrorSet(cfg, configuration, supportsSourcePolicy); err != nil {
 			return err
 		}
 	} else {
@@ -232,7 +240,7 @@ func (i *installConfigBuilder) handleMirrorRegistry(cfg *installcfg.InstallerCon
 	return nil
 }
 
-func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal, configuration *common.MirrorRegistryConfiguration) error {
+func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.InstallerConfigBaremetal, configuration *common.MirrorRegistryConfiguration, supportsSourcePolicy bool) error {
 	var imageDigestSourceList []installcfg.ImageDigestSource
 
 	// check if mirror registry is configured in the cluster config
@@ -245,6 +253,9 @@ func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.Installer
 				mirrors[j] = string(mirror)
 			}
 			imageDigestSourceList[k] = installcfg.ImageDigestSource{Source: _registry.Source, Mirrors: mirrors}
+			if supportsSourcePolicy {
+				imageDigestSourceList[k].SourcePolicy = _registry.MirrorSourcePolicy
+			}
 		}
 	} else if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
 		// check if mirror registry is configured for the entire env
@@ -257,6 +268,9 @@ func (i *installConfigBuilder) setImageDigestMirrorSet(cfg *installcfg.Installer
 		imageDigestSourceList = make([]installcfg.ImageDigestSource, len(mirrorRegistriesConfigs))
 		for j, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
 			imageDigestSourceList[j] = installcfg.ImageDigestSource{Source: mirrorRegistriesConfig.Location, Mirrors: mirrorRegistriesConfig.Mirror}
+			if supportsSourcePolicy {
+				imageDigestSourceList[j].SourcePolicy = mirrorRegistriesConfig.SourcePolicy
+			}
 		}
 	}
 
@@ -351,7 +365,38 @@ func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluste
 		return err
 	}
 
+	if err = validateImageDigestSourcePolicySupported(cfg, cluster.OpenshiftVersion); err != nil {
+		return err
+	}
+
 	return cfg.Validate()
+}
+
+// validateImageDigestSourcePolicySupported rejects imageDigestSources[].sourcePolicy values that the installer
+// would reject: any value for OpenShift versions whose installer does not support the field, and values other
+// than NeverContactSource or AllowContactingSource otherwise. An override then fails here instead of during
+// installation.
+func validateImageDigestSourcePolicySupported(cfg *installcfg.InstallerConfigBaremetal, openshiftVersion string) error {
+	supported, err := common.BaseVersionGreaterOrEqual(minimalOpenShiftVersionForImageDigestSourcePolicy, openshiftVersion)
+	if err != nil {
+		return err
+	}
+	for _, source := range cfg.ImageDigestSources {
+		if source.SourcePolicy == "" {
+			continue
+		}
+		if !supported {
+			return fmt.Errorf("imageDigestSources sourcePolicy is only supported for OpenShift %s and later, cluster version is %s",
+				strings.Split(minimalOpenShiftVersionForImageDigestSourcePolicy, "-")[0], openshiftVersion)
+		}
+		switch source.SourcePolicy {
+		case configv1.NeverContactSource, configv1.AllowContactingSource:
+		default:
+			return fmt.Errorf("imageDigestSources sourcePolicy %q for source %q is invalid, must be %s or %s",
+				source.SourcePolicy, source.Source, configv1.NeverContactSource, configv1.AllowContactingSource)
+		}
+	}
+	return nil
 }
 
 func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Cluster, machineGroup string) string {

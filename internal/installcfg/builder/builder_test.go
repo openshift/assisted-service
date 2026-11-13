@@ -395,6 +395,47 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(result.DeprecatedImageContentSources).To(BeEmpty())
 	})
 
+	It("create_configuration_with_mirror_registries_source_policy", func() {
+		var result installcfg.InstallerConfigBaremetal
+		cluster.OpenshiftVersion = "4.21.0"
+		regData := []mirrorregistries.RegistriesConf{
+			{Location: "location1", Mirror: []string{"mirror1"}, SourcePolicy: configv1.NeverContactSource},
+			{Location: "location2", Mirror: []string{"mirror2"}},
+		}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some sa data"), nil).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(string(data)).To(ContainSubstring(`"sourcePolicy":"NeverContactSource"`))
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.ImageDigestSources).To(Equal([]installcfg.ImageDigestSource{
+			{Source: "location1", Mirrors: []string{"mirror1"}, SourcePolicy: configv1.NeverContactSource},
+			{Source: "location2", Mirrors: []string{"mirror2"}},
+		}))
+	})
+
+	It("create_configuration_with_mirror_registries_source_policy_not_supported", func() {
+		var result installcfg.InstallerConfigBaremetal
+		cluster.OpenshiftVersion = "4.20.0"
+		regData := []mirrorregistries.RegistriesConf{
+			{Location: "location1", Mirror: []string{"mirror1"}, SourcePolicy: configv1.NeverContactSource},
+		}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(2)
+		mockMirrorRegistriesConfigBuilder.EXPECT().ExtractLocationMirrorDataFromRegistries().Return(regData, nil).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some sa data"), nil).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		// Installers older than 4.21 reject unknown install-config fields
+		Expect(string(data)).NotTo(ContainSubstring("sourcePolicy"))
+		err = json.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.ImageDigestSources).To(Equal([]installcfg.ImageDigestSource{
+			{Source: "location1", Mirrors: []string{"mirror1"}},
+		}))
+	})
+
 	It("create_configuration_with_mirror_registries_idms_not_supported", func() {
 		var result installcfg.InstallerConfigBaremetal
 		cluster.OpenshiftVersion = "4.12.0-0.0"
@@ -1068,7 +1109,7 @@ location = "%s"
 
 			// Set cluster-level MirrorRegistryConfiguration
 			mirrors, imageDigestMirrors := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
-			cluster.SetMirrorRegistryConfiguration(mirrors)
+			Expect(cluster.SetMirrorRegistryConfiguration(mirrors)).To(Succeed())
 
 			// Generate install config
 			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
@@ -1088,13 +1129,37 @@ location = "%s"
 			Expect(result.AdditionalTrustBundle).To(Equal(fmt.Sprintf("%s\n%s", "service-ca-data", mirrorRegistryCertificate)))
 		})
 
+		It("success - cluster mirror registry configuration with a blocked source sets sourcePolicy", func() {
+			var result installcfg.InstallerConfigBaremetal
+			cluster.OpenshiftVersion = "4.22.0"
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+
+			blockedToml := fmt.Sprintf(`
+[[registry]]
+location = "%s"
+blocked = true
+
+[[registry.mirror]]
+location = "%s"
+`, sourceRegistry, mirrorRegistry)
+			mirrors, _ := getMirrorRegistryConfigurations(blockedToml, mirrorRegistryCertificate)
+			Expect(cluster.SetMirrorRegistryConfiguration(mirrors)).To(Succeed())
+			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = json.Unmarshal(data, &result)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result.ImageDigestSources).To(Equal([]installcfg.ImageDigestSource{
+				{Source: sourceRegistry, Mirrors: []string{mirrorRegistry}, SourcePolicy: configv1.NeverContactSource},
+			}))
+		})
+
 		It("success - cluster holds mirror registry configurations", func() {
 			var result installcfg.InstallerConfigBaremetal
 			cluster.OpenshiftVersion = "4.16.0-0.0"
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 
 			mirrors, imageDigestMirrors := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
-			cluster.SetMirrorRegistryConfiguration(mirrors)
+			Expect(cluster.SetMirrorRegistryConfiguration(mirrors)).To(Succeed())
 			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -1116,12 +1181,12 @@ location = "%s"
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 
 			mirrors, _ := getMirrorRegistryConfigurations(getSecureRegistryToml(), mirrorRegistryCertificate)
-			cluster.SetMirrorRegistryConfiguration(mirrors)
+			Expect(cluster.SetMirrorRegistryConfiguration(mirrors)).To(Succeed())
 			testBundles := []string{testBundle1, testBundle2, testBundle3}
 			for i := 0; i < 3; i++ {
 				infraenv := &common.InfraEnv{InfraEnv: models.InfraEnv{}}
 				mirrors.CaBundleCrt = testBundles[i]
-				infraenv.SetMirrorRegistryConfiguration(mirrors)
+				Expect(infraenv.SetMirrorRegistryConfiguration(mirrors)).To(Succeed())
 				clusterInfraenvs = append(clusterInfraenvs, infraenv)
 			}
 			data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
@@ -1187,6 +1252,40 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		//providerRegistry.EXPECT().AddPlatformToInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
 		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Fails when imageDigestSources sourcePolicy is set for OpenShift older than 4.21", func() {
+		s := `{"imageDigestSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release", "sourcePolicy": "NeverContactSource"}]}`
+		cluster.OpenshiftVersion = "4.20.0"
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("sourcePolicy is only supported for OpenShift 4.21.0 and later"))
+	})
+
+	It("Succeeds when imageDigestSources sourcePolicy is set for OpenShift 4.21", func() {
+		s := `{"imageDigestSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release", "sourcePolicy": "NeverContactSource"}]}`
+		cluster.OpenshiftVersion = "4.21.0"
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Fails when imageDigestSources sourcePolicy has an invalid value for OpenShift 4.21", func() {
+		s := `{"imageDigestSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release", "sourcePolicy": "NeverContactSorce"}]}`
+		cluster.OpenshiftVersion = "4.21.0"
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring(`sourcePolicy "NeverContactSorce" for source "quay.io/openshift-release-dev/ocp-release" is invalid`))
+	})
+
+	It("Succeeds when imageDigestSources sourcePolicy is AllowContactingSource for OpenShift 4.21", func() {
+		s := `{"imageDigestSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release", "sourcePolicy": "AllowContactingSource"}]}`
+		cluster.OpenshiftVersion = "4.21.0"
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		err := installConfig.ValidateInstallConfigPatch(cluster, clusterInfraenvs, s)
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("Single node - valid json without bootstrap node", func() {
