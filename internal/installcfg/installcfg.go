@@ -187,6 +187,10 @@ type ImageDigestSource struct {
 
 	// Mirrors is one or more repositories that may also contain the same images.
 	Mirrors []string `json:"mirrors,omitempty"`
+
+	// SourcePolicy is the fallback policy if pulling from the mirrors fails.
+	// Only supported by the installer for OpenShift 4.21 and later.
+	SourcePolicy configv1.MirrorSourcePolicy `json:"sourcePolicy,omitempty"`
 }
 
 type ClusterNetwork struct {
