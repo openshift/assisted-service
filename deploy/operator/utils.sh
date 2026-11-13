@@ -156,7 +156,7 @@ function wait_for_resource() {
     namespace="$2"
     interval="${4:-10}"
     set +e
-    for i in {1..50}; do
+    for i in {1..150}; do
         date --rfc-3339=seconds
         value=$(oc get -n ${namespace} ${object} --no-headers | wc -l)
         if [ "${value}" -ne 0 ]; then
