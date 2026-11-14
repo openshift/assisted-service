@@ -238,3 +238,4 @@ sigs.k8s.io/yaml
 # golang.org/x/crypto => golang.org/x/crypto v0.52.0
 # github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
 # google.golang.org/grpc => google.golang.org/grpc v1.83.1
+# github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.5
