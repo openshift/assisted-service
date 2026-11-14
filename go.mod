@@ -74,7 +74,7 @@ require (
 	github.com/thedevsaddam/retry v1.2.1
 	github.com/thoas/go-funk v0.9.3
 	github.com/vincent-petithory/dataurl v1.0.0
-	golang.org/x/crypto v0.32.0
+	golang.org/x/crypto v0.33.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	golang.org/x/sync v0.11.0
 	golang.org/x/sys v0.30.0
@@ -284,3 +284,5 @@ replace (
 )
 
 replace golang.org/x/crypto => github.com/openshift-sustaining/crypto v0.33.0-sec.4
+
+replace golang.org/x/net => github.com/openshift-sustaining/net v0.35.0-sec.4
