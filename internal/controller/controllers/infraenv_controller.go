@@ -170,7 +170,7 @@ func (r *InfraEnvReconciler) handleInfraEnvDeletion(ctx context.Context, log log
 	return ctrl.Result{}, nil
 }
 
-func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv) (*common.InfraEnv, error) {
+func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, internalInfraEnv *common.InfraEnv, cluster *common.Cluster) (*common.InfraEnv, error) {
 	updateParams := installer.UpdateInfraEnvParams{
 		InfraEnvID:           *internalInfraEnv.ID,
 		InfraEnvUpdateParams: &models.InfraEnvUpdateParams{},
@@ -201,8 +201,8 @@ func (r *InfraEnvReconciler) updateInfraEnv(ctx context.Context, log logrus.Fiel
 	if infraEnv.Spec.IgnitionConfigOverride != "" {
 		updateParams.InfraEnvUpdateParams.IgnitionConfigOverride = infraEnv.Spec.IgnitionConfigOverride
 	}
-	if infraEnv.Spec.SSHAuthorizedKey != internalInfraEnv.SSHAuthorizedKey {
-		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &infraEnv.Spec.SSHAuthorizedKey
+	if sshAuthorizedKey := getSSHAuthorizedKey(infraEnv, cluster); sshAuthorizedKey != internalInfraEnv.SSHAuthorizedKey {
+		updateParams.InfraEnvUpdateParams.SSHAuthorizedKey = &sshAuthorizedKey
 	}
 	if strings.TrimSpace(infraEnv.Spec.AdditionalTrustBundle) != internalInfraEnv.AdditionalTrustBundle {
 		updateParams.InfraEnvUpdateParams.AdditionalTrustBundle = &infraEnv.Spec.AdditionalTrustBundle
@@ -426,7 +426,7 @@ func (r *InfraEnvReconciler) getInternalInfraEnv(ctx context.Context, log logrus
 		return infraEnvInternal, err
 	}
 	// Check for updates from user and update the infraenv
-	updatedInfraEnv, err := r.updateInfraEnv(ctx, log, infraEnv, infraEnvInternal)
+	updatedInfraEnv, err := r.updateInfraEnv(ctx, log, infraEnv, infraEnvInternal, cluster)
 	if err != nil {
 		log.WithError(err).Error("failed to update InfraEnv")
 		return infraEnvInternal, err
@@ -505,6 +505,16 @@ func (r *InfraEnvReconciler) reconcileNodeLabelPropagation(ctx context.Context, 
 		return errors.Errorf("failed to patch %d Agent(s) during node label propagation", len(patchErrors))
 	}
 	return nil
+}
+
+// getSSHAuthorizedKey returns the SSH key for the discovery image. A key set in the InfraEnv always
+// wins. Otherwise, if GenerateSSHKeyAnnotation is set and the InfraEnv belongs to a cluster, the
+// cluster's SSH key is used, which may be the one generated for it.
+func getSSHAuthorizedKey(infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) string {
+	if infraEnv.Spec.SSHAuthorizedKey == "" && cluster != nil && infraEnv.Annotations[GenerateSSHKeyAnnotation] == "true" {
+		return cluster.SSHPublicKey
+	}
+	return infraEnv.Spec.SSHAuthorizedKey
 }
 
 func CreateInfraEnvParams(infraEnv *aiv1beta1.InfraEnv, imageType models.ImageType, pullSecret string, clusterID *strfmt.UUID, openshiftVersion, osStream string) installer.RegisterInfraEnvParams {
@@ -603,6 +613,7 @@ func (r *InfraEnvReconciler) createInfraEnv(ctx context.Context, log logrus.Fiel
 	}
 	imageType := infraenv.GetInfraEnvIsoImageType(log, infraEnv.Spec.CpuArchitecture, infraEnv.Spec.ImageType, r.Config.ImageType)
 	createParams := CreateInfraEnvParams(infraEnv, imageType, pullSecret, clusterID, osImageVersion, osStream)
+	createParams.InfraenvCreateParams.SSHAuthorizedKey = swag.String(getSSHAuthorizedKey(infraEnv, cluster))
 
 	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
