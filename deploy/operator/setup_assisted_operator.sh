@@ -345,7 +345,7 @@ function mirror_ci_override_images() {
         "SERVICE_IMAGE"
     )
 
-    local i image name repo dest
+    local i image name repo_only dest verify_ref
     for i in "${!override_images[@]}"; do
         image="${override_images[$i]}"
         name="${override_names[$i]}"
@@ -363,12 +363,14 @@ function mirror_ci_override_images() {
 
         # Destination must be a bare repository; oc image mirror rejects digests
         # in the dest and pushes by digest from the source reference.
-        repo="$(get_image_repository_only "${image}")"
-        if [[ -z "${repo}" ]]; then
+        # Match the IDMS path created by oc adm catalog mirror:
+        # namespace/image → olm/namespace-image (slashes → dashes, prepend olm/).
+        repo_only="$(get_image_repository_only "${image}")"
+        if [[ -z "${repo_only}" ]]; then
             echo "ERROR: Could not parse repository for ${name}: ${image}"
             return 1
         fi
-        dest="${LOCAL_REGISTRY}/${repo}"
+        dest="${LOCAL_REGISTRY}/olm/${repo_only//\//-}"
 
         echo "  ${name}: mirroring ${image} -> ${dest}"
 
@@ -380,6 +382,18 @@ function mirror_ci_override_images() {
                 echo "ERROR: Failed to mirror ${name}: ${image}"
                 return 1
             }
+
+        # Verify the manifest actually landed; oc image mirror can exit 0 without
+        # a usable destination (mirror_command_succeeded only greps known errors).
+        verify_ref="${dest}"
+        if [[ "${image}" == *@* ]]; then
+            verify_ref="${dest}@${image##*@}"
+        fi
+        if ! oc image info -a "${AUTHFILE}" --insecure=true \
+                "${verify_ref}" > /dev/null 2>&1; then
+            echo "ERROR: Post-mirror verification failed for ${name}: manifest not found at ${verify_ref}"
+            return 1
+        fi
 
         # Point subscription overrides at the local mirror so hub pods do not
         # depend on an IDMS entry for the unreachable CI registry. Keep the
