@@ -1,0 +1,12 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: {{ .Operator.SubscriptionName }}
+  namespace: {{ .Operator.Namespace }}
+spec:
+  channel: stable
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  name: netobserv-operator
+  installPlanApproval: Automatic
+
