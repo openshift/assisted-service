@@ -11,8 +11,17 @@ packages:
   - git
   - openssl-devel  
 upgradePackages:
+  - ca-certificates
   - glib2
+  - libxml2
+  - openssl
+  - openssl-libs
+  - pcre2
+  - pcre2-syntax
+  - python3
+  - python3-libs
   - python3-urllib3
+  - vim-minimal
 arches:
   - aarch64
   - x86_64

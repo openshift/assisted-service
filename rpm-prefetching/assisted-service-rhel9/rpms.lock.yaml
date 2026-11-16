@@ -655,6 +655,13 @@ arches:
     name: binutils-gold
     evr: 2.35.2-72.el9
     sourcerpm: binutils-2.35.2-72.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/c/ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 1071812
+    checksum: sha256:5d29ecb5c3b2958308700381a119d623741d07e313d870dedfaf84e5c9df85cb
+    name: ca-certificates
+    evr: 2026.2.92_v9.0.319-90.3.el9_8
+    sourcerpm: ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/c/cyrus-sasl-gssapi-2.1.27-21.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 28022
@@ -844,6 +851,13 @@ arches:
     name: libtirpc
     evr: 1.3.3-9.el9
     sourcerpm: libtirpc-1.3.3-9.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/l/libxml2-2.9.13-18.el9_9.1.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 754859
+    checksum: sha256:96e2dd02ea5cfce8b3a12c21f6f1274e23acd5d408a677c49be17e6900e37f27
+    name: libxml2
+    evr: 2.9.13-18.el9_9.1
+    sourcerpm: libxml2-2.9.13-18.el9_9.1.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/m/make-4.3-8.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 550249
@@ -914,6 +928,20 @@ arches:
     name: openssl-libs
     evr: 1:3.5.9-1.el9_9
     sourcerpm: openssl-3.5.9-1.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/pcre2-10.40-7.el9_8.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 227991
+    checksum: sha256:40fd0cd92f4cf824fb5186128d360bdc0a8a9f70c9f820b8c0efda4afec75cc8
+    name: pcre2
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/pcre2-syntax-10.40-7.el9_8.noarch.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 150069
+    checksum: sha256:e7466a43ef2bfda2b1dc07e855b0db743d48b11c0bdc1402e1d2ea6fb23d33a3
+    name: pcre2-syntax
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/pkgconf-1.7.3-10.el9.aarch64.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 45196
@@ -942,6 +970,20 @@ arches:
     name: protobuf-c
     evr: 1.3.3-13.el9
     sourcerpm: protobuf-c-1.3.3-13.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/python3-3.9.25-16.el9_9.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 31279
+    checksum: sha256:8380dbaebac08b7fea24a473600962ff985b0d020aded4fc6c64cd497481e06f
+    name: python3
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/python3-libs-3.9.25-16.el9_9.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 8474514
+    checksum: sha256:e4cab3ea79e1f710b1442da1350c395574aa1d4113a44136f33ceb1a1996cf96
+    name: python3-libs
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/p/python3-urllib3-1.26.5-8.el9_8.2.noarch.rpm
     repoid: rhel-9-for-aarch64-baseos-rpms
     size: 231680
@@ -956,6 +998,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-17.el9
     sourcerpm: shadow-utils-4.9-17.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/baseos/os/Packages/v/vim-minimal-8.2.2637-43.el9_9.aarch64.rpm
+    repoid: rhel-9-for-aarch64-baseos-rpms
+    size: 670726
+    checksum: sha256:aa224f8032b84bebf39dd326b889bd32cd253f0292c7112e420c5fd5dd849e24
+    name: vim-minimal
+    evr: 2:8.2.2637-43.el9_9
+    sourcerpm: vim-8.2.2637-43.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/aarch64/codeready-builder/os/Packages/n/nmstate-devel-2.2.61-3.el9_9.aarch64.rpm
     repoid: codeready-builder-for-rhel-9-aarch64-rpms
     size: 24713
@@ -1618,6 +1667,13 @@ arches:
     name: binutils-gold
     evr: 2.35.2-72.el9
     sourcerpm: binutils-2.35.2-72.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/c/ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 1071812
+    checksum: sha256:5d29ecb5c3b2958308700381a119d623741d07e313d870dedfaf84e5c9df85cb
+    name: ca-certificates
+    evr: 2026.2.92_v9.0.319-90.3.el9_8
+    sourcerpm: ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/c/cyrus-sasl-gssapi-2.1.27-21.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 30409
@@ -1807,6 +1863,13 @@ arches:
     name: libtirpc
     evr: 1.3.3-9.el9
     sourcerpm: libtirpc-1.3.3-9.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/l/libxml2-2.9.13-18.el9_9.1.ppc64le.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 850442
+    checksum: sha256:02805a674f52360e1376d2bc18b0f0e3a24f6aa72578abd876355caf37538e12
+    name: libxml2
+    evr: 2.9.13-18.el9_9.1
+    sourcerpm: libxml2-2.9.13-18.el9_9.1.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/m/make-4.3-8.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 567121
@@ -1877,6 +1940,20 @@ arches:
     name: openssl-libs
     evr: 1:3.5.9-1.el9_9
     sourcerpm: openssl-3.5.9-1.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/pcre2-10.40-7.el9_8.ppc64le.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 245697
+    checksum: sha256:58ff04ee8a1bca90fbabc3310043eac023d09440579f9140fa74306425dd3de4
+    name: pcre2
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/pcre2-syntax-10.40-7.el9_8.noarch.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 150069
+    checksum: sha256:e7466a43ef2bfda2b1dc07e855b0db743d48b11c0bdc1402e1d2ea6fb23d33a3
+    name: pcre2-syntax
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/pkgconf-1.7.3-10.el9.ppc64le.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 46315
@@ -1905,6 +1982,20 @@ arches:
     name: protobuf-c
     evr: 1.3.3-13.el9
     sourcerpm: protobuf-c-1.3.3-13.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/python3-3.9.25-16.el9_9.ppc64le.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 31332
+    checksum: sha256:65a16ed5557a7026dd6a054237f629f6938e2089db6259c98b815ab8c6a757df
+    name: python3
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/python3-libs-3.9.25-16.el9_9.ppc64le.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 8449736
+    checksum: sha256:d04022bbcfb8a4b5fec6a80ddd2a180cf16f438e3c049d54b893a9bbc333523d
+    name: python3-libs
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/p/python3-urllib3-1.26.5-8.el9_8.2.noarch.rpm
     repoid: rhel-9-for-ppc64le-baseos-rpms
     size: 231680
@@ -1919,6 +2010,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-17.el9
     sourcerpm: shadow-utils-4.9-17.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/baseos/os/Packages/v/vim-minimal-8.2.2637-43.el9_9.ppc64le.rpm
+    repoid: rhel-9-for-ppc64le-baseos-rpms
+    size: 741695
+    checksum: sha256:96b378ce486b55df5b990fa6ebbd93deb186cab98cc72261b1e1c21a30dafa12
+    name: vim-minimal
+    evr: 2:8.2.2637-43.el9_9
+    sourcerpm: vim-8.2.2637-43.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/ppc64le/codeready-builder/os/Packages/n/nmstate-devel-2.2.61-3.el9_9.ppc64le.rpm
     repoid: codeready-builder-for-rhel-9-ppc64le-rpms
     size: 24744
@@ -2588,6 +2686,13 @@ arches:
     name: binutils-gold
     evr: 2.35.2-72.el9
     sourcerpm: binutils-2.35.2-72.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/c/ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 1071812
+    checksum: sha256:5d29ecb5c3b2958308700381a119d623741d07e313d870dedfaf84e5c9df85cb
+    name: ca-certificates
+    evr: 2026.2.92_v9.0.319-90.3.el9_8
+    sourcerpm: ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/c/cyrus-sasl-gssapi-2.1.27-21.el9.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 28019
@@ -2777,6 +2882,13 @@ arches:
     name: libtirpc
     evr: 1.3.3-9.el9
     sourcerpm: libtirpc-1.3.3-9.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/l/libxml2-2.9.13-18.el9_9.1.s390x.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 734722
+    checksum: sha256:c303cb2fe27c4c8758343ee4af190d0045dc3cb83cd7621cfe3673726189508b
+    name: libxml2
+    evr: 2.9.13-18.el9_9.1
+    sourcerpm: libxml2-2.9.13-18.el9_9.1.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/m/make-4.3-8.el9.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 553451
@@ -2847,6 +2959,20 @@ arches:
     name: openssl-libs
     evr: 1:3.5.9-1.el9_9
     sourcerpm: openssl-3.5.9-1.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/pcre2-10.40-7.el9_8.s390x.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 227201
+    checksum: sha256:fee820347bd080be9dabf5dc7ce23a1d354240703f2665c5791607fcf2b67aec
+    name: pcre2
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/pcre2-syntax-10.40-7.el9_8.noarch.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 150069
+    checksum: sha256:e7466a43ef2bfda2b1dc07e855b0db743d48b11c0bdc1402e1d2ea6fb23d33a3
+    name: pcre2-syntax
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/pkgconf-1.7.3-10.el9.s390x.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 45258
@@ -2875,6 +3001,20 @@ arches:
     name: protobuf-c
     evr: 1.3.3-13.el9
     sourcerpm: protobuf-c-1.3.3-13.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/python3-3.9.25-16.el9_9.s390x.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 31148
+    checksum: sha256:d621dbd7e41a7e9288faa52ab3a60b6bf82348623d4a8707166881b15f344a56
+    name: python3
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/python3-libs-3.9.25-16.el9_9.s390x.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 8317148
+    checksum: sha256:e2aae5dcafc319e3ff73c594ca8649be31372adf43c9358050a176f889ba5cc0
+    name: python3-libs
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/p/python3-urllib3-1.26.5-8.el9_8.2.noarch.rpm
     repoid: rhel-9-for-s390x-baseos-rpms
     size: 231680
@@ -2889,6 +3029,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-17.el9
     sourcerpm: shadow-utils-4.9-17.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/baseos/os/Packages/v/vim-minimal-8.2.2637-43.el9_9.s390x.rpm
+    repoid: rhel-9-for-s390x-baseos-rpms
+    size: 684810
+    checksum: sha256:785fa436fb55035e0862451373b0b729e091eefd7b2ce5ad68fcefdc0487ea15
+    name: vim-minimal
+    evr: 2:8.2.2637-43.el9_9
+    sourcerpm: vim-8.2.2637-43.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/s390x/codeready-builder/os/Packages/n/nmstate-devel-2.2.61-3.el9_9.s390x.rpm
     repoid: codeready-builder-for-rhel-9-s390x-rpms
     size: 24733
@@ -3544,6 +3691,13 @@ arches:
     name: binutils-gold
     evr: 2.35.2-72.el9
     sourcerpm: binutils-2.35.2-72.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/c/ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.noarch.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 1071812
+    checksum: sha256:5d29ecb5c3b2958308700381a119d623741d07e313d870dedfaf84e5c9df85cb
+    name: ca-certificates
+    evr: 2026.2.92_v9.0.319-90.3.el9_8
+    sourcerpm: ca-certificates-2026.2.92_v9.0.319-90.3.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/c/cyrus-sasl-gssapi-2.1.27-21.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 28739
@@ -3726,6 +3880,13 @@ arches:
     name: libtirpc
     evr: 1.3.3-9.el9
     sourcerpm: libtirpc-1.3.3-9.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/l/libxml2-2.9.13-18.el9_9.1.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 772877
+    checksum: sha256:3de03b2b546cdc40ecfae4e5c3174593f550b3811f157a5d99fbe1c8cb863632
+    name: libxml2
+    evr: 2.9.13-18.el9_9.1
+    sourcerpm: libxml2-2.9.13-18.el9_9.1.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/m/make-4.3-8.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 553896
@@ -3796,6 +3957,20 @@ arches:
     name: openssl-libs
     evr: 1:3.5.9-1.el9_9
     sourcerpm: openssl-3.5.9-1.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/pcre2-10.40-7.el9_8.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 244785
+    checksum: sha256:ef2c65a463e1ef1bfbf3d9ee66986e14cca0fbae88343f099dd5b16619276f1f
+    name: pcre2
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/pcre2-syntax-10.40-7.el9_8.noarch.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 150069
+    checksum: sha256:e7466a43ef2bfda2b1dc07e855b0db743d48b11c0bdc1402e1d2ea6fb23d33a3
+    name: pcre2-syntax
+    evr: 10.40-7.el9_8
+    sourcerpm: pcre2-10.40-7.el9_8.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/pkgconf-1.7.3-10.el9.x86_64.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 45675
@@ -3824,6 +3999,20 @@ arches:
     name: protobuf-c
     evr: 1.3.3-13.el9
     sourcerpm: protobuf-c-1.3.3-13.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/python3-3.9.25-16.el9_9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 31347
+    checksum: sha256:ef45bf98a25e181a7a5b0da10b8b43aced0abcd6329a017c604d3827a5d4c46d
+    name: python3
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/python3-libs-3.9.25-16.el9_9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 8486537
+    checksum: sha256:e188dc5b47d14a71ac8a495560ddd5ca51a748cf357ccfa773e26ea5159a3117
+    name: python3-libs
+    evr: 3.9.25-16.el9_9
+    sourcerpm: python3.9-3.9.25-16.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/p/python3-urllib3-1.26.5-8.el9_8.2.noarch.rpm
     repoid: rhel-9-for-x86_64-baseos-rpms
     size: 231680
@@ -3838,6 +4027,13 @@ arches:
     name: shadow-utils-subid
     evr: 2:4.9-17.el9
     sourcerpm: shadow-utils-4.9-17.el9.src.rpm
+  - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/baseos/os/Packages/v/vim-minimal-8.2.2637-43.el9_9.x86_64.rpm
+    repoid: rhel-9-for-x86_64-baseos-rpms
+    size: 697216
+    checksum: sha256:1e39347bbd317f1987faf7de7a3a0ba2b0848d4059b70d10025e262202226624
+    name: vim-minimal
+    evr: 2:8.2.2637-43.el9_9
+    sourcerpm: vim-8.2.2637-43.el9_9.src.rpm
   - url: https://cdn.redhat.com/content/dist/rhel9/9/x86_64/codeready-builder/os/Packages/n/nmstate-devel-2.2.61-3.el9_9.x86_64.rpm
     repoid: codeready-builder-for-rhel-9-x86_64-rpms
     size: 24763

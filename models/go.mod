@@ -38,12 +38,12 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.54.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
-replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.20.2
 
 replace golang.org/x/net => golang.org/x/net v0.55.0
