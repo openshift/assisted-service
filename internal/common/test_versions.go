@@ -9,8 +9,33 @@ import (
 )
 
 type testOsImage struct {
-	Version string
-	URL     string
+	Version         string
+	URL             string
+	OsStream        string
+	DefaultOsStream *bool
+}
+
+// testBoolPtr is used for os images in testOsImagesByArch that have DefaultOsStream.
+// The reason this is used instead of swag.Bool is to avoid importing the package
+// when none of the os images have DefaultOsStream.
+func testBoolPtr(v bool) *bool {
+	return &v
+}
+
+// selectTestOsImage picks the RHCOS image used for a version.
+// When one image is marked as the default OS stream, that image is used.
+// Otherwise the first image is used, which preserves the previous behavior
+// for catalogs that have a single image and no stream metadata.
+func selectTestOsImage(images []testOsImage) (testOsImage, bool) {
+	if len(images) == 0 {
+		return testOsImage{}, false
+	}
+	for _, img := range images {
+		if img.DefaultOsStream != nil && *img.DefaultOsStream {
+			return img, true
+		}
+	}
+	return images[0], true
 }
 
 type testReleaseImage struct {
@@ -173,7 +198,7 @@ func (b *TestVersionBuilder) MultiReleaseImageURL() string {
 func (b *TestVersionBuilder) RhcosImageURL() string {
 	v := b.Version()
 	if archImages, ok := testOsImagesByArch[b.arch]; ok {
-		if img, ok := archImages[v]; ok {
+		if img, ok := selectTestOsImage(archImages[v]); ok {
 			return img.URL
 		}
 	}
@@ -184,7 +209,7 @@ func (b *TestVersionBuilder) RhcosImageURL() string {
 func (b *TestVersionBuilder) RhcosVersion() string {
 	v := b.Version()
 	if archImages, ok := testOsImagesByArch[b.arch]; ok {
-		if img, ok := archImages[v]; ok {
+		if img, ok := selectTestOsImage(archImages[v]); ok {
 			return img.Version
 		}
 	}
