@@ -314,8 +314,9 @@ EOCR
   tee < ./assisted-mirror-config >(oc apply  -f -)
 }
 
-# Mirror CI pipeline override images into the disconnected local registry and
-# rewrite the corresponding env vars to the local pullspecs. Catalog mirror only
+# Mirror CI pipeline override images into the disconnected local registry via
+# podman pull/push (oc image mirror can silently fail here) and rewrite the
+# corresponding env vars to the local OLM IDMS pullspecs. Catalog mirror only
 # covers OLM relatedImages (typically quay.io), so CI digests from
 # registry.build*.ci.openshift.org would otherwise cause ImagePullBackOff.
 function mirror_ci_override_images() {
@@ -361,8 +362,6 @@ function mirror_ci_override_images() {
             continue
         fi
 
-        # Destination must be a bare repository; oc image mirror rejects digests
-        # in the dest and pushes by digest from the source reference.
         # Match the IDMS path created by oc adm catalog mirror:
         # namespace/image → olm/namespace-image (slashes → dashes, prepend olm/).
         repo_only="$(get_image_repository_only "${image}")"
@@ -374,17 +373,22 @@ function mirror_ci_override_images() {
 
         echo "  ${name}: mirroring ${image} -> ${dest}"
 
-        run_mirror_command_with_retry oc image mirror \
-            --registry-config="${AUTHFILE}" \
-            --insecure=true \
-            "${image}" \
-            "${dest}" || {
-                echo "ERROR: Failed to mirror ${name}: ${image}"
-                return 1
-            }
+        # Use podman pull/push instead of oc image mirror: in this IPv6 +
+        # disconnected environment oc image mirror can exit 0 without pushing
+        # the manifest. podman is already used successfully in mirror_package.
+        echo "  ${name}: pulling from CI registry..."
+        podman pull --authfile="${AUTHFILE}" --tls-verify=false "${image}" || {
+            echo "ERROR: Failed to pull ${name}: ${image}"
+            return 1
+        }
 
-        # Verify the manifest actually landed; oc image mirror can exit 0 without
-        # a usable destination (mirror_command_succeeded only greps known errors).
+        echo "  ${name}: pushing to local registry..."
+        podman push --authfile="${AUTHFILE}" --tls-verify=false "${image}" "docker://${dest}" || {
+            echo "ERROR: Failed to push ${name} to ${dest}"
+            return 1
+        }
+
+        # Verify the manifest actually landed at the destination.
         verify_ref="${dest}"
         if [[ "${image}" == *@* ]]; then
             verify_ref="${dest}@${image##*@}"
@@ -403,7 +407,7 @@ function mirror_ci_override_images() {
         else
             export "${name}=${dest}"
         fi
-        echo "  ${name}: mirrored successfully (${!name})"
+        echo "  ${name}: mirrored and verified successfully (${!name})"
     done
 
     echo "CI pipeline override image mirroring complete."
