@@ -314,13 +314,135 @@ EOCR
   tee < ./assisted-mirror-config >(oc apply  -f -)
 }
 
+# Dump comprehensive registry diagnostic info when CI override mirroring fails.
+# Args: $1 = destination ref (e.g. virthost:5000/olm/ci-op-xxx-pipeline)
+#       $2 = source image ref (e.g. registry.build03.../ci-op-xxx/pipeline@sha256:...)
+function dump_registry_debug() {
+    local dest_ref="$1"
+    local source_ref="$2"
+
+    echo ""
+    echo "===== REGISTRY DEBUG START ====="
+    echo "Timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
+    echo "Source: ${source_ref}"
+    echo "Destination: ${dest_ref}"
+    echo ""
+
+    local registry_host="${LOCAL_REGISTRY}"
+    local dest_no_registry="${dest_ref#${registry_host}/}"
+    local digest=""
+    if [[ "${source_ref}" == *@sha256:* ]]; then
+        digest="${source_ref##*@}"
+    fi
+
+    echo "--- 1. Registry Connectivity ---"
+    echo "curl -sk https://${registry_host}/v2/ :"
+    curl -sk "https://${registry_host}/v2/" 2>&1 || echo "(curl failed)"
+    echo ""
+
+    echo "--- 2. Registry Catalog (repos containing 'olm') ---"
+    curl -sk "https://${registry_host}/v2/_catalog?n=100" 2>&1 | \
+        python3 -c "import sys,json; repos=json.load(sys.stdin).get('repositories',[]); [print(r) for r in repos if 'olm' in r or 'pipeline' in r]" 2>&1 || \
+        echo "(catalog query failed)"
+    echo ""
+
+    echo "--- 3. Tags in ${dest_no_registry} ---"
+    curl -sk "https://${registry_host}/v2/${dest_no_registry}/tags/list" 2>&1 || \
+        echo "(tags query failed — repo may not exist)"
+    echo ""
+
+    if [[ -n "${digest}" ]]; then
+        echo "--- 4. Direct Manifest Fetch by Digest (${digest}) ---"
+
+        echo "  Accept: application/vnd.docker.distribution.manifest.v2+json"
+        curl -sk -o /dev/null -w "  HTTP Status: %{http_code}, Size: %{size_download}\n" \
+            -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+            "https://${registry_host}/v2/${dest_no_registry}/manifests/${digest}" 2>&1
+
+        echo "  Accept: application/vnd.oci.image.manifest.v1+json"
+        curl -sk -o /dev/null -w "  HTTP Status: %{http_code}, Size: %{size_download}\n" \
+            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+            "https://${registry_host}/v2/${dest_no_registry}/manifests/${digest}" 2>&1
+
+        echo "  Accept: application/vnd.docker.distribution.manifest.list.v2+json"
+        curl -sk -o /dev/null -w "  HTTP Status: %{http_code}, Size: %{size_download}\n" \
+            -H "Accept: application/vnd.docker.distribution.manifest.list.v2+json" \
+            "https://${registry_host}/v2/${dest_no_registry}/manifests/${digest}" 2>&1
+
+        echo "  Accept: */* (any)"
+        curl -sk -w "\n  HTTP Status: %{http_code}, Content-Type: %{content_type}, Size: %{size_download}\n" \
+            -H "Accept: */*" \
+            "https://${registry_host}/v2/${dest_no_registry}/manifests/${digest}" 2>&1 | head -20
+        echo ""
+    fi
+
+    echo "--- 5. Manifest by :latest Tag ---"
+    curl -sk -o /dev/null -w "  HTTP Status: %{http_code}, Size: %{size_download}\n" \
+        -H "Accept: application/vnd.docker.distribution.manifest.v2+json" \
+        "https://${registry_host}/v2/${dest_no_registry}/manifests/latest" 2>&1
+    echo ""
+
+    if [[ -n "${digest}" ]]; then
+        echo "--- 6. Blob Check (config digest from source) ---"
+        curl -sk -o /dev/null -w "  Config blob HEAD: HTTP %{http_code}\n" \
+            -X HEAD \
+            "https://${registry_host}/v2/${dest_no_registry}/blobs/${digest}" 2>&1
+        echo ""
+    fi
+
+    echo "--- 7. skopeo inspect of destination ---"
+    echo "  By digest:"
+    skopeo inspect --tls-verify=false --authfile="${AUTHFILE}" \
+        "docker://${dest_ref}${digest:+@${digest}}" 2>&1 | head -30 || echo "  (inspect failed)"
+    echo ""
+    echo "  By :latest tag:"
+    skopeo inspect --tls-verify=false --authfile="${AUTHFILE}" \
+        "docker://${dest_ref}:latest" 2>&1 | head -30 || echo "  (inspect failed)"
+    echo ""
+
+    echo "--- 8. skopeo inspect of SOURCE ---"
+    skopeo inspect --tls-verify=false --authfile="${AUTHFILE}" \
+        "docker://${source_ref}" 2>&1 | head -30 || echo "  (inspect failed)"
+    echo ""
+    echo "  Raw manifest:"
+    skopeo inspect --raw --tls-verify=false --authfile="${AUTHFILE}" \
+        "docker://${source_ref}" 2>&1 | head -5 || echo "  (raw inspect failed)"
+    echo ""
+
+    echo "--- 9. IDMS/ICSP entries for pipeline ---"
+    oc get imagedigestmirrorset -o yaml 2>/dev/null | grep -A3 "pipeline" || \
+        oc get imagecontentsourcepolicy -o yaml 2>/dev/null | grep -A3 "pipeline" || \
+        echo "  (no IDMS/ICSP found for pipeline)"
+    echo ""
+
+    echo "--- 10. Catalog-mirrored version check ---"
+    echo "  Checking if catalog mirror pushed this digest to the same path..."
+    if [[ -n "${digest}" ]]; then
+        oc image info -a "${AUTHFILE}" --insecure=true \
+            "${dest_ref}@${digest}" 2>&1 || echo "  (not found by digest)"
+        echo ""
+        echo "  Checking all digests at this repo via API:"
+        curl -sk "https://${registry_host}/v2/${dest_no_registry}/tags/list" 2>&1
+    fi
+    echo ""
+
+    echo "--- 11. Registry Pod/Container Info ---"
+    podman ps --filter "name=registry" --format "{{.ID}} {{.Names}} {{.Status}} {{.Ports}}" 2>&1 || echo "  (podman ps failed)"
+    podman logs --tail=20 "$(podman ps -q --filter 'name=registry' 2>/dev/null | head -1)" 2>&1 || echo "  (registry logs unavailable)"
+    echo ""
+
+    echo "===== REGISTRY DEBUG END ====="
+    echo ""
+}
+
 # Mirror CI pipeline override images into the disconnected local registry via
-# podman pull/push (oc image mirror can silently fail here) and rewrite the
-# corresponding env vars to the local OLM IDMS pullspecs. Catalog mirror only
-# covers OLM relatedImages (typically quay.io), so CI digests from
-# registry.build*.ci.openshift.org would otherwise cause ImagePullBackOff.
+# skopeo copy (direct registry-to-registry) and rewrite env vars to the local
+# OLM IDMS pullspecs. Catalog mirror only covers OLM relatedImages (typically
+# quay.io), so CI digests from registry.build*.ci.openshift.org would otherwise
+# cause ImagePullBackOff. oc image mirror / podman push can appear to succeed
+# here without leaving a digest-addressable manifest.
 function mirror_ci_override_images() {
-    echo "Mirroring CI pipeline override images to local registry..."
+    echo "Mirroring CI override images to disconnected registry..."
 
     if [[ -z "${LOCAL_REGISTRY:-}" ]]; then
         echo "ERROR: LOCAL_REGISTRY is required to mirror CI override images"
@@ -346,21 +468,23 @@ function mirror_ci_override_images() {
         "SERVICE_IMAGE"
     )
 
-    local i image name repo_only dest verify_ref
+    local i image name repo_only dest verify_ref copy_rc
     for i in "${!override_images[@]}"; do
         image="${override_images[$i]}"
         name="${override_names[$i]}"
 
         if [[ -z "${image}" ]]; then
-            echo "  ${name}: not set, skipping"
+            echo "  Skipping ${name}: not set"
             continue
         fi
 
         # Skip images already rewritten to the local registry (e.g. re-entry).
         if [[ "${image}" == "${LOCAL_REGISTRY}/"* ]]; then
-            echo "  ${name}: already local (${image}), skipping"
+            echo "  Skipping ${name}: already local"
             continue
         fi
+
+        echo "  Mirroring ${name}: ${image}"
 
         # Match the IDMS path created by oc adm catalog mirror:
         # namespace/image → olm/namespace-image (slashes → dashes, prepend olm/).
@@ -371,32 +495,69 @@ function mirror_ci_override_images() {
         fi
         dest="${LOCAL_REGISTRY}/olm/${repo_only//\//-}"
 
-        echo "  ${name}: mirroring ${image} -> ${dest}"
+        echo "    Source: ${image}"
+        echo "    Destination: ${dest}"
 
-        # Use podman pull/push instead of oc image mirror: in this IPv6 +
-        # disconnected environment oc image mirror can exit 0 without pushing
-        # the manifest. podman is already used successfully in mirror_package.
-        echo "  ${name}: pulling from CI registry..."
-        podman pull --authfile="${AUTHFILE}" --tls-verify=false "${image}" || {
-            echo "ERROR: Failed to pull ${name}: ${image}"
+        echo "    Source manifest format:"
+        skopeo inspect --raw --tls-verify=false --authfile="${AUTHFILE}" \
+            "docker://${image}" 2>&1 | head -3 || echo "    (source inspect failed)"
+
+        echo "    Copying via skopeo..."
+        copy_rc=0
+        skopeo copy --all \
+            --src-tls-verify=false \
+            --dest-tls-verify=false \
+            --authfile="${AUTHFILE}" \
+            "docker://${image}" \
+            "docker://${dest}" || copy_rc=$?
+        echo "    skopeo copy exit code: ${copy_rc} (0=success)"
+        if [[ "${copy_rc}" -ne 0 ]]; then
+            echo "ERROR: skopeo copy failed for ${name}: ${image} → ${dest}"
+            dump_registry_debug "${dest}" "${image}"
             return 1
-        }
+        fi
 
-        echo "  ${name}: pushing to local registry..."
-        podman push --authfile="${AUTHFILE}" --tls-verify=false "${image}" "docker://${dest}" || {
-            echo "ERROR: Failed to push ${name} to ${dest}"
-            return 1
-        }
+        # Short pause to let registry commit the manifest.
+        sleep 2
 
-        # Verify the manifest actually landed at the destination.
         verify_ref="${dest}"
         if [[ "${image}" == *@* ]]; then
             verify_ref="${dest}@${image##*@}"
         fi
+
+        echo "    Verifying manifest at: ${verify_ref}"
         if ! oc image info -a "${AUTHFILE}" --insecure=true \
                 "${verify_ref}" > /dev/null 2>&1; then
-            echo "ERROR: Post-mirror verification failed for ${name}: manifest not found at ${verify_ref}"
-            return 1
+            echo "WARNING: Digest verification failed, trying by :latest tag..."
+            if ! oc image info -a "${AUTHFILE}" --insecure=true \
+                    "${dest}:latest" > /dev/null 2>&1; then
+                echo "ERROR: Post-mirror verification failed for ${name}"
+                echo "  Neither digest (${verify_ref}) nor tag (${dest}:latest) found"
+                dump_registry_debug "${dest}" "${image}"
+                return 1
+            fi
+
+            echo "    Found by :latest tag but NOT by digest — manifest format mismatch?"
+            echo "    Trying skopeo copy with explicit Docker V2S2 format..."
+            skopeo copy \
+                --format=v2s2 \
+                --src-tls-verify=false \
+                --dest-tls-verify=false \
+                --authfile="${AUTHFILE}" \
+                "docker://${image}" \
+                "docker://${dest}" || {
+                echo "ERROR: skopeo copy (v2s2 retry) failed for ${name}"
+                dump_registry_debug "${dest}" "${image}"
+                return 1
+            }
+            sleep 2
+            if ! oc image info -a "${AUTHFILE}" --insecure=true \
+                    "${verify_ref}" > /dev/null 2>&1; then
+                echo "ERROR: Still not found by digest after v2s2 conversion"
+                dump_registry_debug "${dest}" "${image}"
+                return 1
+            fi
+            echo "    Verified by digest after v2s2 conversion"
         fi
 
         # Point subscription overrides at the local mirror so hub pods do not
@@ -407,10 +568,12 @@ function mirror_ci_override_images() {
         else
             export "${name}=${dest}"
         fi
-        echo "  ${name}: mirrored and verified successfully (${!name})"
+
+        echo "    ${name} mirrored and verified successfully"
+        echo "    New value: ${!name}"
     done
 
-    echo "CI pipeline override image mirroring complete."
+    echo "CI override image mirroring complete."
 }
 
 function from_index_image() {
