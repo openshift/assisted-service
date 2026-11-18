@@ -12,8 +12,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-aarch64-live-iso.aarch64.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260428-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-aarch64-live-iso.aarch64.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-aarch64-live-iso.aarch64.iso",
 		},
 	},
 	"ppc64le": {
@@ -26,8 +26,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-ppc64le-live-iso.ppc64le.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260428-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-ppc64le-live-iso.ppc64le.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-ppc64le-live-iso.ppc64le.iso",
 		},
 	},
 	"s390x": {
@@ -40,8 +40,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-s390x-live-iso.s390x.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260428-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-s390x-live-iso.s390x.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-s390x-live-iso.s390x.iso",
 		},
 	},
 	"x86_64": {
@@ -54,8 +54,8 @@ var testOsImagesByArch = map[string]map[string]testOsImage{
 			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/4.22/4.22.8/rhcos-4.22.8-x86_64-live-iso.x86_64.iso",
 		},
 		"5.0": {
-			Version: "9.8.20260428-0",
-			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/5.0.0-ec.5/rhcos-5.0.0-ec.5-x86_64-live-iso.x86_64.iso",
+			Version: "9.8.20261026-0",
+			URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-x86_64-live-iso.x86_64.iso",
 		},
 	},
 }
