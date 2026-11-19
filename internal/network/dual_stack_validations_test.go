@@ -323,7 +323,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 					{Cidr: "10.0.0.0/16"},
 					{Cidr: "2001:db8::/64"},
 				}
-				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0")
+				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0", false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
@@ -332,7 +332,7 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 					{Cidr: "2001:db8::/64"},
 					{Cidr: "10.0.0.0/16"},
 				}
-				err := VerifyMachineNetworksDualStack(networks, true, "4.11.0")
+				err := VerifyMachineNetworksDualStack(networks, true, "4.11.0", false)
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("IPv6-primary dual-stack requires OpenShift 4.12+"))
 			})
@@ -342,14 +342,46 @@ var _ = Describe("DualStack Primary IP Stack Functionality", func() {
 					{Cidr: "2001:db8::/64"},
 					{Cidr: "10.0.0.0/16"},
 				}
-				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0")
+				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0", false)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should skip validation for single-stack", func() {
 				networks := []*models.MachineNetwork{{Cidr: "10.0.0.0/16"}}
-				err := VerifyMachineNetworksDualStack(networks, false, "4.12.0")
+				err := VerifyMachineNetworksDualStack(networks, false, "4.12.0", false)
 				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should reject more than two networks for a cluster-managed load balancer", func() {
+				networks := []*models.MachineNetwork{
+					{Cidr: "10.0.0.0/16"},
+					{Cidr: "2001:db8::/64"},
+					{Cidr: "192.168.1.0/24"},
+				}
+				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0", false)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("Expected 2 machine networks, found 3"))
+			})
+
+			It("should allow more than two networks for a user-managed load balancer", func() {
+				networks := []*models.MachineNetwork{
+					{Cidr: "10.0.0.0/16"},
+					{Cidr: "192.168.1.0/24"},
+					{Cidr: "2001:db8::/64"},
+					{Cidr: "2001:db9::/64"},
+				}
+				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0", true)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should reject a user-managed load balancer cluster missing an IPv6 network", func() {
+				networks := []*models.MachineNetwork{
+					{Cidr: "10.0.0.0/16"},
+					{Cidr: "192.168.1.0/24"},
+				}
+				err := VerifyMachineNetworksDualStack(networks, true, "4.12.0", true)
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("must include at least one IPv6 subnet"))
 			})
 		})
 
