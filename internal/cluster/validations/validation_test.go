@@ -1022,10 +1022,11 @@ var _ = Describe("IPv6 support", func() {
 
 var _ = Describe("Machine Network amount and order", func() {
 	tests := []struct {
-		element          []*models.MachineNetwork
-		valid            bool
-		description      string
-		openshiftVersion string
+		element                   []*models.MachineNetwork
+		valid                     bool
+		description               string
+		openshiftVersion          string
+		isUserManagedLoadBalancer bool
 	}{
 		{
 			element:          []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}},
@@ -1078,14 +1079,30 @@ var _ = Describe("Machine Network amount and order", func() {
 			description:      "dual IPv4 without IPv6",
 			openshiftVersion: "4.13.0",
 		},
+		{
+			// Valid for a user-managed load balancer, which allows multiple machine networks per family
+			element:                   []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1002:db8::/119"}, {Cidr: "1.2.6.0/24"}, {Cidr: "1.2.7.0/24"}},
+			valid:                     true,
+			description:               "more than two networks is allowed with a user-managed load balancer",
+			openshiftVersion:          "4.13.0",
+			isUserManagedLoadBalancer: true,
+		},
+		{
+			// Invalid because still missing an IPv6 network
+			element:                   []*models.MachineNetwork{{Cidr: "1.2.5.0/24"}, {Cidr: "1.2.6.0/24"}},
+			valid:                     false,
+			description:               "dual IPv4 without IPv6 is still rejected with a user-managed load balancer",
+			openshiftVersion:          "4.13.0",
+			isUserManagedLoadBalancer: true,
+		},
 	}
 	for _, test := range tests {
 		t := test
 		It(fmt.Sprintf("Dual-stack machine network validation: %s (OCP %s). Networks: %v", t.description, t.openshiftVersion, t.element), func() {
 			if t.valid {
-				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion)).ToNot(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion, t.isUserManagedLoadBalancer)).ToNot(HaveOccurred())
 			} else {
-				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion)).To(HaveOccurred())
+				Expect(network.VerifyMachineNetworksDualStack(t.element, true, t.openshiftVersion, t.isUserManagedLoadBalancer)).To(HaveOccurred())
 			}
 		})
 	}
@@ -1207,6 +1224,61 @@ var _ = Describe("ValidateClusterUpdateVIPAddresses - partial network updates", 
 			APIVips: []*models.APIVip{
 				{IP: "192.168.1.102"},
 				{IP: "2001:db8::102"},
+			},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+})
+
+var _ = Describe("ValidateClusterUpdateVIPAddresses - dual-stack user-managed load balancer", func() {
+	var cluster common.Cluster
+
+	BeforeEach(func() {
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				OpenshiftVersion: "4.14.0",
+				CPUArchitecture:  "x86_64",
+				LoadBalancer:     &models.LoadBalancer{Type: models.LoadBalancerTypeUserManaged},
+				MachineNetworks: []*models.MachineNetwork{
+					{Cidr: "192.168.1.0/24"},
+					{Cidr: "2001:db8::/64"},
+				},
+				APIVips: []*models.APIVip{
+					{IP: "192.168.1.100"},
+					{IP: "2001:db8::100"},
+				},
+				IngressVips: []*models.IngressVip{
+					{IP: "192.168.1.101"},
+					{IP: "2001:db8::101"},
+				},
+			},
+		}
+	})
+
+	It("rejects a network-only update that strands the retained second VIP pair outside every Machine Network", func() {
+		params := &models.V2ClusterUpdateParams{
+			MachineNetworks: []*models.MachineNetwork{
+				// VIP pair 0 (192.168.1.100/101) still belongs to this network...
+				{Cidr: "192.168.1.0/24"},
+				{Cidr: "10.1.0.0/24"},
+				// ...but the retained VIP pair 1 (2001:db8::100/101) no longer
+				// belongs to any network, since 2001:db8::/64 was dropped.
+				{Cidr: "2001:db9::/64"},
+			},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("allows a network-only update when the retained VIPs still belong to a Machine Network", func() {
+		params := &models.V2ClusterUpdateParams{
+			MachineNetworks: []*models.MachineNetwork{
+				{Cidr: "192.168.1.0/24"},
+				{Cidr: "10.1.0.0/24"},
+				{Cidr: "2001:db8::/64"},
 			},
 		}
 

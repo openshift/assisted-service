@@ -751,6 +751,14 @@ func (v *validator) belongsToMachineCidr(c *validationContext) (ValidationStatus
 	}
 
 	// user-managed load balancer
+	if network.CheckIfClusterIsDualStack(c.cluster) {
+		if !network.IsHostInAtLeastOneMachineNetworkCidrPerFamily(v.log, c.cluster, c.host) {
+			return ValidationFailure, "Host does not belong to machine network CIDRs. Verify that the host belongs to at least one CIDR of each IP family listed under machine networks"
+		}
+
+		return ValidationSuccess, "Host belongs to at least one machine network CIDR of each IP family"
+	}
+
 	if !network.IsHostInAtLeastOneMachineNetworkCidr(v.log, c.cluster, c.host) {
 		return ValidationFailure, "Host does not belong to any machine network CIDR. Verify that the host belongs to at least one CIDR listed under machine networks"
 	}
