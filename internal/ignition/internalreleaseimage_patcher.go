@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
-	"path"
 	"regexp"
 	"strings"
 
@@ -13,10 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
-	manifestsapi "github.com/openshift/assisted-service/internal/manifests/api"
-	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pelletier/go-toml"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
@@ -45,17 +41,15 @@ type internalReleaseImagePatcher struct {
 	log               logrus.FieldLogger
 	cluster           *common.Cluster
 	s3Client          s3wrapper.API
-	manifestApi       manifestsapi.ManifestsAPI
 	iriRegistryDomain string
 	iriFound          bool
 }
 
 // NewInternalReleaseImagePatcher creates a new internalReleaseImagePatcher instance.
-func NewInternalReleaseImagePatcher(cluster *common.Cluster, s3Client s3wrapper.API, manifestApi manifestsapi.ManifestsAPI, log logrus.FieldLogger) internalReleaseImagePatcher {
+func NewInternalReleaseImagePatcher(cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) internalReleaseImagePatcher {
 	return internalReleaseImagePatcher{
 		cluster:           cluster,
 		s3Client:          s3Client,
-		manifestApi:       manifestApi,
 		log:               log,
 		iriRegistryDomain: fmt.Sprintf("api-int.%s.%s", cluster.Name, cluster.BaseDNSDomain),
 	}
@@ -89,29 +83,16 @@ func mirrorsContainLocalhost(mirrors []configv1.ImageMirror) bool {
 	return false
 }
 
-func (i *internalReleaseImagePatcher) uploadManifests(ctx context.Context, key string, obj interface{}) error {
-	// manifest has full path as object-key on s3: clusterID/manifests/[manifests|openshift]/filename
-	fileName := path.Base(key)
-	i.log.Infof("Updating resource %s as %s", key, fileName)
+// uploadManifests writes the patched resource back to the same object, keeping its
+// metadata so that the manifest source (system or user) is unchanged.
+func (i *internalReleaseImagePatcher) uploadManifests(ctx context.Context, manifest s3wrapper.ObjectInfo, obj interface{}) error {
+	i.log.Infof("Updating resource %s", manifest.Path)
 
 	data, err := yaml.Marshal(obj)
 	if err != nil {
 		return err
 	}
-
-	params := operations.V2UpdateClusterManifestParams{
-		ClusterID: *i.cluster.ID,
-		UpdateManifestParams: &models.UpdateManifestParams{
-			FileName:       fileName,
-			Folder:         models.UpdateManifestParamsFolderOpenshift,
-			UpdatedContent: swag.String(base64.StdEncoding.EncodeToString(data)),
-		},
-	}
-	_, err = i.manifestApi.UpdateClusterManifestInternal(ctx, params)
-	if err != nil {
-		return err
-	}
-	return nil
+	return i.s3Client.UploadWithMetadata(ctx, data, manifest.Path, manifest.Metadata)
 }
 
 func (i *internalReleaseImagePatcher) getManifestContent(ctx context.Context, manifest string) ([]byte, error) {
@@ -226,7 +207,7 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 				}
 				idms.Spec.ImageDigestMirrors[j].Mirrors = append(idms.Spec.ImageDigestMirrors[j].Mirrors, iriMirrors...)
 			}
-			err := i.uploadManifests(ctx, f.Path, &idms)
+			err := i.uploadManifests(ctx, f, &idms)
 			if err != nil {
 				return err
 			}
@@ -250,7 +231,7 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 				}
 				itms.Spec.ImageTagMirrors[j].Mirrors = append(itms.Spec.ImageTagMirrors[j].Mirrors, iriMirrors...)
 			}
-			err := i.uploadManifests(ctx, f.Path, &itms)
+			err := i.uploadManifests(ctx, f, &itms)
 			if err != nil {
 				return err
 			}
@@ -272,7 +253,7 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 			if err != nil {
 				return fmt.Errorf("error while decoding ClusterCatalog resource %s: %v", cc.GetName(), err)
 			}
-			err = i.uploadManifests(ctx, f.Path, cc.Object)
+			err = i.uploadManifests(ctx, f, cc.Object)
 			if err != nil {
 				return err
 			}
@@ -295,7 +276,7 @@ func (i *internalReleaseImagePatcher) PatchManifests(ctx context.Context, manife
 			if err != nil {
 				return fmt.Errorf("error while decoding CatalogSource resource %s: %v", cs.GetName(), err)
 			}
-			err = i.uploadManifests(ctx, f.Path, cs.Object)
+			err = i.uploadManifests(ctx, f, cs.Object)
 			if err != nil {
 				return err
 			}
