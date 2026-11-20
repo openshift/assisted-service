@@ -2553,22 +2553,28 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 	targetConfiguration *common.Cluster,
 	log logrus.FieldLogger,
 ) error {
-	var primaryMachineNetworkCidr string
-	var secondaryMachineNetworkCidr string
+	isUserManagedLoadBalancer := network.IsLoadBalancerUserManaged(targetConfiguration)
 
-	if params.ClusterUpdateParams.MachineNetworks != nil {
-		primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
-	} else {
-		primaryMachineNetworkCidr = network.GetPrimaryMachineCidrForUserManagedNetwork(cluster, log)
-	}
-
-	err := network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, true, cluster.OpenshiftVersion)
+	err := network.VerifyMachineNetworksDualStack(targetConfiguration.MachineNetworks, true, cluster.OpenshiftVersion, isUserManagedLoadBalancer)
 	if err != nil {
 		log.WithError(err).Warnf("Verify dual-stack machine networks")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	secondaryMachineNetworkCidr, err = network.GetSecondaryMachineCidr(targetConfiguration)
+	if isUserManagedLoadBalancer {
+		return b.verifyDualStackVipsForUserManagedLoadBalancer(cluster, targetConfiguration, log)
+	}
+
+	var primaryMachineNetworkCidr string
+	if params.ClusterUpdateParams.MachineNetworks != nil {
+		primaryMachineNetworkCidr = string(params.ClusterUpdateParams.MachineNetworks[0].Cidr)
+	} else {
+		// Dual-stack clusters with a cluster-managed load balancer must already have Machine
+		// Networks set by this point.
+		primaryMachineNetworkCidr = network.GetMachineCidrById(cluster, 0)
+	}
+
+	secondaryMachineNetworkCidr, err := network.GetSecondaryMachineCidr(targetConfiguration)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -2588,6 +2594,42 @@ func (b *bareMetalInventory) updateNonDhcpDualStackNetworkParams(
 		if err = network.VerifyVipsForClusterManagedLoadBalancer(
 			cluster.Hosts,
 			secondaryMachineNetworkCidr,
+			network.GetApiVipById(targetConfiguration, 1),
+			network.GetIngressVipById(targetConfiguration, 1),
+			log,
+		); err != nil {
+			log.WithError(err).Warnf("Verify VIPs")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	return nil
+}
+
+// verifyDualStackVipsForUserManagedLoadBalancer verifies VIPs for a dual-stack cluster with
+// a user-managed load balancer, where the Machine Networks are not restricted to exactly one
+// per IP family, so each VIP is checked against the whole list rather than a single indexed
+// primary/secondary network.
+func (b *bareMetalInventory) verifyDualStackVipsForUserManagedLoadBalancer(
+	cluster *common.Cluster,
+	targetConfiguration *common.Cluster,
+	log logrus.FieldLogger,
+) error {
+	if err := network.VerifyVipsForUserManangedLoadBalancer(
+		cluster.Hosts,
+		targetConfiguration.MachineNetworks,
+		network.GetApiVipById(targetConfiguration, 0),
+		network.GetIngressVipById(targetConfiguration, 0),
+		log,
+	); err != nil {
+		log.WithError(err).Warnf("Verify VIPs")
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if len(targetConfiguration.IngressVips) == 2 && len(targetConfiguration.APIVips) == 2 { // in case there's a second set of VIPs
+		if err := network.VerifyVipsForUserManangedLoadBalancer(
+			cluster.Hosts,
+			targetConfiguration.MachineNetworks,
 			network.GetApiVipById(targetConfiguration, 1),
 			network.GetIngressVipById(targetConfiguration, 1),
 			log,

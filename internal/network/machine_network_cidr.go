@@ -724,6 +724,36 @@ func IsHostInAtLeastOneMachineNetworkCidr(log logrus.FieldLogger, cluster *commo
 	})
 }
 
+// IsHostInAtLeastOneMachineNetworkCidrPerFamily checks if a host belongs to at least one
+// Machine Network CIDR for every IP family present among the cluster's Machine Networks.
+// Used for dual-stack clusters with a user-managed load balancer, where more than one
+// Machine Network per family is allowed, so membership can't be checked against a single
+// network per family.
+func IsHostInAtLeastOneMachineNetworkCidrPerFamily(log logrus.FieldLogger, cluster *common.Cluster, host *models.Host) bool {
+	if !IsMachineCidrAvailable(cluster) {
+		return false
+	}
+
+	machineNetworks, err := parseMachineNetworks(cluster.MachineNetworks)
+	if err != nil {
+		log.WithError(err).Warn("Failed to parse machine networks")
+		return false
+	}
+
+	var haveIPv4, haveIPv6, inIPv4, inIPv6 bool
+	for _, machineIpnet := range machineNetworks {
+		if IsIPV4CIDR(machineIpnet.String()) {
+			haveIPv4 = true
+			inIPv4 = inIPv4 || belongsToNetwork(log, host, machineIpnet)
+		} else {
+			haveIPv6 = true
+			inIPv6 = inIPv6 || belongsToNetwork(log, host, machineIpnet)
+		}
+	}
+
+	return (!haveIPv4 || inIPv4) && (!haveIPv6 || inIPv6)
+}
+
 // Check if an interface is part of one of the networks specified as Machine Networks
 func IsInterfaceInPrimaryMachineNetCidr(log logrus.FieldLogger, cluster *common.Cluster, nic *models.Interface) bool {
 	return forEachMachineNetwork(log, cluster, func(agg bool, machineIpnet *net.IPNet, index int) bool {
