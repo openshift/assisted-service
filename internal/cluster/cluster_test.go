@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
 	"sort"
 	"time"
@@ -3238,6 +3239,28 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		c.ControlPlaneCount = 1
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(Not(HaveOccurred()))
+	})
+
+	It("loads system manifests from SYSTEM_MANIFESTS_DIR", func() {
+		dir, err := os.MkdirTemp("", "system-manifests")
+		Expect(err).NotTo(HaveOccurred())
+		defer os.RemoveAll(dir)
+		Expect(os.WriteFile(filepath.Join(dir, "iri.yaml"), []byte("kind: InternalReleaseImage\n"), 0o600)).To(Succeed())
+
+		cfg := getDefaultConfig()
+		cfg.SystemManifestsDir = dir
+		mockManifests := manifestsapi.NewMockManifestsAPI(ctrl)
+		capi = NewManager(cfg, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil, nil, mockManifests, false, nil)
+
+		manifestsGenerator.EXPECT().AddChronyManifest(ctx, gomock.Any(), &c).Return(nil)
+		mockOperatorMgr.EXPECT().GenerateManifests(ctx, &c).Return(nil)
+		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
+		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
+		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
+		mockManifests.EXPECT().ListClusterManifestsInternal(ctx, gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+		mockManifests.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Return(&models.Manifest{}, nil).Times(1)
+
+		Expect(capi.GenerateAdditionalManifests(ctx, &c)).To(Succeed())
 	})
 
 	Context("Telemeter", func() {

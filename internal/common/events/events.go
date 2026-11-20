@@ -462,6 +462,87 @@ func (e *ClusterDeregisterFailedEvent) FormatMessage() string {
 }
 
 //
+// Event system_manifest_load_failed
+//
+type SystemManifestLoadFailedEvent struct {
+    eventName string
+    ClusterId strfmt.UUID
+    FileName string
+    Error string
+}
+
+var SystemManifestLoadFailedEventName string = "system_manifest_load_failed"
+
+func NewSystemManifestLoadFailedEvent(
+    clusterId strfmt.UUID,
+    fileName string,
+    error string,
+) *SystemManifestLoadFailedEvent {
+    return &SystemManifestLoadFailedEvent{
+        eventName: SystemManifestLoadFailedEventName,
+        ClusterId: clusterId,
+        FileName: fileName,
+        Error: error,
+    }
+}
+
+func SendSystemManifestLoadFailedEvent(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    fileName string,
+    error string,) {
+    ev := NewSystemManifestLoadFailedEvent(
+        clusterId,
+        fileName,
+        error,
+    )
+    eventsHandler.SendClusterEvent(ctx, ev)
+}
+
+func SendSystemManifestLoadFailedEventAtTime(
+    ctx context.Context,
+    eventsHandler eventsapi.Sender,
+    clusterId strfmt.UUID,
+    fileName string,
+    error string,
+    eventTime time.Time) {
+    ev := NewSystemManifestLoadFailedEvent(
+        clusterId,
+        fileName,
+        error,
+    )
+    eventsHandler.SendClusterEventAtTime(ctx, ev, eventTime)
+}
+
+func (e *SystemManifestLoadFailedEvent) GetName() string {
+    return e.eventName
+}
+
+func (e *SystemManifestLoadFailedEvent) GetSeverity() string {
+    return "warning"
+}
+func (e *SystemManifestLoadFailedEvent) GetClusterId() strfmt.UUID {
+    return e.ClusterId
+}
+
+
+
+func (e *SystemManifestLoadFailedEvent) format(message *string) string {
+    r := strings.NewReplacer(
+        "{cluster_id}", fmt.Sprint(e.ClusterId),
+        "{file_name}", fmt.Sprint(e.FileName),
+        "{error}", fmt.Sprint(e.Error),
+    )
+    return r.Replace(*message)
+}
+
+func (e *SystemManifestLoadFailedEvent) FormatMessage() string {
+    s := "Failed to load system manifest {file_name}: {error}"
+    return e.format(&s)
+}
+
+//
 // Event cluster_deregistered
 //
 type ClusterDeregisteredEvent struct {
