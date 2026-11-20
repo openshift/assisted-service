@@ -765,6 +765,11 @@ func (r *AgentReconciler) shouldReclaimOnUnbind(ctx context.Context, agent *aiv1
 }
 
 func (r *AgentReconciler) runReclaimAgent(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterRef *aiv1beta1.ClusterReference, host *common.Host) error {
+	infraEnv, err := r.Installer.GetInfraEnvInternal(ctx, installer.GetInfraEnvParams{InfraEnvID: host.InfraEnvID})
+	if err != nil {
+		return errors.Wrapf(err, "failed to get InfraEnv %s for agent reclaim", host.InfraEnvID)
+	}
+
 	client, err := r.spokeKubeClient(ctx, clusterRef)
 	if err != nil {
 		r.Log.WithError(err).Warnf("failed to create spoke kube client")
@@ -791,7 +796,7 @@ func (r *AgentReconciler) runReclaimAgent(ctx context.Context, log logrus.FieldL
 	if err := r.reclaimer.ensureSpokeAgentCertCM(ctx, client, log); err != nil {
 		return err
 	}
-	return r.reclaimer.createNextStepRunnerDaemonSet(ctx, client, log, hostname, host.InfraEnvID.String(), host.ID.String())
+	return r.reclaimer.createNextStepRunnerDaemonSet(ctx, client, log, hostname, host.InfraEnvID.String(), host.ID.String(), infraEnv.Proxy)
 }
 
 func (r *AgentReconciler) unbindHost(ctx context.Context, log logrus.FieldLogger, agent, origAgent *aiv1beta1.Agent, h *common.Host) (ctrl.Result, error) {
