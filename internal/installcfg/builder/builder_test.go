@@ -941,6 +941,17 @@ aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk
 		Expect(string(result.AdditionalTrustBundlePolicy)).Should(Equal("Always"))
 	})
 
+	It("TLSProfileType config overrides", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		cluster.InstallConfigOverrides = `{"tlsProfileType":"Intermediate"}`
+		data, err := installConfig.GetInstallConfig(&cluster, clusterInfraenvs, "")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var result installcfg.InstallerConfigBaremetal
+		Expect(json.Unmarshal(data, &result)).To(Succeed())
+		Expect(result.TLSProfileType).To(Equal("Intermediate"))
+	})
+
 	It("Baremetal host BMC configuration overrides", func() {
 		var result installcfg.InstallerConfigBaremetal
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
