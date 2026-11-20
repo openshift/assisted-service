@@ -54,6 +54,15 @@ var _ = Describe("addSystemManifests", func() {
 			})
 	}
 
+	expectUserManifests := func(times int, userManifests ...*models.Manifest) {
+		mockManifests.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, p operations.V2ListClusterManifestsParams) (models.ListManifests, error) {
+				Expect(p.ClusterID).To(Equal(*c.ID))
+				Expect(p.IncludeSystemGenerated).To(BeNil())
+				return userManifests, nil
+			}).Times(times)
+	}
+
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = eventsapi.NewMockHandler(ctrl)
@@ -76,6 +85,7 @@ var _ = Describe("addSystemManifests", func() {
 	It("loads .yaml and .yml files as system manifests", func() {
 		writeFile("a.yaml", "kind: A\n")
 		writeFile("b.yml", "kind: B\n")
+		expectUserManifests(1)
 		gomock.InOrder(
 			expectManifest("a.yaml", "kind: A\n", nil),
 			expectManifest("b.yml", "kind: B\n", nil),
@@ -116,6 +126,7 @@ var _ = Describe("addSystemManifests", func() {
 	It("skips a manifest that fails to load and sends a warning event", func() {
 		writeFile("a.yaml", "kind: A\n")
 		writeFile("b.yaml", "kind: B\n")
+		expectUserManifests(1)
 		gomock.InOrder(
 			expectManifest("a.yaml", "kind: A\n", errors.New("bad yaml")),
 			expectManifest("b.yaml", "kind: B\n", nil),
@@ -130,8 +141,34 @@ var _ = Describe("addSystemManifests", func() {
 
 	It("loads the files again on each call", func() {
 		writeFile("a.yaml", "kind: A\n")
+		expectUserManifests(2)
 		expectManifest("a.yaml", "kind: A\n", nil).Times(2)
 		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+	})
+	It("does not overwrite a user manifest with the same name", func() {
+		writeFile("a.yaml", "kind: A\n")
+		writeFile("b.yaml", "kind: B\n")
+		expectUserManifests(1,
+			&models.Manifest{Folder: models.ManifestFolderManifests, FileName: "b.yaml", ManifestSource: models.ManifestManifestSourceUser},
+			&models.Manifest{Folder: models.ManifestFolderOpenshift, FileName: "a.yaml", ManifestSource: models.ManifestManifestSourceUser})
+		expectManifest("b.yaml", "kind: B\n", nil)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.SystemManifestLoadFailedEventName),
+			eventstest.WithClusterIdMatcher(c.ID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
+			eventstest.WithMessageContainsMatcher("a.yaml"))).Times(1)
+		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+	})
+
+	It("loads nothing and sends a warning event when user manifests cannot be listed", func() {
+		writeFile("a.yaml", "kind: A\n")
+		mockManifests.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.New("s3 down")).Times(1)
+		mockEvents.EXPECT().SendClusterEvent(gomock.Any(), eventstest.NewEventMatcher(
+			eventstest.WithNameMatcher(eventgen.SystemManifestLoadFailedEventName),
+			eventstest.WithClusterIdMatcher(c.ID.String()),
+			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
+			eventstest.WithMessageContainsMatcher("s3 down"))).Times(1)
 		manager.addSystemManifests(ctx, common.GetTestLog(), c)
 	})
 })

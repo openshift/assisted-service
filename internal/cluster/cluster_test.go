@@ -3257,6 +3257,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
+		mockManifests.EXPECT().ListClusterManifestsInternal(ctx, gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 		mockManifests.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Return(&models.Manifest{}, nil).Times(1)
 
 		Expect(capi.GenerateAdditionalManifests(ctx, &c)).To(Succeed())

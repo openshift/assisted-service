@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -18,31 +19,75 @@ import (
 
 // addSystemManifests loads every yaml/yml file found in SystemManifestsDir as a system
 // manifest in the openshift folder. A missing directory is a no-op. A file that fails
-// to load is skipped and reported with a warning event, so it never fails the install.
+// to load, or whose name is already used by a user manifest, is skipped and reported
+// with a warning event, so it never fails the install or overwrites user content.
 func (m *Manager) addSystemManifests(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) {
 	dir := m.Config.SystemManifestsDir
-	entries, err := os.ReadDir(dir)
+	names, err := systemManifestFileNames(dir)
 	if err != nil {
 		if !errors.Is(err, fs.ErrNotExist) {
-			log.WithError(err).Warnf("Failed to read system manifests directory %s", dir)
-			eventgen.SendSystemManifestLoadFailedEvent(ctx, m.eventsHandler, *cluster.ID, dir, err.Error())
+			m.reportSystemManifestFailure(ctx, log, cluster, dir, err)
 		}
 		return
 	}
+	if len(names) == 0 {
+		return
+	}
 
-	for _, entry := range entries {
-		name := entry.Name()
-		ext := filepath.Ext(name)
-		if entry.IsDir() || (ext != ".yaml" && ext != ".yml") {
+	userManifests, err := m.userManifestNames(ctx, cluster)
+	if err != nil {
+		m.reportSystemManifestFailure(ctx, log, cluster, dir, err)
+		return
+	}
+
+	for _, name := range names {
+		if userManifests[name] {
+			m.reportSystemManifestFailure(ctx, log, cluster, name,
+				fmt.Errorf("a user manifest with the same name already exists in the %s folder", models.ManifestFolderOpenshift))
 			continue
 		}
 		if err := m.addSystemManifest(ctx, cluster, filepath.Join(dir, name), name); err != nil {
-			log.WithError(err).Warnf("Failed to load system manifest %s", name)
-			eventgen.SendSystemManifestLoadFailedEvent(ctx, m.eventsHandler, *cluster.ID, name, err.Error())
+			m.reportSystemManifestFailure(ctx, log, cluster, name, err)
 			continue
 		}
 		log.Infof("Loaded system manifest %s", name)
 	}
+}
+
+func systemManifestFileNames(dir string) ([]string, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+	var names []string
+	for _, entry := range entries {
+		ext := filepath.Ext(entry.Name())
+		if entry.IsDir() || (ext != ".yaml" && ext != ".yml") {
+			continue
+		}
+		names = append(names, entry.Name())
+	}
+	return names, nil
+}
+
+// userManifestNames returns the file names of the user manifests in the openshift folder.
+func (m *Manager) userManifestNames(ctx context.Context, cluster *common.Cluster) (map[string]bool, error) {
+	manifests, err := m.manifestApi.ListClusterManifestsInternal(ctx, operations.V2ListClusterManifestsParams{ClusterID: *cluster.ID})
+	if err != nil {
+		return nil, err
+	}
+	names := map[string]bool{}
+	for _, manifest := range manifests {
+		if manifest.Folder == models.ManifestFolderOpenshift {
+			names[manifest.FileName] = true
+		}
+	}
+	return names, nil
+}
+
+func (m *Manager) reportSystemManifestFailure(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, name string, err error) {
+	log.WithError(err).Warnf("Failed to load system manifest %s", name)
+	eventgen.SendSystemManifestLoadFailedEvent(ctx, m.eventsHandler, *cluster.ID, name, err.Error())
 }
 
 func (m *Manager) addSystemManifest(ctx context.Context, cluster *common.Cluster, path, name string) error {
