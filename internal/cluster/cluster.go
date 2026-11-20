@@ -156,6 +156,8 @@ type Config struct {
 	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
 	MonitorCycleDeadline       time.Duration              `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
 	DisabledClusterValidations DisabledClusterValidations `envconfig:"DISABLED_CLUSTER_VALIDATIONS" default:""`
+	// SystemManifestsDir holds manifests loaded as system manifests when installation starts
+	SystemManifestsDir string `envconfig:"SYSTEM_MANIFESTS_DIR" default:"/etc/assisted/system-manifests"`
 }
 
 type DisabledClusterValidations map[string]struct{}
@@ -1910,6 +1912,8 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 	if err := m.manifestsGeneratorAPI.AddNicReapply(ctx, log, cluster); err != nil {
 		return errors.Wrap(err, "failed to add nic reapply manifest")
 	}
+
+	m.addSystemManifests(ctx, log, cluster)
 	return nil
 }
 
