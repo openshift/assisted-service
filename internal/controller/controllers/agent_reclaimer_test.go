@@ -11,6 +11,7 @@ import (
 	authzv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -322,7 +323,7 @@ var _ = Context("with a fake client", func() {
 
 		It("creates a daemon set correctly on the spoke node", func() {
 			withANode(nodeName)
-			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).To(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID, nil)).To(Succeed())
 
 			ds := &appsv1.DaemonSet{}
 			daemonSetNsName := types.NamespacedName{
@@ -347,15 +348,35 @@ var _ = Context("with a fake client", func() {
 			Expect(container.Image).To(Equal(agentImage))
 			Expect(container.SecurityContext.Privileged).To(HaveValue(Equal(true)))
 			Expect(container.Command).To(Equal([]string{"next_step_runner"}))
+			Expect(container.Env).To(HaveLen(1))
+			Expect(container.Env[0].Name).To(Equal("PULL_SECRET_TOKEN"))
 
 			// no cacert should be provided by default
 			Expect(container.Args).NotTo(ContainElement(ContainSubstring("-cacert")))
 		})
 
+		It("passes the InfraEnv proxy settings to the reclaim container", func() {
+			withANode(nodeName)
+			httpProxy := "http://proxy.example.com:3128"
+			httpsProxy := "http://proxy.example.com:3128"
+			noProxy := "localhost,127.0.0.1,.svc"
+			proxy := &models.Proxy{HTTPProxy: &httpProxy, HTTPSProxy: &httpsProxy, NoProxy: &noProxy}
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID, proxy)).To(Succeed())
+
+			ds := &appsv1.DaemonSet{}
+			key := types.NamespacedName{Name: daemonSetName, Namespace: spokeReclaimNamespaceName}
+			Expect(c.Get(ctx, key, ds)).To(Succeed())
+			env := ds.Spec.Template.Spec.Containers[0].Env
+			Expect(env).To(ContainElement(corev1.EnvVar{Name: "HTTP_PROXY", Value: httpProxy}))
+			Expect(env).To(ContainElement(corev1.EnvVar{Name: "HTTPS_PROXY", Value: httpsProxy}))
+			Expect(env).To(ContainElement(corev1.EnvVar{Name: "NO_PROXY", Value: noProxy}))
+			Expect(env).To(HaveLen(4))
+		})
+
 		It("adds cert configuration when CA cert path is set", func() {
 			withANode(nodeName)
 			reclaimer.ServiceCACertPath = "/etc/assisted/cert.crt"
-			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).To(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID, nil)).To(Succeed())
 
 			ds := &appsv1.DaemonSet{}
 			daemonSetNsName := types.NamespacedName{
@@ -382,7 +403,7 @@ var _ = Context("with a fake client", func() {
 		})
 
 		It("fails when the node doesn't exist", func() {
-			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID)).ToNot(Succeed())
+			Expect(reclaimer.createNextStepRunnerDaemonSet(ctx, c, common.GetTestLog(), nodeName, infraEnvID, hostID, nil)).ToNot(Succeed())
 		})
 	})
 })
