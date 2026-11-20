@@ -39,7 +39,7 @@ require (
 	github.com/rogpeppe/go-internal v1.16.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.54.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.24.5 // indirect
@@ -49,6 +49,6 @@ replace github.com/openshift/assisted-service/models => ../models
 
 replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 
-replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.20.2
 
 replace golang.org/x/net => golang.org/x/net v0.55.0

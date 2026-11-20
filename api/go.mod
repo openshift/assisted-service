@@ -83,7 +83,7 @@ require (
 	golang.org/x/oauth2 v0.12.0 // indirect
 	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.44.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.3.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -116,4 +116,4 @@ replace go.opentelemetry.io/otel/sdk => go.opentelemetry.io/otel/sdk v1.45.0
 
 replace github.com/moby/spdystream => github.com/moby/spdystream v0.5.1
 
-replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+replace github.com/klauspost/compress => github.com/klauspost/compress v1.20.2

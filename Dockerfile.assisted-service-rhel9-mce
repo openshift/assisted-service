@@ -41,7 +41,7 @@ COPY --from=builder /app/build/assisted-service-admission /assisted-service-admi
 COPY --from=builder /app/build/agent-installer-client /usr/local/bin/agent-installer-client
 RUN ln -s /usr/local/bin/agent-installer-client /agent-based-installer-register-cluster-and-infraenv
 
-RUN dnf install -y glib2 python3-urllib3 && \
+RUN dnf install -y ca-certificates glib2 libxml2 openssl openssl-libs pcre2 pcre2-syntax python3 python3-libs python3-urllib3 vim-minimal && \
     INSTALL_PKGS="libvirt-libs nmstate nmstate-devel nmstate-libs skopeo openshift-clients" && \
     dnf install -y $INSTALL_PKGS --nobest && \
     dnf clean all && \
