@@ -368,6 +368,76 @@ func machineNetworksEntriesToArray(entries []hiveext.MachineNetworkEntry) []*mod
 	}).([]*models.MachineNetwork)
 }
 
+// clusterNetworkSetsEqual returns true when both slices contain the same
+// set of (Cidr, HostPrefix) pairs, regardless of order.  It relies on
+// the CIDRs already being normalized by clusterNetworksEntriesToArray.
+func clusterNetworkSetsEqual(a, b []*models.ClusterNetwork) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	matched := make([]bool, len(b))
+	for _, netA := range a {
+		found := false
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr && netA.HostPrefix == netB.HostPrefix {
+				matched[j] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// serviceNetworkSetsEqual returns true when both slices contain the same
+// set of CIDRs, regardless of order.
+func serviceNetworkSetsEqual(a, b []*models.ServiceNetwork) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	matched := make([]bool, len(b))
+	for _, netA := range a {
+		found := false
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr {
+				matched[j] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// machineNetworkSetsEqual returns true when both slices contain the same
+// set of CIDRs, regardless of order.
+func machineNetworkSetsEqual(a, b []*models.MachineNetwork) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	matched := make([]bool, len(b))
+	for _, netA := range a {
+		found := false
+		for j, netB := range b {
+			if !matched[j] && netA.Cidr == netB.Cidr {
+				matched[j] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
 func ApiVipsArrayToStrings(vips []*models.APIVip) []string {
 	return funk.Map(vips, func(vip *models.APIVip) string {
 		return string(vip.IP)
