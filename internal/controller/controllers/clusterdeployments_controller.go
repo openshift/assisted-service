@@ -968,48 +968,25 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 
 	if len(clusterInstall.Spec.Networking.ClusterNetwork) > 0 {
 		newClusterNetworks := clusterNetworksEntriesToArray(clusterInstall.Spec.Networking.ClusterNetwork)
-		if len(newClusterNetworks) != len(cluster.ClusterNetworks) {
+		if !clusterNetworkSetsEqual(newClusterNetworks, cluster.ClusterNetworks) {
 			params.ClusterNetworks = newClusterNetworks
 			update = true
-		} else {
-			for index := range newClusterNetworks {
-				if newClusterNetworks[index].Cidr != cluster.ClusterNetworks[index].Cidr ||
-					newClusterNetworks[index].HostPrefix != cluster.ClusterNetworks[index].HostPrefix {
-					params.ClusterNetworks = newClusterNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
 	if len(clusterInstall.Spec.Networking.ServiceNetwork) > 0 {
 		newServiceNetworks := serviceNetworksEntriesToArray(clusterInstall.Spec.Networking.ServiceNetwork)
-		if len(newServiceNetworks) != len(cluster.ServiceNetworks) {
+		if !serviceNetworkSetsEqual(newServiceNetworks, cluster.ServiceNetworks) {
 			params.ServiceNetworks = newServiceNetworks
 			update = true
-		} else {
-			for index := range newServiceNetworks {
-				if newServiceNetworks[index].Cidr != cluster.ServiceNetworks[index].Cidr {
-					params.ServiceNetworks = newServiceNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
-	if len(clusterInstall.Spec.Networking.MachineNetwork) > 0 {
-		newMachineNetworks := machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
-		if len(newMachineNetworks) != len(cluster.MachineNetworks) {
+	var newMachineNetworks []*models.MachineNetwork
+	machineNetworksSpecified := len(clusterInstall.Spec.Networking.MachineNetwork) > 0
+	if machineNetworksSpecified {
+		newMachineNetworks = machineNetworksEntriesToArray(clusterInstall.Spec.Networking.MachineNetwork)
+		if !machineNetworkSetsEqual(newMachineNetworks, cluster.MachineNetworks) {
 			params.MachineNetworks = newMachineNetworks
 			update = true
-		} else {
-			for index := range newMachineNetworks {
-				if newMachineNetworks[index].Cidr != cluster.MachineNetworks[index].Cidr {
-					params.MachineNetworks = newMachineNetworks
-					update = true
-					break
-				}
-			}
 		}
 	}
 
@@ -1057,6 +1034,15 @@ func (r *ClusterDeploymentsReconciler) updateNetworkParams(clusterDeployment *hi
 			params.IngressVips = desiredIngressVips
 			update = true
 		}
+	}
+
+	// When VIP order changes (e.g. dual-stack primary address-family swap),
+	// also send MachineNetworks so the backend keeps the primary machine
+	// network in sync with the primary VIP.  Without this, a reversed VIP
+	// pair gets validated against the old machine-network order → HTTP 400.
+	if machineNetworksSpecified && params.MachineNetworks == nil &&
+		(params.APIVips != nil || params.IngressVips != nil) {
+		params.MachineNetworks = newMachineNetworks
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
