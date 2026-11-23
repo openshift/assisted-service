@@ -51,7 +51,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	gorm.io/gorm v1.24.5 // indirect
@@ -74,3 +74,5 @@ replace golang.org/x/crypto => golang.org/x/crypto v0.52.0
 replace google.golang.org/grpc => google.golang.org/grpc v1.83.1
 
 replace github.com/klauspost/compress => github.com/klauspost/compress v1.18.7
+
+replace github.com/go-jose/go-jose/v4 => github.com/go-jose/go-jose/v4 v4.1.6
