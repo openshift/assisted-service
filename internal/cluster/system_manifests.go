@@ -13,15 +13,19 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	eventgen "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
 )
 
-// addSystemManifests loads every yaml/yml file found in SystemManifestsDir as a system
-// manifest in the openshift folder. A missing directory is a no-op. A file that fails
-// to load, or whose name is already used by a user manifest, is skipped and reported
-// with a warning event, so it never fails the install or overwrites user content.
-func (m *Manager) addSystemManifests(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) {
+// AddSystemManifests loads every yaml/yml file found in SystemManifestsDir as a system
+// manifest in the openshift folder. It runs when installation starts, rather than at
+// registration, because ResetClusterFiles deletes system manifests on a cluster reset.
+// A missing directory is a no-op. A file that fails to load, or whose name is already
+// used by a user manifest, is skipped and reported with a warning event, so it never
+// fails the install or overwrites user content.
+func (m *Manager) AddSystemManifests(ctx context.Context, cluster *common.Cluster) {
+	log := logutil.FromContext(ctx, m.log)
 	dir := m.Config.SystemManifestsDir
 	names, err := systemManifestFileNames(dir)
 	if err != nil {

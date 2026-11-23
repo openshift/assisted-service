@@ -3241,7 +3241,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		Expect(err).To(Not(HaveOccurred()))
 	})
 
-	It("loads system manifests from SYSTEM_MANIFESTS_DIR", func() {
+	It("does not load system manifests", func() {
 		dir, err := os.MkdirTemp("", "system-manifests")
 		Expect(err).NotTo(HaveOccurred())
 		defer os.RemoveAll(dir)
@@ -3249,6 +3249,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 
 		cfg := getDefaultConfig()
 		cfg.SystemManifestsDir = dir
+		// No expectations: any manifests API call fails the test.
 		mockManifests := manifestsapi.NewMockManifestsAPI(ctrl)
 		capi = NewManager(cfg, common.GetTestLog(), db, commontesting.GetDummyNotificationStream(ctrl), eventsHandler, nil, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil, nil, mockManifests, false, nil)
 
@@ -3257,8 +3258,6 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddDiskEncryptionManifest(ctx, gomock.Any(), &c).Return(nil)
 		manifestsGenerator.EXPECT().AddNicReapply(ctx, gomock.Any(), &c).Return(nil)
-		mockManifests.EXPECT().ListClusterManifestsInternal(ctx, gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
-		mockManifests.EXPECT().CreateClusterManifestInternal(ctx, gomock.Any(), false).Return(&models.Manifest{}, nil).Times(1)
 
 		Expect(capi.GenerateAdditionalManifests(ctx, &c)).To(Succeed())
 	})

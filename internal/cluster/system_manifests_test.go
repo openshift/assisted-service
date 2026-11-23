@@ -21,7 +21,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-var _ = Describe("addSystemManifests", func() {
+var _ = Describe("AddSystemManifests", func() {
 	var (
 		ctrl          *gomock.Controller
 		ctx           = context.Background()
@@ -90,13 +90,13 @@ var _ = Describe("addSystemManifests", func() {
 			expectManifest("a.yaml", "kind: A\n", nil),
 			expectManifest("b.yml", "kind: B\n", nil),
 		)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("does nothing when the directory does not exist", func() {
 		cfg.SystemManifestsDir = filepath.Join(dir, "missing")
 		manager = newManager()
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("sends a warning event when the directory cannot be read", func() {
@@ -109,18 +109,18 @@ var _ = Describe("addSystemManifests", func() {
 			eventstest.WithClusterIdMatcher(c.ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
 			eventstest.WithMessageContainsMatcher(notADir))).Times(1)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("does nothing when the directory is empty", func() {
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("ignores subdirectories and non-YAML files", func() {
 		writeFile("README", "text")
 		writeFile("c.json", "{}")
 		writeFile("sub/d.yaml", "kind: D\n")
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("skips a manifest that fails to load and sends a warning event", func() {
@@ -136,15 +136,15 @@ var _ = Describe("addSystemManifests", func() {
 			eventstest.WithClusterIdMatcher(c.ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
 			eventstest.WithMessageContainsMatcher("a.yaml"))).Times(1)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("loads the files again on each call", func() {
 		writeFile("a.yaml", "kind: A\n")
 		expectUserManifests(2)
 		expectManifest("a.yaml", "kind: A\n", nil).Times(2)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
+		manager.AddSystemManifests(ctx, c)
 	})
 	It("does not overwrite a user manifest with the same name", func() {
 		writeFile("a.yaml", "kind: A\n")
@@ -158,7 +158,7 @@ var _ = Describe("addSystemManifests", func() {
 			eventstest.WithClusterIdMatcher(c.ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
 			eventstest.WithMessageContainsMatcher("a.yaml"))).Times(1)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 
 	It("loads nothing and sends a warning event when user manifests cannot be listed", func() {
@@ -169,6 +169,6 @@ var _ = Describe("addSystemManifests", func() {
 			eventstest.WithClusterIdMatcher(c.ID.String()),
 			eventstest.WithSeverityMatcher(models.EventSeverityWarning),
 			eventstest.WithMessageContainsMatcher("s3 down"))).Times(1)
-		manager.addSystemManifests(ctx, common.GetTestLog(), c)
+		manager.AddSystemManifests(ctx, c)
 	})
 })

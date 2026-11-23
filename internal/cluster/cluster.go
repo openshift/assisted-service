@@ -125,6 +125,7 @@ type API interface {
 	GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
+	AddSystemManifests(ctx context.Context, cluster *common.Cluster)
 	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error)
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
@@ -1912,8 +1913,6 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 	if err := m.manifestsGeneratorAPI.AddNicReapply(ctx, log, cluster); err != nil {
 		return errors.Wrap(err, "failed to add nic reapply manifest")
 	}
-
-	m.addSystemManifests(ctx, log, cluster)
 	return nil
 }
 
