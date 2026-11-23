@@ -11,6 +11,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/buger/jsonparser"
@@ -73,6 +74,17 @@ type imageValue struct {
 	mutex sync.Mutex
 }
 
+type imageArchValue struct {
+	// value stores []string after a successful architecture lookup.
+	value atomic.Value
+	mutex sync.Mutex
+}
+
+func (v *imageArchValue) architectures() []string {
+	architectures, _ := v.value.Load().([]string)
+	return architectures
+}
+
 type release struct {
 	executer                executer.Executer
 	config                  Config
@@ -81,6 +93,8 @@ type release struct {
 
 	// A map for caching images (image name > release image URL > image)
 	imagesMap common.ExpiringCache
+	// A map for caching image architectures (image > CPU architectures)
+	imageArchMap common.ExpiringCache
 }
 
 func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuilder mirrorregistries.ServiceMirrorRegistriesConfigBuilder, sys system.SystemInfo) Release {
@@ -88,6 +102,7 @@ func NewRelease(executer executer.Executer, config Config, mirrorRegistriesBuild
 		executer:                executer,
 		config:                  config,
 		imagesMap:               common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
+		imageArchMap:            common.NewExpiringCache(cache.NoExpiration, cache.NoExpiration),
 		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 		sys:                     sys,
 	}
@@ -218,6 +233,37 @@ func (r *release) GetReleaseArchitecture(log logrus.FieldLogger, releaseImage st
 }
 
 func (r *release) GetImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
+	cached, err := r.getImageArchValue(image)
+	if err != nil {
+		return nil, err
+	}
+	if architectures := cached.architectures(); len(architectures) > 0 {
+		return slices.Clone(architectures), nil
+	}
+	cached.mutex.Lock()
+	defer cached.mutex.Unlock()
+	if architectures := cached.architectures(); len(architectures) > 0 {
+		return slices.Clone(architectures), nil
+	}
+
+	architectures, err := r.getImageArchitecture(log, image, pullSecret)
+	if err != nil {
+		return nil, err
+	}
+	cached.value.Store(architectures)
+	return slices.Clone(architectures), nil
+}
+
+func (r *release) getImageArchValue(image string) (*imageArchValue, error) {
+	actualIntf, _ := r.imageArchMap.GetOrInsert(image, &imageArchValue{})
+	value, ok := actualIntf.(*imageArchValue)
+	if !ok {
+		return nil, fmt.Errorf("unexpected error - could not cast architecture value for image %s", image)
+	}
+	return value, nil
+}
+
+func (r *release) getImageArchitecture(log logrus.FieldLogger, image, pullSecret string) ([]string, error) {
 	mirrorsFlag, err := r.getMirrorsFlagFromRegistriesConfig(log, templateImageInfo)
 	if err != nil {
 		return nil, err
