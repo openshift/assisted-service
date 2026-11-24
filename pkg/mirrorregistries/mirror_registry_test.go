@@ -9,6 +9,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +19,7 @@ func TestMirrorRegistriesConfig(t *testing.T) {
 }
 
 var (
-	expectedExtractList  = []RegistriesConf{{"location1", []string{"mirror_location1"}}, {"location2", []string{"mirror_location2"}}, {"location3", []string{"mirror_location3"}}}
+	expectedExtractList  = []RegistriesConf{{Location: "location1", Mirror: []string{"mirror_location1"}}, {Location: "location2", Mirror: []string{"mirror_location2"}}, {Location: "location3", Mirror: []string{"mirror_location3"}}}
 	configWithGarbage    = `?;,!`
 	configWithoutMirrors = `unqualified-search-registries = ["registry1", "registry2", "registry3"]`
 	configWithMirrors    = `unqualified-search-registries = ["registry1", "registry2", "registry3"]
@@ -66,6 +67,14 @@ var _ = Describe("Generator tests", func() {
 		It("fails to extract data from registry config with garbage", func() {
 			_, err := ExtractLocationMirrorDataFromRegistriesFromToml(configWithGarbage)
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("carries blocked registries as NeverContactSource", func() {
+			dataList, err := ExtractLocationMirrorDataFromRegistriesFromToml(getBlockedRegistryToml())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dataList).Should(Equal([]RegistriesConf{
+				{Location: sourceRegistry, Mirror: []string{mirrorRegistry}, SourcePolicy: configv1.NeverContactSource},
+			}))
 		})
 
 		It("fails to extract data from empty config", func() {
@@ -235,6 +244,35 @@ insecure = true
 	return x
 }
 
+func getBlockedRegistryToml() string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+blocked = true
+
+[[registry.mirror]]
+location = "%s"
+`,
+		sourceRegistry,
+		mirrorRegistry,
+	)
+}
+
+func getBlockedRegistryTagOnlyToml() string {
+	return fmt.Sprintf(`
+[[registry]]
+location = "%s"
+blocked = true
+
+[[registry.mirror]]
+location = "%s"
+pull-from-mirror = "tag-only"
+`,
+		sourceRegistry,
+		mirrorRegistry,
+	)
+}
+
 func getInvalidRegistryToml() string {
 	// location has no quotes, will be parsed as double
 	return `
@@ -271,6 +309,28 @@ var _ = Describe("Per cluster mirror registry tests", func() {
 			Expect(len(itmsMirrors[0].Mirrors)).Should(Equal(1))
 			Expect(string(itmsMirrors[0].Mirrors[0])).Should(Equal(mirrorRegistry))
 			Expect(itmsMirrors[0].Source).Should(Equal(sourceRegistry))
+		})
+		It("leaves MirrorSourcePolicy unset when the registry is not blocked", func() {
+			idmsMirrors, _, _, err := GetImageRegistries(getSecureRegistryToml())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(idmsMirrors).To(HaveLen(1))
+			Expect(idmsMirrors[0].MirrorSourcePolicy).To(BeEmpty())
+		})
+		It("sets NeverContactSource on ImageDigestMirrors for a blocked registry", func() {
+			idmsMirrors, itmsMirrors, _, err := GetImageRegistries(getBlockedRegistryToml())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(itmsMirrors).To(BeEmpty())
+			Expect(idmsMirrors).To(HaveLen(1))
+			Expect(idmsMirrors[0].Source).To(Equal(sourceRegistry))
+			Expect(idmsMirrors[0].MirrorSourcePolicy).To(Equal(configv1.NeverContactSource))
+		})
+		It("sets NeverContactSource on ImageTagMirrors for a blocked tag-only registry", func() {
+			idmsMirrors, itmsMirrors, _, err := GetImageRegistries(getBlockedRegistryTagOnlyToml())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(idmsMirrors).To(BeEmpty())
+			Expect(itmsMirrors).To(HaveLen(1))
+			Expect(itmsMirrors[0].Source).To(Equal(sourceRegistry))
+			Expect(itmsMirrors[0].MirrorSourcePolicy).To(Equal(configv1.NeverContactSource))
 		})
 		It("successfully get insecure registry", func() {
 			idmsMirrors, itmsMirrors, insecureRegistries, err := GetImageRegistries(getInsecureRegistryToml())

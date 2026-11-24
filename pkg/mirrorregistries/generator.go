@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 
+	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pelletier/go-toml"
 )
@@ -38,6 +39,8 @@ func New(forceInsecurePolicy bool) ServiceMirrorRegistriesConfigBuilder {
 type RegistriesConf struct {
 	Location string
 	Mirror   []string
+	// SourcePolicy is NeverContactSource when the registry is marked blocked in registries.conf
+	SourcePolicy configv1.MirrorSourcePolicy
 }
 
 // IsMirrorRegistriesConfigured We consider mirror registries to be configured if the following conditions are all met
@@ -97,7 +100,7 @@ func ExtractLocationMirrorDataFromRegistriesFromToml(registriesConfToml string) 
 		return nil, err
 	}
 	for _, i := range idmsMirrors {
-		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrorToStrings(i.Mirrors)})
+		registriesConfList = append(registriesConfList, RegistriesConf{Location: i.Source, Mirror: mirrorToStrings(i.Mirrors), SourcePolicy: i.MirrorSourcePolicy})
 	}
 
 	return registriesConfList, nil

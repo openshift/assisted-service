@@ -13,6 +13,7 @@ import (
 // [[registry]]
 //
 //	 location = "source-registry"
+//	 blocked = true # indicates the source must never be contacted (NeverContactSource)
 //
 //	   [[registry.mirror]]
 //		  location = "mirror-registry"
@@ -45,7 +46,9 @@ func GetImageRegistries(registryTOML string) ([]configv1.ImageDigestMirrors, []c
 		if !sourceExists || !mirrorExists {
 			continue
 		}
-		parseMirrorRegistries(&idmsMirrors, &itmsMirrors, mirrorTrees, &insecureRegistries, source)
+		// blocked = true is how registries.conf expresses a NeverContactSource mirrorSourcePolicy
+		blocked, _ := registry.Get("blocked").(bool)
+		parseMirrorRegistries(&idmsMirrors, &itmsMirrors, mirrorTrees, &insecureRegistries, source, blocked)
 	}
 
 	if len(idmsMirrors) < 1 && len(itmsMirrors) < 1 {
@@ -63,6 +66,7 @@ func parseMirrorRegistries(
 	mirrorTrees []*toml.Tree,
 	insecureRegistries *[]string,
 	source string,
+	blocked bool,
 ) {
 	itmsMirror := configv1.ImageTagMirrors{}
 	idmsMirror := configv1.ImageDigestMirrors{}
@@ -86,6 +90,10 @@ func parseMirrorRegistries(
 				idmsMirror.Mirrors = append(idmsMirror.Mirrors, configv1.ImageMirror(mirror))
 			}
 		}
+	}
+	if blocked {
+		itmsMirror.MirrorSourcePolicy = configv1.NeverContactSource
+		idmsMirror.MirrorSourcePolicy = configv1.NeverContactSource
 	}
 	if len(itmsMirror.Mirrors) > 0 {
 		*itmsMirrors = append(*itmsMirrors, itmsMirror)
