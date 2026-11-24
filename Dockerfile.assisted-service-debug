@@ -2,7 +2,7 @@ FROM registry.access.redhat.com/ubi9/go-toolset:1.27 AS golang
 
 RUN GOFLAGS=-mod=mod go install github.com/go-delve/delve/cmd/dlv@v1.21.2
 
-FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:3816d303e75dec4da2d10eeb9e8651eef4393721598bea4690c607282635aa57 AS builder
+FROM registry.access.redhat.com/ubi9/ubi:latest@sha256:6636b79fba9e5044360366f189333c30b5ce528efd92c40c68b074592b971fcd AS builder
 
 RUN dnf install -y gcc git nmstate-devel openssl-devel make && \
     dnf clean all
