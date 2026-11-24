@@ -130,7 +130,7 @@ func NewGenerator(workDir string, cluster *common.Cluster, releaseImage string, 
 		clusterTLSCertOverrideDir:     clusterTLSCertOverrideDir,
 		installerCache:                installerCache,
 		manifestApi:                   manifestApi,
-		iriPatcher:                    NewInternalReleaseImagePatcher(cluster, s3Client, manifestApi, log),
+		iriPatcher:                    NewInternalReleaseImagePatcher(cluster, s3Client, log),
 	}
 }
 

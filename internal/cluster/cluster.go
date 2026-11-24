@@ -125,6 +125,7 @@ type API interface {
 	GetHostCountByRole(clusterID strfmt.UUID, role models.HostRole, suggested bool) (*int64, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
+	AddSystemManifests(ctx context.Context, cluster *common.Cluster)
 	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, reason string) (*common.Cluster, error)
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
@@ -156,6 +157,8 @@ type Config struct {
 	// MonitorCycleDeadline bounds the total time for one ClusterMonitoring cycle
 	MonitorCycleDeadline       time.Duration              `envconfig:"CLUSTER_MONITOR_CYCLE_DEADLINE" default:"4m"`
 	DisabledClusterValidations DisabledClusterValidations `envconfig:"DISABLED_CLUSTER_VALIDATIONS" default:""`
+	// SystemManifestsDir holds manifests loaded as system manifests when installation starts
+	SystemManifestsDir string `envconfig:"SYSTEM_MANIFESTS_DIR" default:"/etc/assisted/system-manifests"`
 }
 
 type DisabledClusterValidations map[string]struct{}

@@ -1564,6 +1564,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generate additional cluster manifest"))
 	}
 
+	b.clusterApi.AddSystemManifests(ctx, cluster)
+
 	// Delete previews installation log files from object storage (if exist).
 	if err = b.clusterApi.DeleteClusterLogs(ctx, cluster, b.objectHandler); err != nil {
 		log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", cluster.ID.String())

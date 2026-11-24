@@ -203,6 +203,18 @@ func (mr *MockAPIMockRecorder) AcceptRegistration(c any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptRegistration", reflect.TypeOf((*MockAPI)(nil).AcceptRegistration), c)
 }
 
+// AddSystemManifests mocks base method.
+func (m *MockAPI) AddSystemManifests(ctx context.Context, cluster *common.Cluster) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "AddSystemManifests", ctx, cluster)
+}
+
+// AddSystemManifests indicates an expected call of AddSystemManifests.
+func (mr *MockAPIMockRecorder) AddSystemManifests(ctx, cluster any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSystemManifests", reflect.TypeOf((*MockAPI)(nil).AddSystemManifests), ctx, cluster)
+}
+
 // CancelInstallation mocks base method.
 func (m *MockAPI) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()

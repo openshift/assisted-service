@@ -1775,6 +1775,7 @@ var _ = Describe("cluster", func() {
 
 	mockGenerateAdditionalManifestsSuccess := func() {
 		mockClusterApi.EXPECT().GenerateAdditionalManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().AddSystemManifests(gomock.Any(), gomock.Any()).Times(1)
 	}
 
 	sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
@@ -18432,6 +18433,7 @@ var _ = Describe("AMS subscriptions", func() {
 					masterHostId := strfmt.UUID(uuid.New().String())
 					mockClusterApi.EXPECT().GetMasterNodesIds(ctx, gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId, &masterHostId, &masterHostId}, nil)
 					mockClusterApi.EXPECT().GenerateAdditionalManifests(gomock.Any(), gomock.Any()).Return(nil)
+					mockClusterApi.EXPECT().AddSystemManifests(gomock.Any(), gomock.Any())
 					mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 					mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 					mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)

@@ -47,6 +47,15 @@ x-events:
     cluster_id: UUID
     error: string
 
+- name: system_manifest_load_failed
+  message: "Failed to load system manifest {file_name}: {error}"
+  event_type: cluster
+  severity: "warning"
+  properties:
+    cluster_id: UUID
+    file_name: string
+    error: string
+
 - name: cluster_deregistered
   message: "Deregistered cluster"
   event_type: cluster
