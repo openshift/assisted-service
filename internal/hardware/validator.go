@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"net"
 	"net/netip"
 	"regexp"
 	"sort"
@@ -197,7 +198,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 					// check if iSCSI boot drive is valid
 					isiSCSIValid := v.IsValidStorageDeviceType(iSCSIDisk, hostArchitecture, clusterVersion)
 					// Check if network is configured properly to install on iSCSI boot drive
-					err = isISCSINetworkingValid(iSCSIDisk, inventory)
+					err = v.isISCSINetworkingValid(iSCSIDisk, inventory, cluster)
 					if err != nil || !isiSCSIValid {
 						notEligibleReasons = append(notEligibleReasons, ErrsInIscsiDisableMultipathInstallation)
 					}
@@ -208,7 +209,7 @@ func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, infra
 
 	if disk.DriveType == models.DriveTypeISCSI {
 		// Check if network is configured properly to install on iSCSI boot drive
-		err = isISCSINetworkingValid(disk, inventory)
+		err = v.isISCSINetworkingValid(disk, inventory, cluster)
 		if err != nil {
 			notEligibleReasons = append(notEligibleReasons, err.Error())
 		}
@@ -240,10 +241,12 @@ func hasMultipathHolder(disk *models.Disk, inventory *models.Inventory) error {
 	return nil
 }
 
-// isISCSINetworkingValid checks if the iSCSI disk is not connected through the
-// default network interface. The default network interface is the interface
-// which is used by the default gateway.
-func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) error {
+// isISCSINetworkingValid checks that the iSCSI disk is not connected through a
+// NIC the cluster will take over, since installation moves that NIC into br-ex
+// and tears the session down. The machine networks answer this directly; before
+// they are known the default route stands in, but only when the host owns a
+// single one, as a multi-homed host gets one per DHCP lease.
+func (v *validator) isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory, cluster *common.Cluster) error {
 	// get the IPv4 or the IPv6 of the interface connected to the iSCSI target
 	if disk.Iscsi == nil || disk.Iscsi.HostIPAddress == "" {
 		return errors.New(iscsiHostIPNotAvailable)
@@ -254,13 +257,22 @@ func isISCSINetworkingValid(disk *models.Disk, inventory *models.Inventory) erro
 		return fmt.Errorf(iscsiHostIPParseErrorTemplate, disk.Iscsi.HostIPAddress, err)
 	}
 
-	defaultRoute := network.GetDefaultRouteByFamily(inventory.Routes, iSCSIHostIP.Is6())
-	if defaultRoute == nil {
+	if machineNetworks := network.MachineNetworksOfFamily(cluster, iSCSIHostIP.Is6()); len(machineNetworks) > 0 {
+		for _, machineIpnet := range machineNetworks {
+			if machineIpnet.Contains(net.IP(iSCSIHostIP.AsSlice())) {
+				return fmt.Errorf(wrongISCSINetworkTemplate, iSCSIHostIP.String())
+			}
+		}
+		return nil
+	}
+
+	defaultRoutes := network.GetDefaultRoutesByFamily(inventory.Routes, iSCSIHostIP.Is6())
+	if len(defaultRoutes) != 1 {
 		return nil
 	}
 
 	defaultInterface, ok := lo.Find(inventory.Interfaces, func(i *models.Interface) bool {
-		return i.Name == defaultRoute.Interface
+		return i.Name == defaultRoutes[0].Interface
 	})
 	if !ok {
 		return errors.New(iscsiNetworkInterfaceNotFound)
