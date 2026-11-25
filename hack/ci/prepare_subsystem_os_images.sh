@@ -39,7 +39,16 @@ jq -c --arg ver "${DEFAULT_OCP}" '
     if $regular == null then
       error("no regular x86_64 OS image for openshift version " + $ver)
     else
-      . + [$regular + {type: "disconnected-iso"}]
+      # Only one disconnected-iso is allowed per openshift_version and
+      # cpu_architecture pair, so the stub cannot include os_stream or
+      # default_os_stream.
+      . + [{
+        openshift_version: $ver,
+        cpu_architecture: "x86_64",
+        url: $regular.url,
+        version: $regular.version,
+        type: "disconnected-iso"
+      }]
     end
   end
 ' "${OS_IMAGES_FILE}"

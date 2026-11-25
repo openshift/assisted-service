@@ -71,14 +71,28 @@ var testOsImagesByArch = map[string]map[string][]testOsImage{
 		},
 		"5.0": {
 			{
-				Version: "9.8.20261026-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-aarch64-live-iso.aarch64.iso",
+				Version:  "9.8.20261026-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-aarch64-live-iso.aarch64.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20261026-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/5.0-el10/5.0.0/rhcos-5.0.0-aarch64-live-iso.aarch64.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 		"5.1": {
 			{
-				Version: "9.8.20260428-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-aarch64-live-iso.aarch64.iso",
+				Version:  "9.8.20260428-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-aarch64-live-iso.aarch64.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20260423-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/aarch64/dependencies/rhcos/pre-release/5.1.0-ec.2-el10/rhcos-5.1.0-ec.2-aarch64-live-iso.aarch64.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 	},
@@ -145,14 +159,28 @@ var testOsImagesByArch = map[string]map[string][]testOsImage{
 		},
 		"5.0": {
 			{
-				Version: "9.8.20261026-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-ppc64le-live-iso.ppc64le.iso",
+				Version:  "9.8.20261026-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-ppc64le-live-iso.ppc64le.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20261026-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/5.0-el10/5.0.0/rhcos-5.0.0-ppc64le-live-iso.ppc64le.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 		"5.1": {
 			{
-				Version: "9.8.20260428-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-ppc64le-live-iso.ppc64le.iso",
+				Version:  "9.8.20260428-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-ppc64le-live-iso.ppc64le.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20260423-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/ppc64le/dependencies/rhcos/pre-release/5.1.0-ec.2-el10/rhcos-5.1.0-ec.2-ppc64le-live-iso.ppc64le.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 	},
@@ -219,14 +247,28 @@ var testOsImagesByArch = map[string]map[string][]testOsImage{
 		},
 		"5.0": {
 			{
-				Version: "9.8.20261026-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-s390x-live-iso.s390x.iso",
+				Version:  "9.8.20261026-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-s390x-live-iso.s390x.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20261026-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/5.0-el10/5.0.0/rhcos-5.0.0-s390x-live-iso.s390x.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 		"5.1": {
 			{
-				Version: "9.8.20260428-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-s390x-live-iso.s390x.iso",
+				Version:  "9.8.20260428-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-s390x-live-iso.s390x.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20260423-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/s390x/dependencies/rhcos/pre-release/5.1.0-ec.2-el10/rhcos-5.1.0-ec.2-s390x-live-iso.s390x.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 	},
@@ -305,14 +347,28 @@ var testOsImagesByArch = map[string]map[string][]testOsImage{
 		},
 		"5.0": {
 			{
-				Version: "9.8.20261026-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-x86_64-live-iso.x86_64.iso",
+				Version:  "9.8.20261026-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/5.0/5.0.0/rhcos-5.0.0-x86_64-live-iso.x86_64.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20261026-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/5.0-el10/5.0.0/rhcos-5.0.0-x86_64-live-iso.x86_64.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 		"5.1": {
 			{
-				Version: "9.8.20260428-0",
-				URL:     "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-x86_64-live-iso.x86_64.iso",
+				Version:  "9.8.20260428-0",
+				URL:      "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/5.1.0-ec.2/rhcos-5.1.0-ec.2-x86_64-live-iso.x86_64.iso",
+				OsStream: "rhel-9",
+			},
+			{
+				Version:         "10.2.20260423-0",
+				URL:             "https://mirror.openshift.com/pub/openshift-v4/x86_64/dependencies/rhcos/pre-release/5.1.0-ec.2-el10/rhcos-5.1.0-ec.2-x86_64-live-iso.x86_64.iso",
+				OsStream:        "rhel-10",
+				DefaultOsStream: testBoolPtr(true),
 			},
 		},
 	},
