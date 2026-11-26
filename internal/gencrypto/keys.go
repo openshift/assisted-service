@@ -8,6 +8,9 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"strings"
+
+	"golang.org/x/crypto/ssh"
 )
 
 func ECDSAKeyPairPEM() (string, string, error) {
@@ -51,6 +54,27 @@ func ECDSAKeyPairPEM() (string, string, error) {
 	}
 
 	return pubKeyPEM.String(), privKeyPEM.String(), nil
+}
+
+// SSHKeyPair generates an ECDSA P-256 SSH keypair, which is allowed in FIPS mode.
+// It returns the public key in authorized_keys format and the private key in OpenSSH PEM format.
+func SSHKeyPair() (string, string, error) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return "", "", err
+	}
+
+	pub, err := ssh.NewPublicKey(priv.Public())
+	if err != nil {
+		return "", "", err
+	}
+
+	block, err := ssh.MarshalPrivateKey(priv, "")
+	if err != nil {
+		return "", "", err
+	}
+
+	return strings.TrimSpace(string(ssh.MarshalAuthorizedKey(pub))), string(pem.EncodeToMemory(block)), nil
 }
 
 // HMACKey generates a hex string representing n random bytes
