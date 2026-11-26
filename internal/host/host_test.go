@@ -3171,6 +3171,49 @@ var _ = Describe("AutoAssignRole", func() {
 		verifyAutoAssignRole(&h, true, true)
 		Expect(hostutil.GetHostFromDB(*h.ID, infraEnvId, db).Role).Should(Equal(models.HostRoleArbiter))
 	})
+
+	It("TNA cluster with day-0 workers having similar resources to arbiter", func() {
+		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaArbiterMode
+		db.Save(cluster)
+
+		hosts := []*models.Host{
+			// 2 intended masters: high resources
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 16, 64, false, "master-capable-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 16, 64, false, "master-capable-2"),
+			// 1 intended arbiter: lower resources
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "arbiter-capable"),
+			// 2 intended workers: similar resources to arbiter
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "worker-1"),
+			generateAutoAssignHost(strfmt.UUID(uuid.New().String()), 8, 32, false, "worker-2"),
+		}
+
+		cluster.Hosts = hosts
+
+		sortedHosts, _ := SortHosts(hosts, cluster.ControlPlaneCount)
+
+		var masterCount, arbiterCount, workerCount int
+
+		for _, host := range sortedHosts {
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+			verifyAutoAssignRole(host, true, true)
+			role := hostutil.GetHostFromDB(*host.ID, infraEnvId, db).Role
+			switch role {
+			case models.HostRoleMaster:
+				// Masters should be the most capable hosts
+				Expect(host.RequestedHostname).To(HavePrefix("master-capable"))
+				masterCount++
+			case models.HostRoleArbiter:
+				arbiterCount++
+			case models.HostRoleWorker:
+				workerCount++
+			}
+		}
+
+		Expect(masterCount).To(Equal(2), "Should have exactly 2 masters")
+		Expect(arbiterCount).To(Equal(1), "Should have exactly 1 arbiter")
+		Expect(workerCount).To(Equal(2), "Should have exactly 2 workers")
+	})
+
 	It("should assign roles based on hardware with GPU weight affecting priority", func() {
 		cluster.ControlPlaneCount = common.MinMasterHostsNeededForInstallationInHaMode
 		hosts := []*models.Host{
@@ -3186,7 +3229,7 @@ var _ = Describe("AutoAssignRole", func() {
 		cluster.Hosts = hosts
 
 		// Sort hosts first (like the real auto-assign logic does)
-		sortedHosts, _ := SortHosts(hosts)
+		sortedHosts, _ := SortHosts(hosts, common.MinMasterHostsNeededForInstallationInHaMode)
 
 		var masterCount, workerCount int
 
@@ -3219,7 +3262,7 @@ var _ = Describe("AutoAssignRole", func() {
 		cluster.Hosts = hosts
 
 		// Sort hosts first (like the real auto-assign logic does)
-		sortedHosts, _ := SortHosts(hosts)
+		sortedHosts, _ := SortHosts(hosts, common.MinMasterHostsNeededForInstallationInHaMode)
 
 		var masterCount, workerCount int
 
@@ -4411,7 +4454,7 @@ var _ = Describe("sortHost by hardware", func() {
 	}
 
 	It("verify host order", func() {
-		sorted, _ := SortHosts(generateHosts())
+		sorted, _ := SortHosts(generateHosts(), common.MinMasterHostsNeededForInstallationInHaMode)
 		expected := []string{
 			"insufficient for both master and worker",
 			"minimal worker with 3 disks (total of 120 GB)",
@@ -4423,6 +4466,26 @@ var _ = Describe("sortHost by hardware", func() {
 			"odf worker with 1 disk of 40 GB",
 			"odf worker with 3 disks (total of 80 GB)",
 			"odf worker with 3 disks (total of 120 GB)",
+			"host with minimal hardware to be either master/worker, with GPU",
+		}
+		for i, h := range sorted {
+			Expect(h.RequestedHostname).To(Equal(expected[i]))
+		}
+	})
+	It("verify host order for two-node topology", func() {
+		sorted, _ := SortHosts(generateHosts(), common.MinMasterHostsNeededForInstallationInHaArbiterMode)
+		expected := []string{
+			"odf worker with 3 disks (total of 120 GB)",
+			"odf worker with 3 disks (total of 80 GB)",
+			"insufficient for both master and worker",
+			"odf worker with 1 disk of 40 GB",
+			"odf master with 3 disks (total of 120 GB)",
+			"sno master with 3 disks (total of 120 GB)",
+			"minimal master with 3 disks (total of 120 GB)",
+			"minimal master with 3 disks (total of 80 GB)",
+			"minimal master with no disks",
+			"minimal worker with 3 disks (total of 120 GB)",
+			// GPU hosts still last
 			"host with minimal hardware to be either master/worker, with GPU",
 		}
 		for i, h := range sorted {
