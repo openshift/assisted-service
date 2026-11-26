@@ -1,6 +1,8 @@
 package installcfg
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/strfmt"
 	configv1 "github.com/openshift/api/config/v1"
 	cluster_validations "github.com/openshift/assisted-service/internal/cluster/validations"
@@ -297,12 +299,22 @@ type InstallerConfigBaremetal struct {
 	Capabilities                  *Capabilities        `json:"capabilities,omitempty"`
 	FeatureSet                    configv1.FeatureSet  `json:"featureSet,omitempty"`
 	FeatureGates                  []string             `json:"featureGates,omitempty"`
+	TLSProfileType                string               `json:"tlsProfileType,omitempty"`
 	OSImageStream                 string               `json:"osImageStream,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {
 	if c.AdditionalTrustBundle != "" {
-		return cluster_validations.ValidatePEMCertificateBundle(c.AdditionalTrustBundle)
+		if err := cluster_validations.ValidatePEMCertificateBundle(c.AdditionalTrustBundle); err != nil {
+			return err
+		}
+	}
+
+	switch c.TLSProfileType {
+	case "", "Modern", "Intermediate", "Old":
+		// Empty leaves the profile unspecified, Modern is the default.
+	default:
+		return fmt.Errorf("invalid tlsProfileType %q: must be Modern, Intermediate or Old", c.TLSProfileType)
 	}
 
 	return nil
