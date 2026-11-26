@@ -226,7 +226,7 @@ func ValidateClusterCreateIPAddresses(ipV6Supported bool, clusterId strfmt.UUID,
 	targetConfiguration.LoadBalancer = params.LoadBalancer
 	targetConfiguration.OpenshiftVersion = swag.StringValue(params.OpenshiftVersion)
 	targetConfiguration.PrimaryIPStack = primaryIPStack
-	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+	return validateVIPAddresses(ipV6Supported, targetConfiguration, swag.BoolValue(targetConfiguration.UserManagedNetworking))
 }
 
 func validateVIPsWithUMA(cluster *common.Cluster, params *models.V2ClusterUpdateParams, vipDhcpAllocation bool) error {
@@ -260,6 +260,10 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	var (
 		err error
 	)
+	effectiveUserManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
+	if params.UserManagedNetworking != nil {
+		effectiveUserManagedNetworking = swag.BoolValue(params.UserManagedNetworking)
+	}
 
 	apiVips := cluster.APIVips
 	if params.APIVips != nil {
@@ -313,6 +317,9 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.VipDhcpAllocation = params.VipDhcpAllocation
 	targetConfiguration.APIVips = apiVips
 	targetConfiguration.IngressVips = ingressVips
+	// Keep the update parameter here so the existing VIP checks remain scoped to
+	// explicitly requested changes. The effective value is passed separately for
+	// determining whether Machine Networks are required.
 	targetConfiguration.UserManagedNetworking = params.UserManagedNetworking
 	targetConfiguration.ClusterNetworks = params.ClusterNetworks
 	targetConfiguration.ServiceNetworks = params.ServiceNetworks
@@ -332,6 +339,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	targetConfiguration.OpenshiftVersion = cluster.OpenshiftVersion
 	targetConfiguration.CPUArchitecture = cluster.CPUArchitecture
 
+	targetConfiguration.ControlPlaneCount = cluster.ControlPlaneCount
 	if params.ControlPlaneCount != nil {
 		targetConfiguration.ControlPlaneCount = *params.ControlPlaneCount
 	}
@@ -341,7 +349,7 @@ func ValidateClusterUpdateVIPAddresses(ipV6Supported bool, cluster *common.Clust
 	}
 
 	targetConfiguration.PrimaryIPStack = primaryIPStack
-	return validateVIPAddresses(ipV6Supported, targetConfiguration)
+	return validateVIPAddresses(ipV6Supported, targetConfiguration, effectiveUserManagedNetworking)
 }
 
 func VerifyParsableVIPs(apiVips []*models.APIVip, ingressVips []*models.IngressVip) error {
@@ -542,7 +550,7 @@ func validateVIPAddressFamily(ipV6Supported bool, targetConfiguration common.Clu
 	return allAddresses, nil
 }
 
-func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster) error {
+func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster, effectiveUserManagedNetworking bool) error {
 	var allAddresses []*string
 	var multiErr error
 	var err error
@@ -586,6 +594,9 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 	}
 
 	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
+	hasStaticVIPs := len(targetConfiguration.APIVips) > 0 || len(targetConfiguration.IngressVips) > 0
+	machineNetworkRequirementConfiguration := targetConfiguration
+	machineNetworkRequirementConfiguration.UserManagedNetworking = swag.Bool(effectiveUserManagedNetworking)
 
 	// In any case, if VIPs are provided, they must pass the validation for being part of the
 	// primary Machine Network and for non-overlapping addresses
@@ -611,7 +622,9 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 			if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
 				return multiErr
 			}
-		} else if reqDualStack {
+		} else if reqDualStack && (network.IsMachineNetworkRequired(&machineNetworkRequirementConfiguration) || hasStaticVIPs) {
+			// Cluster-managed networking requires Machine Networks. Multi-node user-managed
+			// networking can omit them when there are no static VIPs to validate.
 			return errors.New("Dual-stack cluster cannot be created with empty Machine Networks")
 		}
 	} else {

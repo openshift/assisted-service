@@ -1162,6 +1162,76 @@ var _ = Describe("ValidateClusterUpdateVIPAddresses - partial network updates", 
 		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
+
+	It("allows IPv6-primary multi-node user-managed dual-stack without Machine Networks or VIPs", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.APIVips = []*models.APIVip{}
+		cluster.IngressVips = []*models.IngressVip{}
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.ControlPlaneCount = 3
+		cluster.Platform = &models.Platform{Type: common.PlatformTypePtr(models.PlatformTypeNone)}
+		cluster.ClusterNetworks = []*models.ClusterNetwork{
+			{Cidr: "fd01::/48", HostPrefix: 64},
+			{Cidr: "10.128.0.0/14", HostPrefix: 23},
+		}
+		cluster.ServiceNetworks = []*models.ServiceNetwork{
+			{Cidr: "fd02::/112"},
+			{Cidr: "172.30.0.0/16"},
+		}
+
+		params := &models.V2ClusterUpdateParams{
+			ClusterNetworks: cluster.ClusterNetworks,
+			ServiceNetworks: cluster.ServiceNetworks,
+		}
+
+		primaryIPStack := common.PrimaryIPStackV6
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, &primaryIPStack)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("requires Machine Networks to validate configured dual-stack VIPs", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{}
+
+		params := &models.V2ClusterUpdateParams{
+			MachineNetworks: []*models.MachineNetwork{},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Dual-stack cluster cannot be created with empty Machine Networks"))
+	})
+
+	It("requires Machine Networks for multi-node cluster-managed dual-stack without VIPs", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.APIVips = []*models.APIVip{}
+		cluster.IngressVips = []*models.IngressVip{}
+		cluster.UserManagedNetworking = swag.Bool(false)
+		cluster.ControlPlaneCount = 3
+
+		params := &models.V2ClusterUpdateParams{
+			MachineNetworks: []*models.MachineNetwork{},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Dual-stack cluster cannot be created with empty Machine Networks"))
+	})
+
+	It("requires Machine Networks for single-node user-managed dual-stack without VIPs", func() {
+		cluster.MachineNetworks = []*models.MachineNetwork{}
+		cluster.APIVips = []*models.APIVip{}
+		cluster.IngressVips = []*models.IngressVip{}
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.ControlPlaneCount = 1
+
+		params := &models.V2ClusterUpdateParams{
+			MachineNetworks: []*models.MachineNetwork{},
+		}
+
+		err := ValidateClusterUpdateVIPAddresses(true, &cluster, params, nil)
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).To(ContainSubstring("Dual-stack cluster cannot be created with empty Machine Networks"))
+	})
 })
 
 func TestCluster(t *testing.T) {
