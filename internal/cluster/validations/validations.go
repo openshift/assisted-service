@@ -688,13 +688,21 @@ func validateVIPAddresses(ipV6Supported bool, targetConfiguration common.Cluster
 			return nil
 		}
 
-		return network.VerifyVipsForUserManangedLoadBalancer(
-			nil,
-			targetConfiguration.MachineNetworks,
-			string(targetConfiguration.APIVips[0].IP),
-			string(targetConfiguration.IngressVips[0].IP),
-			nil,
-		)
+		for i := range targetConfiguration.APIVips { // len of APIVips and IngressVips should be the same. asserted above.
+			err = network.VerifyVipsForUserManangedLoadBalancer(
+				nil,
+				targetConfiguration.MachineNetworks,
+				string(targetConfiguration.APIVips[i].IP),
+				string(targetConfiguration.IngressVips[i].IP),
+				nil,
+			)
+			if err != nil {
+				multiErr = multierror.Append(multiErr, err)
+			}
+		}
+		if multiErr != nil && !strings.Contains(multiErr.Error(), "0 errors occurred") {
+			return multiErr
+		}
 	}
 
 	return nil
@@ -773,7 +781,7 @@ func ValidateDualStackNetworks(clusterParams interface{}, alreadyDualStack bool,
 
 	if reqDualStack {
 		if common.IsSliceNonEmpty(machineNetworks) {
-			if err := network.VerifyMachineNetworksDualStack(machineNetworks, true, openshiftVersion); err != nil {
+			if err := network.VerifyMachineNetworksDualStack(machineNetworks, true, openshiftVersion, targetLoadBalancerType == models.LoadBalancerTypeUserManaged); err != nil {
 				return err
 			}
 		}

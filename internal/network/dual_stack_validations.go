@@ -245,10 +245,13 @@ func ValidateDualStackOrder(
 }
 
 // VerifyMachineNetworksDualStack Verify if the constraints for dual-stack machine networks are met:
-//   - there are exactly two machine networks
-//   - for OCP < 4.12: the first one is IPv4 subnet and the second one is IPv6 subnet
-//   - for OCP >= 4.12: one is IPv4 subnet and one is IPv6 subnet (in any order)
-func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualStack bool, openshiftVersion string) error {
+//   - for a user-managed load balancer: at least one machine network is IPv4 subnet and at
+//     least one is IPv6 subnet (any count, any order)
+//   - otherwise:
+//     -- there are exactly two machine networks
+//     -- for OCP < 4.12: the first one is IPv4 subnet and the second one is IPv6 subnet
+//     -- for OCP >= 4.12: one is IPv4 subnet and one is IPv6 subnet (in any order)
+func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualStack bool, openshiftVersion string, isUserManagedLoadBalancer bool) error {
 	if !isDualStack {
 		return nil
 	}
@@ -258,7 +261,32 @@ func VerifyMachineNetworksDualStack(networks []*models.MachineNetwork, isDualSta
 		cidrs[i] = string(network.Cidr)
 	}
 
+	if isUserManagedLoadBalancer {
+		return validateDualStackHasBothFamilies(cidrs, "machine networks", "subnet", IsIPV4CIDR, IsIPv6CIDR)
+	}
+
 	return ValidateDualStackOrder(cidrs, "machine networks", "subnet", openshiftVersion, IsIPV4CIDR, IsIPv6CIDR)
+}
+
+// validateDualStackHasBothFamilies verifies that items include at least one of each IP
+// family, without constraining the total count or the order. Used for user-managed load
+// balancer clusters, which allow multiple machine networks per family.
+func validateDualStackHasBothFamilies(items []string, itemType string, itemUnit string, isIPv4Func, isIPv6Func func(string) bool) error {
+	hasIPv4, hasIPv6 := false, false
+	for _, item := range items {
+		if isIPv4Func(item) {
+			hasIPv4 = true
+		} else if isIPv6Func(item) {
+			hasIPv6 = true
+		}
+	}
+	if !hasIPv4 {
+		return errors.Errorf("dual-stack %s must include at least one IPv4 %s", itemType, itemUnit)
+	}
+	if !hasIPv6 {
+		return errors.Errorf("dual-stack %s must include at least one IPv6 %s", itemType, itemUnit)
+	}
+	return nil
 }
 
 // VerifyServiceNetworksDualStack Verify if the constraints for dual-stack service networks are met:
