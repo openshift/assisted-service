@@ -7,10 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	authzv1 "github.com/openshift/api/authorization/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -193,7 +195,7 @@ func (r *agentReclaimer) ensureSpokeAgentCertCM(ctx context.Context, c client.Cl
 	return err
 }
 
-func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c client.Client, log logrus.FieldLogger, nodeName string, infraEnvID string, hostID string) error {
+func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c client.Client, log logrus.FieldLogger, nodeName string, infraEnvID string, hostID string, proxy *models.Proxy) error {
 	node := &corev1.Node{}
 	if err := c.Get(ctx, types.NamespacedName{Name: nodeName}, node); err != nil {
 		return errors.Wrapf(err, "failed to find node %s", nodeName)
@@ -236,6 +238,27 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 		})
 	}
 
+	env := []corev1.EnvVar{{
+		Name: "PULL_SECRET_TOKEN",
+		ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
+			Key: "auth-token",
+			LocalObjectReference: corev1.LocalObjectReference{
+				Name: spokeReclaimSecretName(infraEnvID),
+			},
+		}},
+	}}
+	if proxy != nil {
+		if value := swag.StringValue(proxy.HTTPProxy); value != "" {
+			env = append(env, corev1.EnvVar{Name: "HTTP_PROXY", Value: value})
+		}
+		if value := swag.StringValue(proxy.HTTPSProxy); value != "" {
+			env = append(env, corev1.EnvVar{Name: "HTTPS_PROXY", Value: value})
+		}
+		if value := swag.StringValue(proxy.NoProxy); value != "" {
+			env = append(env, corev1.EnvVar{Name: "NO_PROXY", Value: value})
+		}
+	}
+
 	name := fmt.Sprintf("%s-reclaim", strings.ReplaceAll(nodeName, ".", "-"))
 	var privileged bool = true
 	containers := []corev1.Container{{
@@ -245,15 +268,7 @@ func (r *agentReclaimer) createNextStepRunnerDaemonSet(ctx context.Context, c cl
 		Args:            cliArgs,
 		SecurityContext: &corev1.SecurityContext{Privileged: &privileged},
 		VolumeMounts:    volumeMounts,
-		Env: []corev1.EnvVar{{
-			Name: "PULL_SECRET_TOKEN",
-			ValueFrom: &corev1.EnvVarSource{SecretKeyRef: &corev1.SecretKeySelector{
-				Key: "auth-token",
-				LocalObjectReference: corev1.LocalObjectReference{
-					Name: spokeReclaimSecretName(infraEnvID),
-				},
-			}},
-		}},
+		Env:             env,
 	}}
 
 	labels := map[string]string{"name": name}
