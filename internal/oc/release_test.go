@@ -63,6 +63,7 @@ var _ = Describe("oc", func() {
 
 	AfterEach(func() {
 		os.Remove(tempFilePath)
+		ctrl.Finish()
 	})
 
 	Context("GetMCOImage", func() {
@@ -368,6 +369,122 @@ var _ = Describe("oc", func() {
 			arch, err := oc.GetReleaseArchitecture(log, "", "", pullSecret)
 			Expect(arch).Should(BeEmpty())
 			Expect(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("GetImageArchitecture", func() {
+		Context("for single-arch image", func() {
+			It("cpu architecture exists in cache", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+				arch, err := oc.GetImageArchitecture(log, releaseImage, pullSecret)
+				Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Make sure we get a copy of slice by modifying the slice and getting the architecture again.
+				arch[0] = "mutated"
+				arch, err = oc.GetImageArchitecture(log, releaseImage, pullSecret)
+				Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		Context("for multi-arch image", func() {
+			It("cpu architecture exists in cache", func() {
+				command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
+				command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+				args := splitStringToInterfacesArray(command)
+				args2 := splitStringToInterfacesArray(command2)
+				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "the image is a manifest list", 1).Times(1)
+				mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return(test_skopeo_multiarch_image_output, "", 0).Times(1)
+
+				arch, err := oc.GetImageArchitecture(log, releaseImage, pullSecret)
+				Expect(arch).Should(ConsistOf([]string{"x86_64", "ppc64le", "s390x", "arm64"}))
+				Expect(err).ShouldNot(HaveOccurred())
+
+				arch, err = oc.GetImageArchitecture(log, releaseImage, pullSecret)
+				Expect(arch).Should(ConsistOf([]string{"x86_64", "ppc64le", "s390x", "arm64"}))
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+		})
+
+		It("retries architecture lookup after failure", func() {
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
+			command2 := fmt.Sprintf(templateSkopeoDetectMultiarch+" --authfile %s", releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			args2 := splitStringToInterfacesArray(command2)
+			imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "that's not even an image", 1).Times(1)
+			mockExecuter.EXPECT().Execute(args2[0], args2[1:]...).Return("", "that's still not an image", 1).Times(1)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+			arch, err := oc.GetImageArchitecture(log, releaseImage, pullSecret)
+			Expect(arch).Should(BeEmpty())
+			Expect(err).Should(HaveOccurred())
+
+			arch, err = oc.GetImageArchitecture(log, releaseImage, pullSecret)
+			Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("caches architectures separately per image", func() {
+			otherImage := "other_image"
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", releaseImage, "", tempFilePath)
+			otherCommand := fmt.Sprintf(templateImageInfo+" --registry-config=%s", otherImage, "", tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			otherArgs := splitStringToInterfacesArray(otherCommand)
+			imageInfoStr := fmt.Sprintf("{ \"config\": { \"architecture\": \"%s\" }}", common.TestDefaultConfig.CPUArchitecture)
+			otherImageInfoStr := "{ \"config\": { \"architecture\": \"arm64\" }}"
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+			mockExecuter.EXPECT().Execute(otherArgs[0], otherArgs[1:]...).Return(otherImageInfoStr, "", 0).Times(1)
+
+			arch, err := oc.GetImageArchitecture(log, releaseImage, pullSecret)
+			Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			arch, err = oc.GetImageArchitecture(log, otherImage, pullSecret)
+			Expect(arch).Should(Equal([]string{"arm64"}))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			arch, err = oc.GetImageArchitecture(log, releaseImage, pullSecret)
+			Expect(arch).Should(Equal([]string{common.TestDefaultConfig.CPUArchitecture}))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("serves concurrent requests from a single lookup", func() {
+			image := "image1"
+			command := fmt.Sprintf(templateImageInfo+" --registry-config=%s", image, "", tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			imageInfoStr := "{ \"config\": { \"architecture\": \"x86_64\" }}"
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(imageInfoStr, "", 0).Times(1)
+
+			const timesToRun = 20
+			panicChan := make(chan interface{})
+			doneChan := make(chan bool)
+			for range timesToRun {
+				go func() {
+					defer func() {
+						if panicVar := recover(); panicVar != nil {
+							panicChan <- panicVar
+						}
+						doneChan <- true
+					}()
+					arch, err := oc.GetImageArchitecture(log, image, pullSecret)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(arch).To(Equal([]string{"x86_64"}))
+				}()
+			}
+			for numRequesting := timesToRun; numRequesting > 0; {
+				select {
+				case panicVar := <-panicChan:
+					panic(panicVar)
+				case <-doneChan:
+					numRequesting--
+				}
+			}
 		})
 	})
 
