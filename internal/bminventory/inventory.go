@@ -2465,14 +2465,14 @@ func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
-	// In order to check if the cluster is dual-stack or single-stack we are building a structure
-	// that is a merge of the current cluster configuration and new configuration coming from
-	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
-	// not the stale one.
-	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
-	// inside this function here cluster object has still values before applying requested changes.
-	targetConfiguration := common.Cluster{}
+// buildTargetConfiguration returns the cluster configuration as it will be once the requested
+// update is applied. Fields which are not requested keep their current values. The fields
+// consumed by network.IsLoadBalancerUserManaged and common.IsSingleNodeCluster are carried over,
+// and, when the request does not specify a load balancer, its ownership is inferred from the
+// already-merged ControlPlaneCount/UserManagedNetworking so that e.g. converting to single-node
+// in the same request is reflected correctly, rather than from the stale pre-update cluster.
+func buildTargetConfiguration(cluster *common.Cluster, params installer.V2UpdateClusterParams) *common.Cluster {
+	targetConfiguration := &common.Cluster{}
 	targetConfiguration.ID = cluster.ID
 	targetConfiguration.ClusterNetworks = cluster.ClusterNetworks
 	targetConfiguration.ServiceNetworks = cluster.ServiceNetworks
@@ -2480,6 +2480,8 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	targetConfiguration.APIVips = cluster.APIVips
 	targetConfiguration.IngressVips = cluster.IngressVips
 	targetConfiguration.LoadBalancer = cluster.LoadBalancer
+	targetConfiguration.ControlPlaneCount = cluster.ControlPlaneCount
+	targetConfiguration.UserManagedNetworking = cluster.UserManagedNetworking
 
 	if params.ClusterUpdateParams.ClusterNetworks != nil {
 		targetConfiguration.ClusterNetworks = params.ClusterUpdateParams.ClusterNetworks
@@ -2490,22 +2492,43 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	if params.ClusterUpdateParams.MachineNetworks != nil {
 		targetConfiguration.MachineNetworks = params.ClusterUpdateParams.MachineNetworks
 	}
-	reqDualStack := network.CheckIfClusterIsDualStack(&targetConfiguration)
-
 	if params.ClusterUpdateParams.APIVips != nil {
 		targetConfiguration.APIVips = params.ClusterUpdateParams.APIVips
 	}
 	if params.ClusterUpdateParams.IngressVips != nil {
 		targetConfiguration.IngressVips = params.ClusterUpdateParams.IngressVips
 	}
+	if params.ClusterUpdateParams.ControlPlaneCount != nil {
+		targetConfiguration.ControlPlaneCount = swag.Int64Value(params.ClusterUpdateParams.ControlPlaneCount)
+	}
+	if params.ClusterUpdateParams.UserManagedNetworking != nil {
+		targetConfiguration.UserManagedNetworking = params.ClusterUpdateParams.UserManagedNetworking
+	}
 	if params.ClusterUpdateParams.LoadBalancer != nil {
 		targetConfiguration.LoadBalancer = params.ClusterUpdateParams.LoadBalancer
+	} else {
+		targetConfiguration.LoadBalancer = &models.LoadBalancer{
+			Type: network.TargetLoadBalancerType(targetConfiguration, params.ClusterUpdateParams),
+		}
 	}
+	return targetConfiguration
+}
+
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster, params installer.V2UpdateClusterParams, log logrus.FieldLogger, interactivity Interactivity) error {
+	// In order to check if the cluster is dual-stack or single-stack we are building a structure
+	// that is a merge of the current cluster configuration and new configuration coming from
+	// V2UpdateClusterParams. This ensures that the reqDualStack flag reflects a desired state and
+	// not the stale one.
+	// We need to do it because updateNonDhcpNetworkParams is called before updateNetworks, so
+	// inside this function here cluster object has still values before applying requested changes.
+	targetConfiguration := buildTargetConfiguration(cluster, params)
+	reqDualStack := network.CheckIfClusterIsDualStack(targetConfiguration)
+
 	if params.ClusterUpdateParams.MachineNetworks != nil &&
 		common.IsSliceNonEmpty(params.ClusterUpdateParams.MachineNetworks) &&
 		interactivity == Interactive &&
 		!reqDualStack &&
-		!network.IsLoadBalancerUserManaged(&targetConfiguration) {
+		!network.IsLoadBalancerUserManaged(targetConfiguration) {
 		err := errors.New("Setting the Machine Network CIDR is forbidden when the cluster is neither in VIP DHCP allocation mode nor using a user-managed load balancer")
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2519,7 +2542,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 	}
 
 	err = network.ValidateNoVIPAddressesDuplicates(
-		targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(&targetConfiguration),
+		targetConfiguration.APIVips, targetConfiguration.IngressVips, network.IsLoadBalancerUserManaged(targetConfiguration),
 	)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
@@ -2533,7 +2556,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 			return b.updateNonDhcpDualStackNetworkParams(
 				cluster,
 				params,
-				&targetConfiguration,
+				targetConfiguration,
 				log,
 			)
 		}
@@ -2541,7 +2564,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(cluster *common.Cluster,
 		return b.updateNonDhcpSingleStackNetworkParams(
 			cluster,
 			params,
-			&targetConfiguration,
+			targetConfiguration,
 			log,
 		)
 	}
