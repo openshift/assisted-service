@@ -7,14 +7,14 @@ metadata:
 spec:
   relatedImages:
     - name: controller
-      image: quay.io/edge-infrastructure/assisted-service:latest
+      image: quay.io/edge-infrastructure/assisted-service:ocm-5.0
     - name: image-service
-      image: quay.io/edge-infrastructure/assisted-image-service:latest
+      image: quay.io/edge-infrastructure/assisted-image-service:ocm-5.0
     - name: postgresql
       image: quay.io/sclorg/postgresql-16-c9s:latest
     - name: installer
-      image: quay.io/edge-infrastructure/assisted-installer:latest
+      image: quay.io/edge-infrastructure/assisted-installer:ocm-5.0
     - name: agent
-      image: quay.io/edge-infrastructure/assisted-installer-agent:latest
+      image: quay.io/edge-infrastructure/assisted-installer-agent:ocm-5.0
     - name: reporter
-      image: quay.io/edge-infrastructure/assisted-installer-controller:latest
+      image: quay.io/edge-infrastructure/assisted-installer-controller:ocm-5.0
