@@ -20,9 +20,9 @@ const (
 )
 
 // getUserTomlConfigMapData get registries.conf and ca-bundle.crt if exist in the provided configmap inside AgentClusterInstall
-func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference) (string, string, *corev1.ConfigMap, error) {
+func getUserTomlConfigMapData(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference, ownerNamespace string) (string, string, *corev1.ConfigMap, error) {
 	userTomlConfigMap := &corev1.ConfigMap{}
-	namespacedName := types.NamespacedName{Name: ref.Name, Namespace: ref.Namespace}
+	namespacedName := types.NamespacedName{Name: ref.Name, Namespace: ownerNamespace}
 	err := c.Get(ctx, namespacedName, userTomlConfigMap)
 	if err != nil {
 		log.Error(err, "Failed to get ConfigMap", "ConfigMapName", ref.Name, "ConfigMapNamespace", ref.Namespace)
@@ -63,13 +63,13 @@ func ParseMirrorRegistryConfig(registriesConf, caBundleCrt string) (*common2.Mir
 }
 
 // ProcessMirrorRegistryConfig retrieves the mirror registry configuration from the referenced ConfigMap
-func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference) (*common2.MirrorRegistryConfiguration, *corev1.ConfigMap, error) {
+func ProcessMirrorRegistryConfig(ctx context.Context, log logrus.FieldLogger, c client.Client, ref *hiveext.MirrorRegistryConfigMapReference, ownerNamespace string) (*common2.MirrorRegistryConfiguration, *corev1.ConfigMap, error) {
 	if ref == nil {
 		return nil, nil, nil
 	}
 
-	log.Infof("Getting cluster mirror registry configurations %s %s ", ref.Namespace, ref.Name)
-	registriesConf, caBundleCrt, userTomlConfigMap, err := getUserTomlConfigMapData(ctx, log, c, ref)
+	log.Infof("Getting cluster mirror registry configurations %s %s ", ownerNamespace, ref.Name)
+	registriesConf, caBundleCrt, userTomlConfigMap, err := getUserTomlConfigMapData(ctx, log, c, ref, ownerNamespace)
 	if err != nil {
 		return nil, nil, err
 	}
