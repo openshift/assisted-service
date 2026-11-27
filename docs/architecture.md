@@ -53,7 +53,7 @@ Each cluster and each host being installed moves through their respective state 
   * Preparing-for-installation: The service runs openshift-install create ignition-configs and uploads all files to S3.  If the user chose to use route53 for DNS, the service creates those record sets.
   * Installing: The service is ready to begin the cluster installation.  Next time the agent asks for instructions, the service will instruct it to begin the installation, and then moves the state to installing-in-progress.
   * Installing-in-progress: The host is currently installing.
-  * Installing-pending-user-action: If the service expected the host to reboot and boot from disk, but the agent came up again and contacted the service, the host enters this state to notify the user to fix the server’s boot order.
+  * Installing-pending-user-action: If the service expected the host to reboot and boot from disk, but the agent came up again and contacted the service, the host enters this state to notify the user to fix the server’s boot order. The host will time out and move to error if the cluster would be successful without the host installing.
 * Resetting: If the user requested to reset the installation, the host enters this transient state while the service resets.
   * Resetting-pending-user-action: To reset the installation, the host needs to be booted from the live image.  If the host already booted from disk in a previous installation, the host enters this state to notify the user to boot from the live image.
 * Installed: The installation has successfully completed on the host.
